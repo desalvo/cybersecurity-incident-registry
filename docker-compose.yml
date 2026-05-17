@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:18.4
+    environment:
+      POSTGRES_DB: incidents
+      POSTGRES_USER: incidents
+      POSTGRES_PASSWORD: incidents
+    volumes: ["pgdata:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U incidents -d incidents"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  web:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://incidents:incidents@db:5432/incidents
+      SECRET_KEY: change-me
+      ADMIN_INITIAL_PASSWORD: adminpass
+      FORM_TEMPLATE_DIR: /data/form_templates
+    volumes: ["uploads:/data/uploads", "logo:/data/logo", "form_templates:/data/form_templates"]
+    depends_on:
+      db:
+        condition: service_healthy
+volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}}

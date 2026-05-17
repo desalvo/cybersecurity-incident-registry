@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>{% if adding %}Aggiungi template di notifica{% else %}Template notifiche {{ title }}{% endif %}</h2>
+  <p class="muted">È possibile aggiungere template solo dalla voce <strong>Notifiche → Aggiungi template</strong>. Da questa pagina si modificano, clonano, cancellano e impostano come predefiniti i template esistenti.</p>
+  <h3>Campi disponibili</h3>
+  <table class="table compact">
+    <tr><th>Campo</th><th>Descrizione</th></tr>
+    {% for code, description in fields %}<tr><td><code>{{ code }}</code></td><td>{{ description }}</td></tr>{% endfor %}
+  </table>
+</div>
+
+{% if adding or editing %}
+<div class="card">
+  <h3>{% if adding %}Nuovo template{% else %}Modifica template{% endif %}</h3>
+  <form method="post" class="form-grid">
+    {% if editing %}<input type="hidden" name="template_id" value="{{ editing.id }}">{% endif %}
+    <input type="hidden" name="action" value="save">
+    {% if adding %}
+    <div>
+      <label>Tipo notifica</label>
+      <select name="kind">
+        {% for code, label in kinds.items() %}<option value="{{ code }}" {% if kind==code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div><label>Nome template</label><input name="name" required value="{{ editing.name if editing else '' }}" placeholder="Nome template"></div>
+    <div><label><input type="checkbox" name="is_default" {% if editing and editing.is_default %}checked{% endif %}> Predefinito</label></div>
+    <div class="wide"><label>Label azione automatica</label><select name="action_label_id"><option value="">Nessuna / default</option>{% for l in action_labels %}<option value="{{ l.id }}" {% if editing and editing.action_label_id==l.id %}selected{% endif %}>{{ l.value }}</option>{% endfor %}</select><p class="muted">Dopo l’invio della notifica sarà aggiunta automaticamente un’azione con questa label.</p></div>
+    <div class="wide"><label>Oggetto</label><input name="subject" value="{{ editing.subject if editing else '' }}" placeholder="Oggetto della mail"></div>
+    <div class="wide"><label>Testo della mail</label><textarea name="body" rows="14" placeholder="Testo del template">{{ editing.body if editing else '' }}</textarea></div>
+    <button type="submit">{{ 'Aggiungi template' if adding else 'Salva modifiche' }}</button>
+    {% if editing %}<a class="button secondary" href="{{ url_for('main.notification_template', kind=kind) }}">Annulla modifica</a>{% endif %}
+  </form>
+</div>
+{% endif %}
+
+{% if not adding %}
+<div class="card">
+  <h3>Template configurati</h3>
+  <p><a class="button" href="{{ url_for('main.notification_template_new', kind=kind) }}">Aggiungi template {{ title }}</a></p>
+  <table class="table">
+    <tr><th>Nome</th><th>Oggetto</th><th>Label azione</th><th>Predefinito</th><th>Azioni</th></tr>
+    {% for t in templates %}
+    <tr>
+      <td>{{ t.name }}</td>
+      <td>{{ t.subject }}</td>
+      <td>{{ t.action_label.value if t.action_label else 'default' }}</td>
+      <td>{{ 'sì' if t.is_default else 'no' }}</td>
+      <td class="button-row">
+        <a class="button secondary" href="{{ url_for('main.notification_template', kind=kind, edit=t.id) }}">Modifica</a>
+        <form method="post" onsubmit="return confirm('Clonare questo template di notifica?')">
+          <input type="hidden" name="template_id" value="{{ t.id }}"><input type="hidden" name="action" value="clone"><button type="submit">Clona</button>
+        </form>
+        <form method="post" onsubmit="return confirm('Cancellare il template?')">
+          <input type="hidden" name="template_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button>
+        </form>
+        {% if not t.is_default %}
+        <form method="post">
+          <input type="hidden" name="template_id" value="{{ t.id }}"><input type="hidden" name="action" value="set_default"><button type="submit">Predefinito</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

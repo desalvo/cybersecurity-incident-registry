@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Struttura</h2>
+  <form method="post" class="form-grid">
+    <div>
+      <label>Nome della struttura</label>
+      <input name="structure_name" value="{{ structure_name or '' }}" placeholder="es. Dipartimento, Laboratorio, Servizio...">
+    </div>
+    <div class="form-actions full-width"><button>Salva</button></div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <div class="page-header">
+    <div>
+      <h2>Audit</h2>
+      <p class="muted">Registro delle operazioni utente, scheduler notifiche e task automatizzati. Ritenzione configurata: {{ retention_label }}; cutoff corrente: {{ cutoff.strftime('%Y-%m-%d %H:%M') }} UTC.</p>
+    </div>
+  </div>
+  <form method="get" class="form-grid">
+    <div>
+      <label>Ricerca libera</label>
+      <input name="q" value="{{ search }}" placeholder="operazione, utente, dettagli">
+    </div>
+    <div>
+      <label>Tipo operazione</label>
+      <input name="operation_type" value="{{ operation_type }}" placeholder="es. main.add_action">
+    </div>
+    <div>
+      <label>Utente</label>
+      <input name="username" value="{{ username }}" placeholder="username o system">
+    </div>
+    <div>
+      <label>Origine</label>
+      <select name="actor_type">
+        <option value="" {% if not actor_type %}selected{% endif %}>Tutte</option>
+        <option value="user" {% if actor_type=='user' %}selected{% endif %}>Utente</option>
+        <option value="scheduler" {% if actor_type=='scheduler' %}selected{% endif %}>Scheduler</option>
+        <option value="system" {% if actor_type=='system' %}selected{% endif %}>Sistema</option>
+      </select>
+    </div>
+    <div>
+      <label>Da</label>
+      <input name="start" type="datetime-local" value="{{ start }}">
+    </div>
+    <div>
+      <label>A</label>
+      <input name="end" type="datetime-local" value="{{ end }}">
+    </div>
+    <div class="wide actions">
+      <button>Cerca</button>
+      <a class="button" href="{{ url_for('main.admin_audit') }}">Azzera filtri</a>
+    </div>
+  </form>
+</div>
+<div class="card table-card">
+  <h3>Risultati</h3>
+  <p class="muted">Sono mostrati al massimo gli ultimi 500 record corrispondenti ai filtri.</p>
+  <table class="table">
+    <tr><th>Data/ora UTC</th><th>Tipo operazione</th><th>Utente</th><th>Origine</th><th>Dettagli</th></tr>
+    {% for log in logs %}
+      <tr>
+        <td>{{ log.occurred_at.strftime('%Y-%m-%d %H:%M:%S') if log.occurred_at else '' }}</td>
+        <td>{{ log.operation_type }}</td>
+        <td>{{ log.username }}</td>
+        <td>{{ log.actor_type }}</td>
+        <td><pre class="audit-details">{{ log.details or '' }}</pre></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5">Nessun record di audit trovato.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

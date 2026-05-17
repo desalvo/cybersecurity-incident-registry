@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="{{ current_language or 'it' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>cybersecurity-incident-registry</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+  <script>window.CIR_LANG={{ (current_language or 'it')|tojson }};</script>
+  <script src="{{ url_for('static',filename='i18n.js') }}" defer></script>
+  <script src="{{ url_for('static',filename='app.js') }}" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Salta al contenuto principale</a>
+<header class="topbar" role="banner">
+  <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" onerror="this.style.display='none'"><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
+  <button class="mobile-menu-toggle" type="button" aria-label="Apri o chiudi menu" aria-controls="main-nav" aria-expanded="false">☰ Menu</button>
+  <nav id="main-nav" class="nav" aria-label="Menu principale">
+    <a href="{{ url_for('main.index') }}">Incidenti</a>
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-export">Export</button>
+      <div id="menu-export" class="dropdown-content" role="menu" aria-label="Export">
+        <a role="menuitem" href="{{ url_for('main.export_csv') }}">Export incidenti in CSV</a>
+        <a role="menuitem" href="{{ url_for('main.export_full') }}">Export completo</a>
+        <a role="menuitem" href="{{ url_for('main.import_csv') }}">CSV import</a>
+        <a role="menuitem" href="{{ url_for('main.import_full') }}">Full import</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-report">Report</button>
+      <div id="menu-report" class="dropdown-content" role="menu" aria-label="Report">
+        <a role="menuitem" href="{{ url_for('main.stats') }}">Statistiche</a>
+      </div>
+    </div>
+
+
+    {% if current_user.role=='admin' %}
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-notifiche">Notifiche</button>
+      <div id="menu-notifiche" class="dropdown-content" role="menu" aria-label="Notifiche">
+        <a role="menuitem" href="{{ url_for('main.notification_types') }}">Tipi di notifica</a>
+        <a role="menuitem" href="{{ url_for('main.notification_template_new') }}">Aggiungi template</a>
+        <span class="dropdown-separator" aria-hidden="true"></span>
+        {% for nt in notification_menu_types %}
+          <a role="menuitem" href="{{ url_for('main.notification_template', kind=nt.code) }}">Template {{ nt.label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+
+    {% if modules_menu_visible %}
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-moduli">Moduli</button>
+      <div id="menu-moduli" class="dropdown-content" role="menu" aria-label="Moduli">
+        {% if current_user.role=='admin' %}<a role="menuitem" href="{{ url_for('main.modules_configuration') }}">Configurazione</a>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-settings">Impostazioni</button>
+      <div id="menu-settings" class="dropdown-content" role="menu" aria-label="Impostazioni">
+        <a role="menuitem" href="{{ url_for('main.change_password') }}">Cambio password</a>
+        <a role="menuitem" href="{{ url_for('main.mfa_settings') }}">Multi-factor authentication</a>
+        {% if current_user.role=='admin' %}<a role="menuitem" href="{{ url_for('main.notification_settings') }}">Notifiche</a>{% endif %}
+      </div>
+    </div>
+
+    {% if current_user.role=='admin' %}
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-admin">Admin</button>
+      <div id="menu-admin" class="dropdown-content" role="menu" aria-label="Admin">
+        <a role="menuitem" href="{{ url_for('main.admin_labels') }}">Liste configurabili</a>
+        <a role="menuitem" href="{{ url_for('main.admin_people') }}">Personale</a>
+        <a role="menuitem" href="{{ url_for('main.admin_logo') }}">Logo</a>
+        <a role="menuitem" href="{{ url_for('main.admin_users') }}">Utenti</a>
+        <a role="menuitem" href="{{ url_for('main.ldap_settings') }}">LDAP</a>
+        <a role="menuitem" href="{{ url_for('main.sso_settings_admin') }}">SSO</a>
+        <a role="menuitem" href="{{ url_for('main.admin_security_owner') }}">Dati titolare</a>
+        <a role="menuitem" href="{{ url_for('main.admin_structure') }}">Struttura</a>
+        <a role="menuitem" href="{{ url_for('main.admin_security_responsible') }}">Dati responsabile</a>
+        <a role="menuitem" href="{{ url_for('main.admin_recommendations') }}">Raccomandazioni</a>
+        <a role="menuitem" href="{{ url_for('main.admin_audit') }}">Audit</a>
+        <a role="menuitem" href="{{ url_for('main.admin_other_configurations') }}">Altre configurazioni</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-help">Aiuto</button>
+      <div id="menu-help" class="dropdown-content" role="menu" aria-label="Aiuto">
+        <a role="menuitem" href="{{ url_for('main.help_page') }}">Documentazione</a>
+        <a role="menuitem" href="{{ url_for('main.help_pdf') }}">Scarica documentazione PDF</a>
+        <a role="menuitem" href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>
+        <a role="menuitem" href="{{ url_for('main.admin_help_pdf') }}">Scarica documentazione amministrativa PDF</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-info">Info</button>
+      <div id="menu-info" class="dropdown-content" role="menu" aria-label="Info">
+        <a role="menuitem" href="{{ url_for('main.app_info') }}">Applicazione</a>
+      </div>
+    </div>
+  </nav>
+  <img class="menu-app-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry" loading="lazy">
+  <div class="userbox" aria-label="Utente corrente">
+    {{ current_user.name or current_user.username }} · <a href="{{ url_for('main.logout') }}">Logout</a>
+  </div>
+</header>
+<main id="main-content" class="container" tabindex="-1">
+  {% if request.endpoint != 'main.incident_detail' %}{% for category,m in get_flashed_messages(with_categories=true) %}{% if not category.startswith('section:') %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endif %}{% endfor %}{% endif %}
+  {% block content %}{% endblock %}
+</main>
+<img class="app-corner-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry" loading="lazy">
+</body>
+</html>

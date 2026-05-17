@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h1>Logo</h1>
+  <p class="muted">Carica l’immagine visualizzata nella barra superiore e nella pagina di login. Altezza massima mostrata: 2 cm.</p>
+  <div class="logo-preview">
+    <img class="preview-logo" src="{{ url_for('main.logo_image') }}" alt="Logo corrente" onerror="this.style.display='none'">
+  </div>
+  <form method="post" enctype="multipart/form-data" class="toolbar">
+    <div>
+      <label>Nuovo logo</label>
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" required>
+    </div>
+    <button type="submit" name="action" value="upload">Carica logo</button>
+    <button type="submit" name="action" value="delete" class="danger" formnovalidate>Cancella logo</button>
+  </form>
+</div>
+{% endblock %}

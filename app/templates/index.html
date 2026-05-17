@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block content %}
+{% macro sort_url(column) -%}
+  {%- set next_dir = 'desc' if sort == column and direction == 'asc' else 'asc' -%}
+  {{ url_for('main.index', q=request.args.get('q',''), label=request.args.get('label',''), start=request.args.get('start',''), end=request.args.get('end',''), sort=column, dir=next_dir) }}
+{%- endmacro %}
+{% macro sort_indicator(column) -%}
+  {%- if sort == column -%}
+    {{ ' ▲' if direction == 'asc' else ' ▼' }}
+  {%- endif -%}
+{%- endmacro %}
+
+<div class="card">
+  <div class="page-header">
+    <div>
+      <h2>Incidenti registrati</h2>
+      <p class="muted"><b>Totale incidenti:</b> {{ total }}</p>
+    </div>
+    {% if current_user.role in ['admin','writer'] %}
+      <a class="button" href="{{ url_for('main.incident_new') }}">Nuovo incidente</a>
+    {% endif %}
+  </div>
+  <form class="toolbar" method="get" action="{{ url_for('main.index') }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="dir" value="{{ direction }}">
+    <div><label>Parole chiave</label><input name="q" value="{{ request.args.get('q','') }}"></div>
+    <div><label>Label azione</label><input name="label" value="{{ request.args.get('label','') }}"></div>
+    <div><label>Da</label><input name="start" type="datetime-local" value="{{ request.args.get('start','') }}"></div>
+    <div><label>A</label><input name="end" type="datetime-local" value="{{ request.args.get('end','') }}"></div>
+    <button>Cerca</button>
+    <a class="button secondary" href="{{ url_for('main.index') }}">Reset</a>
+  </form>
+  <div class="mobile-sort">
+    <form class="form-grid" method="get" action="{{ url_for('main.index') }}">
+      <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+      <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
+      <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
+      <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
+      <div><label>Ordina per</label><select name="sort">
+        <option value="name" {% if sort=='name' %}selected{% endif %}>Nome</option>
+        <option value="start_at" {% if sort=='start_at' %}selected{% endif %}>Inizio / fine</option>
+        <option value="creator_name" {% if sort=='creator_name' %}selected{% endif %}>Compilatore</option>
+        <option value="people" {% if sort=='people' %}selected{% endif %}>Personale coinvolto</option>
+        <option value="status" {% if sort=='status' %}selected{% endif %}>Stato</option>
+        <option value="duration" {% if sort=='duration' %}selected{% endif %}>Durata</option>
+      </select></div>
+      <div><label>Direzione</label><select name="dir">
+        <option value="asc" {% if direction=='asc' %}selected{% endif %}>Crescente</option>
+        <option value="desc" {% if direction=='desc' %}selected{% endif %}>Decrescente</option>
+      </select></div>
+      <button class="wide">Applica ordinamento</button>
+    </form>
+  </div>
+</div>
+
+<div class="card table-card">
+  
+  <div class="incident-mobile-list" aria-label="Lista incidenti mobile">
+    {% for i in incidents %}
+    <article class="incident-card-mobile">
+      <h3>{% if i.has_procedural_warnings %}<span class="procedure-danger-icon" title="Avvisi procedurali presenti" aria-label="Avvisi procedurali presenti">⚠</span>{% endif %}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></h3>
+      <div class="mobile-meta">
+        <div><strong>Inizio / fine</strong>{{ i.start_at }}{% if i.end_at %}<br>{{ i.end_at }}{% endif %}</div>
+        <div><strong>Compilatore</strong>{{ i.creator_name }}</div>
+        <div><strong>Personale coinvolto</strong>{{ i.people|map(attribute='name')|sort|join(', ') or '—' }}</div>
+        <div><strong>Stato</strong>{{ i.status }}</div>
+        <div><strong>Durata</strong>{% if i.actions|length > 1 %}{{ (i.actions|sort(attribute='when_at')|last).when_at - (i.actions|sort(attribute='when_at')|first).when_at }}{% else %}—{% endif %}</div>
+      </div>
+      <div class="mobile-actions">
+        <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
+        {% if current_user.role in ['admin','writer'] %}<a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>{% endif %}
+        {% if current_user.role in ['admin','writer'] %}
+          <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
+            <button class="danger" type="submit">Elimina</button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}
+      <p class="empty">Nessun incidente trovato.</p>
+    {% endfor %}
+  </div>
+  <table class="table incident-table">
+    <thead>
+      <tr>
+        <th><a class="sort-link" href="{{ sort_url('name') }}">Nome dell’incidente{{ sort_indicator('name') }}</a></th>
+        <th><a class="sort-link" href="{{ sort_url('start_at') }}">Inizio / fine{{ sort_indicator('start_at') }}</a></th>
+        <th><a class="sort-link" href="{{ sort_url('creator_name') }}">Compilatore{{ sort_indicator('creator_name') }}</a></th>
+        <th><a class="sort-link" href="{{ sort_url('people') }}">Personale coinvolto{{ sort_indicator('people') }}</a></th>
+        <th><a class="sort-link" href="{{ sort_url('status') }}">Stato{{ sort_indicator('status') }}</a></th>
+        <th><a class="sort-link" href="{{ sort_url('duration') }}">Durata{{ sort_indicator('duration') }}</a></th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in incidents %}
+      <tr>
+        <td>{% if i.has_procedural_warnings %}<span class="procedure-danger-icon" title="Avvisi procedurali presenti: {{ i.procedural_warnings|join(', ') }}" aria-label="Avvisi procedurali presenti">⚠</span>{% endif %}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
+        <td>{{ i.start_at }}<br>{{ i.end_at or '' }}</td>
+        <td>{{ i.creator_name }}</td>
+        <td>{{ i.people|map(attribute='name')|sort|join(', ') }}</td>
+        <td>{{ i.status }}</td>
+        <td>{% if i.effective_duration %}{{ i.effective_duration }}{% endif %}</td>
+        <td class="actions">
+          {% if current_user.role in ['admin','writer'] %}
+            <a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>
+          {% endif %}
+          <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
+          {% if current_user.role in ['admin','writer'] %}
+            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="inline-form" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
+              <button class="danger" type="submit">Elimina</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="empty">Nessun incidente trovato.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

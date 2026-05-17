@@ -1,0 +1,400 @@
+
+0.110-94
+- Interfaccia web bilingue italiano/inglese con selezione automatica dal locale del browser.
+- Nuova opzione Admin → Altre configurazioni → Lingua interfaccia per forzare italiano o inglese.
+- Documentazione utente e amministratore mantenuta in versione italiana e inglese, incluse le versioni PDF.
+- Configurazioni aggiornate con la nuova chiave interface_language inclusa nel full export/import.
+
+0.110-93
+- Rinominata la colonna delle label azioni in “Tempo massimo (ore)”.
+- Le notifiche automatiche dei task in scadenza riportano scadenze, informazione iniziale e data di generazione nel fuso orario applicativo configurato.
+- Aggiornata la documentazione utente, amministratore e progettuale.
+
+0.110-92
+- Aggiunto il campo default_exportable alle label configurabili di tipo action_label.
+- Aggiornata Admin -> Liste configurabili -> Label azioni con il checkbox Esportabile per default.
+- La creazione delle azioni inizializza Action.exportable dal valore configurato sulla label selezionata, mantenendo il fallback storico per configurazioni legacy.
+- Aggiornate documentazione utente, amministratore e progettuale.
+
+0.110-90
+- La ritenzione dell'audit log in Admin -> Altre configurazioni è ora espressa in mesi, giorni, ore e minuti, con default a 6 mesi.
+- La pulizia della tabella audit_log usa il periodo complessivo configurato e mantiene compatibilità con la precedente chiave audit_retention_months.
+- Il tasto Salva configurazione della pagina Altre configurazioni ha altezza massima 1 cm.
+- Aggiornate documentazioni utente, amministrativa, progettuale e README.
+
+0.110-89
+- Verificato e rafforzato il full export/import: include audit_logs e tutte le configurazioni settings.
+- Centralizzata la pulizia retention audit con purge_audit_logs(), richiamata dopo operazioni utente, scheduler notifiche e full import.
+- Aggiunta pagina Admin -> Audit riservata agli amministratori, con ricerca su campi audit e visualizzazione degli ultimi 500 record.
+- Aggiornate documentazioni utente, amministrativa e progettuale.
+
+0.110-86
+- Rafforzata la chiusura automatica degli incidenti: l’azione di conclusione aggiorna esplicitamente stato, data fine e ora fine a partire dalla data/ora dell’azione.
+- Documentazione aggiornata.
+
+0.110-85
+- La data/ora predefinita delle nuove azioni nel dettaglio incidente viene valorizzata al momento di caricamento della form usando il fuso orario configurato.
+- Aggiunto campo Admin -> Altre configurazioni -> Time zone applicazione, default Europe/Rome.
+- L'aggiunta o modifica di un'azione riconosciuta come conclusione chiude automaticamente l'incidente e allinea la data/ora fine all'azione di conclusione.
+- Aggiornate documentazione utente, amministrativa, progettuale e README.
+
+
+0.110-84
+- Mantenimento automatico della posizione nella pagina incidente dopo salvataggio, aggiunta azioni, upload documenti e generazione moduli.
+- Aggiunte ancore operative e redirect post/redirect/get coerenti per le sezioni Dati incidente, Azioni, Documenti e Generazione moduli.
+- Documentazione aggiornata.
+
+
+0.110-82
+- Aggiunto campo Admin → Altre configurazioni → URL applicazione con default http://localhost:8000.
+- Aggiunti placeholder task in scadenza %external_url%, %report% e %statistics%.
+- Se %report% è presente nel template task, la mail allega il report PDF dell’incidente generato al momento dell’invio.
+- Se %statistics% è presente nel template task, la mail allega il PDF statistiche generato al momento dell’invio.
+- Aggiunto placeholder generale %EXTERNAL_URL% ai template notifiche.
+- Aggiornate documentazioni utente, amministrativa e progettuale.
+
+
+Versione 0.110-81
+- Aggiornato il layout di Admin -> Liste configurabili: le sezioni sono ora disposte in sequenza verticale invece che in colonne, per migliorare la leggibilità e la modifica dei campi.
+- Aggiornate documentazione utente, amministrativa, progettuale e README.
+
+
+## 0.110-79
+- Corretta la persistenza dei template PDF dei moduli tra riavvii dell’applicazione.
+- Aggiunta copia binaria persistente nel database (`form_template_binary`) e ripristino automatico dei PDF mancanti in `FORM_TEMPLATE_DIR`.
+- Allineate creazione, sostituzione, rinomina, cancellazione, export e import dei template PDF alla nuova persistenza robusta.
+- Aggiornate README, documentazione utente, amministrativa e progettuale.
+
+Versione 0.110-78
+- Aggiunto template configurabile per le email dei task in scadenza in Admin -> Notifiche.
+- Supportati placeholder con sintassi %testo% per oggetto e corpo delle notifiche di scadenza.
+- Aggiunto elenco dei placeholder disponibili nella pagina di configurazione notifiche.
+- Aggiunta anteprima di test delle email task in scadenza senza invio reale.
+- Documentazione utente, amministrativa, progettuale e README aggiornati.
+
+0.110-76
+- Aggiunta opzione per silenziare, dal dettaglio incidente, le email automatiche dei task in scadenza.
+- Reso numerico il campo `max_completion_hours` / Tempo massimo delle label azioni, con default 0 e semantica 0 = nessun tempo massimo.
+- Aggiunti promemoria automatici delle scadenze azioni per incidenti aperti.
+- Le mail riepilogano le azioni attese non ancora registrate e il tempo rimanente dalla prima informazione iniziale.
+- Aggiunte impostazioni notifiche per abilitazione, intervallo ore/minuti e controllo manuale immediato.
+- Aggiornate documentazioni utente, amministrativa, README e documentazione progettuale.
+
+Versione 0.110-74
+- Sostituita la selezione dei template PDF nella generazione moduli degli incidenti: le checkbox visibili sono state rimpiazzate da schede cliccabili.
+- I template selezionati sono evidenziati con colore diverso e supportano selezione multipla.
+- Aggiornate documentazione utente, amministrativa, README e documentazione progettuale.
+
+0.110-73
+- Nelle pagine incidente la selezione delle raccomandazioni usa il drag & drop come categorie, dati interessati e personale.
+- Le raccomandazioni selezionate sono rappresentate come chip removibili e continuano a essere salvate nella relazione many-to-many esistente.
+- Ridotte le dimensioni delle checkbox e degli elementi checkbox-list/check-list per migliorare compattezza e leggibilità.
+- Aggiornate documentazione utente, amministrativa, README e documentazione progettuale.
+
+Versione 0.110-71
+- Aggiunta documentazione amministrativa online ricercabile dal menu Aiuto -> Documentazione amministrativa.
+- Aggiunto download PDF professionale della documentazione amministrativa dal menu Aiuto.
+- La guida amministrativa include logo applicativo, informazioni versione/build/autore, capitoli estesi, checklist, troubleshooting, grafici, diagrammi di flusso e screenshot illustrativi.
+- Aggiornata la documentazione progettuale e il README.
+
+Versione 0.110-68
+- Aggiunto in Admin → SSO il pulsante Controlla configurazione per verificare parametri, endpoint, scope e claim senza salvare né creare utenti.
+- Aggiunto riepilogo dettagliato degli esiti del controllo SSO, con URL di autorizzazione generata e indicazioni operative.
+- Aggiunto pulsante di test login interattivo nella configurazione SSO quando i parametri minimi sono presenti.
+- Aggiornata la documentazione completa.
+
+0.110-67
+- Aggiunto login SSO/OAuth2/OpenID Connect con flusso Authorization Code.
+- Aggiunta configurazione Admin → SSO per endpoint, client, scope, claim, creazione utenti e ruolo predefinito.
+- Aggiunto pulsante di login SSO nella pagina di login quando configurato e abilitato.
+- Esteso modello utenti con provider di autenticazione e identificativo esterno.
+- Aggiornate documentazione utente, README e documentazione progettuale.
+
+0.110-65
+- Aggiornato il calcolo della durata operativa degli incidenti: il valore ora considera solo il tempo dalla prima azione registrata fino alla conclusione dell'incidente.
+- Lista principale, ordinamento per durata, export CSV, statistiche online e PDF statistiche usano lo stesso criterio.
+- Aggiornate documentazione utente, README e documentazione progettuale.
+
+2026-05-17 - Menu compatto e titolo verticale applicazione
+- Rimossa dalla barra dei menu la voce Nuovo incidente; il pulsante Nuovo incidente resta disponibile nella pagina principale degli incidenti.
+- Aggiunto nella barra menu desktop/non mobile il nome Cybersecurity Incident Registry disposto verticalmente, una parola per riga, per ridurre l’ingombro orizzontale.
+- Aggiornate documentazione utente, README e documentazione progettuale.
+
+2026-05-17 - Logo applicativo e tema menu desktop
+- Il logo pittorico applicativo è ora sempre visibile nella pagina di login, indipendentemente dal logo custom configurabile.
+- Nelle viste desktop/non mobile il logo pittorico applicativo viene mostrato anche nella barra del menu principale.
+- Il background della barra menu desktop/non mobile è stato impostato a blu, con stato hover/attivo coerente.
+- Aggiornata la documentazione progettuale.
+
+2026-05-17 - Avvisi procedurali in lista principale
+- Centralizzato il calcolo degli avvisi procedurali degli incidenti.
+- La notifica all’utente è trattata come richiesta: se manca un’azione riconducibile a “notifica all’utente”, viene prodotto un avviso procedurale.
+- Nella lista della pagina principale gli incidenti con avvisi procedurali pendenti mostrano un simbolo di pericolo accanto al nome, con riepilogo degli avvisi nel tooltip.
+- Aggiornata la documentazione utente e progettuale.
+
+2026-05-17 - Avviso procedurale notifica utente sempre attivo
+- Nel dettaglio incidente l’avviso per la notifica all’utente viene mostrato quando nella lista delle azioni effettuate non risulta un’azione di notifica all’utente, indipendentemente dal flag Dati personali.
+- Il controllo riconosce la notifica all’utente anche da descrizioni o label contenenti i termini “notifica” e “utente”, gestendo sia apostrofo tipografico sia apostrofo semplice.
+- Aggiornata la documentazione utente e progettuale.
+
+
+Versione 0.110-57
+- Aggiunta sostituzione del PDF sorgente di un template esistente dalla configurazione moduli.
+- La sostituzione mantiene mapping e impostazioni solo se il nuovo PDF contiene esattamente gli stessi campi AcroForm compilabili.
+- Documentazione aggiornata.
+Versione 0.1.0-55 - Correzione campi mancanti nei PDF finali
+- Rafforzato il motore di generazione PDF finale statico: i widget vengono ora raccolti sia dalle annotazioni pagina sia dall'albero AcroForm, così vengono compilati anche i campi che alcuni editor PDF non ripetono correttamente in /Annots.
+- La risoluzione dei valori accetta alias sicuri tra nome completo gerarchico e nome terminale del campo, evitando omissioni quando la mappatura è stata salvata con una forma diversa del nome AcroForm.
+- Migliorata la resa dei campi piccoli: la scrittura statica riduce il font solo quando necessario e centra verticalmente i valori su una riga, evitando che date, ore o campi compatti vengano scartati perché il riquadro è più basso del font configurato.
+
+Versione 0.1.0-53 - PDF compilati finali senza campi AcroForm
+- La generazione dei moduli PDF produce ora un nuovo PDF statico equivalente a una stampa finale.
+- I valori compilati vengono disegnati direttamente sulle pagine e dal file generato vengono rimossi i campi AcroForm compilabili.
+- Aggiornata la documentazione utente e progettuale sulla nuova modalità di generazione.
+
+Versione 0.1.0-52 - Ordinamento testo/data in measures_adopted
+- Aggiornata la composizione del campo derivato measures_adopted: per ogni azione esportabile viene mostrato prima il testo dell'azione e poi data e ora.
+- Allineati anche i report PDF interni che riutilizzano la stessa rappresentazione delle misure adottate.
+- Aggiornata la documentazione utente e tecnica.
+
+Versione 0.1.0-51 - Font configurabile per moduli PDF
+- Aggiunta configurazione per-template del font usato nella compilazione PDF: Helvetica o Times Roman.
+- Aggiunta configurazione per-template della dimensione font, validata tra 8 e 16 pt.
+- La generazione dei PDF compilati applica font e dimensione configurati, mantenendo wrapping multiriga e uso dell'intera larghezza del campo.
+- Il full export/import include anche la tabella form_template_config con le impostazioni dei template.
+- Aggiornata la documentazione utente e tecnica.
+
+2026-05-17 - Compilazione PDF multiriga
+- Aggiornata la generazione dei PDF compilati per usare campi testuali multiriga quando il contenuto non entra in una sola riga.
+- Il testo viene wrappato usando tutta la larghezza del campo e viene scelta la dimensione font più grande possibile con minimo 10 pt.
+- Aggiornata la documentazione utente e progettuale.
+
+
+2026-05-16 - PostgreSQL 18.4 and incident duplicate-key fixes
+- Updated docker-compose PostgreSQL image to postgres:18.4.
+- Added Kubernetes PostgreSQL manifest using postgres:18.4.
+- Hardened new incident creation against duplicate key errors.
+- Deduplicated drag & drop relationship values before writing incident categories, data types and involved people.
+- Documented sequence realignment and PostgreSQL 18.4 deployment notes.
+
+20260516-01
+- Updated application build metadata to 20260516-01.
+- Made author e-mail clickable in Info > Applicazione.
+- Updated Help documentation and downloadable PDF content.
+
+20260516-02
+- Documentazione estesa disponibile solo dal menu Aiuto.
+- Documentazione divisa per capitoli con indice e ricerca testuale lato client.
+- Rimossi collegamenti duplicati alla pagina Aiuto dal menu Info.
+
+Update: Notifiche menu visibility restricted to admin users.
+- The top-level Notifiche menu is now rendered only for current_user.role == 'admin'.
+- Notification template/settings routes already enforce admin checks server-side.
+
+2026-05-16 - procedural-notification-alerts
+- Aggiunti avvisi evidenti nel dettaglio incidente quando mancano le azioni di notifica CSIRT/DPO.
+- Aggiunto avviso per notifica al Garante Privacy quando l’incidente coinvolge dati personali e manca la relativa azione.
+
+Full export/import fix
+- Export completo include tutte le tabelle applicative: incidenti completi, azioni, documenti, personale, label, configurazioni, utenti e relazioni.
+- L'archivio include anche i file fisici dei documenti caricati e il logo configurato.
+- Full import ripristina database, relazioni, documenti e logo dallo stesso archivio tar.gz.
+
+- Aggiunto campo opzionale riferimento agli incidenti e migrazione automatica schema incident.reference all'avvio.
+
+- Statistiche: aggiunti grafici separati per categorie e dati interessati per tutti gli intervalli temporali definiti.
+
+Mobile web interface update:
+- Added responsive mobile header with hamburger menu.
+- Added touch-friendly navigation, form controls, and dropdowns.
+- Added mobile card view for incident list with mobile sorting controls.
+- Improved drag & drop areas and statistics layout on small screens.
+
+2026-05-15 - Added Info > Applicazione page with app metadata (name, version, build, author).
+
+2026-05-16 - SMTP settings for notifications
+- Added notification SMTP connection settings: host, port, STARTTLS, SSL/TLS direct, optional SMTP authentication, username and password.
+- Notification sending now uses the configured SMTP settings and authenticates only when explicitly enabled.
+- Added Notifications entry under Impostazioni for SMTP/destination configuration.
+
+2026-05-16 - Notification delivery fixes
+- PDF report is attached only when the notification template contains %REPORT%.
+- Notification preview explicitly shows sender, recipient, CC, subject, body and whether the report will be attached.
+- Automatic notification actions now include sender email, recipient email, CC addresses and report attachment status.
+- SMTP delivery path validated: optional authentication, STARTTLS/SSL handling, logging and cleanup of temporary PDF files.
+
+2026-05-16 - Notification template/action label update
+- Admin can send SMTP test email even without a personal email configured, using SMTP default sender, SMTP username or fallback.
+- Notification templates support CRUD with an associated action label selected from configured action labels.
+- Incident notification section now supports user, CSIRT and DPO notification previews with template selection.
+- Sending a notification registers the automatic action using the label associated with the selected template, with mail sender/recipient/cc in the action description.
+- Startup migration adds notification_template.action_label_id for existing databases.
+
+2026-05-16 notification recipients routing fix
+- CSIRT notifications now always use csirt_email/csirt_cc from application settings and do not ask the sender for a recipient.
+- DPO notifications now always use dpo_email/dpo_cc from application settings and do not ask the sender for a recipient.
+- Other notifications require recipient entry at send/preview time and preserve optional CC.
+- Send button is disabled when the mandatory recipient is missing.
+
+Notification menu and SMTP sender fix
+- Aggiunta voce separata Notifiche -> Aggiungi template.
+- Le impostazioni notifiche/SMTP restano disponibili solo da Impostazioni -> Notifiche.
+- La creazione dei template non avviene più dentro le pagine di modifica/lista dei template esistenti.
+- Il mittente delle mail di test e delle notifiche usa smtp_default_sender o smtp_username quando l'autenticazione SMTP è abilitata.
+
+2026-05-16 - Fix menu Notifiche: route/template protetti admin, default template idempotenti e gestione race/duplicate key.
+
+2026-05-16 - notification-types-menu
+- Aggiunta gestione dei tipi di notifica nel menu Notifiche, visibile solo agli admin.
+- I template sono associati ai tipi di notifica configurati.
+- Nel dettaglio incidente i pulsanti di notifica sono generati dai tipi abilitati.
+- Supportato destinatario manuale o ricavato dalle impostazioni per ogni tipo.
+
+2026-05-16 - Template notifiche clonabili
+- Aggiunta azione Clona nella gestione dei template di notifica.
+- La clonazione preserva tipo, oggetto, corpo e label azione, ma non imposta la copia come predefinita.
+- Aggiornata la documentazione estesa nel menu Aiuto.
+
+- Fix inserimento manuale azioni: riallineamento sequence PostgreSQL prima dell'INSERT, nessun ID esplicito e retry sicuro su duplicate key.
+
+2026-05-16 - Fix visibilità template notifiche utente
+- Menu Notifiche reso dinamico: mostra tutti i tipi di notifica abilitati presenti nel database.
+- I template aggiunti dagli utenti sono ora raggiungibili dal menu Notifiche, non solo quelli predefiniti user/CSIRT/DPO.
+- Context processor protetto per evitare errori durante login/bootstrap o schema non ancora aggiornato.
+
+2026-05-16 - Full export notifiche
+- Aggiunti tipi di notifica e template utente all'export completo.
+- Aggiornato import completo per ripristinare tipi e template di notifica.
+
+2026-05-16 - delete permissions and help PDF
+- Hidden all delete/remove controls from users without write permissions; visible only to admin and writer where applicable.
+- Added backend-protected PDF download for the searchable Help documentation.
+- Added menu entry Aiuto -> Scarica documentazione PDF and a download button inside the Help page.
+
+2026-05-16 - Statistiche PDF avanzate
+- Aggiunto export PDF dalla pagina Report > Statistiche.
+- Il PDF include finestra ricercata, ultima settimana, ultimo mese, ultimi 3 mesi, ultimi 6 mesi e ultimo anno.
+- Inseriti riepiloghi aggregati, tabelle, grafici a barre e grafici a torta per categorie, dati interessati, gravità, stato, dati personali, compilatore e label delle azioni.
+- Aggiunto filtro temporale nella pagina Statistiche e pulsante per scaricare il PDF.
+
+2026-05-17 - Dati titolare/responsabile e raccomandazioni
+- Aggiunte voci Admin: Dati titolare, Dati responsabile, Raccomandazioni.
+- Aggiunti campi utilizzabili negli incidenti e nei moduli: titolare, responsabile, email/telefono/funzione responsabile.
+- Aggiunte conseguenze derivate dalle categorie e misure adottate derivate dalle azioni.
+- Aggiunta selezione raccomandazioni per incidente.
+- Aggiunta esportazione/importazione completa delle raccomandazioni e delle associazioni con gli incidenti.
+- Aggiornata documentazione utente e progettuale.
+
+2026-05-17
+- Generazione moduli aggiornata per usare direttamente il PDF originario caricato in configurazione, senza creare template XML.
+- Template moduli ora basati su PDF AcroForm salvati in FORM_TEMPLATE_DIR; export/import completo aggiornati per includere i PDF.
+- Aggiunti i campi mappabili Ruolo titolare e Struttura, configurabili da Admin -> Dati titolare e Admin -> Struttura.
+- Adeguata la compilazione PDF per usare font size automatico nei campi, ove supportato dal viewer PDF.
+- Aggiunta barra di scorrimento verticale alla lista Campi database incidenti nella mappatura moduli.
+- Aggiornata la documentazione.
+
+2026-05-17 - Date/ore incidenti e avvisi procedurali
+- Separati nella form incidente i campi data e ora per inizio e fine.
+- Aggiunte colonne start_date/start_time/end_date/end_time e migrazione automatica dai valori legacy start_at/end_at.
+- Aggiunti i nuovi campi granulari ai mapping dei moduli PDF.
+- Gli avvisi procedurali segnalano anche la mancata azione “07-notifica all’utente” quando l’incidente coinvolge dati personali.
+- Aggiornata la documentazione utente e progettuale.
+
+
+- Rimossi i campi legacy database start_at/end_at: il sistema utilizza ora esclusivamente start_date/start_time/end_date/end_time con proprietà compatibili applicative.
+
+2026-05-17 - Template moduli in full export e scroll UI
+- Aggiunta barra di scorrimento verticale anche alla sezione Campi del template nella configurazione moduli.
+- Rafforzato il full export dei moduli: l’archivio include PDF originari, metadati dei campi AcroForm e mappature campo PDF/campo database.
+- Aggiornato import completo e messaggi utente per indicare il ripristino dei template moduli PDF.
+- Aggiornata documentazione utente, guida integrata e documentazione progettuale.
+
+2026-05-17 - Fix ordinamento pagina principale
+- Corretto l'errore AttributeError: 'property' object has no attribute 'desc' nella pagina principale e nelle statistiche.
+- Gli ordinamenti e filtri temporali non usano più le proprietà calcolate start_at/end_at nelle query SQL, ma le colonne reali start_date/start_time.
+- Aggiornata la documentazione utente e progettuale.
+
+0.110-54
+- Migliorata la generazione dei PDF finali statici: la compilazione risolve correttamente anche campi AcroForm annidati o widget privi di nome diretto, usando il nome completo del campo definito nel modulo.
+- La sovraimpressione dei valori tiene conto del CropBox della pagina e ignora i widget nascosti/non visibili, riducendo casi di campi compilati non visualizzati o disallineati nei PDF generati.
+- Documentazione aggiornata sulla resa finale dei campi PDF.
+
+0.110-61
+- Corretto il full export degli incidenti: i campi start_date, start_time, end_date ed end_time vengono sempre serializzati esplicitamente nel payload JSON.
+- Aggiunti start_at/end_at come alias di compatibilità nel payload e nello schema del manifest, senza reintrodurre colonne legacy nel database.
+- Documentazione aggiornata.
+
+0.110-60
+- Full export aggiornato per includere tutte le colonne reali delle tabelle applicative e tutte le righe delle tabelle di relazione tramite introspezione SQLAlchemy.
+- Aggiunta al manifest `export.json` la sezione `schema` con l’elenco dei campi esportati per ogni tabella.
+- Import completo reso più robusto: filtra i campi sul modello corrente e converte automaticamente date, ore e datetime.
+- Documentazione aggiornata.
+
+0.110-62
+- Riscritta la documentazione utente mostrata dal menu Aiuto con capitoli dettagliati, esempi passo-passo e checklist operative.
+- Confermata e rafforzata la ricerca client-side nella documentazione online, con filtro dei capitoli e messaggio in assenza di risultati.
+- Il PDF della documentazione usa la stessa guida online e resta scaricabile da Aiuto -> Scarica documentazione PDF.
+- Aggiunto logo pittorico applicativo separato dal logo custom: visibile nella pagina di login e in basso a destra nelle viste desktop, nascosto nella versione mobile.
+- Nessuna modifica al logo custom amministrabile: continua a essere caricato, mostrato ed esportato/importato come prima.
+- Aggiornata la documentazione progettuale.
+
+0.110-66
+- Aggiunto il campo modificabile `consequence_text` alle azioni e integrato in conseguenze/report/moduli.
+- Aggiunta descrizione modificabile alle label azioni e categorie incidente.
+- `measures_adopted` usa la descrizione della label azione, se presente, invece del solo nome label.
+- Aggiunti agli incidenti i campi `data_subjects_count` e `data_volume`.
+- Aggiunti ai mapping moduli i campi “Descrizione e causa”, “Numero di interessati”, “Volume dati”, “Motivi non garante” e “Luogo documentazione”.
+- Aggiunta pagina Admin -> Altre configurazioni per motivazione non comunicazione Garante e luogo documentazione.
+- Aggiunta rinomina template PDF mantenendo mapping e configurazione.
+- Aggiornate documentazione utente, README e documentazione progettuale.
+
+0.110-69
+- Documentazione utente arricchita con logo applicativo, diagramma di flusso, grafici e schermate illustrative.
+- Versione PDF della documentazione riformattata con copertina, indice, intestazione, piè di pagina e immagini professionali.
+- Documentazione progettuale aggiornata per descrivere asset visuali, guida online ricercabile e generazione PDF avanzata.
+
+0.110-71
+- Aggiunta MFA TOTP per utenti locali e LDAP.
+- Aggiunte pagine di gestione token personali e amministrative.
+- Gli amministratori possono revocare token senza visualizzare i segreti altrui.
+- Aggiunta visualizzazione stringa segreta e QR Code solo alla creazione del token.
+- Aggiunto file LICENSE con indicazione EUPL-1.2.
+- Aggiornate documentazioni utente, amministrativa e progettuale.
+
+0.110-72
+- Token TOTP salvati solo dopo verifica positiva del codice.
+- Attivazione MFA vincolata alla presenza di almeno un token verificato.
+- Disattivazione automatica MFA alla rimozione dell'ultimo token verificato.
+- Rimosse le conferme JavaScript duplicate dalle cancellazioni token.
+- Aggiornate documentazioni utente, amministrativa e progettuale.
+
+0.110-77
+- Le notifiche email per task in scadenza non vengono inviate per incidenti senza personale associato.
+- Aggiunta opzione globale in Admin -> Notifiche per disabilitare completamente l'invio email dei task in scadenza.
+- Aggiornate documentazioni utente, amministratore, README e progettuale.
+
+0.110-80
+- Verificato e rafforzato il full export: il manifest include ora tutte le tabelle applicative correnti, tutte le colonne reali dei modelli SQLAlchemy, le tabelle di relazione many-to-many e una sezione di copertura esplicita.
+- Aggiunta esportazione/importazione dei token MFA TOTP e delle copie binarie persistenti dei template PDF.
+- Rafforzata l'esportazione dei file: documenti associati agli incidenti, allegati delle azioni, template PDF dei moduli, logo custom e loghi applicativi statici.
+- Aggiunto supporto JSON sicuro per campi binari tramite codifica Base64 nel manifest.
+- Aggiornata la documentazione completa sul contenuto dell'export e sui controlli di ripristino.
+
+0.110-83
+- Estesa la regola di default del flag exportable sulle nuove azioni: sono inizializzate come non esportabili anche le azioni con label/descrizione contenente "informazione iniziale", "analisi" o "conclusione", oltre a "notifica" e "comunicazione".
+- Aggiornata la documentazione utente, amministrativa, progettuale e README.
+
+
+0.110-87
+- Aggiunta validazione preventiva dei campi incidente usati nei mapping dei template PDF selezionati.
+- La generazione dei moduli viene bloccata se i campi richiesti dal template sono vuoti.
+- Il messaggio di errore riepiloga più campi mancanti contemporaneamente, raggruppati per template e campo PDF.
+- Aggiornate documentazioni utente, amministrativa, progettuale e README.
+
+0.110-88
+- Gli errori e gli esiti delle operazioni nel dettaglio incidente sono mostrati nella sezione operativa corrispondente: dati incidente, azioni, documenti o generazione moduli.
+- Aggiunta tabella audit_log con data/ora, tipo operazione, utente, tipo attore e dettagli essenziali.
+- Registrazione automatica delle richieste mutative degli utenti e del controllo scheduler delle notifiche in scadenza.
+- Aggiunta configurazione Admin -> Altre configurazioni -> Ritenzione audit log, default 6 mesi.
+- Il menu Moduli viene mostrato solo se contiene voci accessibili per l’utente corrente.
+- Aggiornate documentazioni utente, amministrativa, progettuale e README.

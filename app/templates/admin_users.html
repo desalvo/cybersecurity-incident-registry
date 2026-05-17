@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Utenti</h2>
+  <form method="post" class="form-grid">
+    <div><label>Username</label><input name="username" required></div>
+    <div><label>Nome</label><input name="name"></div>
+    <div><label>Email</label><input name="email"></div>
+    <div><label>Password locale</label><input name="password" type="password"></div>
+    <div><label>Ruolo</label><select name="role">{% for r in ['admin','operator','reader','writer','disabled'] %}<option>{{r}}</option>{% endfor %}</select></div>
+    <div><label><input type="checkbox" name="is_ldap"> LDAP</label></div>
+    <button>Aggiungi</button>
+  </form>
+</div>
+<div class="card">
+  <table class="table">
+    <tr><th>Username</th><th>Nome</th><th>Email</th><th>Tipo login</th><th>MFA</th><th>Ruolo</th><th></th></tr>
+    {% for u in users %}
+    <tr>
+      <form method="post" action="{{url_for('main.user_role',uid=u.id)}}">
+        <td>{{u.username}}</td>
+        <td>{{u.name}}</td>
+        <td><input name="email" value="{{u.email or ''}}"></td>
+        <td>{{ u.auth_provider or ('ldap' if u.is_ldap else 'local') }}</td>
+        <td>{{ 'attiva' if u.mfa_enabled else 'disattivata' }} · <a href="{{ url_for('main.admin_user_mfa', uid=u.id) }}">gestisci</a></td>
+        <td><select name="role">{% for r in ['admin','operator','reader','writer','disabled'] %}<option {% if u.role==r %}selected{% endif %}>{{r}}</option>{% endfor %}</select></td>
+        <td><button>Salva</button></td>
+      </form>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

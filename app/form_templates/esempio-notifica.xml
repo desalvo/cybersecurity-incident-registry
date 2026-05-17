@@ -1,0 +1,15 @@
+<formTemplate title="Scheda incidente informatico">
+  <paragraph><text bold="true">Nome incidente: </text><field name="input_data_name"/></paragraph>
+  <paragraph><text bold="true">Riferimento: </text><field name="input_data_reference"/></paragraph>
+  <paragraph><text bold="true">Destinatario: </text><field name="input_data_recipient"/></paragraph>
+  <table>
+    <row><cell>Stato</cell><cell><field name="input_data_status"/></cell></row>
+    <row><cell>Data inizio</cell><cell><field name="input_data_start"/></cell></row>
+    <row><cell>Categorie</cell><cell><field name="input_data_categories"/></cell></row>
+    <row><cell>Dati interessati</cell><cell><field name="input_data_data_types"/></cell></row>
+  </table>
+  <paragraph><text bold="true">Descrizione</text></paragraph>
+  <paragraph><field name="input_data_description"/></paragraph>
+  <paragraph><text bold="true">Azioni intraprese</text></paragraph>
+  <paragraph><field name="input_data_actions"/></paragraph>
+</formTemplate>

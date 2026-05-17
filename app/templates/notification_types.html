@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Tipi di notifica</h2>
+  <p class="muted">I tipi di notifica determinano quali gruppi di template sono disponibili e come viene scelto il destinatario durante l’invio.</p>
+</div>
+<div class="card">
+  <h3>{{ 'Modifica tipo' if editing else 'Aggiungi tipo di notifica' }}</h3>
+  <form method="post" class="form-grid">
+    {% if editing %}<input type="hidden" name="type_id" value="{{ editing.id }}">{% endif %}
+    <input type="hidden" name="action" value="save">
+    <div><label>Codice</label><input name="code" required value="{{ editing.code if editing else '' }}" {% if editing and editing.code in ['user','csirt','dpo'] %}readonly{% endif %} placeholder="es. garante"></div>
+    <div><label>Nome visualizzato</label><input name="label" required value="{{ editing.label if editing else '' }}" placeholder="es. Notifica Garante"></div>
+    <div class="wide"><label>Descrizione</label><textarea name="description" rows="3">{{ editing.description if editing else '' }}</textarea></div>
+    <div><label>Destinatario</label><select name="recipient_mode">
+      <option value="manual" {% if not editing or editing.recipient_mode=='manual' %}selected{% endif %}>richiesto in fase di invio</option>
+      <option value="settings" {% if editing and editing.recipient_mode=='settings' %}selected{% endif %}>letto dalle impostazioni</option>
+    </select></div>
+    <div><label>Chiave impostazione destinatario</label><input name="recipient_setting_key" value="{{ editing.recipient_setting_key if editing else '' }}" placeholder="es. csirt_email"></div>
+    <div><label>Chiave impostazione CC</label><input name="cc_setting_key" value="{{ editing.cc_setting_key if editing else '' }}" placeholder="es. csirt_cc"></div>
+    <div><label><input type="checkbox" name="enabled" {% if not editing or editing.enabled %}checked{% endif %}> Abilitato</label></div>
+    <button type="submit">Salva tipo</button>
+    {% if editing %}<a class="button secondary" href="{{ url_for('main.notification_types') }}">Annulla</a>{% endif %}
+  </form>
+</div>
+<div class="card">
+  <h3>Tipi configurati</h3>
+  <table class="table">
+    <tr><th>Codice</th><th>Nome</th><th>Destinatario</th><th>Stato</th><th>Azioni</th></tr>
+    {% for t in types %}
+    <tr>
+      <td><code>{{ t.code }}</code></td><td>{{ t.label }}</td><td>{{ 'impostazioni: ' ~ t.recipient_setting_key if t.recipient_mode=='settings' else 'manuale' }}</td><td>{{ 'abilitato' if t.enabled else 'disabilitato' }}</td>
+      <td class="button-row"><a class="button secondary" href="{{ url_for('main.notification_types', edit=t.id) }}">Modifica</a>
+        <form method="post" onsubmit="return confirm('Cancellare questo tipo di notifica?')"><input type="hidden" name="type_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit" {% if t.code in ['user','csirt','dpo'] %}disabled{% endif %}>Cancella</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

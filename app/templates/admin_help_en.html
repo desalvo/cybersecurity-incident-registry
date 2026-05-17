@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="doc-shell">
+  <div class="doc-hero card">
+    <img class="doc-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Application logo">
+    <div><h1>Administrator documentation</h1><p class="muted">Cybersecurity Incident Registry - complete administration guide.</p><a class="button" href="{{ url_for('main.admin_help_pdf') }}">Download administrator PDF</a></div>
+  </div>
+  <section class="doc-chapter card"><h2>1. Administration scope</h2><p>Administrators manage users, roles, LDAP, OAuth2/OIDC SSO, MFA, configurable lists, personnel, recommendations, organization data, notification settings, PDF form templates, audit records, export/import and application-wide options.</p></section>
+  <section class="doc-chapter card"><h2>2. Other settings</h2><p><strong>Admin → Other settings</strong> contains application URL, application time zone, documentation location, privacy-authority non-notification reason, audit-log retention and interface language.</p><p>The interface language can be set to <strong>Automatic from browser</strong>, <strong>Italian</strong> or <strong>English</strong>. Automatic mode displays Italian only for Italian browser locale and English for all other locales.</p></section>
+  <section class="doc-chapter card"><h2>3. Audit</h2><p>Every operation performed by users, the notification scheduler or automated tasks is recorded with date, time, operation type, actor and details. <strong>Admin → Audit</strong> is visible only to administrators and provides search across audit fields.</p><p>Audit retention is expressed in months, days, hours and minutes, with a default of 6 months. Records older than the configured retention are purged opportunistically after user operations, scheduler runs and full imports.</p></section>
+  <section class="doc-chapter card"><h2>4. Configurable lists</h2><p>Action labels include <strong>Maximum time (hours)</strong> and <strong>Exportable by default</strong>. The default exportability value is applied automatically when users add new actions to incidents.</p></section>
+  <section class="doc-chapter card"><h2>5. Notifications</h2><p>Task-expiry notifications use the application time zone configured in Other settings. Templates may include placeholders for incident name, reference, initial-information time, pending actions, generated time, application name and external URL.</p></section>
+  <section class="doc-chapter card"><h2>6. Forms and documents</h2><p>PDF templates are analyzed from their AcroForm fields. Administrators map incident database fields to template fields and configure the font family and size used when generating completed PDFs.</p></section>
+  <section class="doc-chapter card"><h2>7. Export, import and backup</h2><p>Full export/import includes application settings, audit records, users, labels, incidents, actions, documents, notification configuration, form mappings and PDF template binaries. Use full export for application-level backups together with database and upload-volume backups.</p></section>
+  <section class="doc-chapter card"><h2>8. Bilingual maintenance policy</h2><p>The maintained web interface and the user and administrator documentation must remain available in both Italian and English. Future instructions may be provided in Italian; the corresponding English UI and documentation text must be updated at the same time.</p></section>
+</div>
+{% endblock %}

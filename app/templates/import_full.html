@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Full import</h2>
+  <p class="muted">Importa un archivio compresso prodotto da “Export completo”. Funzione riservata agli amministratori.</p>
+  <form method="post" enctype="multipart/form-data">
+    <label>File export completo</label>
+    <input type="file" name="file" accept=".gz,.tgz,.tar.gz,application/gzip" required>
+    <button type="submit">Importa export completo</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card help-content documentation" aria-labelledby="admin-doc-title">
+  <div class="page-header">
+    <div>
+      <h1 id="admin-doc-title">Documentazione amministrativa</h1>
+      <p class="muted">Cybersecurity Incident Registry · guida completa per amministratori, configurazione, sicurezza, continuità operativa e manutenzione.</p>
+    </div>
+    <div class="button-row">
+      <a class="button secondary" href="#indice-admin">Vai all’indice</a>
+      <a class="button secondary" href="{{ url_for('main.admin_help_pdf') }}">Scarica PDF amministrativo</a>
+    </div>
+  </div>
+
+  <section class="doc-hero card-lite" aria-label="Logo e informazioni versione">
+    <img class="doc-app-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Logo applicativo Cybersecurity Incident Registry">
+    <div>
+      <h2>Guida di amministrazione dell'applicazione</h2>
+      <p>Questa guida descrive le funzioni amministrative, i controlli di sicurezza, la configurazione dei moduli, la gestione degli utenti e le attività di manutenzione. Il logo mostrato è il logo applicativo e non include il logo custom configurabile.</p>
+      <table class="table doc-table compact-table">
+        <tbody>
+          <tr><th>Applicazione</th><td>{{ app_info.name }}</td></tr>
+          <tr><th>Versione</th><td>{{ app_info.version }}</td></tr>
+          <tr><th>Build</th><td>{{ app_info.build }}</td></tr>
+          <tr><th>Autore</th><td>{{ app_info.author }} &lt;{{ app_info.author_email }}&gt;</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <figure class="doc-figure">
+    <img src="{{ url_for('static', filename='help/admin-flow.png') }}" alt="Diagramma di flusso amministrativo">
+    <figcaption>Figura 1 - Sequenza consigliata per configurare e governare l'applicazione.</figcaption>
+  </figure>
+
+  <div class="doc-search" role="search" aria-label="Ricerca nella documentazione amministrativa">
+    <label for="doc-search-input">Cerca nella documentazione amministrativa</label>
+    <input id="doc-search-input" type="search" placeholder="Esempi: SSO, utenti, ruoli, moduli PDF, export, backup, notifiche..." autocomplete="off">
+    <p id="doc-search-count" class="muted" aria-live="polite">Digita una parola per filtrare i capitoli.</p>
+  </div>
+  <div id="doc-no-results" class="card-lite doc-no-results" hidden>Nessun capitolo contiene il testo cercato. Prova con una parola più generale, ad esempio “utenti”, “SSO”, “moduli”, “backup” o “notifiche”.</div>
+
+  <nav id="indice-admin" class="doc-index card-lite" aria-label="Indice della documentazione amministrativa">
+    <h2>Indice</h2>
+    <ol>
+      <li><a href="#admin-scope">Scopo, prerequisiti e responsabilità amministrative</a></li>
+      <li><a href="#admin-access">Accesso amministrativo, ruoli e sicurezza account</a></li>
+      <li><a href="#admin-users">Gestione utenti locali e autorizzazioni</a></li>
+      <li><a href="#admin-ldap-sso">LDAP, OAuth2 e SSO</a></li>
+      <li><a href="#admin-taxonomies">Liste configurabili, label e categorie</a></li>
+      <li><a href="#admin-organization">Dati organizzativi: titolare, struttura e responsabile</a></li>
+      <li><a href="#admin-notifications">SMTP, template e notifiche</a></li>
+      <li><a href="#admin-modules">Template PDF, mapping e generazione moduli</a></li>
+      <li><a href="#admin-documents">Logo, documentazione e menu Aiuto</a></li>
+      <li><a href="#admin-export">Export, import, backup e ripristino</a></li>
+      <li><a href="#admin-monitoring">Controlli periodici, audit e qualità dati</a></li>
+      <li><a href="#admin-troubleshooting">Risoluzione problemi e checklist operative</a></li>
+    </ol>
+  </nav>
+
+  <section id="admin-scope" class="doc-chapter" data-doc-title="scopo prerequisiti responsabilita amministratore governance applicazione">
+    <h2>1. Scopo, prerequisiti e responsabilità amministrative</h2>
+    <p>La documentazione amministrativa è destinata all'utente <strong>admin</strong> e agli utenti con ruolo <strong>admin</strong>. Descrive come configurare e mantenere Cybersecurity Incident Registry in modo coerente, verificabile e ripetibile.</p>
+    <p>L'amministratore governa identità, autorizzazioni, configurazioni di base, tassonomie, notifiche, moduli PDF, documentazione, export, import e continuità operativa. Le modifiche amministrative incidono sui dati prodotti dagli operatori e devono quindi essere pianificate, tracciate e validate.</p>
+    <h3>Prerequisiti consigliati</h3>
+    <ul>
+      <li>Accesso con account amministrativo personale, non condiviso.</li>
+      <li>Conoscenza della politica interna di gestione incidenti e dei flussi di notifica.</li>
+      <li>Disponibilità dei parametri SMTP, LDAP o SSO se si attivano integrazioni esterne.</li>
+      <li>Disponibilità di template PDF validati quando si configurano moduli ufficiali.</li>
+      <li>Procedura di backup del database PostgreSQL e della directory persistente dei file.</li>
+    </ul>
+  </section>
+
+  <section id="admin-access" class="doc-chapter" data-doc-title="accesso amministrativo ruoli sicurezza account password sessioni">
+    <h2>2. Accesso amministrativo, ruoli e sicurezza account</h2>
+    <p>Le funzioni amministrative sono disponibili dal menu <strong>Admin</strong>, visibile solo agli utenti autorizzati. Il menu raccoglie utenti, LDAP, SSO, liste configurabili, personale, logo, dati organizzativi, raccomandazioni e altre configurazioni.</p>
+    <p>Le raccomandazioni amministrate in questa sezione sono selezionabili negli incidenti tramite drag & drop, insieme a categorie, dati interessati e personale. Le checkbox usate nelle altre sezioni amministrative sono visualizzate in formato compatto per ridurre l’ingombro delle tabelle.</p>
+    <table class="table doc-table">
+      <thead><tr><th>Ruolo</th><th>Ambito amministrativo</th><th>Uso consigliato</th></tr></thead>
+      <tbody>
+        <tr><td>admin</td><td>Accesso completo alle configurazioni e alla gestione utenti.</td><td>Solo personale incaricato della gestione applicativa.</td></tr>
+        <tr><td>writer</td><td>Gestione operativa degli incidenti senza amministrazione completa.</td><td>Operatori che registrano e aggiornano incidenti.</td></tr>
+        <tr><td>reader</td><td>Consultazione dei dati consentiti.</td><td>Revisori o personale che deve leggere report.</td></tr>
+        <tr><td>operator</td><td>Accesso limitato agli incidenti creati o assegnati secondo le regole applicative.</td><td>Uso operativo circoscritto.</td></tr>
+      </tbody>
+    </table>
+    <h3>Buone pratiche</h3>
+    <ul>
+      <li>Mantenere almeno un account admin locale di emergenza anche quando LDAP o SSO sono attivi.</li>
+      <li>Usare password robuste e modificare le credenziali iniziali dopo il primo accesso.</li>
+      <li>Rimuovere o disabilitare tempestivamente gli account non più necessari.</li>
+      <li>Attribuire il ruolo minimo necessario per lo svolgimento delle attività.</li>
+    </ul>
+  </section>
+
+  <section id="admin-users" class="doc-chapter" data-doc-title="gestione utenti locali ruoli creazione modifica password autorizzazioni">
+    <h2>3. Gestione utenti locali e autorizzazioni</h2>
+    <p>Da <strong>Admin → Utenti</strong> è possibile creare, modificare e governare gli account locali. Per ciascun utente si definiscono nome utente, nome visualizzato, password e ruolo. Gli account locali restano utili anche in presenza di LDAP o SSO per gestione emergenze e manutenzione.</p>
+    <h3>Esempio passo-passo: creare un utente writer</h3>
+    <ol>
+      <li>Aprire <strong>Admin → Utenti</strong>.</li>
+      <li>Compilare username e nome visualizzato.</li>
+      <li>Impostare una password iniziale temporanea secondo le regole interne.</li>
+      <li>Selezionare il ruolo <strong>writer</strong>.</li>
+      <li>Salvare e chiedere all'utente di modificare la password al primo accesso.</li>
+      <li>Verificare che l'utente veda le funzioni operative ma non il menu Admin.</li>
+    </ol>
+  </section>
+
+  <section id="admin-ldap-sso" class="doc-chapter" data-doc-title="LDAP OAuth2 SSO OpenID Connect configurazione test connessione claim endpoint">
+    <h2>4. LDAP, OAuth2 e SSO</h2>
+    <p>L'applicazione può autenticare gli utenti tramite login locale, LDAP oppure OAuth2/SSO. Le configurazioni LDAP e SSO sono accessibili dal menu Admin e devono essere modificate solo da personale autorizzato.</p>
+    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/admin-screenshot-sso.png') }}" alt="Schermata illustrativa configurazione SSO"><figcaption>Figura 2 - Configurazione SSO con parametri e controllo guidato.</figcaption></figure>
+    <h3>Configurazione SSO</h3>
+    <p>Da <strong>Admin → SSO</strong> si configurano endpoint OAuth2/OpenID Connect, client ID, client secret, scope, redirect URI, claim utente, claim email, claim nome e ruolo predefinito per gli utenti creati tramite SSO.</p>
+    <p>Il pulsante <strong>Controlla configurazione</strong> consente di verificare la presenza dei parametri obbligatori, la raggiungibilità degli endpoint e la coerenza dei claim configurati. Il controllo non sostituisce il test di login reale, ma aiuta a individuare errori comuni prima della messa in esercizio.</p>
+    <h3>Procedura consigliata per attivare SSO</h3>
+    <ol>
+      <li>Registrare l'applicazione presso il provider identità.</li>
+      <li>Inserire la redirect URI prodotta dall'applicazione nel provider.</li>
+      <li>Compilare i parametri in <strong>Admin → SSO</strong>.</li>
+      <li>Salvare e premere <strong>Controlla configurazione</strong>.</li>
+      <li>Eseguire un login di test con utente pilota.</li>
+      <li>Verificare creazione utente, ruolo assegnato e dati anagrafici ricevuti dai claim.</li>
+      <li>Documentare la configurazione applicata e mantenere un account admin locale di fallback.</li>
+    </ol>
+  </section>
+
+  <section id="admin-taxonomies" class="doc-chapter" data-doc-title="liste configurabili label azioni categorie descrizioni dati interessati raccomandazioni">
+    <h2>5. Liste configurabili, label e categorie</h2>
+    <p>Da <strong>Admin → Liste configurabili</strong> e dalle pagine collegate si governano le tassonomie usate dagli incidenti: categorie incidente, label delle azioni, dati interessati, personale, raccomandazioni e valori selezionabili. Le descrizioni delle label e delle categorie sono modificabili e vengono usate nei moduli e nei report quando previsto. Le sezioni della pagina sono disposte in sequenza verticale, non in colonne affiancate, così le tabelle di modifica hanno maggiore larghezza disponibile per descrizioni estese e campi amministrativi. Per le <strong>Label azioni</strong> sono disponibili anche <strong>Tempo massimo (ore)</strong> ed <strong>Esportabile per default</strong>: quest’ultimo governa il valore iniziale del flag exportable sulle nuove azioni inserite negli incidenti.</p>
+    <h3>Label delle azioni</h3>
+    <p>Ogni label può avere una descrizione. Nel campo <code>measures_adopted</code> usato nella compilazione dei moduli PDF vengono utilizzate le descrizioni delle label invece del solo nome tecnico, così il testo generato è più leggibile e adatto a comunicazioni formali.</p>
+    <h3>Categorie incidente</h3>
+    <p>Le categorie incidente possono avere una descrizione. Il campo dinamico <strong>Descrizione e causa</strong> dei moduli riporta la lista delle descrizioni delle categorie associate all'incidente.</p>
+    <h3>Regole di qualità</h3>
+    <ul>
+      <li>Usare nomi brevi per la selezione a video e descrizioni complete per documenti e moduli.</li>
+      <li>Evitare duplicati semantici, ad esempio categorie con significato sovrapposto.</li>
+      <li>Revisionare periodicamente le tassonomie dopo incidenti complessi.</li>
+    </ul>
+  </section>
+
+  <section id="admin-organization" class="doc-chapter" data-doc-title="dati titolare struttura responsabile sicurezza altre configurazioni luogo documentazione motivi non garante">
+    <h2>6. Dati organizzativi: titolare, struttura e responsabile</h2>
+    <p>Le sezioni <strong>Dati titolare</strong>, <strong>Struttura</strong>, <strong>Dati responsabile</strong> e <strong>Altre configurazioni</strong> forniscono valori centralizzati riutilizzati negli incidenti, nei report e nei moduli PDF.</p>
+    <table class="table doc-table">
+      <thead><tr><th>Voce</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td>Dati titolare</td><td>Nome, ruolo e riferimenti del titolare della sicurezza o del soggetto responsabile.</td></tr>
+        <tr><td>Struttura</td><td>Nome della struttura organizzativa coinvolta.</td></tr>
+        <tr><td>Dati responsabile</td><td>Informazioni del responsabile operativo o della funzione di sicurezza.</td></tr>
+        <tr><td>Motivi non garante</td><td>Dicitura usata nei moduli per la motivazione di non comunicazione al Garante della Privacy.</td></tr>
+        <tr><td>Luogo documentazione</td><td>Luogo in cui viene conservata la documentazione sull'incidente.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="admin-notifications" class="doc-chapter" data-doc-title="SMTP notifiche template email garante utente comunicazione azioni procedurali">
+    <h2>7. SMTP, template e notifiche</h2>
+    <p>Le impostazioni SMTP e i template di notifica consentono di generare comunicazioni coerenti e registrare automaticamente azioni legate all'invio. La notifica all'utente è trattata come richiesta: se l'azione corrispondente non è presente nella timeline, l'incidente presenta un avviso procedurale e nella pagina principale compare il simbolo di pericolo.</p>
+    <h3>Configurazione SMTP</h3>
+    <ol>
+      <li>Aprire le impostazioni SMTP/notifiche.</li>
+      <li>Inserire host, porta, sicurezza, credenziali e mittente.</li>
+      <li>Salvare e inviare una comunicazione di test secondo le procedure interne.</li>
+      <li>Verificare che le azioni generate siano correttamente classificate ed eventualmente non esportabili se contengono “notifica”, “comunicazione”, “informazione iniziale”, “analisi” o “conclusione”.</li>
+    </ol>
+    <h3>Notifiche automatiche di scadenza azioni</h3>
+    <p>Nella configurazione delle label azioni è disponibile il campo numerico <strong>Tempo massimo (ore)</strong>, espresso in ore e con default 0. Il valore 0 disattiva il controllo per quella label; valori maggiori di zero rendono la label soggetta a promemoria automatico. Il timer parte dalla prima azione riconosciuta come <em>informazione iniziale</em> dell’incidente.</p>
+    <ol>
+      <li>Aprire <strong>Admin → Liste configurabili</strong> e impostare il Tempo massimo (ore) sulle label azioni soggette a scadenza.</li>
+      <li>Aprire le impostazioni notifiche e abilitare i promemoria automatici.</li>
+      <li>Configurare l’intervallo di controllo in ore e minuti.</li>
+      <li>Verificare che negli incidenti siano selezionate le unità di personale coinvolte e che almeno una abbia un indirizzo e-mail valorizzato.</li>
+      <li>Usare <strong>Esegui controllo ora</strong> per un test operativo immediato.</li>
+    </ol>
+    <p>Il controllo considera solo incidenti aperti e non silenziati. L’invio email per task in scadenza può essere disabilitato totalmente da <strong>Admin → Notifiche</strong>. Per ogni incidente invia una mail riepilogativa al personale coinvolto con le azioni ancora mancanti, la scadenza calcolata e il tempo rimanente. Le mail non vengono inviate se l’invio email è disabilitato, se SMTP non è configurato, se non è selezionata alcuna unità di personale nell’incidente, se non esistono destinatari con indirizzo e-mail o se nella pagina dell’incidente è attiva l’opzione <strong>Silenzia notifiche email per task in scadenza</strong>.</p><p>Il contenuto delle email di scadenza è configurabile nella sezione <strong>Template mail task in scadenza</strong> della pagina notifiche. Oggetto e corpo accettano placeholder nella sintassi <code>%testo%</code>. La pagina mostra l’elenco completo dei placeholder disponibili, tra cui <code>%incident_name%</code>, <code>%incident_reference%</code>, <code>%initial_information_at%</code>, <code>%pending_actions%</code>, <code>%pending_actions_count%</code>, <code>%recipients%</code>, <code>%generated_at%</code> e <code>%application_name%</code>. Il pulsante <strong>Anteprima template task</strong> produce una preview con dati dimostrativi senza inviare email, utile per validare impaginazione, testo e placeholder.</p>
+  </section>
+
+  <section id="admin-modules" class="doc-chapter" data-doc-title="template PDF moduli AcroForm mapping campi database exportable rinomina sostituzione">
+    <h2>8. Template PDF, mapping e generazione moduli</h2>
+    <p>La configurazione dei moduli permette di analizzare template PDF AcroForm, associare i campi del database ai campi del PDF, sostituire il PDF a parità di campi da compilare, rinominare il template e generare documenti finali statici.</p><p><strong>Persistenza dei template PDF.</strong> I template caricati nella configurazione moduli sono salvati nella directory operativa persistente e anche in una copia sicura nel database. Dopo un riavvio, se il file PDF non è più presente nella directory dei template, l’applicazione lo ripristina automaticamente dal database mantenendo mapping, font, dimensione e nome del template.</p>
+    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/admin-screenshot-modules.png') }}" alt="Schermata illustrativa configurazione moduli"><figcaption>Figura 3 - Configurazione template PDF, mapping e sostituzione controllata.</figcaption></figure>
+    <h3>Campi database incidenti</h3>
+    <p>Oltre ai campi anagrafici dell'incidente sono disponibili campi dinamici come data e ora di venuta a conoscenza, misure adottate, descrizione e causa, numero di interessati, volume dati, motivi non garante e luogo documentazione.</p>
+    <h3>Misure adottate</h3>
+    <p>Il campo <code>measures_adopted</code> include solo azioni marcate come <strong>exportable</strong>. Per ogni azione viene composto un testo leggibile con descrizioni delle label, testo dell'azione, conseguenze e data/ora. Il valore iniziale del flag exportable delle nuove azioni deriva dal campo <strong>Esportabile per default</strong> della label azione configurata in Admin → Liste configurabili; in assenza di label configurata resta il fallback sulle parole chiave storiche “notifica”, “comunicazione”, “informazione iniziale”, “analisi” o “conclusione”.</p>
+    <h3>Sostituzione template</h3>
+    <ol>
+      <li>Aprire <strong>Configurazione moduli</strong>.</li>
+      <li>Scegliere il template esistente.</li>
+      <li>Caricare il PDF sostitutivo.</li>
+      <li>Confermare solo se i campi AcroForm corrispondono a quelli già mappati.</li>
+      <li>Verificare anteprima e generare un PDF di prova.</li>
+    </ol>
+  </section>
+
+  <section id="admin-documents" class="doc-chapter" data-doc-title="logo documentazione menu aiuto guida utente amministrativa PDF ricerca online">
+    <h2>9. Logo, documentazione e menu Aiuto</h2>
+    <p>L'applicazione distingue il logo custom, configurabile dall'amministratore, dal logo pittorico applicativo usato nella login, nella barra desktop e nella documentazione. La documentazione utente e amministrativa sono disponibili dal menu <strong>Aiuto</strong> e sono ricercabili online.</p>
+    <p>Dal menu Aiuto sono disponibili quattro voci: documentazione utente, download PDF della documentazione utente, documentazione amministrativa e download PDF della documentazione amministrativa. I PDF sono generati dinamicamente in formato professionale con copertina, logo applicativo, indice, header, footer, numerazione pagine, grafici e schermate illustrative.</p>
+  </section>
+
+  <section id="admin-export" class="doc-chapter" data-doc-title="export completo import backup ripristino database allegati volume dati PostgreSQL">
+    <h2>10. Export, import, backup e ripristino</h2>
+    <p>Il full export produce un archivio completo con tutte le colonne reali del database, tabelle di relazione, allegati, template PDF, logo e manifest di schema. L'import completo filtra i campi in base al modello corrente e consente il ripristino o la migrazione tra ambienti compatibili.</p>
+    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/admin-chart-governance.png') }}" alt="Grafico aree di amministrazione"><figcaption>Figura 4 - Aree principali di governance amministrativa.</figcaption></figure>
+    <h3>Backup consigliato</h3>
+    <ul>
+      <li>Backup periodico del database PostgreSQL.</li>
+      <li>Backup della directory persistente contenente upload, logo e template moduli.</li>
+      <li>Conservazione sicura degli export completi, perché possono contenere dati personali e informazioni sensibili sugli incidenti.</li>
+      <li>Test periodico di ripristino in ambiente non produttivo.</li>
+    </ul>
+  </section>
+
+  <section id="admin-monitoring" class="doc-chapter" data-doc-title="controlli periodici audit qualita dati avvisi procedurali incidenti">
+    <h2>11. Controlli periodici, audit e qualità dati</h2>
+    <p>L'amministratore deve verificare periodicamente la qualità dei dati e l'efficacia delle configurazioni. Gli avvisi procedurali aiutano a individuare incidenti con passaggi mancanti, come la notifica all'utente richiesta ma non registrata nella lista delle azioni effettuate.</p>
+    <h3>Checklist mensile</h3>
+    <ul>
+      <li>Controllare utenti attivi e ruoli assegnati.</li>
+      <li>Verificare configurazione SMTP, LDAP e SSO.</li>
+      <li>Generare un modulo PDF di prova per i template più usati.</li>
+      <li>Verificare che gli incidenti aperti abbiano azioni aggiornate.</li>
+      <li>Controllare presenza di avvisi procedurali nella pagina principale.</li>
+      <li>Eseguire export completo e verificare la politica di backup.</li>
+    </ul>
+  </section>
+
+  <section id="admin-troubleshooting" class="doc-chapter" data-doc-title="risoluzione problemi checklist SSO PDF notifiche import export login">
+    <h2>12. Risoluzione problemi e checklist operative</h2>
+    <h3>SSO non funziona</h3>
+    <ol>
+      <li>Verificare client ID, client secret e redirect URI.</li>
+      <li>Premere <strong>Controlla configurazione</strong>.</li>
+      <li>Controllare endpoint authorize, token e userinfo.</li>
+      <li>Verificare che i claim configurati siano presenti nella risposta del provider.</li>
+      <li>Usare login locale admin di fallback se l'accesso SSO è indisponibile.</li>
+    </ol>
+    <h3>Modulo PDF incompleto</h3>
+    <ol>
+      <li>Controllare che il template contenga campi AcroForm validi.</li>
+      <li>Verificare il mapping in Configurazione moduli.</li>
+      <li>Controllare che i dati dell'incidente siano compilati.</li>
+      <li>Generare un PDF di prova e verificare che sia statico, senza campi compilabili residui.</li>
+    </ol>
+    <h3>Export o import non coerente</h3>
+    <ol>
+      <li>Usare il full export per migrazioni complete.</li>
+      <li>Verificare che allegati e template siano inclusi nell'archivio.</li>
+      <li>Controllare compatibilità di versione e schema indicata nel manifest.</li>
+      <li>Eseguire prima una prova in ambiente non produttivo.</li>
+    </ol>
+  </section>
+  <section id="admin-mfa" class="doc-chapter" data-doc-title="MFA TOTP amministrazione utenti token QR Code revoca sicurezza">
+    <h2>13. Amministrazione MFA TOTP</h2>
+    <p>La multi-factor authentication TOTP può essere applicata agli utenti locali e LDAP. Per default ogni utenza nasce con MFA disattivata, così da non interrompere il flusso operativo durante migrazioni e upgrade.</p>
+    <h3>Gestione amministrativa</h3>
+    <ol>
+      <li>Aprire <strong>Admin → Utenti</strong>.</li>
+      <li>Usare il collegamento <strong>gestisci</strong> nella colonna MFA dell'utente.</li>
+      <li>Attivare o disattivare il flag MFA dell'utente: l'attivazione è consentita solo se esiste almeno un token verificato.</li>
+      <li>Revocare un singolo token oppure rimuovere tutti i token dell'utente in caso di smarrimento dispositivo; se viene rimosso l'ultimo token verificato, la MFA viene disattivata automaticamente.</li>
+    </ol>
+    <p>Gli amministratori possono gestire tutti i token ma non possono vedere i segreti TOTP degli altri utenti. Questo evita che l'amministrazione ordinaria diventi un canale di esposizione dei secondi fattori.</p>
+    <h3>Procedura consigliata</h3>
+    <ul>
+      <li>Chiedere all'utente di creare autonomamente il primo token dalla propria pagina MFA e di completare la verifica del codice prima del salvataggio.</li>
+      <li>Attivare la MFA solo dopo la presenza del token verificato e verificare un login di prova prima di renderla obbligatoria in procedure operative interne.</li>
+      <li>In caso di perdita dispositivo, revocare tutti i token dell'utente e farne creare uno nuovo.</li>
+    </ul>
+  </section>
+
+<section class="doc-chapter"><h2>Selezione template nei dettagli incidente</h2><p>Per gli utenti abilitati alla scrittura, la generazione dei moduli dal dettaglio incidente usa schede cliccabili al posto delle checkbox. Le schede selezionate sono evidenziate in blu e possono essere scelte anche in combinazione multipla. La modifica è solo di interfaccia: mapping, nomi template e generazione PDF finale rimangono invariati.</p></section>
+
+<section id="admin-full-export-coverage" class="doc-chapter" data-doc-title="full export copertura completa database documenti template loghi configurazioni import backup">
+  <h2>Copertura del full export</h2>
+  <p>Il full export deve essere usato quando serve un backup applicativo completo o una migrazione tra ambienti compatibili. L'archivio esporta tutte le tabelle applicative correnti e tutte le colonne reali definite dai modelli SQLAlchemy.</p>
+  <ul>
+    <li><strong>Database:</strong> configurazioni, utenti, MFA TOTP, label, personale, raccomandazioni, notifiche, template notifiche, configurazioni moduli, copie binarie template, mapping, incidenti, azioni, documenti e allegati.</li>
+    <li><strong>Relazioni:</strong> personale associato agli incidenti, categorie, tipologie dati e raccomandazioni.</li>
+    <li><strong>File:</strong> documenti incidente, allegati azione, template PDF, logo custom e loghi applicativi.</li>
+    <li><strong>Manifest:</strong> il file <code>export.json</code> contiene <code>schema._coverage</code> per verificare la copertura dichiarata.</li>
+  </ul>
+  <p>I campi binari sono codificati in Base64 nel manifest. Durante l'import vengono ricreati database, relazioni, file, template e logo custom. Gli export devono essere conservati con protezioni adeguate perché possono includere dati personali, segreti MFA e informazioni sensibili sugli incidenti.</p>
+</section>
+
+</div>
+<section class="doc-chapter" data-doc-title="URL applicazione placeholder external_url report statistics notifiche task scadenza"><h2>Aggiornamento notifiche e URL esterna</h2><p>Aggiornamento 0.110-82: configurazione URL applicazione e placeholder notifiche. Nel menu Admin → Altre configurazioni è disponibile il campo “URL applicazione”, con default http://localhost:8000, usato per generare link esterni nelle email. Nei template delle email dei task in scadenza sono disponibili <code>%external_url%</code>, <code>%report%</code> e <code>%statistics%</code>: il primo inserisce la URL esterna configurata, mentre <code>%report%</code> e <code>%statistics%</code> richiedono rispettivamente l'allegato PDF del report incidente e il PDF delle statistiche, generati al momento dell'invio. Nei template generali del menu Notifiche è disponibile anche <code>%EXTERNAL_URL%</code>. L’anteprima dei task in scadenza segnala gli allegati previsti senza inviare email.</p></section>
+
+<section class="doc-chapter" data-doc-title="mantenimento posizione pagina incidente salvataggio azione upload documenti generazione moduli">
+  <h2>Aggiornamento 0.110-84 - mantenimento della posizione nella pagina incidente</h2>
+  <p>Dopo il salvataggio delle modifiche dell’incidente, l’aggiunta di una azione, l’upload di documenti e la generazione o conferma dei moduli PDF, la pagina torna automaticamente alla sezione da cui l’operatore ha premuto il pulsante. Le aree operative principali dispongono di ancore dedicate: dati incidente, azioni, documenti e generazione moduli. Questo evita di ritornare in cima alla pagina e rende più fluide le attività su incidenti con molte informazioni.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="time zone applicazione azioni data ora predefinita conclusione chiusura automatica">
+  <h2>Aggiornamento 0.110-85: fuso orario azioni e chiusura automatica</h2>
+  <p>Nel dettaglio incidente, la form di inserimento di una nuova azione propone automaticamente data e ora del momento in cui la pagina è stata caricata. Il valore usa il fuso orario configurato in <strong>Admin → Altre configurazioni → Time zone applicazione</strong>, con default <code>Europe/Rome</code>, e può essere modificato prima del salvataggio.</p>
+  <p>Quando viene registrata un’azione riconosciuta come <strong>conclusione</strong>, perché la label, la descrizione della label o il testo dell’azione contiene “conclusione”, l’incidente viene aggiornato automaticamente con stato <strong>chiuso</strong>. La data e l’ora fine vengono sempre copiate dalla data/ora dell’azione di conclusione: il sistema aggiorna esplicitamente i campi Data fine e Ora fine dell’incidente, oltre allo stato chiuso, mantenendo coerenti form, lista, export, report, statistiche e moduli PDF.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="validazione campi obbligatori moduli PDF generazione template mapping campi mancanti">
+  <h2>Aggiornamento 0.110-87 - validazione dei campi prima della generazione moduli</h2>
+  <p>Quando un template PDF usa, tramite mapping, un campo dell’incidente, quel valore deve essere presente prima di generare il documento. Premendo <strong>Genera documenti</strong>, l’applicazione controlla tutti i template selezionati e blocca la generazione se trova campi vuoti.</p>
+  <p>L’operatore riceve un unico messaggio con l’elenco dei campi da completare, raggruppati per template e campo PDF. È quindi possibile compilare più campi mancanti nella stessa scheda incidente, salvare le modifiche e ripetere la generazione dalla sezione <strong>Generazione moduli</strong>.</p>
+  <p>Il controllo evita la produzione di PDF incompleti e si applica sia ai campi semplici dell’incidente sia ai campi derivati configurati nei mapping, come categorie, descrizioni, persone coinvolte, azioni, misure adottate e altri dati disponibili nella lista dei campi database incidente.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="audit log errori contestuali menu moduli retention">
+  <h2>Aggiornamento 0.110-88 - errori contestuali, audit e menu Moduli</h2>
+  <p>Nel dettaglio incidente i messaggi relativi a un’operazione vengono mostrati direttamente nella sezione in cui l’operazione è stata richiesta. Gli errori sulla modifica dei dati principali compaiono nei dati incidente, quelli sulle azioni nella sezione Azioni, quelli sui documenti nella sezione Documenti e quelli sulla generazione PDF nella sezione Generazione moduli.</p>
+  <p>Ogni operazione mutativa effettuata dagli utenti viene registrata nella tabella di audit con data, ora, tipo di operazione e utente. Anche il controllo automatico delle notifiche in scadenza registra una voce con attore scheduler. La ritenzione predefinita è di 6 mesi ed è configurabile dagli amministratori in <strong>Admin → Altre configurazioni → Ritenzione audit log</strong>. I record più vecchi della retention vengono eliminati automaticamente dopo operazioni utente, scheduler notifiche e full import.</p><p>Gli amministratori possono consultare il registro da <strong>Admin → Audit</strong>, cercando per testo libero, tipo operazione, utente, origine e intervallo temporale. Il full export/import include sia la tabella audit sia tutte le configurazioni applicative.</p>
+  <p>Il menu <strong>Moduli</strong> viene visualizzato solo quando l’utente dispone di almeno una voce accessibile; se il menu sarebbe vuoto, non viene mostrato.</p>
+</section>
+
+<section class="doc-chapter" data-doc-title="audit admin export import retention ricerca configurazioni">
+  <h2>Aggiornamento 0.110-89 - Audit amministrativo ed export/import</h2>
+  <p>La voce <strong>Admin → Audit</strong>, visibile solo agli amministratori, permette di visualizzare e cercare i record della tabella audit. La pagina espone filtri per testo libero, tipo operazione, utente, origine e intervallo temporale, mostrando gli ultimi 500 risultati ordinati dal più recente.</p>
+  <p>Il full export/import include la tabella <code>audit_log</code> e tutte le configurazioni applicative della tabella <code>setting</code>. Dopo ogni import completo viene applicata la retention configurata, eliminando i record audit più vecchi del periodo definito in <strong>Admin → Altre configurazioni</strong>.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="retention audit mesi giorni ore minuti configurazioni">
+  <h2>Aggiornamento 0.110-90 - ritenzione audit granulare</h2>
+  <p>La ritenzione del registro audit in <strong>Admin → Altre configurazioni</strong> è ora configurabile con campi separati per mesi, giorni, ore e minuti. Il default resta 6 mesi; se tutti i valori sono zero, l'applicazione mantiene automaticamente il default per evitare una conservazione nulla.</p>
+  <p>Il pulsante <strong>Salva configurazione</strong> della pagina Altre configurazioni è limitato a un'altezza massima di 1 cm per mantenere il layout compatto.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-91 avvisi procedurali dettaglio incidenti">
+  <h2>Aggiornamento 0.110-91 - avvisi procedurali in cima al dettaglio incidente</h2>
+  <p>La pagina di dettaglio incidente mostra ora gli <strong>Avvisi procedurali</strong> in posizione alta, subito dopo la scheda principale. Per gli amministratori questo rende più immediato il controllo della completezza operativa degli incidenti e delle notifiche attese.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-92 label azioni exportable default configurabile amministratore">
+  <h2>Aggiornamento 0.110-92 - configurazione exportable default delle label azioni</h2>
+  <p>In <strong>Admin → Liste configurabili → Label azioni</strong> l’amministratore può impostare il campo <strong>Esportabile per default</strong>. Il valore viene usato durante l’inserimento di nuove azioni negli incidenti per inizializzare automaticamente il flag <strong>exportable</strong> dell’azione specifica. La scelta configurata viene inclusa nel modello dati <code>ConfigLabel.default_exportable</code> e nel full export/import insieme alle altre configurazioni delle label.</p>
+</section>
+
+<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-93 tempo massimo ore timezone notifiche task scadenza">
+  <h2>Aggiornamento 0.110-93 - tempo massimo in ore e timezone notifiche</h2>
+  <p>In <strong>Admin → Liste configurabili → Label azioni</strong> la colonna è denominata <strong>Tempo massimo (ore)</strong>, così l’unità di misura è visibile nella tabella e nelle operazioni di modifica. Le email automatiche dei task in scadenza indicano scadenza, prima informazione iniziale e data di generazione nel fuso orario configurato in <strong>Admin → Altre configurazioni</strong>, riportando anche il nome della timezone nel testo della notifica.</p>
+</section>
+
+
+<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-94 gestione bilingue interfaccia e documentazione">
+  <h2>Aggiornamento 0.110-94 gestione bilingue interfaccia e documentazione</h2>
+  <p>L'interfaccia web e le documentazioni utente e amministratore sono disponibili in italiano e inglese. In modalità automatica l'applicazione usa il locale del browser: italiano per locale italiano, inglese per tutti gli altri locale. Gli amministratori possono forzare una lingua specifica in <strong>Admin → Altre configurazioni → Lingua interfaccia</strong>.</p>
+  <p>Da questa versione le modifiche funzionali devono mantenere allineate entrambe le lingue: le istruzioni operative possono essere fornite in italiano e la traduzione inglese dell'interfaccia e delle documentazioni deve essere aggiornata contestualmente.</p>
+</section>
+
+{% endblock %}
+
+
+

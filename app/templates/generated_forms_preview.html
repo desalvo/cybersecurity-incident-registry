@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Anteprima PDF generati</h2>
+  <p class="muted">Verifica i PDF generati per l’incidente <strong>{{ inc.name }}</strong>. In fondo alla pagina puoi accettare il salvataggio come allegati oppure rifiutarli.</p>
+</div>
+<form method="post" action="{{ url_for('main.confirm_generated_forms', iid=inc.id) }}" data-scroll-anchor="incident-forms"><input type="hidden" name="scroll_anchor" value="incident-forms">
+  {% for item in previews %}
+    <section class="card generated-preview-card">
+      <h3>Template: {{ item.template }}</h3>
+      <input type="hidden" name="pdf_stored" value="{{ item.pdf_stored }}">
+      <div class="form-grid">
+        <div>
+          <label>Nome documento PDF da salvare</label>
+          <input name="document_name" value="{{ item.suggested_name }}" required>
+        </div>
+        <div class="form-actions">
+          <a class="button secondary" target="_blank" href="{{ url_for('main.preview_generated_form_file', iid=inc.id, stored_name=item.pdf_stored) }}">Apri PDF</a>
+        </div>
+      </div>
+      <div class="pdf-preview-frame">
+        <iframe title="Anteprima PDF {{ item.template }}" src="{{ url_for('main.preview_generated_form_file', iid=inc.id, stored_name=item.pdf_stored) }}"></iframe>
+      </div>
+    </section>
+  {% endfor %}
+  <div class="card sticky-decision-bar">
+    <button type="submit" name="decision" value="accept">Accetta e salva come documento allegato</button>
+    <button type="submit" name="decision" value="reject" class="danger" onclick="return confirm('Rifiutare i PDF generati ed eliminare i file temporanei?')">Rifiuta ed elimina</button>
+  </div>
+</form>
+{% endblock %}

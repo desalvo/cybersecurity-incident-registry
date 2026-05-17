@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: cybersecurity-incident-registry}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: cybersecurity-incident-registry}}
+  template:
+    metadata: {labels: {app: cybersecurity-incident-registry}}
+    spec:
+      containers:
+      - name: web
+        image: cybersecurity-incident-registry:latest
+        ports: [{containerPort: 8000}]
+        env:
+        - {name: DATABASE_URL, valueFrom: {secretKeyRef: {name: cir-secrets, key: database-url}}}
+        - {name: SECRET_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: secret-key}}}
+        - {name: ADMIN_INITIAL_PASSWORD, valueFrom: {secretKeyRef: {name: cir-secrets, key: admin-initial-password}}}
+        - {name: FORM_TEMPLATE_DIR, value: /data/form_templates}
+        volumeMounts:
+        - {name: uploads, mountPath: /data/uploads}
+        - {name: form-templates, mountPath: /data/form_templates}
+      volumes:
+      - name: uploads
+        persistentVolumeClaim: {claimName: cir-uploads}
+      - name: form-templates
+        persistentVolumeClaim: {claimName: cir-form-templates}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: cybersecurity-incident-registry}
+spec:
+  selector: {app: cybersecurity-incident-registry}
+  ports: [{port: 80, targetPort: 8000}]

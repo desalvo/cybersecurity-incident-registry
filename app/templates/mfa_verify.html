@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card narrow">
+  <h2>Verifica multi-factor authentication</h2>
+  <p>Inserisci il codice temporaneo generato dalla tua app TOTP per completare l’accesso come <strong>{{ user.username }}</strong>.</p>
+  <form method="post" class="form-grid">
+    <div><label>Codice TOTP</label><input name="code" inputmode="numeric" autocomplete="one-time-code" required autofocus></div>
+    <button>Verifica</button>
+  </form>
+</div>
+{% endblock %}

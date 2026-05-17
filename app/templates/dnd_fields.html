@@ -1,0 +1,56 @@
+<h3>Label, personale e raccomandazioni</h3>
+<div class="dnd-layout">
+  <div>
+    <h4>Categorie disponibili</h4>
+    <div class="palette">
+      {% for g,items in categories|groupby('group') %}
+        <div class="group-title">{{g}}</div>
+        {% for l in items %}<span class="chip" draggable="true" data-id="{{l.id}}" data-text="{{l.value}}" data-target="categories">{{l.value}}</span>{% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <h4>Categorie selezionate</h4>
+    <div class="dropzone" data-target="categories">{% if inc %}{% for l in inc.categories %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
+  </div>
+  <div>
+    <h4>Dati interessati disponibili</h4>
+    <div class="palette">
+      {% for g,items in data_types|groupby('group') %}
+        <div class="group-title">{{g}}</div>
+        {% for l in items %}<span class="chip" draggable="true" data-id="{{l.id}}" data-text="{{l.value}}" data-target="data_types">{{l.value}}</span>{% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <h4>Dati interessati selezionati</h4>
+    <div class="dropzone" data-target="data_types">{% if inc %}{% for l in inc.data_types %}<span class="chip">{{l.value}} ×<input type="hidden" name="data_types" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
+  </div>
+  <div>
+    <h4>Personale disponibile</h4>
+    <div class="palette">
+      {% for g,items in people|groupby('group') %}
+        <div class="group-title">{{g}}</div>
+        {% for p in items %}<span class="chip" draggable="true" data-id="{{p.id}}" data-text="{{p.name}}" data-target="people">{{p.name}}</span>{% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <h4>Personale coinvolto</h4>
+    <div class="dropzone" data-target="people">{% if inc %}{% for p in inc.people %}<span class="chip">{{p.name}} ×<input type="hidden" name="people" value="{{p.id}}"></span>{% endfor %}{% endif %}</div>
+  </div>
+  <div>
+    <h4>Raccomandazioni disponibili</h4>
+    <div class="palette">
+      {% for r in recommendations %}
+        <span class="chip" draggable="true" data-id="{{r.id}}" data-text="{{r.text}}" data-target="recommendations">{{r.text}}</span>
+      {% else %}
+        <p class="muted">Nessuna raccomandazione configurata.</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <h4>Raccomandazioni selezionate</h4>
+    <div class="dropzone" data-target="recommendations">{% if inc %}{% for r in inc.recommendations %}<span class="chip">{{r.text}} ×<input type="hidden" name="recommendations" value="{{r.id}}"></span>{% endfor %}{% endif %}</div>
+  </div>
+</div>

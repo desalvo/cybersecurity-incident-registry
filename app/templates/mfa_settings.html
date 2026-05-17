@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Multi-factor authentication</h2>
+  <p>La MFA TOTP protegge l’accesso degli utenti locali e LDAP richiedendo un codice temporaneo generato da un’app di autenticazione.</p>
+  {% if verified_count == 0 %}<p class="muted">Per attivare la MFA è necessario creare e verificare almeno un token TOTP.</p>{% endif %}
+  <form method="post" class="inline-form">
+    <input type="hidden" name="action" value="toggle">
+    <label><input type="checkbox" name="mfa_enabled" {% if current_user.mfa_enabled %}checked{% endif %} {% if verified_count == 0 %}disabled{% endif %}> MFA attiva per la mia utenza</label>
+    <button {% if verified_count == 0 %}disabled{% endif %}>Salva</button>
+  </form>
+</div>
+{% if pending_token %}
+<div class="card success-card">
+  <h3>Verifica nuovo token TOTP</h3>
+  <p>Il token non è ancora salvato. Scansiona il QR Code o copia la stringa segreta, poi inserisci il codice generato dall’app per verificarlo.</p>
+  <p><strong>Nome:</strong> {{ pending_token.name }}</p>
+  <p><strong>Stringa segreta:</strong> <code>{{ pending_token.secret }}</code></p>
+  <p><strong>URI provisioning:</strong> <code>{{ provisioning_uri }}</code></p>
+  {% if qr_data_uri %}<img class="qr-code" src="{{ qr_data_uri }}" alt="QR Code TOTP">{% endif %}
+  <form method="post" class="inline-form">
+    <input type="hidden" name="action" value="verify_new">
+    <label>Codice TOTP</label><input name="code" inputmode="numeric" autocomplete="one-time-code" required autofocus>
+    <button>Verifica e salva token</button>
+  </form>
+  <form method="post" class="inline-form"><input type="hidden" name="action" value="cancel_pending"><button class="secondary">Annulla creazione</button></form>
+</div>
+{% else %}
+<div class="card">
+  <h3>Aggiungi token TOTP</h3>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="prepare">
+    <div><label>Nome token</label><input name="name" placeholder="Telefono personale, tablet, autenticatore..."></div>
+    <button>Crea e verifica token</button>
+  </form>
+</div>
+{% endif %}
+<div class="card">
+  <h3>Token esistenti</h3>
+  <table class="table"><tr><th>Nome</th><th>Creato</th><th>Verificato</th><th>Ultimo utilizzo</th><th></th></tr>
+  {% for t in tokens %}<tr><td>{{ t.name }}</td><td>{{ t.created_at.strftime('%d/%m/%Y %H:%M') if t.created_at else '' }}</td><td>{{ t.verified_at.strftime('%d/%m/%Y %H:%M') if t.verified_at else 'no' }}</td><td>{{ t.last_used_at.strftime('%d/%m/%Y %H:%M') if t.last_used_at else 'mai' }}</td><td><form method="post"><input type="hidden" name="action" value="delete"><input type="hidden" name="token_id" value="{{ t.id }}"><button class="danger">Elimina</button></form></td></tr>{% else %}<tr><td colspan="5">Nessun token configurato.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

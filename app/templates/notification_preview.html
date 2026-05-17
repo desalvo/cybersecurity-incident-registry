@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>{{ title }} - Anteprima</h2>
+  <form method="get" class="form-grid">
+    <div class="wide"><label>Template</label><select name="template_id" onchange="this.form.submit()">{% for t in templates %}<option value="{{ t.id }}" {% if template and template.id==t.id %}selected{% endif %}>{{ t.name }}{% if t.is_default %} (predefinito){% endif %}</option>{% endfor %}</select></div>
+  </form>
+  <p><strong>Mittente:</strong> {{ sender or 'mittente SMTP predefinito / username SMTP / fallback admin@localhost.localdomain' }}</p>
+  {% if recipient_locked %}
+    <p><strong>Destinatario:</strong> {{ recipient or 'non configurato nelle impostazioni' }}</p>
+    <p><strong>CC:</strong> {{ cc or 'nessuno' }}</p>
+    {% if not recipient %}<p class="error">Destinatario non configurato nelle impostazioni: invio non disponibile.</p>{% endif %}
+  {% else %}
+    <form method="get" class="form-grid notification-recipient-form">
+      <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
+    {% if not recipient_locked %}
+      <input type="hidden" name="recipient" value="{{ recipient }}">
+      <input type="hidden" name="cc" value="{{ cc }}">
+    {% endif %}
+      <div><label>Destinatario</label><input name="recipient" type="email" value="{{ recipient }}" required></div>
+      <div><label>CC</label><input name="cc" value="{{ cc }}" placeholder="opzionale, separare più indirizzi con virgola"></div>
+      <button type="submit">Aggiorna anteprima</button>
+    </form>
+  {% endif %}
+  <p><strong>Oggetto:</strong> {{ subject }}</p>
+  <p><strong>Report PDF:</strong> {{ 'allegato perché il template contiene %REPORT%' if attach_report else 'non allegato' }}</p>
+  <p><strong>Documenti:</strong> {% if needs_documents %}richiesti, perché il template contiene <code>%DOCUMENTS%</code>{% else %}non richiesti{% endif %}</p>
+  <h3>Testo</h3>
+  <pre class="mail-preview">{{ body }}</pre>
+  <form method="post" action="{{ url_for('main.notify_send', iid=inc.id, kind=kind) }}" class="button-row notification-send-form">
+    <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
+    {% if not recipient_locked %}
+      <input type="hidden" name="recipient" value="{{ recipient }}">
+      <input type="hidden" name="cc" value="{{ cc }}">
+    {% endif %}
+    {% if needs_documents %}
+      {% if inc.documents %}
+        <fieldset>
+          <legend>Seleziona i documenti da allegare</legend>
+          <div class="checkbox-list">
+            {% for d in inc.documents %}
+            <label><input type="checkbox" name="document_ids" value="{{ d.id }}"> {{ d.filename }}</label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      {% else %}
+        <p class="error">Non sono presenti documenti allegati all’incidente: la notifica non può essere inviata perché il template usa <code>%DOCUMENTS%</code>.</p>
+      {% endif %}
+    {% endif %}
+    <button type="submit" {% if (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
+    <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
+  </form>
+</div>
+{% endblock %}

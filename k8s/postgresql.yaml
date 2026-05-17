@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cir-postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_DB: incidents
+  POSTGRES_USER: incidents
+  POSTGRES_PASSWORD: incidents
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cir-postgres-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cir-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cir-postgres
+  template:
+    metadata:
+      labels:
+        app: cir-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:18.4
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: cir-postgres-secret
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: cir-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cir-postgres
+spec:
+  selector:
+    app: cir-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432

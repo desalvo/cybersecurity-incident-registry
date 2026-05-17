@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Cybersecurity Incident Registry</title>
+  <desc id="desc">Scudo digitale con registro, lucchetto e traccia di incidente informatico.</desc>
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="warn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#dc2626"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="92" fill="#f8fafc"/>
+  <path d="M256 44 92 102v124c0 109 65 206 164 242 99-36 164-133 164-242V102L256 44Z" fill="url(#shield)" filter="url(#shadow)"/>
+  <path d="M256 78 125 125v101c0 89 52 169 131 202 79-33 131-113 131-202V125L256 78Z" fill="none" stroke="#93c5fd" stroke-width="10" opacity=".75"/>
+  <rect x="161" y="146" width="190" height="228" rx="22" fill="#ffffff" opacity=".96"/>
+  <path d="M196 194h120M196 235h120M196 276h86M196 317h120" stroke="#334155" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="165" cy="194" r="9" fill="#1d4ed8"/>
+  <circle cx="165" cy="235" r="9" fill="#1d4ed8"/>
+  <circle cx="165" cy="276" r="9" fill="#dc2626"/>
+  <circle cx="165" cy="317" r="9" fill="#1d4ed8"/>
+  <path d="M329 357h72l-36-64-36 64Z" fill="url(#warn)" stroke="#7f1d1d" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M365 316v21" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="365" cy="347" r="5" fill="#fff"/>
+  <rect x="114" y="341" width="86" height="72" rx="14" fill="#0f172a" stroke="#93c5fd" stroke-width="8"/>
+  <path d="M135 341v-26c0-23 18-40 41-40s41 17 41 40v26" fill="none" stroke="#0f172a" stroke-width="18" stroke-linecap="round"/>
+  <path d="M139 341v-23c0-19 15-33 36-33s36 14 36 33v23" fill="none" stroke="#93c5fd" stroke-width="10" stroke-linecap="round"/>
+  <path d="M73 262h52M387 262h52M86 196h40M386 196h40M103 329h35M373 329h36" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" opacity=".95"/>
+</svg>

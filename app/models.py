@@ -1,0 +1,198 @@
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from datetime import datetime
+
+db=SQLAlchemy()
+incident_people=db.Table('incident_people', db.Column('incident_id',db.Integer,db.ForeignKey('incident.id'),primary_key=True), db.Column('person_id',db.Integer,db.ForeignKey('person.id'),primary_key=True))
+incident_categories=db.Table('incident_categories', db.Column('incident_id',db.Integer,db.ForeignKey('incident.id'),primary_key=True), db.Column('label_id',db.Integer,db.ForeignKey('config_label.id'),primary_key=True))
+incident_data_types=db.Table('incident_data_types', db.Column('incident_id',db.Integer,db.ForeignKey('incident.id'),primary_key=True), db.Column('label_id',db.Integer,db.ForeignKey('config_label.id'),primary_key=True))
+incident_recommendations=db.Table('incident_recommendations', db.Column('incident_id',db.Integer,db.ForeignKey('incident.id'),primary_key=True), db.Column('recommendation_id',db.Integer,db.ForeignKey('recommendation.id'),primary_key=True))
+class Setting(db.Model): key=db.Column(db.String(100),primary_key=True); value=db.Column(db.Text,default='')
+
+
+class AuditLog(db.Model):
+    id=db.Column(db.Integer, primary_key=True)
+    occurred_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    operation_type=db.Column(db.String(120), nullable=False, index=True)
+    username=db.Column(db.String(160), nullable=False, default='system', index=True)
+    user_id=db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    actor_type=db.Column(db.String(40), nullable=False, default='user')
+    details=db.Column(db.Text, default='')
+    user=db.relationship('User', foreign_keys=[user_id])
+
+class User(UserMixin,db.Model):
+    id=db.Column(db.Integer,primary_key=True); username=db.Column(db.String(80),unique=True,nullable=False); password_hash=db.Column(db.String(255)); name=db.Column(db.String(160)); email=db.Column(db.String(255)); role=db.Column(db.String(20),default='disabled'); is_ldap=db.Column(db.Boolean,default=False); auth_provider=db.Column(db.String(40),default='local'); external_id=db.Column(db.String(255),nullable=True,index=True); mfa_enabled=db.Column(db.Boolean,default=False,nullable=False)
+    mfa_tokens=db.relationship('MfaTotpToken',back_populates='user',cascade='all,delete-orphan')
+
+class MfaTotpToken(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    user_id=db.Column(db.Integer,db.ForeignKey('user.id'),nullable=False,index=True)
+    name=db.Column(db.String(160),nullable=False,default='Token TOTP')
+    secret=db.Column(db.String(64),nullable=False)
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    last_used_at=db.Column(db.DateTime,nullable=True)
+    verified_at=db.Column(db.DateTime,nullable=True)
+    user=db.relationship('User',back_populates='mfa_tokens')
+
+class ConfigLabel(db.Model):
+    id=db.Column(db.Integer,primary_key=True); kind=db.Column(db.String(40),nullable=False,index=True); group=db.Column(db.String(80),default='default'); value=db.Column(db.String(255),nullable=False); description=db.Column(db.Text,default=''); max_completion_hours=db.Column(db.Integer,nullable=False,default=0); default_exportable=db.Column(db.Boolean,default=True,nullable=False); __table_args__=(db.UniqueConstraint('kind','value',name='uq_label_kind_value'),)
+class Person(db.Model):
+    id=db.Column(db.Integer,primary_key=True); name=db.Column(db.String(160),unique=True,nullable=False); email=db.Column(db.String(255)); group=db.Column(db.String(80),default='personale')
+class Recommendation(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    text=db.Column(db.Text,unique=True,nullable=False)
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+
+class Incident(db.Model):
+    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=True); recipient=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=datetime.utcnow)
+
+    @property
+    def start_at(self):
+        if self.start_date:
+            from datetime import datetime, time
+            return datetime.combine(self.start_date, self.start_time or time())
+        return None
+
+    @start_at.setter
+    def start_at(self, value):
+        if value is None:
+            self.start_date = None; self.start_time = None
+        else:
+            self.start_date = value.date(); self.start_time = value.time().replace(second=0, microsecond=0)
+
+    @property
+    def end_at(self):
+        if self.end_date:
+            from datetime import datetime, time
+            return datetime.combine(self.end_date, self.end_time or time())
+        return None
+
+    @end_at.setter
+    def end_at(self, value):
+        if value is None:
+            self.end_date = None; self.end_time = None
+        else:
+            self.end_date = value.date(); self.end_time = value.time().replace(second=0, microsecond=0)
+
+    @property
+    def first_action_at(self):
+        values = [a.when_at for a in (self.actions or []) if getattr(a, 'when_at', None)]
+        return min(values) if values else None
+
+    @property
+    def effective_duration(self):
+        """Durata operativa dell'incidente.
+
+        La durata è calcolata solo sul tempo intercorso tra la prima azione
+        registrata e la conclusione dell'incidente (`end_at`). I campi di
+        inizio incidente non entrano più nel computo. Se manca la prima azione
+        o la conclusione, la durata non è disponibile.
+        """
+        first = self.first_action_at
+        end = self.end_at
+        if not first or not end:
+            return None
+        if end < first:
+            return None
+        return end - first
+
+    @property
+    def effective_duration_seconds(self):
+        value = self.effective_duration
+        return value.total_seconds() if value is not None else None
+
+    creator=db.relationship(User); severity=db.relationship(ConfigLabel,foreign_keys=[severity_id]); categories=db.relationship(ConfigLabel,secondary=incident_categories); data_types=db.relationship(ConfigLabel,secondary=incident_data_types); people=db.relationship(Person,secondary=incident_people); recommendations=db.relationship(Recommendation,secondary=incident_recommendations); actions=db.relationship('Action',cascade='all,delete-orphan',order_by='Action.when_at'); documents=db.relationship('Document',cascade='all,delete-orphan')
+class Action(db.Model):
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); when_at=db.Column(db.DateTime,nullable=False); person_name=db.Column(db.String(160)); description=db.Column(db.Text,nullable=True); consequence_text=db.Column(db.Text,nullable=True); label_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); exportable=db.Column(db.Boolean,default=True,nullable=False); label=db.relationship(ConfigLabel); attachments=db.relationship('ActionAttachment',cascade='all,delete-orphan')
+
+    @property
+    def action_at(self):
+        """Alias compatibile con versioni precedenti del codice/template.
+
+        Il modello usa il campo persistente ``when_at``; alcune parti del
+        modulo notifiche introdotte in versioni intermedie facevano riferimento
+        a ``action_at`` causando AttributeError. Manteniamo l'alias per
+        compatibilità senza aggiungere una seconda colonna.
+        """
+        return self.when_at
+
+    @action_at.setter
+    def action_at(self, value):
+        self.when_at = value
+class ActionAttachment(db.Model):
+    id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow)
+class Document(db.Model):
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow)
+
+
+class NotificationType(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    code=db.Column(db.String(40),unique=True,nullable=False,index=True)
+    label=db.Column(db.String(160),nullable=False)
+    description=db.Column(db.Text,default='')
+    # settings: usa i destinatari configurati nelle impostazioni; manual: richiede il destinatario in fase di invio
+    recipient_mode=db.Column(db.String(20),default='manual')
+    recipient_setting_key=db.Column(db.String(100),default='')
+    cc_setting_key=db.Column(db.String(100),default='')
+    enabled=db.Column(db.Boolean,default=True)
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+
+class NotificationTemplate(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    kind=db.Column(db.String(40),nullable=False,index=True)  # user, csirt, dpo
+    name=db.Column(db.String(160),nullable=False)
+    subject=db.Column(db.String(255),nullable=False,default='')
+    body=db.Column(db.Text,nullable=False,default='')
+    action_label_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True)
+    action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
+    is_default=db.Column(db.Boolean,default=False)
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    __table_args__=(db.UniqueConstraint('kind','name',name='uq_notification_template_kind_name'),)
+
+
+
+
+class FormTemplateConfig(db.Model):
+    id=db.Column(db.Integer, primary_key=True)
+    template_name=db.Column(db.String(255), nullable=False, unique=True, index=True)
+    font_family=db.Column(db.String(40), nullable=False, default='Helvetica')
+    font_size=db.Column(db.Integer, nullable=False, default=10)
+    created_at=db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at=db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @staticmethod
+    def normalize_font_family(value):
+        value = (value or 'Helvetica').strip()
+        return 'Times-Roman' if value in {'Times-Roman', 'Times Roman'} else 'Helvetica'
+
+    @staticmethod
+    def normalize_font_size(value):
+        try:
+            size = int(value)
+        except (TypeError, ValueError):
+            size = 10
+        return max(8, min(16, size))
+
+
+
+class FormTemplateBinary(db.Model):
+    """Copia persistente DB dei PDF template dei moduli.
+
+    Il file system resta la sorgente operativa per generazione e anteprima,
+    ma questa tabella permette di ripristinare automaticamente i PDF quando
+    il volume/file system non e` disponibile dopo un riavvio.
+    """
+    id=db.Column(db.Integer, primary_key=True)
+    template_name=db.Column(db.String(255), nullable=False, unique=True, index=True)
+    filename=db.Column(db.String(255), nullable=False)
+    pdf_data=db.Column(db.LargeBinary, nullable=False)
+    created_at=db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at=db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class FormFieldMapping(db.Model):
+    id=db.Column(db.Integer, primary_key=True)
+    template_name=db.Column(db.String(255), nullable=False, index=True)
+    template_field=db.Column(db.String(255), nullable=False)
+    db_field=db.Column(db.String(255), nullable=False)
+    created_at=db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__=(db.UniqueConstraint('template_name','template_field',name='uq_form_template_field'),)

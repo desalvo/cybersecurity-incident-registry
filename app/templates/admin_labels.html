@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Liste configurabili</h2>
+  <p class="muted">Aggiungi o cancella label separatamente per ciascuna categoria. Per aggiungere una label basta inserire il nome nella categoria corretta.</p>
+</div>
+
+{% set sections = [
+  ('severity','Gravità','gravità'),
+  ('data_type','Dati interessati','dati'),
+  ('category','Categorie incidente','categorie'),
+  ('action_label','Label azioni','azioni')
+] %}
+
+<div class="config-lists-vertical">
+{% for kind, title, group_name in sections %}
+  <div class="card list-admin-card">
+    <h3>{{ title }}</h3>
+    <form method="post" class="inline-add-form">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <input type="hidden" name="group" value="{{ group_name }}">
+      <input name="value" placeholder="Nome label da aggiungere" required>
+      <input name="description" placeholder="Descrizione label (opzionale)">
+      {% if kind == 'action_label' %}<input type="number" min="0" name="max_completion_hours" value="0" placeholder="Tempo massimo (ore)"><label class="checkbox-inline"><input type="checkbox" name="default_exportable" value="1" checked> Esportabile per default</label><small class="muted">0 = nessun tempo massimo. Il flag esportabile imposta il default delle nuove azioni con questa label.</small>{% endif %}
+      <button type="submit">Aggiungi</button>
+    </form>
+
+    <table class="table compact-table">
+      <thead><tr><th>Label</th><th>Descrizione</th>{% if kind == 'action_label' %}<th>Tempo massimo (ore)</th><th>Export default</th>{% endif %}<th class="actions-col">Azioni</th></tr></thead>
+      <tbody>
+      {% for l in items if l.kind == kind %}
+        <tr>
+          <td><form id="label-update-{{l.id}}" method="post" action="{{ url_for('main.admin_label_update', lid=l.id) }}"></form><input name="value" value="{{ l.value }}" required form="label-update-{{l.id}}"></td>
+          <td><textarea name="description" form="label-update-{{l.id}}">{{ l.description or '' }}</textarea></td>
+          {% if kind == 'action_label' %}<td><input type="number" min="0" name="max_completion_hours" value="{{ l.max_completion_hours if l.max_completion_hours is not none else 0 }}" placeholder="ore" form="label-update-{{l.id}}"></td><td><label class="checkbox-inline"><input type="checkbox" name="default_exportable" value="1" {% if l.default_exportable %}checked{% endif %} form="label-update-{{l.id}}"> sì</label></td>{% endif %}
+          <td>
+            <button type="submit" form="label-update-{{l.id}}" class="secondary">Salva</button>
+            <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" onsubmit="return confirm('Cancellare questa label e rimuoverla dagli incidenti?')">
+              <button class="danger" type="submit">Cancella</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="{{ 5 if kind == 'action_label' else 3 }}" class="muted">Nessuna label configurata.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

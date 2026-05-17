@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Altre configurazioni</h2>
+  <form method="post" class="form-grid">
+    <div class="wide">
+      <label>Motivazione non comunicazione al Garante della Privacy</label>
+      <textarea name="privacy_authority_non_notification_reason">{{ privacy_authority_non_notification_reason or '' }}</textarea>
+      <p class="muted">Testo usato nel campo moduli “Motivi non garante”.</p>
+    </div>
+    <div class="wide">
+      <label>Luogo documentazione</label>
+      <textarea name="documentation_location">{{ documentation_location or '' }}</textarea>
+      <p class="muted">Testo usato nel campo moduli “Luogo documentazione”.</p>
+    </div>
+    <div class="wide">
+      <label>URL applicazione</label>
+      <input name="application_external_url" value="{{ application_external_url or 'http://localhost:8000' }}" placeholder="http://localhost:8000">
+      <p class="muted">URL esterna da cui gli utenti raggiungono l’applicazione. È usata nei placeholder <code>%external_url%</code> e <code>%EXTERNAL_URL%</code> delle notifiche.</p>
+    </div>
+    <div class="wide">
+      <label>Time zone applicazione</label>
+      <input name="application_timezone" value="{{ application_timezone or 'Europe/Rome' }}" placeholder="Europe/Rome">
+      <p class="muted">Fuso orario IANA usato per precompilare data e ora nelle nuove azioni degli incidenti. Esempi: <code>Europe/Rome</code>, <code>UTC</code>.</p>
+    </div>
+
+    <div class="wide">
+      <label>Lingua interfaccia</label>
+      <select name="interface_language">
+        <option value="auto" {% if interface_language == 'auto' %}selected{% endif %}>Automatica dal browser</option>
+        <option value="it" {% if interface_language == 'it' %}selected{% endif %}>Italiano</option>
+        <option value="en" {% if interface_language == 'en' %}selected{% endif %}>Inglese</option>
+      </select>
+      <p class="muted">Con <strong>Automatica dal browser</strong> l'applicazione mostra l'italiano per locale italiano e l'inglese per tutti gli altri locale. Le documentazioni utente e amministratore sono mantenute in entrambe le lingue.</p>
+    </div>
+
+    <div class="wide">
+      <label>Ritenzione audit log</label>
+      <div class="retention-grid">
+        <div>
+          <label>Mesi</label>
+          <input name="audit_retention_months_part" type="number" min="0" max="120" value="{{ audit_retention_parts.months if audit_retention_parts else 6 }}">
+        </div>
+        <div>
+          <label>Giorni</label>
+          <input name="audit_retention_days_part" type="number" min="0" max="3650" value="{{ audit_retention_parts.days if audit_retention_parts else 0 }}">
+        </div>
+        <div>
+          <label>Ore</label>
+          <input name="audit_retention_hours_part" type="number" min="0" max="23" value="{{ audit_retention_parts.hours if audit_retention_parts else 0 }}">
+        </div>
+        <div>
+          <label>Minuti</label>
+          <input name="audit_retention_minutes_part" type="number" min="0" max="59" value="{{ audit_retention_parts.minutes if audit_retention_parts else 0 }}">
+        </div>
+      </div>
+      <p class="muted">Periodo di conservazione delle registrazioni di audit espresso in mesi, giorni, ore e minuti. Il default è 6 mesi; valore corrente: {{ audit_retention_label }}. La pulizia viene applicata automaticamente in modo opportunistico.</p>
+    </div>
+    <button class="admin-config-save-button">Salva configurazione</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}{% block content %}{% set flashed_messages = get_flashed_messages(with_categories=true) %}{% for category,m in global_messages(flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}<div class="card" id="incident-main"><h2>{{inc.name}}</h2>{% for category,m in section_messages('incident-main', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}<p class="muted">Compilatore: {{inc.creator_name}} &lt;{{inc.creator_email}}&gt;</p><form method="post" id="incident-main-form" data-scroll-anchor="incident-main"><input type="hidden" name="scroll_anchor" value="incident-main"><div class="form-grid"><div class="wide"><label>Nome</label><input name="name" value="{{inc.name}}"></div><div class="wide"><label>Riferimento</label><input name="reference" value="{{inc.reference or ''}}" placeholder="Campo opzionale"></div><div class="wide"><label>Destinatario</label><input name="recipient" value="{{inc.recipient or ''}}" placeholder="Campo opzionale; se vuoto usa Riferimento"></div><div class="wide"><label>Descrizione</label><textarea name="description">{{inc.description or ''}}</textarea></div><div><label>Gravità</label><select name="severity_id">{% for l in severities %}<option value="{{l.id}}" {% if inc.severity_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select></div><div><label>Stato</label><select name="status">{% for s in ['aperto','in lavorazione','chiuso'] %}<option {% if inc.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></div><div><label>Data inizio</label><input name="start_date" type="date" value="{{ inc.start_date.isoformat() if inc.start_date else (inc.start_at.strftime('%Y-%m-%d') if inc.start_at else '') }}" required></div><div><label>Ora inizio</label><input name="start_time" type="time" value="{{ inc.start_time.strftime('%H:%M') if inc.start_time else (inc.start_at.strftime('%H:%M') if inc.start_at else '') }}" required></div><div><label>Data fine</label><input name="end_date" type="date" value="{{ inc.end_date.isoformat() if inc.end_date else (inc.end_at.strftime('%Y-%m-%d') if inc.end_at else '') }}"></div><div><label>Ora fine</label><input name="end_time" type="time" value="{{ inc.end_time.strftime('%H:%M') if inc.end_time else (inc.end_at.strftime('%H:%M') if inc.end_at else '') }}"></div><div><label><input type="checkbox" name="personal_data" {% if inc.personal_data %}checked{% endif %}> Dati personali</label></div><div class="wide"><label><input type="checkbox" name="deadline_notifications_muted" {% if inc.deadline_notifications_muted %}checked{% endif %}> Silenzia notifiche email per task in scadenza su questo incidente</label><p class="muted">Se attivo, questo incidente non riceve i promemoria automatici delle azioni mancanti con tempo massimo.</p></div><div><label>Numero di interessati</label><input name="data_subjects_count" value="{{ inc.data_subjects_count or '' }}" placeholder="es. 25 utenti, circa 100 persone"></div><div class="wide"><label>Volume dati</label><textarea name="data_volume" placeholder="Descrivere quantità, tipologia o estensione dei dati coinvolti">{{ inc.data_volume or '' }}</textarea></div></div>{% include 'dnd_fields.html' %}<button>Salva</button> <a class="button secondary" href="{{url_for('main.clone',iid=inc.id)}}">Clona incidente</a> <a class="button secondary" href="{{url_for('main.pdf',iid=inc.id)}}">Report PDF</a></form>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.incident_delete',iid=inc.id)}}" onsubmit="return confirm('Cancellare definitivamente questo incidente?')" class="delete-incident-form"><button class="danger" type="submit">Elimina incidente</button></form>{% endif %}</div>
+<div class="card procedural-alerts" aria-labelledby="procedural-alerts-title">
+  <h3 id="procedural-alerts-title">Avvisi procedurali</h3>
+  {% if not has_csirt_notification %}
+    <div class="procedure-warning" role="alert">
+      <strong>Notifica CSIRT richiesta</strong>
+      <span>La procedura prevede l’invio della notifica allo CSIRT: l’azione “04-comunicazione allo CSIRT” non risulta ancora registrata.</span>
+    </div>
+  {% endif %}
+  {% if not has_dpo_notification %}
+    <div class="procedure-warning" role="alert">
+      <strong>Notifica DPO richiesta</strong>
+      <span>La procedura prevede l’invio della notifica al DPO: l’azione “05-comunicazione al DPO” non risulta ancora registrata.</span>
+    </div>
+  {% endif %}
+  {% if inc.personal_data and not has_privacy_authority_notification %}
+    <div class="procedure-warning procedure-warning-critical" role="alert">
+      <strong>Notifica al Garante Privacy da valutare</strong>
+      <span>Sono indicati dati personali coinvolti e l’azione “06-comunicazione al Garante della Privacy” non risulta ancora registrata.</span>
+    </div>
+  {% endif %}
+  {% if not has_user_notification %}
+    <div class="procedure-warning" role="alert">
+      <strong>Notifica all’utente da valutare</strong>
+      <span>L’azione “07-notifica all’utente” non risulta ancora registrata nella lista delle azioni effettuate.</span>
+    </div>
+  {% endif %}
+  {% if has_csirt_notification and has_dpo_notification and has_user_notification and (not inc.personal_data or has_privacy_authority_notification) %}
+    <p class="muted">Non risultano avvisi procedurali pendenti per le notifiche previste.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Dati titolare e responsabile</h3>
+  <dl class="details-grid">
+    <dt>Titolare</dt><dd>{{ owner_name or '-' }}</dd>
+    <dt>Ruolo titolare</dt><dd>{{ owner_role or '-' }}</dd>
+    <dt>Struttura</dt><dd>{{ structure_name or '-' }}</dd>
+    <dt>Responsabile</dt><dd>{{ responsible_name or '-' }}</dd>
+    <dt>Email responsabile</dt><dd>{{ responsible_email or '-' }}</dd>
+    <dt>Telefono responsabile</dt><dd>{{ responsible_phone or '-' }}</dd>
+    <dt>Funzione responsabile</dt><dd>{{ responsible_function or '-' }}</dd>
+  </dl>
+</div>
+<div class="card">
+  <h3>Conseguenze, misure e raccomandazioni</h3>
+  <h4>Conseguenze derivate</h4><ul>{% for c in consequences %}<li>{{ c }}</li>{% endfor %}</ul>
+  <h4>Misure adottate derivate dalle azioni</h4><ul>{% for m in measures %}<li>{{ m }}</li>{% endfor %}</ul>
+  <h4>Raccomandazioni selezionate</h4>
+  <ul>{% for r in inc.recommendations %}<li>{{ r.text }}</li>{% else %}<li class="muted">Nessuna raccomandazione selezionata.</li>{% endfor %}</ul>
+</div>
+<div class="card" id="incident-actions"><h3>Azioni</h3>{% for category,m in section_messages('incident-actions', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.add_action',iid=inc.id)}}" class="form-grid" enctype="multipart/form-data" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><div><label>Data e ora</label><input name="when_at" type="datetime-local" value="{{ default_action_when }}" required><p class="muted">Precompilata al caricamento della form con il fuso orario {{ application_timezone }}.</p></div><div><label>Persona</label><input name="person_name" value="{{current_user.name}}"></div><div><label>Label</label><select name="label_id">{% for l in action_labels %}<option value="{{l.id}}">{{l.value}}</option>{% endfor %}</select></div><div class="wide"><label>Descrizione opzionale</label><textarea name="description"></textarea></div><div class="wide"><label>Conseguenze associate all’azione</label><textarea name="consequence_text" placeholder="Descrivere eventuali conseguenze specifiche prodotte o rilevate con questa azione"></textarea></div><div class="wide"><label>Allegati dell’azione</label><input type="file" name="action_files" multiple><p class="muted">È possibile allegare uno o più file a questa azione.</p></div><button>Aggiungi azione</button></form>{% endif %}<table class="table"><tr><th>Data</th><th>Label</th><th>Persona</th><th>Descrizione</th><th>Conseguenze</th><th>Exportable</th><th>Allegati</th><th>Azioni</th></tr>{% for a in inc.actions %}<tr><td>{{a.when_at}}</td><td>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.update_action',aid=a.id)}}" class="stacked-inline-form" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><select name="label_id">{% for l in action_labels %}<option value="{{l.id}}" {% if a.label_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select>{% else %}{{a.label.value if a.label else ''}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<input name="person_name" value="{{a.person_name or ''}}">{% else %}{{a.person_name}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<textarea name="description">{{a.description or ''}}</textarea>{% else %}{{a.description or ''}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<textarea name="consequence_text">{{a.consequence_text or ''}}</textarea>{% else %}{{a.consequence_text or ''}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<label><input type="checkbox" name="exportable" value="1" {% if a.exportable %}checked{% endif %}> sì</label>{% else %}{{ 'sì' if a.exportable else 'no' }}{% endif %}</td><td>{% if a.attachments %}<ul class="compact-list">{% for att in a.attachments %}<li><a href="{{url_for('main.download_action_attachment',att_id=att.id)}}">{{att.filename}}</a>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.del_action_attachment',att_id=att.id)}}" onsubmit="return confirm('Cancellare questo allegato dell’azione?')" class="inline-form" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><button class="link-danger" type="submit">elimina</button></form>{% endif %}</li>{% endfor %}</ul>{% else %}<span class="muted">nessuno</span>{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<button type="submit" class="secondary">Salva</button></form><form method="post" action="{{url_for('main.del_action',aid=a.id)}}" onsubmit="return confirm('Cancellare questa azione?')" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><button class="danger">Elimina</button></form>{% endif %}</td></tr>{% endfor %}</table></div><div class="card" id="incident-documents">
+  <h3>Documenti</h3>
+  {% for category,m in section_messages('incident-documents', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}
+  {% if current_user.role in ['admin','writer'] %}
+    <form method="post" action="{{url_for('main.upload',iid=inc.id)}}" enctype="multipart/form-data" data-scroll-anchor="incident-documents"><input type="hidden" name="scroll_anchor" value="incident-documents">
+      <input type="file" name="files" multiple>
+      <button>Upload</button>
+    </form>
+  {% endif %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Documento</th>
+        <th>Data upload</th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in inc.documents %}
+      <tr>
+        <td><a href="{{url_for('main.download_doc',did=d.id)}}">{{d.filename}}</a></td>
+        <td>{{ d.uploaded_at.strftime('%d/%m/%Y %H:%M') if d.uploaded_at else '-' }}</td>
+        <td>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.del_doc',did=d.id)}}" onsubmit="return confirm('Cancellare questo documento?')" data-scroll-anchor="incident-documents"><input type="hidden" name="scroll_anchor" value="incident-documents"><button class="danger">Elimina</button></form>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="muted">Nessun documento allegato.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="incident-forms">
+  <h3>Generazione moduli</h3>
+  {% for category,m in section_messages('incident-forms', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}
+  {% if form_templates %}
+    {% if current_user.role in ['admin','writer'] %}
+    <p class="muted">Seleziona uno o più template PDF facendo click sulla relativa scheda. I template selezionati vengono evidenziati; per ogni template verrà generato un PDF compilato e, dopo l’anteprima, il file accettato verrà allegato all’incidente.</p>
+    <p class="muted">Prima della generazione il sistema controlla i campi dell’incidente usati dai mapping del template: se uno o più valori sono mancanti, la generazione viene sospesa e viene mostrato l’elenco cumulativo dei campi da completare.</p>
+    <form method="post" action="{{ url_for('main.generate_incident_forms', iid=inc.id) }}" class="template-card-selection-form" data-scroll-anchor="incident-forms"><input type="hidden" name="scroll_anchor" value="incident-forms">
+      <div class="template-select-grid" role="group" aria-label="Template PDF disponibili per la generazione moduli">
+        {% for tmpl in form_templates %}
+          <label class="template-select-card" tabindex="0">
+            <input class="template-select-input" type="checkbox" name="templates" value="{{ tmpl.name }}">
+            <span class="template-select-title">{{ tmpl.name }}</span>
+            <span class="template-select-meta">{{ tmpl.fields|length }} campi PDF mappabili</span>
+          </label>
+        {% endfor %}
+      </div>
+      <button type="submit">Genera documenti</button>
+    </form>
+    {% else %}
+      <p class="muted">La generazione dei moduli è disponibile solo per utenti abilitati alla scrittura.</p>
+    {% endif %}
+  {% else %}
+    <p class="muted">Nessun template PDF disponibile. Caricare i template nella directory configurata per i moduli.</p>
+  {% endif %}
+</div>
+
+{% if current_user.username != 'admin' %}
+<div class="card">
+  <h3>Notifiche</h3>
+  <p class="muted">Prima dell'invio viene mostrata un'anteprima. L'invio registra automaticamente una nuova azione nell'incidente.</p>
+  <div class="button-row">
+    {% for nt in notification_types %}
+      <a class="button" href="{{ url_for('main.notify_preview', iid=inc.id, kind=nt.code) }}">{{ nt.label }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

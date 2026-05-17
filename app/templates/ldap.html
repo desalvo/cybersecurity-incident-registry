@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Configurazione LDAP</h2>
+  <form method="post" class="form-grid">
+    <div><label>URI server LDAP</label><input name="ldap_uri" value="{{settings.get('ldap_uri','')}}" placeholder="ldap://ldap.example.org:389"></div>
+    <div><label>Base DN</label><input name="ldap_base_dn" value="{{settings.get('ldap_base_dn','')}}" placeholder="dc=example,dc=org"></div>
+    <div><label>Bind DN</label><input name="ldap_bind_dn" value="{{settings.get('ldap_bind_dn','')}}" placeholder="cn=reader,dc=example,dc=org"></div>
+    <div><label>Bind password</label><input name="ldap_bind_password" type="password" value="{{settings.get('ldap_bind_password','')}}"></div>
+    <div class="wide"><label>Filtro utenti, usare {uid}</label><input name="ldap_user_filter" value="{{settings.get('ldap_user_filter','(uid={uid})')}}"></div>
+    <div><label>UID di test</label><input name="test_uid" value="{{request.form.get('test_uid','')}}" placeholder="uid utente"></div>
+    <div class="button-row wide">
+      <button name="action" value="save">Salva LDAP</button>
+      <button name="action" value="test_connection" class="secondary">Test comunicazione</button>
+      <button name="action" value="search_uid" class="secondary">Cerca utente per uid</button>
+    </div>
+  </form>
+  <p class="muted">Il test di comunicazione verifica bind e raggiungibilità del server. La ricerca usa Base DN e filtro utenti configurato, sostituendo <code>{uid}</code> con il valore indicato.</p>
+</div>
+{% if result %}
+<div class="card">
+  <h3>{{ result.title }}</h3>
+  {% if result.ok %}
+    {% if result.details %}<pre>{{ result.details }}</pre>{% endif %}
+    {% if result.filter %}<p><strong>Filtro usato:</strong> <code>{{ result.filter }}</code></p>{% endif %}
+    {% if result.entries is defined %}
+      {% if result.entries %}
+        <table><thead><tr><th>DN</th><th>Attributi</th></tr></thead><tbody>
+        {% for entry in result.entries %}
+          <tr><td>{{ entry.dn }}</td><td><pre>{{ entry.attributes }}</pre></td></tr>
+        {% endfor %}
+        </tbody></table>
+      {% else %}
+        <p>Nessun utente trovato.</p>
+      {% endif %}
+    {% endif %}
+  {% else %}
+    <p class="error">{{ result.error }}</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

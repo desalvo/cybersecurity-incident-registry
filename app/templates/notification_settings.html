@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Impostazioni notifiche</h2>
+  <p class="muted">Configura i parametri usati dall'applicazione per l'invio di tutte le notifiche CSIRT e DPO. L'autenticazione SMTP è opzionale.</p>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="save">
+    <fieldset class="wide">
+      <legend>Destinatari notifiche</legend>
+      <div class="form-grid">
+        <div><label>Email CSIRT</label><input type="email" name="csirt_email" value="{{ settings.get('csirt_email','') }}" placeholder="csirt@example.org"></div>
+        <div><label>Email DPO</label><input type="email" name="dpo_email" value="{{ settings.get('dpo_email','') }}" placeholder="dpo@example.org"></div>
+        <div><label>CC CSIRT</label><input name="csirt_cc" value="{{ settings.get('csirt_cc','') }}" placeholder="cc1@example.org, cc2@example.org"></div>
+        <div><label>CC DPO</label><input name="dpo_cc" value="{{ settings.get('dpo_cc','') }}" placeholder="cc1@example.org, cc2@example.org"></div>
+        <div class="wide"><label>Mittente SMTP predefinito <span class="required-if-auth">*</span></label><input type="email" id="smtp_default_sender" name="smtp_default_sender" value="{{ settings.get('smtp_default_sender','') }}" placeholder="registry@example.org" {% if settings.get('smtp_auth_enabled','0')=='1' %}required{% endif %}><p class="muted">Obbligatorio se l’autenticazione SMTP è abilitata. Viene usato come mittente per le notifiche e per le mail di test, incluso l’utente admin.</p></div>
+      </div>
+    </fieldset>
+
+    <fieldset class="wide">
+      <legend>Server SMTP</legend>
+      <div class="form-grid">
+        <div><label>SMTP host</label><input name="smtp_host" value="{{ settings.get('smtp_host','') }}" placeholder="smtp.example.org"></div>
+        <div><label>SMTP porta</label><input type="number" min="1" max="65535" name="smtp_port" value="{{ settings.get('smtp_port','587') }}"></div>
+        <div><label><input type="checkbox" name="smtp_use_tls" value="1" {% if settings.get('smtp_use_tls','1')=='1' %}checked{% endif %}> Usa STARTTLS</label></div>
+        <div><label><input type="checkbox" name="smtp_use_ssl" value="1" {% if settings.get('smtp_use_ssl','0')=='1' %}checked{% endif %}> Usa SSL/TLS diretto</label></div>
+      </div>
+      <p class="muted">Usare STARTTLS per porte come 587. Usare SSL/TLS diretto per porte come 465. Non abilitarli insieme se il server non lo supporta.</p>
+    </fieldset>
+
+    <fieldset class="wide">
+      <legend>Autenticazione SMTP opzionale</legend>
+      <div class="form-grid">
+        <div class="wide"><label><input type="checkbox" id="smtp_auth_enabled" name="smtp_auth_enabled" value="1" {% if settings.get('smtp_auth_enabled','0')=='1' %}checked{% endif %}> Abilita autenticazione SMTP</label></div>
+        <div><label>SMTP username</label><input name="smtp_username" value="{{ settings.get('smtp_username','') }}" autocomplete="off"></div>
+        <div><label>SMTP password</label><input type="password" name="smtp_password" value="{{ settings.get('smtp_password','') }}" autocomplete="new-password"></div>
+      </div>
+    </fieldset>
+
+
+
+    <fieldset class="wide">
+      <legend>Promemoria automatici scadenze azioni</legend>
+      <div class="form-grid">
+        <div class="wide"><label><input type="checkbox" name="notification_deadline_enabled" value="1" {% if settings.get('notification_deadline_enabled','0')=='1' %}checked{% endif %}> Abilita controllo automatico delle scadenze per le azioni</label></div>
+        <div class="wide"><label><input type="checkbox" name="notification_deadline_email_enabled" value="1" {% if settings.get('notification_deadline_email_enabled','1')=='1' %}checked{% endif %}> Abilita invio email per task in scadenza</label></div>
+        <div><label>Intervallo ore</label><input type="number" min="0" name="notification_deadline_interval_hours" value="{{ settings.get('notification_deadline_interval_hours','24') }}"></div>
+        <div><label>Intervallo minuti</label><input type="number" min="0" max="59" name="notification_deadline_interval_minutes" value="{{ settings.get('notification_deadline_interval_minutes','0') }}"></div>
+      </div>
+      <p class="muted">Il controllo prende in esame gli incidenti aperti. Per ogni label azione con Tempo massimo (ore) numerico maggiore di zero, se l’azione non è ancora presente nell’incidente e l’incidente non ha le notifiche di scadenza silenziate, viene inviata una mail solo se l’invio email è abilitato e se l’incidente ha almeno una unità di personale associata; i destinatari sono le unità di personale coinvolte con indirizzo email valorizzato, calcolando il tempo dalla prima informazione iniziale. Le date e ore riportate nelle notifiche sono formattate nel fuso orario applicativo configurato in Admin → Altre configurazioni. Il valore 0 significa nessun tempo massimo definito.</p>
+    </fieldset>
+
+    <fieldset class="wide">
+      <legend>Template mail task in scadenza</legend>
+      <div class="form-grid">
+        <div class="wide">
+          <label>Oggetto</label>
+          <input name="notification_deadline_subject_template" value="{{ settings.get('notification_deadline_subject_template','') }}" placeholder="Promemoria scadenze azioni - Incidente %incident_name%">
+        </div>
+        <div class="wide">
+          <label>Corpo del messaggio</label>
+          <textarea name="notification_deadline_body_template" rows="12" placeholder="Usa i placeholder elencati sotto">{{ settings.get('notification_deadline_body_template','') }}</textarea>
+        </div>
+      </div>
+      <h3>Placeholder disponibili</h3>
+      <div class="placeholder-grid">
+        {% for placeholder, description in deadline_placeholders %}
+          <div><code>{{ placeholder }}</code></div><div>{{ description }}</div>
+        {% endfor %}
+      </div>
+      <p class="muted">I placeholder devono usare la sintassi <code>%testo%</code>. I placeholder non riconosciuti restano invariati nel messaggio, così da rendere evidente l’errore in anteprima.</p>
+      <div class="form-actions">
+        <button type="submit">Salva impostazioni notifiche</button>
+        <button type="submit" name="action" value="preview_deadline_template" class="secondary">Anteprima template task</button>
+      </div>
+    </fieldset>
+
+    <div class="wide"><button>Salva impostazioni notifiche</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Preview mail task in scadenza</h2>
+  <p class="muted">Anteprima costruita con dati dimostrativi e con il template configurato sopra. Non invia alcuna email.</p>
+  <h3>Oggetto</h3>
+  <pre class="mail-preview">{{ preview_subject }}</pre>
+  <h3>Corpo</h3>
+  <pre class="mail-preview">{{ preview_body }}</pre>
+</div>
+
+<div class="card">
+  <h2>Test invio mail</h2>
+  <p class="muted">Invia una mail di prova usando i parametri SMTP salvati. Salva prima le modifiche ai parametri se vuoi provarle.</p>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="test_smtp">
+    <div>
+      <label>Destinatario mail di prova</label>
+      <input type="email" name="test_email" placeholder="destinatario@example.org" required>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Invia mail di prova</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Controllo scadenze azioni</h2>
+  <p class="muted">Esegue subito il controllo delle scadenze, indipendentemente dall’intervallo configurato.</p>
+  <form method="post">
+    <input type="hidden" name="action" value="run_deadline_check">
+    <button type="submit" class="secondary">Esegui controllo ora</button>
+  </form>
+</div>
+<script>
+(function(){
+  const auth = document.getElementById('smtp_auth_enabled');
+  const sender = document.getElementById('smtp_default_sender');
+  function syncRequired(){
+    if (!auth || !sender) return;
+    sender.required = auth.checked;
+  }
+  if (auth) auth.addEventListener('change', syncRequired);
+  syncRequired();
+})();
+</script>
+{% endblock %}

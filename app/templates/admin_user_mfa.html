@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>MFA utente: {{ target_user.username }}</h2>
+  <p>Gli amministratori possono attivare/disattivare la MFA e revocare token, ma non possono visualizzare i dettagli segreti dei token di altri utenti.</p>
+  {% set verified_count = tokens|selectattr('verified_at')|list|length %}
+  {% if verified_count == 0 %}<p class="muted">La MFA può essere attivata solo dopo la presenza di almeno un token TOTP verificato.</p>{% endif %}
+  <form method="post" class="inline-form">
+    <input type="hidden" name="action" value="toggle">
+    <label><input type="checkbox" name="mfa_enabled" {% if target_user.mfa_enabled %}checked{% endif %} {% if verified_count == 0 %}disabled{% endif %}> MFA attiva</label>
+    <button {% if verified_count == 0 %}disabled{% endif %}>Salva</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Token registrati</h3>
+  <form method="post">
+    <input type="hidden" name="action" value="delete_all"><button class="danger">Rimuovi tutti i token</button>
+  </form>
+  <table class="table"><tr><th>Nome</th><th>Creato</th><th>Verificato</th><th>Ultimo utilizzo</th><th>Dettagli</th><th></th></tr>
+  {% for t in tokens %}<tr><td>{{ t.name }}</td><td>{{ t.created_at.strftime('%d/%m/%Y %H:%M') if t.created_at else '' }}</td><td>{{ t.verified_at.strftime('%d/%m/%Y %H:%M') if t.verified_at else 'no' }}</td><td>{{ t.last_used_at.strftime('%d/%m/%Y %H:%M') if t.last_used_at else 'mai' }}</td><td>{% if target_user.id == current_user.id %}<code>{{ t.secret }}</code>{% else %}non visibili{% endif %}</td><td><form method="post"><input type="hidden" name="action" value="delete"><input type="hidden" name="token_id" value="{{ t.id }}"><button class="danger">Rimuovi</button></form></td></tr>{% else %}<tr><td colspan="6">Nessun token registrato.</td></tr>{% endfor %}
+  </table>
+</div>
+<p><a href="{{ url_for('main.admin_users') }}">Torna agli utenti</a></p>
+{% endblock %}

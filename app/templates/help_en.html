@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="doc-shell">
+  <div class="doc-hero card">
+    <img class="doc-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Application logo">
+    <div><h1>User documentation</h1><p class="muted">Cybersecurity Incident Registry - complete user guide.</p><a class="button" href="{{ url_for('main.help_pdf') }}">Download PDF</a></div>
+  </div>
+  <section class="doc-chapter card"><h2>1. Overview</h2><p>Cybersecurity Incident Registry supports the full lifecycle of cybersecurity incidents: creation, classification, action tracking, procedural warnings, notifications, reports, PDF form generation, full export and full import.</p></section>
+  <section class="doc-chapter card"><h2>2. Incidents</h2><p>The main page lists incidents visible according to the user's role. Writers and administrators can create and update incidents, associate personnel, categories, affected data, recommendations, documents and actions.</p><p>In the incident detail page the <strong>Procedural warnings</strong> section is displayed at the top, before the operational areas, so deadlines and missing requirements are immediately visible.</p></section>
+  <section class="doc-chapter card"><h2>3. Actions and deadlines</h2><p>Actions are recorded with date, time, operator, label, description, consequences and attachments. Action labels can define a <strong>Maximum time (hours)</strong> and whether new actions with that label are <strong>exportable by default</strong>.</p><p>Automatic task-expiry notifications report dates and times using the application time zone configured by the administrator.</p></section>
+  <section class="doc-chapter card"><h2>4. Notifications</h2><p>Notification templates support placeholders and can generate emails for users, CSIRT, DPO and expiring tasks. Administrators configure SMTP, recipients, notification types and templates. Incident-level task notifications can be muted when needed.</p></section>
+  <section class="doc-chapter card"><h2>5. PDF forms</h2><p>The Forms menu is shown only when the user has privileges to access at least one of its entries. Administrators configure PDF templates, analyze AcroForm fields, map database fields to PDF fields and define font family and size used during PDF filling.</p></section>
+  <section class="doc-chapter card"><h2>6. Reports, export and import</h2><p>Users can produce incident reports and statistics. Full export/import includes incidents, users, configurable labels, settings, notification templates, PDF template configuration, audit records and binary files required by the application.</p></section>
+  <section class="doc-chapter card"><h2>7. Language</h2><p>The web interface and the user and administrator documentation are available in Italian and English. By default the browser locale is used: Italian is shown for Italian locale, English for all other locales. Administrators can force Italian or English from <strong>Admin → Other settings</strong>.</p></section>
+</div>
+{% endblock %}

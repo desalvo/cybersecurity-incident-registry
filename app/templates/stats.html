@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Statistiche</h1>
+    <p class="muted">Statistiche separate per intervallo temporale, categorie e dati interessati.</p>
+  </div>
+  <a class="button" href="{{ url_for('main.stats_pdf', start=request.args.get('start',''), end=request.args.get('end','')) }}">Scarica PDF statistiche</a>
+</div>
+
+<form class="card toolbar" method="get" action="{{ url_for('main.stats') }}" aria-label="Filtro finestra temporale statistiche">
+  <label>Da
+    <input type="datetime-local" name="start" value="{{ request.args.get('start','') }}">
+  </label>
+  <label>A
+    <input type="datetime-local" name="end" value="{{ request.args.get('end','') }}">
+  </label>
+  <button type="submit">Aggiorna finestra ricercata</button>
+  <a class="button secondary" href="{{ url_for('main.stats') }}">Azzera</a>
+</form>
+
+<div class="stats-periods">
+  {% for row in rows %}
+  <section class="card stats-card" aria-labelledby="stats-{{ loop.index }}">
+    <div class="stats-card-header">
+      <h2 id="stats-{{ loop.index }}">{{ row.name }}</h2>
+      <div class="stat-pills" aria-label="Indicatori sintetici">
+        <span class="stat-pill"><b>{{ row.count }}</b> incidenti</span>
+        <span class="stat-pill"><b>{{ '%.2f'|format(row.avg_duration) }}</b> ore durata media</span>
+      </div>
+    </div>
+
+    <div class="stats-charts-grid">
+      <div class="chart-panel">
+        <h3>Incidenti per categoria</h3>
+        {% if row.categories %}
+          <div class="bar-chart" role="img" aria-label="Grafico incidenti per categoria per {{ row.name }}">
+            {% for label, value in row.categories %}
+            <div class="bar-row">
+              <div class="bar-label" title="{{ label }}">{{ label }}</div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: {{ (value * 100 / row.max_category)|round(0, 'ceil') }}%"></div>
+              </div>
+              <div class="bar-value">{{ value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty compact-empty">Nessuna categoria nel periodo.</p>
+        {% endif %}
+      </div>
+
+      <div class="chart-panel">
+        <h3>Incidenti per dati interessati</h3>
+        {% if row.data_types %}
+          <div class="bar-chart" role="img" aria-label="Grafico incidenti per dati interessati per {{ row.name }}">
+            {% for label, value in row.data_types %}
+            <div class="bar-row">
+              <div class="bar-label" title="{{ label }}">{{ label }}</div>
+              <div class="bar-track">
+                <div class="bar-fill secondary-fill" style="width: {{ (value * 100 / row.max_data_type)|round(0, 'ceil') }}%"></div>
+              </div>
+              <div class="bar-value">{{ value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty compact-empty">Nessun dato interessato nel periodo.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Dati titolare</h2>
+  <form method="post" class="form-grid">
+    <div>
+      <label>Nome del titolare della sicurezza</label>
+      <input name="security_owner_name" value="{{ owner_name or '' }}">
+    </div>
+    <div>
+      <label>Ruolo del titolare della sicurezza</label>
+      <input name="security_owner_role" value="{{ owner_role or '' }}" placeholder="es. Titolare del trattamento, Responsabile struttura...">
+    </div>
+    <div class="form-actions full-width"><button>Salva</button></div>
+  </form>
+</div>
+{% endblock %}

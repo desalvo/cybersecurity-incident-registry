@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Moduli · Configurazione</h2>
+  <p class="muted">I template dei moduli sono creati a partire da file PDF compilabili. I campi da compilare sono i nomi dei campi del modulo PDF; l’associazione con i dati dell’incidente avviene tramite drag & drop.</p>
+
+  <section class="subcard">
+    <h3>Carica nuovo modello PDF</h3>
+    <p class="muted">Carica un PDF con campi modulo compilabili. L’applicazione leggerà i nomi dei campi, mostrerà l’anteprima per verifica e chiederà conferma prima di salvare il PDF originario come template.</p>
+    <form method="post" enctype="multipart/form-data" class="form-grid">
+      <input type="hidden" name="action" value="preview_pdf_template">
+      <div>
+        <label for="pdf_template">File PDF</label>
+        <input type="file" id="pdf_template" name="pdf_template" accept=".pdf,application/pdf" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit">Analizza PDF e mostra anteprima</button>
+      </div>
+    </form>
+  </section>
+
+  {% if preview %}
+  <section class="subcard highlight-card">
+    <h3>Anteprima template rilevato da {{ preview.source_name }}</h3>
+    <div class="two-column-responsive">
+      <div>
+        <h4>Elementi rilevati</h4>
+        {% if preview.elements %}
+          <ul class="compact-list">
+            {% for item in preview.elements %}
+              <li><strong>{{ item.type }}</strong>: {{ item.text }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">Nessun elemento significativo rilevato.</p>
+        {% endif %}
+      </div>
+      <div>
+        <h4>Campi da compilare rilevati</h4>
+        <p class="muted">Sono considerati compilabili i campi AcroForm presenti nel PDF. Il nome del campo è quello definito nel modulo PDF.</p>
+        {% if preview.fields %}
+          <div class="detected-fields-list">
+            {% for item in preview.field_meta %}
+              <div class="detected-field-card">
+                <strong><code>{{ item.name }}</code></strong>
+                <span>{{ item.source }}</span>
+                {% if item.sample %}<small>{{ item.sample }}</small>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="procedure-warning"><strong>Nessun campo modulo PDF rilevato.</strong><span>Verificare che il PDF contenga campi AcroForm compilabili e non sia una semplice scansione.</span></p>
+        {% endif %}
+      </div>
+    </div>
+    <h4>Anteprima dei campi PDF</h4>
+    <div class="docx-preview-wrap">{{ preview.visual_html|safe }}</div>
+    <form method="post" class="form-grid" onsubmit="return confirm('Confermi il salvataggio del template PDF?');">
+      <input type="hidden" name="action" value="save_pdf_template">
+      <input type="hidden" name="source_pdf_b64" value="{{ preview.source_pdf_b64 }}">
+      <div>
+        <label for="new_template_name">Nome template da salvare</label>
+        <input id="new_template_name" name="new_template_name" value="{{ preview.suggested_name }}" required>
+      </div>
+      <div class="full-width">
+        <p class="muted">Il PDF caricato verrà salvato come template originario. I nomi dei campi da mappare resteranno quelli AcroForm del PDF.</p>
+      </div>
+      <div class="form-actions">
+        <button type="submit">Conferma e registra template PDF</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if not templates %}
+    <div class="procedure-warning"><strong>Nessun template PDF trovato.</strong><span>Caricare un file PDF compilabile dalla sezione precedente oppure inserire file <code>.pdf</code> nella directory configurata <code>FORM_TEMPLATE_DIR</code>.</span></div>
+  {% else %}
+    <section class="subcard">
+      <h3>Mappatura campi template</h3>
+      <form method="get" class="form-grid">
+        <div>
+          <label>Template</label>
+          <select name="template" onchange="this.form.submit()">
+            {% for tmpl in templates %}
+              <option value="{{ tmpl.name }}" {% if selected==tmpl.name %}selected{% endif %}>{{ tmpl.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <noscript><button>Carica</button></noscript>
+      </form>
+      {% set tmpl = (templates | selectattr('name','equalto',selected) | list | first) %}
+      {% if tmpl %}
+      <section class="subcard compact-card">
+        <h3>Sostituisci modello PDF</h3>
+        <p class="muted">Carica un nuovo PDF per il template selezionato. La sostituzione è consentita solo se il nuovo file contiene esattamente gli stessi campi compilabili; in quel caso mappature, font e dimensione configurati vengono mantenuti.</p>
+        <form method="post" enctype="multipart/form-data" class="form-grid" onsubmit="return confirm('Sostituire il PDF originario del template mantenendo le mappature esistenti?');">
+          <input type="hidden" name="action" value="replace_pdf_template">
+          <input type="hidden" name="template_name" value="{{ tmpl.name }}">
+          <div>
+            <label for="replacement_pdf_template">Nuovo file PDF</label>
+            <input type="file" id="replacement_pdf_template" name="replacement_pdf_template" accept=".pdf,application/pdf" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="secondary">Sostituisci PDF mantenendo i mapping</button>
+          </div>
+        </form>
+      </section>
+
+
+      <section class="subcard compact-card">
+        <h3>Rinomina template</h3>
+        <p class="muted">Modifica il nome del template mantenendo file PDF, mapping e impostazioni di compilazione.</p>
+        <form method="post" class="form-grid">
+          <input type="hidden" name="action" value="rename_template">
+          <input type="hidden" name="template_name" value="{{ tmpl.name }}">
+          <div><label>Nuovo nome template</label><input name="new_template_name" value="{{ tmpl.name }}" required></div>
+          <div class="form-actions"><button type="submit" class="secondary">Rinomina template</button></div>
+        </form>
+      </section>
+
+      <form method="post" class="inline-form" onsubmit="return confirm('Cancellare definitivamente questo template modulo e le relative mappature?');">
+        <input type="hidden" name="action" value="delete_template">
+        <input type="hidden" name="template_name" value="{{ tmpl.name }}">
+        <button type="submit" class="danger">Cancella template</button>
+      </form>
+      <form method="post">
+        <input type="hidden" name="action" value="save_mapping">
+        <input type="hidden" name="template_name" value="{{ tmpl.name }}">
+        {% set cfg = template_configs.get(tmpl.name) if template_configs else none %}
+        <section class="subcard compact-card">
+          <h3>Impostazioni compilazione PDF</h3>
+          <div class="form-grid">
+            <div>
+              <label for="font_family">Font da usare nella compilazione</label>
+              <select id="font_family" name="font_family">
+                <option value="Helvetica" {% if not cfg or cfg.font_family == 'Helvetica' %}selected{% endif %}>Helvetica</option>
+                <option value="Times-Roman" {% if cfg and cfg.font_family == 'Times-Roman' %}selected{% endif %}>Times Roman</option>
+              </select>
+            </div>
+            <div>
+              <label for="font_size">Dimensione font</label>
+              <input id="font_size" name="font_size" type="number" min="8" max="16" step="1" value="{{ cfg.font_size if cfg else 10 }}" required>
+              <small class="muted">Valori ammessi: da 8 a 16 pt.</small>
+            </div>
+          </div>
+        </section>
+        <div class="dnd-config-grid">
+          <section class="dnd-source-panel">
+            <h3>Campi database incidenti</h3>
+            <p class="muted">Trascina un campo database sulla casella di destinazione del campo template.</p>
+            <div class="dnd-source-scroll">
+            {% for db_name, db_label in db_fields %}
+              <div class="draggable-token" draggable="true" data-value="{{ db_name }}">{{ db_label }} <small>{{ db_name }}</small></div>
+            {% endfor %}
+            </div>
+          </section>
+          <section class="dnd-target-panel">
+            <h3>Campi del template {{ tmpl.name }}</h3>
+            <p class="muted">Scorri la lista dei campi del template e associa ogni campo PDF al dato incidente desiderato.</p>
+            <div class="dnd-template-scroll">
+            {% if tmpl.fields %}
+              {% for field in tmpl.fields %}
+                <div class="mapping-row">
+                  <label>{{ field }}</label>
+                  <input class="drop-target" name="map__{{ field }}" value="{{ mappings.get(field,'') }}" placeholder="Trascina qui un campo database">
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="muted">Questo template non contiene campi compilabili.</p>
+            {% endif %}
+            </div>
+          </section>
+        </div>
+        <button type="submit">Salva configurazione</button>
+      </form>
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

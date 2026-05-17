@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo-wrap"><img class="login-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" onerror="this.style.display='none'"></div>
+      <div class="login-app-logo-wrap"><img class="login-app-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry"></div>
+      <h1 class="login-title">Cybersecurity Incident Registry</h1>
+      {% for m in get_flashed_messages() %}<div class="flash">{{m}}</div>{% endfor %}
+      <form method="post">
+        <label>Username</label><input name="username" required autofocus>
+        <label>Password</label><input name="password" type="password" required>
+        <br><br><button style="width:100%">Accedi</button>
+      </form>
+      {% if sso_enabled %}
+      <div class="login-separator"><span>oppure</span></div>
+      <a class="button sso-login-button" href="{{ url_for('main.sso_login') }}">Accedi con {{ sso.sso_provider_name or 'SSO' }}</a>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
