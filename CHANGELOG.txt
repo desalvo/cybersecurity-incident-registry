@@ -1,3 +1,9 @@
+0.1.0-101
+- Corretto il rendering del logo applicativo nei report PDF incidenti: gli SVG sono rasterizzati in PNG temporanei prima dell'inserimento come immagini ReportLab.
+- Rimossa la riga di etichette testuali sotto i loghi nella prima pagina del report PDF, così non compare testo al posto dell'immagine.
+- Updated incident PDF reports so first-page logos render as actual images; SVG logos are converted to temporary PNG files before insertion.
+- Removed textual labels below report logos.
+
 0.1.0-100
 - Nei report PDF incidenti rimossa la dicitura "logo custom" dalla prima pagina.
 - Il logo caricato da GUI, quando presente, viene mostrato come logo applicativo; se non è configurato viene omesso senza lasciare spazio vuoto.

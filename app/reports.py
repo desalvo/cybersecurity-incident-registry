@@ -2,6 +2,7 @@ import tempfile, os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table as RLTable, TableStyle, Image, PageBreak, KeepTogether, CondPageBreak
+from reportlab.graphics import renderPM
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -60,27 +61,37 @@ def _safe_static_folder():
     return os.path.join(os.path.dirname(__file__), 'static')
 
 
+def _scaled_image_flowable(path, max_width, max_height):
+    img=Image(path)
+    iw, ih = float(img.imageWidth or max_width), float(img.imageHeight or max_height)
+    scale=min(max_width/iw, max_height/ih, 1.0)
+    img.drawWidth=iw*scale
+    img.drawHeight=ih*scale
+    return img
+
+
 def _pdf_logo_flowable(path, max_width=4.2*cm, max_height=1.8*cm):
-    """Restituisce un flowable immagine scalato per intestazioni PDF."""
+    """Restituisce un flowable immagine scalato per intestazioni PDF.
+
+    Gli SVG vengono rasterizzati in PNG temporanei prima di passarli a ReportLab,
+    evitando che il titolo/metadata dello SVG venga renderizzato come semplice testo
+    al posto del logo.
+    """
     if not path or not os.path.exists(path):
         return None
     ext=os.path.splitext(path)[1].lower()
     try:
-        if ext == '.svg' and svg2rlg:
+        if ext == '.svg':
+            if not svg2rlg:
+                return None
             drawing=svg2rlg(path)
             if not drawing:
                 return None
-            scale=min(max_width/float(drawing.width or max_width), max_height/float(drawing.height or max_height), 1.0)
-            drawing.width=float(drawing.width or max_width)*scale
-            drawing.height=float(drawing.height or max_height)*scale
-            drawing.scale(scale, scale)
-            return drawing
-        img=Image(path)
-        iw, ih = float(img.imageWidth or max_width), float(img.imageHeight or max_height)
-        scale=min(max_width/iw, max_height/ih, 1.0)
-        img.drawWidth=iw*scale
-        img.drawHeight=ih*scale
-        return img
+            tmp=tempfile.NamedTemporaryFile(prefix='cir-report-logo-', suffix='.png', delete=False)
+            tmp.close()
+            renderPM.drawToFile(drawing, tmp.name, fmt='PNG')
+            return _scaled_image_flowable(tmp.name, max_width, max_height)
+        return _scaled_image_flowable(path, max_width, max_height)
     except Exception:
         return None
 
@@ -97,18 +108,16 @@ def _report_logos_table(styles):
     app_flow=_pdf_logo_flowable(app_logo, max_width=5.0*cm, max_height=2.0*cm)
     gui_flow=_pdf_logo_flowable(gui_logo, max_width=5.0*cm, max_height=2.0*cm)
     cells=[]
-    labels=[]
     if app_flow:
-        cells.append(app_flow); labels.append('Logo applicativo')
+        cells.append(app_flow)
     if gui_flow:
-        cells.append(gui_flow); labels.append('Logo applicativo')
+        cells.append(gui_flow)
     if not cells:
         return None
-    t=RLTable([cells, [P(x, styles['small-muted']) for x in labels]], colWidths=[7.5*cm]*len(cells), hAlign='CENTER')
+    t=RLTable([cells], colWidths=[7.5*cm]*len(cells), hAlign='CENTER')
     t.setStyle(TableStyle([
         ('ALIGN',(0,0),(-1,-1),'CENTER'),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-        ('BOTTOMPADDING',(0,0),(-1,0),4),('TOPPADDING',(0,1),(-1,1),0),
-        ('TEXTCOLOR',(0,1),(-1,1),colors.HexColor('#666666')),
+        ('BOTTOMPADDING',(0,0),(-1,-1),4),('TOPPADDING',(0,0),(-1,-1),0),
     ]))
     return t
 

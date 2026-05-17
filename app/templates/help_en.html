@@ -30,3 +30,5 @@
   <p>In incident PDF reports, the Documents section gives more space to the document name and reduces the width of the upload date/time column. Upload time is displayed as <code>YYYY-MM-DD HH:MM:SS</code>, without microseconds and with seconds always shown as integer values.</p>
 </section>
 <section class="doc-chapter card" data-doc-title="Update 0.1.0-100 - Incident PDF reports: logos"><h2>Update 0.1.0-100 - Incident PDF reports: logos</h2><p>Incident PDF reports no longer show the <strong>custom logo</strong> wording. The GUI-uploaded logo is included only when the configured file exists; otherwise the slot is omitted.</p></section>
+
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-101 incident PDF logo image rendering"><h2>Update 0.1.0-101 - Incident PDF reports: logo image rendering</h2><p>First-page logos in incident PDF reports are now inserted as actual images. The SVG application logo is internally converted to PNG before being added to the PDF, preventing fallback text or metadata from appearing instead of the image. Textual labels below logos have been removed.</p></section>

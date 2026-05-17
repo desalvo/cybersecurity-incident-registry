@@ -967,8 +967,17 @@ The `incident_pdf()` function in `app/reports.py` uses the shared `_format_pdf_d
 
 La funzione `incident_pdf()` in `app/reports.py` genera ora una copertina con logo applicativo e logo custom configurato, un indice sintetico iniziale, intestazioni di sezione evidenziate e un callback canvas per la numerazione delle pagine. L'impaginazione usa `CondPageBreak` e `keepWithNext` sugli heading per evitare che il titolo di una sezione venga separato dal contenuto della sezione stessa. Le tabelle mantengono righe alternate, intestazioni evidenziate e larghezze ottimizzate per i contenuti.
 
-English: `incident_pdf()` now produces a cover area with the application logo and the configured custom logo, a concise initial table of contents, highlighted section headings and a canvas callback for page numbers. Layout uses `CondPageBreak` and `keepWithNext` on headings so section titles are not separated from their content. Tables use alternating rows, highlighted headers and content-oriented column widths.
+English: `incident_pdf()` now produces a cover area with the application logo and the configured GUI-uploaded logo, a concise initial table of contents, highlighted section headings and a canvas callback for page numbers. Layout uses `CondPageBreak` and `keepWithNext` on headings so section titles are not separated from their content. Tables use alternating rows, highlighted headers and content-oriented column widths.
 
 ## Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi
 
 La funzione `incident_pdf` usa `_report_logos_table` per comporre i loghi di prima pagina. La tabella non usa più la dicitura `Logo custom`: il logo statico applicativo e l'eventuale logo caricato da GUI sono entrambi presentati come logo applicativo. Se la configurazione `logo_path` è vuota o punta a un file non esistente, il logo da GUI viene omesso senza generare celle vuote nel PDF.
+
+
+## Aggiornamento 0.1.0-101 - Rendering immagini logo nei report PDF
+
+La funzione `_pdf_logo_flowable()` in `app/reports.py` rasterizza i file SVG tramite `svglib.svg2rlg()` e `reportlab.graphics.renderPM.drawToFile()` in un PNG temporaneo, poi inserisce il PNG come `Image` ReportLab scalata. Questo rende affidabile la visualizzazione del logo applicativo statico `cir-application-logo.svg` nei report PDF incidenti ed evita che titolo, descrizione o testo alternativo dello SVG vengano mostrati al posto dell'immagine. `_report_logos_table()` genera solo la riga delle immagini e non aggiunge più etichette testuali sotto i loghi. Il logo caricato da GUI continua a essere inserito solo se `logo_path` è valorizzato e punta a un file esistente.
+
+### Update 0.1.0-101 - Logo image rendering in PDF reports
+
+The `_pdf_logo_flowable()` function in `app/reports.py` rasterises SVG files through `svglib.svg2rlg()` and `reportlab.graphics.renderPM.drawToFile()` into a temporary PNG, then inserts that PNG as a scaled ReportLab `Image`. This reliably displays the static `cir-application-logo.svg` application logo in incident PDF reports and prevents SVG title, description or fallback text from being rendered instead of the image. `_report_logos_table()` now generates only the image row and no textual labels below the logos. The GUI-uploaded logo is still included only when `logo_path` is set and points to an existing file.

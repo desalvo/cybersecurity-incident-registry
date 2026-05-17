@@ -31,3 +31,5 @@
   <p>Incident PDF report generation uses explicit column widths for the Documents table: the document name is prioritised over the upload date/time column. Timestamps are normalised without microseconds and with seconds always shown as integer values.</p>
 </section>
 <section class="doc-chapter card" data-doc-title="Update 0.1.0-100 - Incident PDF reports: logos"><h2>Update 0.1.0-100 - Incident PDF reports: logos</h2><p>Incident PDF report generation no longer labels the GUI-uploaded logo as <strong>custom logo</strong>. The logo is included only when the configured file exists; otherwise the cell is not generated.</p></section>
+
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-101 incident PDF logo image rendering"><h2>Update 0.1.0-101 - Incident PDF reports: logo image rendering</h2><p>PDF generation now rasterises SVG logos into temporary PNG files before passing them to ReportLab as images. The initial logo table contains images only, without textual labels; the GUI logo is still conditional on the configured file being present.</p></section>

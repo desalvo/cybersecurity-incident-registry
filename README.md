@@ -428,8 +428,13 @@ La sezione Documenti dei report PDF degli incidenti usa ora una colonna data/ora
 Nei report PDF degli incidenti tutti i valori data/ora testuali sono normalizzati nel formato `YYYY-MM-DD HH:MM:SS`: i secondi sono sempre interi e non vengono mai visualizzate frazioni di secondo o microsecondi. La sezione di sintesi del report include ora anche la **Durata**, quando disponibile, calcolata con lo stesso criterio della pagina principale dell’applicazione: intervallo tra la prima azione registrata e la data/ora di conclusione dell’incidente.
 ## Aggiornamento 0.1.0-99 - Report PDF incidenti: impaginazione professionale
 
-I report PDF degli incidenti sono stati riformattati con una presentazione più professionale: all'inizio del documento viene mostrato il logo applicativo; se è stato caricato un logo da GUI viene mostrato anch'esso senza la dicitura "logo custom". Se nessun logo è caricato da GUI, il relativo spazio viene omesso. Subito dopo viene inserito un indice sintetico delle sezioni. I titoli delle sezioni usano uno stile evidenziato e vengono mantenuti sulla stessa pagina del contenuto relativo, evitando titoli isolati a fine pagina. Il piè di pagina include la numerazione delle pagine.
+I report PDF degli incidenti sono stati riformattati con una presentazione più professionale: all'inizio del documento viene mostrato il logo applicativo; se è stato caricato un logo da GUI viene mostrato anch'esso senza etichette testuali. Se nessun logo è caricato da GUI, il relativo spazio viene omesso. Subito dopo viene inserito un indice sintetico delle sezioni. I titoli delle sezioni usano uno stile evidenziato e vengono mantenuti sulla stessa pagina del contenuto relativo, evitando titoli isolati a fine pagina. Il piè di pagina include la numerazione delle pagine.
 
 ## Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi
 
 Nei report PDF degli incidenti la prima pagina non mostra più la dicitura **logo custom**. Il logo applicativo statico resta presente; il logo caricato da GUI viene mostrato, quando disponibile, come logo applicativo aggiuntivo. Se nessun logo è stato caricato da GUI, il relativo spazio viene omesso dal PDF.
+
+
+## Aggiornamento 0.1.0-101 - Report PDF incidenti: rendering immagini logo
+
+Nei report PDF degli incidenti i loghi della prima pagina vengono renderizzati come immagini effettive. In particolare il logo applicativo SVG viene convertito internamente in PNG temporaneo prima dell'inserimento nel PDF, evitando che metadata o testo alternativo dello SVG vengano visualizzati al posto dell'immagine. La tabella iniziale dei loghi non mostra etichette testuali sotto le immagini; il logo caricato da GUI continua a essere omesso quando non configurato o non disponibile.
