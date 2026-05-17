@@ -70,14 +70,42 @@ def _scaled_image_flowable(path, max_width, max_height):
     return img
 
 
-def _pdf_logo_flowable(path, max_width=4.2*cm, max_height=1.8*cm):
-    """Restituisce un flowable immagine scalato per intestazioni PDF.
+def _resolve_logo_path(path):
+    """Resolve a configured logo path into an existing filesystem path.
 
-    Gli SVG vengono rasterizzati in PNG temporanei prima di passarli a ReportLab,
-    evitando che il titolo/metadata dello SVG venga renderizzato come semplice testo
-    al posto del logo.
+    Older installations may store the uploaded GUI logo either as an absolute path
+    or as a path relative to the application root/static folder. The PDF generator
+    must only pass real image files to ReportLab.
     """
-    if not path or not os.path.exists(path):
+    if not path:
+        return None
+    candidates=[]
+    if os.path.isabs(path):
+        candidates.append(path)
+    else:
+        try:
+            if current_app:
+                candidates.append(os.path.join(current_app.root_path, path))
+                candidates.append(os.path.join(current_app.static_folder or '', path))
+        except RuntimeError:
+            pass
+        candidates.append(path)
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate) and os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def _pdf_logo_flowable(path, max_width=4.2*cm, max_height=1.8*cm):
+    """Return a scaled image flowable for PDF logo areas.
+
+    Prefer raster image files when available. SVG files are converted to temporary
+    PNG images before being passed to ReportLab; if conversion is unavailable or
+    fails the function returns None instead of letting ReportLab render fallback
+    text from SVG metadata.
+    """
+    path=_resolve_logo_path(path)
+    if not path:
         return None
     ext=os.path.splitext(path)[1].lower()
     try:
@@ -96,15 +124,30 @@ def _pdf_logo_flowable(path, max_width=4.2*cm, max_height=1.8*cm):
         return None
 
 
-def _report_logos_table(styles):
-    """Logo applicativo e logo caricato da GUI, quando presente, per la prima pagina del report.
+def _first_existing(paths):
+    for path in paths:
+        resolved=_resolve_logo_path(path)
+        if resolved:
+            return resolved
+    return None
 
-    Il logo caricato da GUI non viene mai etichettato come "logo custom" nel PDF.
-    Se non è stato caricato nessun logo da GUI, il relativo spazio viene omesso.
+
+def _report_logos_table(styles):
+    """Application logo and GUI-uploaded logo for the first PDF page.
+
+    The application logo is loaded from the raster PNG asset used by the help PDFs
+    first, because ReportLab handles it reliably in every deployment. The SVG is
+    retained only as a fallback. The GUI-uploaded logo is included alongside the
+    application logo only when the configured file exists. No textual label such
+    as "logo custom" is emitted in the PDF.
     """
     static_dir=_safe_static_folder()
-    app_logo=os.path.join(static_dir, 'cir-application-logo.svg')
-    gui_logo=_setting_value('logo_path', '')
+    app_logo=_first_existing([
+        os.path.join(static_dir, 'help', 'app-logo.png'),
+        os.path.join(static_dir, 'cir-application-logo.png'),
+        os.path.join(static_dir, 'cir-application-logo.svg'),
+    ])
+    gui_logo=_resolve_logo_path(_setting_value('logo_path', ''))
     app_flow=_pdf_logo_flowable(app_logo, max_width=5.0*cm, max_height=2.0*cm)
     gui_flow=_pdf_logo_flowable(gui_logo, max_width=5.0*cm, max_height=2.0*cm)
     cells=[]
@@ -114,7 +157,8 @@ def _report_logos_table(styles):
         cells.append(gui_flow)
     if not cells:
         return None
-    t=RLTable([cells], colWidths=[7.5*cm]*len(cells), hAlign='CENTER')
+    col_width=(15.0*cm/len(cells))
+    t=RLTable([cells], colWidths=[col_width]*len(cells), hAlign='CENTER')
     t.setStyle(TableStyle([
         ('ALIGN',(0,0),(-1,-1),'CENTER'),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
         ('BOTTOMPADDING',(0,0),(-1,-1),4),('TOPPADDING',(0,0),(-1,-1),0),

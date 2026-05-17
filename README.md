@@ -438,3 +438,7 @@ Nei report PDF degli incidenti la prima pagina non mostra più la dicitura **log
 ## Aggiornamento 0.1.0-101 - Report PDF incidenti: rendering immagini logo
 
 Nei report PDF degli incidenti i loghi della prima pagina vengono renderizzati come immagini effettive. In particolare il logo applicativo SVG viene convertito internamente in PNG temporaneo prima dell'inserimento nel PDF, evitando che metadata o testo alternativo dello SVG vengano visualizzati al posto dell'immagine. La tabella iniziale dei loghi non mostra etichette testuali sotto le immagini; il logo caricato da GUI continua a essere omesso quando non configurato o non disponibile.
+
+## Aggiornamento 0.1.0-102 - Report PDF incidenti: logo applicativo e logo caricato
+
+Nei report PDF degli incidenti il logo applicativo viene ora inserito usando come sorgente primaria l’immagine PNG applicativa già usata dalla documentazione, con fallback allo SVG solo se necessario. Questo evita che nel PDF compaia testo o che il logo applicativo venga omesso. Il logo caricato da GUI continua ad apparire accanto al logo applicativo quando configurato e presente su filesystem; se non è stato caricato alcun logo da GUI, viene mostrato solo il logo applicativo.

@@ -981,3 +981,11 @@ La funzione `_pdf_logo_flowable()` in `app/reports.py` rasterizza i file SVG tra
 ### Update 0.1.0-101 - Logo image rendering in PDF reports
 
 The `_pdf_logo_flowable()` function in `app/reports.py` rasterises SVG files through `svglib.svg2rlg()` and `reportlab.graphics.renderPM.drawToFile()` into a temporary PNG, then inserts that PNG as a scaled ReportLab `Image`. This reliably displays the static `cir-application-logo.svg` application logo in incident PDF reports and prevents SVG title, description or fallback text from being rendered instead of the image. `_report_logos_table()` now generates only the image row and no textual labels below the logos. The GUI-uploaded logo is still included only when `logo_path` is set and points to an existing file.
+
+## Aggiornamento 0.1.0-102 - Logo applicativo e logo caricato nei report PDF
+
+La funzione `_report_logos_table()` in `app/reports.py` usa ora come sorgente primaria del logo applicativo `app/static/help/app-logo.png`, già rasterizzato e quindi gestito in modo affidabile da ReportLab. Lo SVG `cir-application-logo.svg` resta disponibile solo come fallback. La funzione `_resolve_logo_path()` normalizza sia percorsi assoluti sia percorsi relativi del logo caricato da GUI. Nei report PDF degli incidenti il logo applicativo viene sempre mostrato come immagine reale quando l’asset statico è presente; il logo caricato da GUI viene mostrato accanto al logo applicativo solo se configurato e realmente esistente.
+
+### Update 0.1.0-102 - Application and uploaded logos in PDF reports
+
+The `_report_logos_table()` function in `app/reports.py` now uses `app/static/help/app-logo.png` as the primary source for the application logo, because it is already rasterised and reliably handled by ReportLab. The `cir-application-logo.svg` asset remains available only as a fallback. The `_resolve_logo_path()` function normalises both absolute and relative paths for the GUI-uploaded logo. Incident PDF reports always show the application logo as a real image when the static asset is present; the GUI-uploaded logo is shown next to it only when configured and actually present.

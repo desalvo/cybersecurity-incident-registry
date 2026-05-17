@@ -234,3 +234,7 @@ Incident PDF reports no longer show the **custom logo** wording on the first pag
 ## Update 0.1.0-101 - Incident PDF reports: logo image rendering
 
 Incident PDF reports now render first-page logos as actual images. The static SVG application logo is internally converted to a temporary PNG before being added to the PDF, preventing SVG metadata or fallback text from appearing instead of the image. The logo area no longer prints textual labels below the images; the GUI-uploaded logo is still omitted when it is not configured or unavailable.
+
+## Update 0.1.0-102 - Incident PDF reports: application logo and uploaded logo
+
+Incident PDF reports now insert the application logo using the application PNG asset already used by the documentation as the primary source, with SVG conversion only as a fallback. This prevents text from appearing in the PDF and prevents the application logo from being omitted. The GUI-uploaded logo continues to appear next to the application logo when configured and present on the filesystem; when no GUI logo has been uploaded, only the application logo is shown.
