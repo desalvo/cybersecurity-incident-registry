@@ -211,3 +211,11 @@ Docker Compose and Kubernetes manifests mount the persistent PostgreSQL volume o
 ### 0.110-96 - User-notification warning wording
 
 In incident **Procedural warnings**, the user-notification item is now worded as **User notification required**. The new wording clarifies that the procedural step is required and remains pending until the matching action is recorded.
+
+### Incident PDF reports: Documents section
+
+In incident PDF reports, the **Documents** table gives more space to the document name column and reduces the width reserved for the upload date and time. The upload date/time is formatted as `YYYY-MM-DD HH:MM:SS`; seconds are always shown as integer values and fractional seconds or microseconds are not displayed.
+
+### 0.110-97 - PDF report documents
+
+The Documents section in incident PDF reports now uses a more compact upload date/time column and assigns more space to the document name. Upload timestamps are normalised as `YYYY-MM-DD HH:MM:SS`, without microseconds and with seconds always shown as integer values.

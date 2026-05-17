@@ -40,6 +40,19 @@ def _incident_measures(inc):
     return rows or ['Nessuna misura registrata.']
 
 def P(txt,style): return Paragraph(str(txt or ''), style)
+
+
+def _format_upload_datetime(value):
+    if not value:
+        return ''
+    if hasattr(value, 'replace') and hasattr(value, 'strftime'):
+        # Normalise microseconds away so the seconds component is always an integer.
+        try:
+            value = value.replace(microsecond=0)
+        except TypeError:
+            pass
+        return value.strftime('%Y-%m-%d %H:%M:%S')
+    return str(value)
 def incident_pdf(inc):
     fd,path=tempfile.mkstemp(suffix='.pdf'); os.close(fd)
     styles=getSampleStyleSheet(); small=ParagraphStyle('small',parent=styles['BodyText'],fontSize=7,leading=8); body=ParagraphStyle('body',parent=styles['BodyText'],fontSize=9,leading=11)
@@ -57,8 +70,8 @@ def incident_pdf(inc):
     story.append(wrap_table(actions, small, widths=[3.1*cm,4.2*cm,3.2*cm,7.0*cm]))
     chart=actions_chart(inc)
     if chart: story += [Spacer(1,0.3*cm),Paragraph('Grafico azioni nel tempo',styles['Heading2']),Image(chart,width=17*cm,height=7*cm)]
-    docs=[['Documento','Caricato il']]+[[d.filename,d.uploaded_at] for d in inc.documents]
-    story += [Paragraph('Documenti',styles['Heading2']), wrap_table(docs, small)]
+    docs=[['Documento','Caricato il']]+[[d.filename,_format_upload_datetime(d.uploaded_at)] for d in inc.documents]
+    story += [Paragraph('Documenti',styles['Heading2']), wrap_table(docs, small, widths=[13.4*cm,3.6*cm])]
     SimpleDocTemplate(path,pagesize=A4,rightMargin=1*cm,leftMargin=1*cm,topMargin=1*cm,bottomMargin=1*cm).build(story)
     return path
 

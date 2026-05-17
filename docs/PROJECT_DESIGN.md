@@ -948,3 +948,11 @@ La policy di manutenzione bilingue è quindi estesa da interfaccia web e documen
 ## Aggiornamento 0.110-96 - Dicitura avviso notifica utente
 
 Nel template `app/templates/incident_detail.html` la label visualizzata negli avvisi procedurali per la notifica all'utente è stata uniformata alla logica applicativa già presente in `procedural_warnings()`: **Notifica all'utente richiesta**. La modifica evita ambiguità tra un controllo ancora da valutare e un adempimento procedurale richiesto che scompare quando viene registrata l'azione corrispondente.
+
+### Report PDF incidenti: layout documenti e timestamp
+
+La funzione `incident_pdf()` in `app/reports.py` costruisce la sezione **Documenti** con larghezze esplicite di colonna: il nome del documento usa la parte più ampia della tabella, mentre la data/ora di caricamento usa una colonna compatta. Il timestamp di caricamento viene normalizzato tramite `_format_upload_datetime()`, che rimuove eventuali microsecondi e produce il formato `YYYY-MM-DD HH:MM:SS`, garantendo secondi sempre interi.
+
+### Incident PDF reports: document layout and timestamps
+
+The `incident_pdf()` function in `app/reports.py` builds the **Documents** section with explicit column widths: the document name receives most of the table width, while the upload date/time uses a compact column. The upload timestamp is normalised through `_format_upload_datetime()`, which removes any microseconds and outputs `YYYY-MM-DD HH:MM:SS`, ensuring seconds are always integer values.

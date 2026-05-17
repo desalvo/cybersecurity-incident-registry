@@ -19,3 +19,7 @@
 
   <section class="doc-chapter card"><h2>9. Package README</h2><p>The package includes <code>README_en.md</code> as the English counterpart of <code>README.md</code>. Functional, configuration and deployment changes must update both README files together with the online documentation.</p></section>
 {% endblock %}
+<section class="doc-chapter card" data-doc-title="Update 0.110-97 PDF reports documents upload timestamp integer seconds">
+  <h2>Update 0.110-97 - PDF reports and attached documents</h2>
+  <p>Incident PDF report generation uses explicit column widths for the Documents table: the document name is prioritised over the upload date/time column. Timestamps are normalised without microseconds and with seconds always shown as integer values.</p>
+</section>

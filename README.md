@@ -415,3 +415,11 @@ Il pacchetto include ora anche `README_en.md`, traduzione inglese del file `READ
 ## Aggiornamento 0.110-96 - Dicitura avviso notifica utente
 
 Negli **Avvisi procedurali** del dettaglio incidente la voce relativa alla notifica all'utente è ora espressa come **Notifica all'utente richiesta**. La nuova dicitura chiarisce che l'adempimento è richiesto dalla procedura e non semplicemente da valutare.
+
+### Report PDF incidenti: sezione Documenti
+
+Nei report PDF degli incidenti, la tabella della sezione **Documenti** assegna più spazio alla colonna del nome del documento e riduce lo spazio riservato alla data e ora di caricamento. La data e ora di caricamento è formattata come `YYYY-MM-DD HH:MM:SS`; i secondi sono sempre espressi come valori interi e non vengono riportate frazioni di secondo o microsecondi.
+
+## Aggiornamento 0.110-97 - Report PDF documenti
+
+La sezione Documenti dei report PDF degli incidenti usa ora una colonna data/ora di caricamento più compatta e assegna più spazio al nome del documento. I timestamp di caricamento sono normalizzati nel formato `YYYY-MM-DD HH:MM:SS`, senza microsecondi e con secondi sempre interi.

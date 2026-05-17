@@ -407,3 +407,9 @@ Notification menu and SMTP sender fix
 - Aggiunta configurazione Admin -> Altre configurazioni -> Ritenzione audit log, default 6 mesi.
 - Il menu Moduli viene mostrato solo se contiene voci accessibili per l’utente corrente.
 - Aggiornate documentazioni utente, amministrativa, progettuale e README.
+
+0.1.0-97
+- Nei report PDF degli incidenti la sezione Documenti usa una colonna data/ora di caricamento più stretta e assegna più spazio al nome del documento.
+- La data/ora di caricamento dei documenti nei report PDF viene formattata senza microsecondi, con secondi sempre espressi come interi.
+- Incident PDF reports now use a narrower upload date/time column in the Documents section and give more room to the document name.
+- Document upload timestamps in PDF reports are formatted without microseconds, with seconds always shown as integer values.
