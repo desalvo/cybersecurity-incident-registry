@@ -226,3 +226,6 @@ In incident PDF reports, all textual date/time values are normalised as `YYYY-MM
 
 Incident PDF reports have been reformatted with a more professional presentation: the beginning of the document shows the application logo and, when configured, the custom logo. A concise table of contents follows. Section titles use a highlighted style and are kept on the same page as their related content, avoiding orphan headings at the bottom of a page. The footer includes page numbering.
 
+## Update 0.1.0-100 - Incident PDF reports: logos
+
+Incident PDF reports no longer show the **custom logo** wording on the first page. The static application logo remains present; the logo uploaded from the GUI is shown, when available, as an additional application logo. If no GUI logo has been uploaded, that slot is omitted from the PDF.

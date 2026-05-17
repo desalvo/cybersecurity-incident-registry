@@ -372,7 +372,7 @@
 
 <section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-99 report PDF impaginazione professionale loghi indice numeri pagina">
   <h2>Aggiornamento 0.1.0-99 - Report PDF incidenti: impaginazione professionale</h2>
-  <p>I report PDF degli incidenti sono stati riformattati in modo più professionale. All'inizio del report vengono mostrati il logo applicativo e il logo custom, se configurato; segue un indice sintetico delle sezioni. I titoli delle sezioni sono evidenziati e mantenuti sulla stessa pagina delle informazioni relative quando possibile, evitando titoli isolati. Il piè di pagina riporta la numerazione delle pagine.</p>
+  <p>I report PDF degli incidenti sono stati riformattati in modo più professionale. All'inizio del report viene mostrato il logo applicativo; se è stato caricato un logo da GUI viene mostrato anch'esso senza la dicitura <strong>logo custom</strong>. Se nessun logo è caricato da GUI, il relativo spazio viene omesso. Segue un indice sintetico delle sezioni. I titoli delle sezioni sono evidenziati e mantenuti sulla stessa pagina delle informazioni relative quando possibile, evitando titoli isolati. Il piè di pagina riporta la numerazione delle pagine.</p>
 </section>
 
 {% endblock %}
@@ -383,3 +383,4 @@
   <h2>Aggiornamento 0.110-97 - report PDF e documenti allegati</h2>
   <p>La generazione dei report PDF degli incidenti usa una larghezza esplicita per la tabella Documenti: il nome del documento è privilegiato rispetto alla colonna data/ora di caricamento. I timestamp sono normalizzati senza microsecondi e con secondi sempre interi.</p>
 </section>
+<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi"><h2>Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi</h2><p>La generazione dei report PDF incidente non etichetta più il logo caricato da GUI come <strong>logo custom</strong>. Il logo viene incluso solo se il file configurato esiste; in caso contrario la cella non viene generata.</p></section>

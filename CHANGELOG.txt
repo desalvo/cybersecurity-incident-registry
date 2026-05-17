@@ -1,7 +1,12 @@
+0.1.0-100
+- Nei report PDF incidenti rimossa la dicitura "logo custom" dalla prima pagina.
+- Il logo caricato da GUI, quando presente, viene mostrato come logo applicativo; se non è configurato viene omesso senza lasciare spazio vuoto.
+- Aggiornata la documentazione IT/EN.
+
 
 0.1.0-99
 - Riformattati i report PDF degli incidenti con impaginazione più professionale.
-- Aggiunti logo applicativo e logo custom, ove presente, all'inizio del report.
+- Aggiunti logo applicativo e logo caricato da GUI, ove presente, all'inizio del report; il PDF non mostra più la dicitura "logo custom".
 - Aggiunto indice sintetico iniziale.
 - Aggiunta numerazione pagine nel piè di pagina.
 - Impedita la separazione dei titoli di sezione dal relativo contenuto quando possibile.

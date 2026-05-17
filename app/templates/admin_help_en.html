@@ -22,7 +22,7 @@
 
 <section class="doc-chapter card" data-doc-title="Update 0.1.0-99 incident PDF reports professional layout logos table of contents page numbers">
   <h2>Update 0.1.0-99 - Incident PDF reports: professional layout</h2>
-  <p>Incident PDF reports have been reformatted with a more professional layout. The beginning of the report shows the application logo and the custom logo, when configured, followed by a concise table of contents. Section titles are highlighted and kept on the same page as their related information whenever possible, avoiding orphan headings. The footer includes page numbering.</p>
+  <p>Incident PDF reports have been reformatted with a more professional layout. The beginning of the report shows the application logo; if a logo has been uploaded from the GUI, it is also shown without the "custom logo" wording. If no GUI logo has been uploaded, that slot is omitted. A concise table of contents follows. Section titles are highlighted and kept on the same page as their related information whenever possible, avoiding orphan headings. The footer includes page numbering.</p>
 </section>
 
 {% endblock %}
@@ -30,3 +30,4 @@
   <h2>Update 0.110-97 - PDF reports and attached documents</h2>
   <p>Incident PDF report generation uses explicit column widths for the Documents table: the document name is prioritised over the upload date/time column. Timestamps are normalised without microseconds and with seconds always shown as integer values.</p>
 </section>
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-100 - Incident PDF reports: logos"><h2>Update 0.1.0-100 - Incident PDF reports: logos</h2><p>Incident PDF report generation no longer labels the GUI-uploaded logo as <strong>custom logo</strong>. The logo is included only when the configured file exists; otherwise the cell is not generated.</p></section>

@@ -969,3 +969,6 @@ La funzione `incident_pdf()` in `app/reports.py` genera ora una copertina con lo
 
 English: `incident_pdf()` now produces a cover area with the application logo and the configured custom logo, a concise initial table of contents, highlighted section headings and a canvas callback for page numbers. Layout uses `CondPageBreak` and `keepWithNext` on headings so section titles are not separated from their content. Tables use alternating rows, highlighted headers and content-oriented column widths.
 
+## Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi
+
+La funzione `incident_pdf` usa `_report_logos_table` per comporre i loghi di prima pagina. La tabella non usa più la dicitura `Logo custom`: il logo statico applicativo e l'eventuale logo caricato da GUI sono entrambi presentati come logo applicativo. Se la configurazione `logo_path` è vuota o punta a un file non esistente, il logo da GUI viene omesso senza generare celle vuote nel PDF.

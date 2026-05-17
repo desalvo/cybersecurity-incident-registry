@@ -86,18 +86,22 @@ def _pdf_logo_flowable(path, max_width=4.2*cm, max_height=1.8*cm):
 
 
 def _report_logos_table(styles):
-    """Logo applicativo + logo custom, quando presente, per la prima pagina del report."""
+    """Logo applicativo e logo caricato da GUI, quando presente, per la prima pagina del report.
+
+    Il logo caricato da GUI non viene mai etichettato come "logo custom" nel PDF.
+    Se non è stato caricato nessun logo da GUI, il relativo spazio viene omesso.
+    """
     static_dir=_safe_static_folder()
     app_logo=os.path.join(static_dir, 'cir-application-logo.svg')
-    custom_logo=_setting_value('logo_path', '')
+    gui_logo=_setting_value('logo_path', '')
     app_flow=_pdf_logo_flowable(app_logo, max_width=5.0*cm, max_height=2.0*cm)
-    custom_flow=_pdf_logo_flowable(custom_logo, max_width=5.0*cm, max_height=2.0*cm)
+    gui_flow=_pdf_logo_flowable(gui_logo, max_width=5.0*cm, max_height=2.0*cm)
     cells=[]
     labels=[]
     if app_flow:
-        cells.append(app_flow); labels.append('Logo applicazione')
-    if custom_flow:
-        cells.append(custom_flow); labels.append('Logo custom')
+        cells.append(app_flow); labels.append('Logo applicativo')
+    if gui_flow:
+        cells.append(gui_flow); labels.append('Logo applicativo')
     if not cells:
         return None
     t=RLTable([cells, [P(x, styles['small-muted']) for x in labels]], colWidths=[7.5*cm]*len(cells), hAlign='CENTER')
