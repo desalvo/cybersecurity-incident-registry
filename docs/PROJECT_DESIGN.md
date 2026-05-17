@@ -956,3 +956,16 @@ La funzione `incident_pdf()` in `app/reports.py` costruisce la sezione **Documen
 ### Incident PDF reports: document layout and timestamps
 
 The `incident_pdf()` function in `app/reports.py` builds the **Documents** section with explicit column widths: the document name receives most of the table width, while the upload date/time uses a compact column. The upload timestamp is normalised through `_format_upload_datetime()`, which removes any microseconds and outputs `YYYY-MM-DD HH:MM:SS`, ensuring seconds are always integer values.
+### Aggiornamento 0.1.0-98 - Report PDF incidenti: orari e durata
+
+La funzione `incident_pdf()` in `app/reports.py` usa il formatter comune `_format_pdf_datetime()` per tutti i valori data/ora testuali del report incidente. Il formatter rimuove i microsecondi e produce sempre una rappresentazione con secondi interi nel formato `YYYY-MM-DD HH:MM:SS`. La tabella di sintesi include inoltre il campo **Durata**, valorizzato tramite `Incident.effective_duration`, quindi con lo stesso criterio della lista principale: differenza tra prima azione registrata e conclusione dell’incidente, solo quando entrambi gli estremi sono disponibili e coerenti.
+
+### Update 0.1.0-98 - Incident PDF reports: times and duration
+
+The `incident_pdf()` function in `app/reports.py` uses the shared `_format_pdf_datetime()` formatter for every textual date/time value in the incident report. The formatter strips microseconds and always outputs integer seconds in the `YYYY-MM-DD HH:MM:SS` format. The summary table also includes the **Duration** field, populated from `Incident.effective_duration`, therefore using the same rule as the main list: the difference between the first recorded action and the incident closing time, only when both endpoints are available and consistent.
+### Aggiornamento 0.1.0-99 - Report PDF incidenti: impaginazione professionale
+
+La funzione `incident_pdf()` in `app/reports.py` genera ora una copertina con logo applicativo e logo custom configurato, un indice sintetico iniziale, intestazioni di sezione evidenziate e un callback canvas per la numerazione delle pagine. L'impaginazione usa `CondPageBreak` e `keepWithNext` sugli heading per evitare che il titolo di una sezione venga separato dal contenuto della sezione stessa. Le tabelle mantengono righe alternate, intestazioni evidenziate e larghezze ottimizzate per i contenuti.
+
+English: `incident_pdf()` now produces a cover area with the application logo and the configured custom logo, a concise initial table of contents, highlighted section headings and a canvas callback for page numbers. Layout uses `CondPageBreak` and `keepWithNext` on headings so section titles are not separated from their content. Tables use alternating rows, highlighted headers and content-oriented column widths.
+

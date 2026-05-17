@@ -423,3 +423,10 @@ Nei report PDF degli incidenti, la tabella della sezione **Documenti** assegna p
 ## Aggiornamento 0.110-97 - Report PDF documenti
 
 La sezione Documenti dei report PDF degli incidenti usa ora una colonna data/ora di caricamento più compatta e assegna più spazio al nome del documento. I timestamp di caricamento sono normalizzati nel formato `YYYY-MM-DD HH:MM:SS`, senza microsecondi e con secondi sempre interi.
+## Aggiornamento 0.1.0-98 - Report PDF incidenti: orari e durata
+
+Nei report PDF degli incidenti tutti i valori data/ora testuali sono normalizzati nel formato `YYYY-MM-DD HH:MM:SS`: i secondi sono sempre interi e non vengono mai visualizzate frazioni di secondo o microsecondi. La sezione di sintesi del report include ora anche la **Durata**, quando disponibile, calcolata con lo stesso criterio della pagina principale dell’applicazione: intervallo tra la prima azione registrata e la data/ora di conclusione dell’incidente.
+## Aggiornamento 0.1.0-99 - Report PDF incidenti: impaginazione professionale
+
+I report PDF degli incidenti sono stati riformattati con una presentazione più professionale: all'inizio del documento vengono mostrati il logo applicativo e, se configurato, il logo custom. Subito dopo viene inserito un indice sintetico delle sezioni. I titoli delle sezioni usano uno stile evidenziato e vengono mantenuti sulla stessa pagina del contenuto relativo, evitando titoli isolati a fine pagina. Il piè di pagina include la numerazione delle pagine.
+

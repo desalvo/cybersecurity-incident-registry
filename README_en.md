@@ -219,3 +219,10 @@ In incident PDF reports, the **Documents** table gives more space to the documen
 ### 0.110-97 - PDF report documents
 
 The Documents section in incident PDF reports now uses a more compact upload date/time column and assigns more space to the document name. Upload timestamps are normalised as `YYYY-MM-DD HH:MM:SS`, without microseconds and with seconds always shown as integer values.
+## Update 0.1.0-98 - Incident PDF reports: times and duration
+
+In incident PDF reports, all textual date/time values are normalised as `YYYY-MM-DD HH:MM:SS`: seconds are always integer values and fractional seconds or microseconds are never displayed. The report summary section now also includes **Duration**, when available, calculated with the same rule used by the application main page: the interval between the first recorded action and the incident closing date/time.
+## Update 0.1.0-99 - Incident PDF reports: professional layout
+
+Incident PDF reports have been reformatted with a more professional presentation: the beginning of the document shows the application logo and, when configured, the custom logo. A concise table of contents follows. Section titles use a highlighted style and are kept on the same page as their related content, avoiding orphan headings at the bottom of a page. The footer includes page numbering.
+

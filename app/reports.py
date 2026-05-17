@@ -1,9 +1,18 @@
 import tempfile, os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table as RLTable, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table as RLTable, TableStyle, Image, PageBreak, KeepTogether, CondPageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
+from reportlab.pdfbase.pdfmetrics import stringWidth
+try:
+    from flask import current_app
+except Exception:
+    current_app = None
+try:
+    from svglib.svglib import svg2rlg
+except Exception:
+    svg2rlg = None
 import matplotlib.pyplot as plt
 try:
     from .models import Setting
@@ -34,7 +43,7 @@ def _incident_measures(inc):
     for a in sorted([x for x in inc.actions if getattr(x, 'exportable', True)], key=lambda x: x.when_at):
         label=(a.label.description or a.label.value) if a.label else 'azione'
         desc=a.description or ''
-        when=a.when_at.strftime('%Y-%m-%d %H:%M') if a.when_at else ''
+        when=_format_pdf_datetime(a.when_at) if a.when_at else ''
         action_text = f'{label}: {desc}'.strip() if desc else label
         rows.append(f'{action_text} - {when}'.strip(' -'))
     return rows or ['Nessuna misura registrata.']
@@ -42,44 +51,171 @@ def _incident_measures(inc):
 def P(txt,style): return Paragraph(str(txt or ''), style)
 
 
-def _format_upload_datetime(value):
+def _safe_static_folder():
+    try:
+        if current_app:
+            return current_app.static_folder
+    except RuntimeError:
+        pass
+    return os.path.join(os.path.dirname(__file__), 'static')
+
+
+def _pdf_logo_flowable(path, max_width=4.2*cm, max_height=1.8*cm):
+    """Restituisce un flowable immagine scalato per intestazioni PDF."""
+    if not path or not os.path.exists(path):
+        return None
+    ext=os.path.splitext(path)[1].lower()
+    try:
+        if ext == '.svg' and svg2rlg:
+            drawing=svg2rlg(path)
+            if not drawing:
+                return None
+            scale=min(max_width/float(drawing.width or max_width), max_height/float(drawing.height or max_height), 1.0)
+            drawing.width=float(drawing.width or max_width)*scale
+            drawing.height=float(drawing.height or max_height)*scale
+            drawing.scale(scale, scale)
+            return drawing
+        img=Image(path)
+        iw, ih = float(img.imageWidth or max_width), float(img.imageHeight or max_height)
+        scale=min(max_width/iw, max_height/ih, 1.0)
+        img.drawWidth=iw*scale
+        img.drawHeight=ih*scale
+        return img
+    except Exception:
+        return None
+
+
+def _report_logos_table(styles):
+    """Logo applicativo + logo custom, quando presente, per la prima pagina del report."""
+    static_dir=_safe_static_folder()
+    app_logo=os.path.join(static_dir, 'cir-application-logo.svg')
+    custom_logo=_setting_value('logo_path', '')
+    app_flow=_pdf_logo_flowable(app_logo, max_width=5.0*cm, max_height=2.0*cm)
+    custom_flow=_pdf_logo_flowable(custom_logo, max_width=5.0*cm, max_height=2.0*cm)
+    cells=[]
+    labels=[]
+    if app_flow:
+        cells.append(app_flow); labels.append('Logo applicazione')
+    if custom_flow:
+        cells.append(custom_flow); labels.append('Logo custom')
+    if not cells:
+        return None
+    t=RLTable([cells, [P(x, styles['small-muted']) for x in labels]], colWidths=[7.5*cm]*len(cells), hAlign='CENTER')
+    t.setStyle(TableStyle([
+        ('ALIGN',(0,0),(-1,-1),'CENTER'),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('BOTTOMPADDING',(0,0),(-1,0),4),('TOPPADDING',(0,1),(-1,1),0),
+        ('TEXTCOLOR',(0,1),(-1,1),colors.HexColor('#666666')),
+    ]))
+    return t
+
+
+def _numbered_canvas(canvas, doc):
+    canvas.saveState()
+    page=str(canvas.getPageNumber())
+    footer=f'Pagina {page}'
+    canvas.setFont('Helvetica', 8)
+    canvas.setFillColor(colors.HexColor('#666666'))
+    canvas.drawRightString(A4[0]-doc.rightMargin, 0.55*cm, footer)
+    canvas.drawString(doc.leftMargin, 0.55*cm, 'Registro incidenti informatici')
+    canvas.restoreState()
+
+
+def _section_title(title, styles, min_height=3.0*cm):
+    return [CondPageBreak(min_height), Paragraph(title, styles['section-heading'])]
+
+
+def _add_section(story, title, content, styles, min_height=3.0*cm):
+    block=_section_title(title, styles, min_height=min_height)
+    if isinstance(content, list):
+        block.extend(content)
+    else:
+        block.append(content)
+    story.extend(block)
+    story.append(Spacer(1, 0.22*cm))
+
+def _format_pdf_datetime(value):
+    """Formatta date/ore dei PDF incidente con secondi interi.
+
+    Il report non deve mostrare microsecondi o frazioni di secondo; quando un
+    valore datetime/time è disponibile, i secondi vengono sempre espressi come
+    componente intera nel formato HH:MM:SS.
+    """
     if not value:
         return ''
     if hasattr(value, 'replace') and hasattr(value, 'strftime'):
-        # Normalise microseconds away so the seconds component is always an integer.
         try:
             value = value.replace(microsecond=0)
         except TypeError:
             pass
-        return value.strftime('%Y-%m-%d %H:%M:%S')
+        if hasattr(value, 'date'):
+            return value.strftime('%Y-%m-%d %H:%M:%S')
+        return value.strftime('%H:%M:%S')
     return str(value)
+
+def _format_upload_datetime(value):
+    return _format_pdf_datetime(value)
+
+def _format_incident_period(inc):
+    start=_format_pdf_datetime(getattr(inc, 'start_at', None))
+    end=_format_pdf_datetime(getattr(inc, 'end_at', None))
+    return f'{start} - {end}' if end else start
+
+def _format_incident_duration(inc):
+    value=getattr(inc, 'effective_duration', None)
+    if value is None:
+        return ''
+    total_seconds=int(value.total_seconds())
+    days, remainder=divmod(total_seconds, 86400)
+    hours, remainder=divmod(remainder, 3600)
+    minutes, seconds=divmod(remainder, 60)
+    if days:
+        return f'{days} giorni, {hours:02d}:{minutes:02d}:{seconds:02d}'
+    return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 def incident_pdf(inc):
     fd,path=tempfile.mkstemp(suffix='.pdf'); os.close(fd)
-    styles=getSampleStyleSheet(); small=ParagraphStyle('small',parent=styles['BodyText'],fontSize=7,leading=8); body=ParagraphStyle('body',parent=styles['BodyText'],fontSize=9,leading=11)
-    story=[Paragraph('Report incidente informatico',styles['Title']),Spacer(1,0.2*cm)]
-    meta=[['Campo','Valore'],['Nome',inc.name],['Riferimento',inc.reference or ''],['Compilatore',inc.creator_name],['Email compilatore',inc.creator_email],['Gravità',inc.severity.value if inc.severity else ''],['Stato',inc.status],['Periodo',f'{inc.start_at} - {inc.end_at or ""}'],['Dati personali','Sì' if inc.personal_data else 'No'], ['Numero interessati', getattr(inc, 'data_subjects_count', '') or ''], ['Volume dati', getattr(inc, 'data_volume', '') or ''], ['Titolare',_setting_value('security_owner_name')], ['Ruolo titolare',_setting_value('security_owner_role')], ['Struttura',_setting_value('structure_name')], ['Responsabile',_setting_value('security_responsible_name')], ['Email responsabile',_setting_value('security_responsible_email')], ['Telefono responsabile',_setting_value('security_responsible_phone','-')], ['Funzione responsabile',_setting_value('security_responsible_function')]]
-    story += [Paragraph('Sintesi',styles['Heading2']), wrap_table(meta, small), Spacer(1,0.3*cm), Paragraph('Descrizione',styles['Heading2']), P(inc.description,body)]
-    story += [Paragraph('Categorie e dati interessati',styles['Heading2']), wrap_table([['Categorie',', '.join(x.value for x in inc.categories)],['Dati interessati',', '.join(x.value for x in inc.data_types)]], small)]
-    story += [Paragraph('Conseguenze derivate',styles['Heading2']), wrap_table([['Conseguenze']] + [[x] for x in _incident_consequences(inc)], small, widths=[17*cm])]
-    story += [Paragraph('Misure adottate',styles['Heading2']), wrap_table([['Misure']] + [[x] for x in _incident_measures(inc)], small, widths=[17*cm])]
-    story += [Paragraph('Raccomandazioni',styles['Heading2']), wrap_table([['Raccomandazione']] + [[r.text] for r in inc.recommendations], small, widths=[17*cm])]
+    styles=getSampleStyleSheet()
+    styles.add(ParagraphStyle('report-title', parent=styles['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#1f3a5f'), alignment=1, spaceAfter=8))
+    styles.add(ParagraphStyle('report-subtitle', parent=styles['BodyText'], fontSize=9, leading=12, alignment=1, textColor=colors.HexColor('#555555')))
+    styles.add(ParagraphStyle('section-heading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=12, leading=15, textColor=colors.white, backColor=colors.HexColor('#1f3a5f'), borderPadding=(4, 5, 4), spaceBefore=8, spaceAfter=6, keepWithNext=True))
+    styles.add(ParagraphStyle('small-muted', parent=styles['BodyText'], fontSize=7, leading=9, textColor=colors.HexColor('#666666'), alignment=1))
+    small=ParagraphStyle('small',parent=styles['BodyText'],fontSize=7.5,leading=9)
+    body=ParagraphStyle('body',parent=styles['BodyText'],fontSize=9,leading=12)
+
+    story=[]
+    logos=_report_logos_table(styles)
+    if logos:
+        story += [logos, Spacer(1,0.45*cm)]
+    story += [Paragraph('Report incidente informatico',styles['report-title'])]
+    story += [Paragraph(f"{inc.name or ''} - riferimento {inc.reference or '-'}", styles['report-subtitle']), Spacer(1,0.5*cm)]
+
+    index_rows=[['Indice sintetico'],['Sintesi'],['Descrizione'],['Categorie e dati interessati'],['Conseguenze derivate'],['Misure adottate'],['Raccomandazioni'],['Personale coinvolto'],['Azioni intraprese'],['Grafico azioni nel tempo'],['Documenti']]
+    story += [Paragraph('Indice sintetico', styles['section-heading']), wrap_table(index_rows, small, widths=[17.5*cm]), Spacer(1,0.25*cm)]
+
+    meta=[['Campo','Valore'],['Nome',inc.name],['Riferimento',inc.reference or ''],['Compilatore',inc.creator_name],['Email compilatore',inc.creator_email],['Gravità',inc.severity.value if inc.severity else ''],['Stato',inc.status],['Periodo',_format_incident_period(inc)],['Durata',_format_incident_duration(inc) or ''],['Dati personali','Sì' if inc.personal_data else 'No'], ['Numero interessati', getattr(inc, 'data_subjects_count', '') or ''], ['Volume dati', getattr(inc, 'data_volume', '') or ''], ['Titolare',_setting_value('security_owner_name')], ['Ruolo titolare',_setting_value('security_owner_role')], ['Struttura',_setting_value('structure_name')], ['Responsabile',_setting_value('security_responsible_name')], ['Email responsabile',_setting_value('security_responsible_email')], ['Telefono responsabile',_setting_value('security_responsible_phone','-')], ['Funzione responsabile',_setting_value('security_responsible_function')]]
+    _add_section(story, 'Sintesi', wrap_table(meta, small), styles)
+    _add_section(story, 'Descrizione', P(inc.description,body), styles)
+    _add_section(story, 'Categorie e dati interessati', wrap_table([['Categorie',', '.join(x.value for x in inc.categories)],['Dati interessati',', '.join(x.value for x in inc.data_types)]], small), styles)
+    _add_section(story, 'Conseguenze derivate', wrap_table([['Conseguenze']] + [[x] for x in _incident_consequences(inc)], small, widths=[17.5*cm]), styles)
+    _add_section(story, 'Misure adottate', wrap_table([['Misure']] + [[x] for x in _incident_measures(inc)], small, widths=[17.5*cm]), styles)
+    _add_section(story, 'Raccomandazioni', wrap_table([['Raccomandazione']] + [[r.text] for r in inc.recommendations], small, widths=[17.5*cm]), styles)
     people=sorted(inc.people,key=lambda p:p.name.lower())
-    story += [Paragraph('Personale coinvolto',styles['Heading2']), wrap_table([['Nome','Email']]+[[p.name,p.email or ''] for p in people], small)]
-    story += [Paragraph('Azioni intraprese',styles['Heading2'])]
-    actions=[['Data e ora','Label','Persona','Descrizione']]+[[a.when_at, a.label.value if a.label else '', a.person_name, a.description or ''] for a in inc.actions]
-    story.append(wrap_table(actions, small, widths=[3.1*cm,4.2*cm,3.2*cm,7.0*cm]))
+    _add_section(story, 'Personale coinvolto', wrap_table([['Nome','Email']]+[[p.name,p.email or ''] for p in people], small), styles)
+    actions=[['Data e ora','Label','Persona','Descrizione']]+[[_format_pdf_datetime(a.when_at), a.label.value if a.label else '', a.person_name, a.description or ''] for a in inc.actions]
+    _add_section(story, 'Azioni intraprese', wrap_table(actions, small, widths=[3.2*cm,4.0*cm,3.1*cm,7.2*cm]), styles, min_height=4.0*cm)
     chart=actions_chart(inc)
-    if chart: story += [Spacer(1,0.3*cm),Paragraph('Grafico azioni nel tempo',styles['Heading2']),Image(chart,width=17*cm,height=7*cm)]
+    if chart:
+        _add_section(story, 'Grafico azioni nel tempo', Image(chart,width=17.5*cm,height=7*cm), styles, min_height=8.5*cm)
     docs=[['Documento','Caricato il']]+[[d.filename,_format_upload_datetime(d.uploaded_at)] for d in inc.documents]
-    story += [Paragraph('Documenti',styles['Heading2']), wrap_table(docs, small, widths=[13.4*cm,3.6*cm])]
-    SimpleDocTemplate(path,pagesize=A4,rightMargin=1*cm,leftMargin=1*cm,topMargin=1*cm,bottomMargin=1*cm).build(story)
+    _add_section(story, 'Documenti', wrap_table(docs, small, widths=[14.0*cm,3.5*cm]), styles)
+    doc=SimpleDocTemplate(path,pagesize=A4,rightMargin=1.1*cm,leftMargin=1.1*cm,topMargin=1.1*cm,bottomMargin=1.1*cm)
+    doc.build(story, onFirstPage=_numbered_canvas, onLaterPages=_numbered_canvas)
     return path
 
 def wrap_table(data, style, widths=None):
     if widths is None: widths=[4*cm,13*cm] if len(data[0])==2 else None
     wrapped=[[P(c,style) for c in row] for row in data]
     t=RLTable(wrapped,colWidths=widths,repeatRows=1)
-    t.setStyle(TableStyle([('GRID',(0,0),(-1,-1),0.25,colors.grey),('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e8eef7')),('VALIGN',(0,0),(-1,-1),'TOP'),('FONTSIZE',(0,0),(-1,-1),7),('LEFTPADDING',(0,0),(-1,-1),3),('RIGHTPADDING',(0,0),(-1,-1),3)]))
+    t.setStyle(TableStyle([('GRID',(0,0),(-1,-1),0.25,colors.grey),('BACKGROUND',(0,0),(-1,0),colors.HexColor('#dbe6f3')),('TEXTCOLOR',(0,0),(-1,0),colors.HexColor('#1f3a5f')),('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),('VALIGN',(0,0),(-1,-1),'TOP'),('FONTSIZE',(0,0),(-1,-1),7),('LEFTPADDING',(0,0),(-1,-1),4),('RIGHTPADDING',(0,0),(-1,-1),4),('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white, colors.HexColor('#f7f9fc')])]))
     return t
 
 def actions_chart(inc):

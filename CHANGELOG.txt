@@ -1,3 +1,12 @@
+
+0.1.0-99
+- Riformattati i report PDF degli incidenti con impaginazione più professionale.
+- Aggiunti logo applicativo e logo custom, ove presente, all'inizio del report.
+- Aggiunto indice sintetico iniziale.
+- Aggiunta numerazione pagine nel piè di pagina.
+- Impedita la separazione dei titoli di sezione dal relativo contenuto quando possibile.
+- Updated incident PDF reports with professional layout, logos, concise table of contents and page numbering.
+
 0.110-96
 - Aggiornata negli avvisi procedurali del dettaglio incidente la voce relativa alla notifica utente come "Notifica all'utente richiesta".
 - Aggiornate documentazioni utente, amministrativa, README italiano/inglese e documentazione progettuale.
@@ -413,3 +422,9 @@ Notification menu and SMTP sender fix
 - La data/ora di caricamento dei documenti nei report PDF viene formattata senza microsecondi, con secondi sempre espressi come interi.
 - Incident PDF reports now use a narrower upload date/time column in the Documents section and give more room to the document name.
 - Document upload timestamps in PDF reports are formatted without microseconds, with seconds always shown as integer values.
+
+0.1.0-98
+- Nei report PDF degli incidenti tutti i valori data/ora testuali sono formattati senza microsecondi e con secondi sempre interi.
+- Aggiunta nella sintesi dei report PDF degli incidenti la durata, quando disponibile, calcolata come nella pagina principale dell'applicazione.
+- Incident PDF reports now format all textual date/time values without microseconds and with seconds always shown as integer values.
+- The incident PDF summary now includes duration, when available, calculated as on the application main page.

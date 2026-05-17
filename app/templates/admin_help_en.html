@@ -18,6 +18,13 @@
 </div>
 
   <section class="doc-chapter card"><h2>9. Package README</h2><p>The package includes <code>README_en.md</code> as the English counterpart of <code>README.md</code>. Functional, configuration and deployment changes must update both README files together with the online documentation.</p></section>
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-98 incident PDF reports times duration"><h2>Update 0.1.0-98 - Incident PDF reports: times and duration</h2><p>Incident PDF generation now uses a single date/time formatter, without microseconds and with integer seconds. The PDF summary includes the Duration field, populated through <code>Incident.effective_duration</code> and therefore consistent with the main page.</p></section>
+
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-99 incident PDF reports professional layout logos table of contents page numbers">
+  <h2>Update 0.1.0-99 - Incident PDF reports: professional layout</h2>
+  <p>Incident PDF reports have been reformatted with a more professional layout. The beginning of the report shows the application logo and the custom logo, when configured, followed by a concise table of contents. Section titles are highlighted and kept on the same page as their related information whenever possible, avoiding orphan headings. The footer includes page numbering.</p>
+</section>
+
 {% endblock %}
 <section class="doc-chapter card" data-doc-title="Update 0.110-97 PDF reports documents upload timestamp integer seconds">
   <h2>Update 0.110-97 - PDF reports and attached documents</h2>
