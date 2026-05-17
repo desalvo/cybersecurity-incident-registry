@@ -406,3 +406,12 @@ La colonna della sezione **Label azioni** in **Admin → Liste configurabili** �
 ### Lingua interfaccia
 
 L'interfaccia e le documentazioni sono disponibili in italiano e inglese. Per default la lingua segue il locale del browser: italiano per locale italiano, inglese per tutti gli altri locale. Un amministratore può forzare `auto`, `it` o `en` da Admin → Altre configurazioni.
+
+## Aggiornamento 0.110-95 - README inglese del pacchetto
+
+Il pacchetto include ora anche `README_en.md`, traduzione inglese del file `README.md`. Da questa versione il README italiano e il README inglese devono essere mantenuti allineati insieme alla documentazione utente, amministrativa e progettuale. Le richieste operative possono continuare a essere fornite in italiano; gli aggiornamenti funzionali devono riportare automaticamente anche la corrispondente documentazione inglese.
+
+
+## Aggiornamento 0.110-96 - Dicitura avviso notifica utente
+
+Negli **Avvisi procedurali** del dettaglio incidente la voce relativa alla notifica all'utente è ora espressa come **Notifica all'utente richiesta**. La nuova dicitura chiarisce che l'adempimento è richiesto dalla procedura e non semplicemente da valutare.

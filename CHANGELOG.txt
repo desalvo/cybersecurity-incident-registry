@@ -1,3 +1,12 @@
+0.110-96
+- Aggiornata negli avvisi procedurali del dettaglio incidente la voce relativa alla notifica utente come "Notifica all'utente richiesta".
+- Aggiornate documentazioni utente, amministrativa, README italiano/inglese e documentazione progettuale.
+
+0.110-95
+- Aggiunto `README_en.md` come traduzione inglese del README.md del pacchetto.
+- Estesa la policy di manutenzione bilingue anche ai README del pacchetto.
+- Aggiornate documentazioni utente, amministratore, progettuale e README.
+
 
 0.110-94
 - Interfaccia web bilingue italiano/inglese con selezione automatica dal locale del browser.

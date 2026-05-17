@@ -937,3 +937,14 @@ L'applicazione mantiene l'interfaccia web e le documentazioni utente/amministrat
 Il setting è gestito da Admin → Altre configurazioni ed è incluso nel full export/import come tutte le altre configurazioni applicative. Le pagine di aiuto online e i PDF amministrativi/utente selezionano il template documentale coerente con la lingua risolta. Le traduzioni dell'interfaccia sono applicate anche ai principali testi statici di menu, form, pulsanti e messaggi di navigazione.
 
 Policy di manutenzione: le richieste operative possono continuare a essere raccolte in italiano; ogni modifica successiva deve aggiornare anche la resa inglese dell'interfaccia e della documentazione.
+
+## Aggiornamento 0.110-95 - README bilingue del pacchetto
+
+Il pacchetto distribuisce ora due README di primo livello: `README.md` in italiano e `README_en.md` in inglese. `README_en.md` è la controparte inglese del README italiano e deve essere aggiornato insieme a `README.md` ogni volta che cambiano funzionalità, configurazioni, istruzioni di deploy, export/import, audit, notifiche o criteri di internazionalizzazione.
+
+La policy di manutenzione bilingue è quindi estesa da interfaccia web e documentazioni utente/amministratore ai README del pacchetto. Le istruzioni operative possono continuare a essere espresse in italiano; la traduzione inglese dei testi documentali interessati deve essere prodotta contestualmente all'aggiornamento.
+
+
+## Aggiornamento 0.110-96 - Dicitura avviso notifica utente
+
+Nel template `app/templates/incident_detail.html` la label visualizzata negli avvisi procedurali per la notifica all'utente è stata uniformata alla logica applicativa già presente in `procedural_warnings()`: **Notifica all'utente richiesta**. La modifica evita ambiguità tra un controllo ancora da valutare e un adempimento procedurale richiesto che scompare quando viene registrata l'azione corrispondente.
