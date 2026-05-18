@@ -454,3 +454,9 @@ Notification menu and SMTP sender fix
 - Fixed periodic deadline notifications by adding an internal background scheduler independent from web traffic.
 - Added detailed audit records for every effective scheduler run.
 - Reorganised the Admin menu into collapsible subgroups with bounded height and internal scrolling.
+
+0.1.0-104
+- Aggiunta sezione nella pagina Impostazioni notifiche con prossimo invio stimato dei task in scadenza.
+- Scheduler notifiche task ancorato agli slot calcolati dalla mezzanotte del giorno corrente nella timezone applicativa.
+- Il controllo manuale non modifica la pianificazione automatica.
+- Documentazione italiana e inglese aggiornata.

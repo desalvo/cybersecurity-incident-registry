@@ -47,6 +47,19 @@
         <div><label>Intervallo minuti</label><input type="number" min="0" max="59" name="notification_deadline_interval_minutes" value="{{ settings.get('notification_deadline_interval_minutes','0') }}"></div>
       </div>
       <p class="muted">Il controllo prende in esame gli incidenti aperti. Per ogni label azione con Tempo massimo (ore) numerico maggiore di zero, se l’azione non è ancora presente nell’incidente e l’incidente non ha le notifiche di scadenza silenziate, viene inviata una mail solo se l’invio email è abilitato e se l’incidente ha almeno una unità di personale associata; i destinatari sono le unità di personale coinvolte con indirizzo email valorizzato, calcolando il tempo dalla prima informazione iniziale. Le date e ore riportate nelle notifiche sono formattate nel fuso orario applicativo configurato in Admin → Altre configurazioni. Il valore 0 significa nessun tempo massimo definito.</p>
+      <div class="notice">
+        <h3>Prossimo invio stimato</h3>
+        <p><strong>{{ schedule_info.next_at }}</strong></p>
+        <p class="muted">Il calcolo usa l’intervallo configurato a partire dalla mezzanotte del giorno corrente nel fuso {{ schedule_info.timezone }}; non dipende dall’ora di avvio dell’applicazione.</p>
+        <dl class="meta-list">
+          <dt>Stato controllo automatico</dt><dd>{{ 'abilitato' if schedule_info.enabled else 'disabilitato' }}</dd>
+          <dt>Invio email</dt><dd>{{ 'abilitato' if schedule_info.email_enabled else 'disabilitato' }}</dd>
+          <dt>Intervallo effettivo</dt><dd>{{ schedule_info.interval_minutes }} minuti</dd>
+          <dt>Mezzanotte di riferimento</dt><dd>{{ schedule_info.reference_midnight }}</dd>
+          <dt>Slot corrente</dt><dd>{{ schedule_info.current_slot }}</dd>
+          <dt>Ultima esecuzione automatica registrata</dt><dd>{{ schedule_info.last_run_at }}</dd>
+        </dl>
+      </div>
     </fieldset>
 
     <fieldset class="wide">

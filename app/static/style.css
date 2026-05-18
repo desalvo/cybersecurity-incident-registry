@@ -228,3 +228,5 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .admin-menu-group summary::after{content:'▸';float:right;color:#64748b}
 .admin-menu-group[open] summary::after{content:'▾'}
 .admin-menu-group a{padding-left:24px!important}
+
+.notice{border:1px solid #bfdbfe;border-left:5px solid #1d4ed8;border-radius:12px;background:#eff6ff;padding:1rem;margin:1rem 0}.notice h3{margin-top:0}.meta-list{display:grid;grid-template-columns:minmax(180px,32%) 1fr;gap:.35rem .75rem;margin:.75rem 0}.meta-list dt{font-weight:700;color:#334155}.meta-list dd{margin:0}@media(max-width:700px){.meta-list{grid-template-columns:1fr}.meta-list dd{margin-bottom:.5rem}}

@@ -1880,6 +1880,56 @@ def deadline_interval_minutes():
     return total if total > 0 else 24 * 60
 
 
+
+
+def deadline_schedule_reference_midnight(now=None):
+    """Mezzanotte del giorno corrente nel fuso orario applicativo."""
+    now = now or application_now()
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+def current_deadline_schedule_slot(now=None):
+    """Ultimo slot schedulato calcolato dalla mezzanotte locale applicativa."""
+    now = now or application_now()
+    interval = deadline_interval_minutes()
+    midnight = deadline_schedule_reference_midnight(now)
+    elapsed_minutes = max(0, int((now - midnight).total_seconds() // 60))
+    slot_minutes = (elapsed_minutes // interval) * interval
+    return midnight + timedelta(minutes=slot_minutes)
+
+def next_deadline_notification_at(now=None):
+    """Prossimo invio stimato, sempre basato su multipli dalla mezzanotte.
+
+    Esempio: intervallo 4 ore => 00:00, 04:00, 08:00, 12:00...
+    Il calcolo non dipende dall'ora di avvio del processo applicativo.
+    """
+    now = now or application_now()
+    interval = deadline_interval_minutes()
+    midnight = deadline_schedule_reference_midnight(now)
+    elapsed_minutes = max(0, int((now - midnight).total_seconds() // 60))
+    next_minutes = ((elapsed_minutes // interval) + 1) * interval
+    return midnight + timedelta(minutes=next_minutes)
+
+def format_deadline_schedule_info():
+    next_at = next_deadline_notification_at()
+    current_slot = current_deadline_schedule_slot()
+    last_raw = setting_value('notification_deadline_last_run_at', '')
+    last_label = 'mai eseguito automaticamente'
+    if last_raw:
+        try:
+            last_label = format_application_datetime(datetime.fromisoformat(last_raw), include_timezone=True)
+        except ValueError:
+            last_label = last_raw
+    return {
+        'enabled': setting_value('notification_deadline_enabled', '0') == '1',
+        'email_enabled': setting_value('notification_deadline_email_enabled', '1') == '1',
+        'interval_minutes': deadline_interval_minutes(),
+        'timezone': application_timezone_name(),
+        'reference_midnight': format_application_datetime(deadline_schedule_reference_midnight(), include_timezone=True),
+        'current_slot': format_application_datetime(current_slot, include_timezone=True),
+        'next_at': format_application_datetime(next_at, include_timezone=True),
+        'last_run_at': last_label,
+    }
+
 def first_initial_information_at(inc):
     candidates = []
     for action in inc.actions or []:
@@ -2136,14 +2186,19 @@ def run_deadline_notification_check(force=False, source='request'):
         db.session.commit()
         return result
     now = application_now()
+    schedule_slot = current_deadline_schedule_slot(now)
     last_raw = setting_value('notification_deadline_last_run_at', '')
-    if last_raw and not force:
+    if not force:
         try:
-            last = datetime.fromisoformat(last_raw)
-            if now - last < timedelta(minutes=deadline_interval_minutes()):
-                return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'interval_not_elapsed'}
+            last = datetime.fromisoformat(last_raw) if last_raw else None
         except ValueError:
-            pass
+            last = None
+        if last and last >= schedule_slot:
+            return {
+                'sent': 0, 'skipped': 0, 'errors': [], 'executed': False,
+                'reason': 'schedule_slot_already_executed',
+                'next_run_at': next_deadline_notification_at(now).isoformat(timespec='seconds'),
+            }
     sent = skipped = 0
     errors = []
     incidents_checked = 0
@@ -2165,7 +2220,10 @@ def run_deadline_notification_check(force=False, source='request'):
         except Exception as exc:
             current_app.logger.exception('Errore notifica scadenze incidente %s', inc.id)
             errors.append(f'Incidente {inc.id}: {exc}')
-    set_setting_value('notification_deadline_last_run_at', now.isoformat(timespec='seconds'))
+    if not force:
+        # Memorizza lo slot pianificato, non l'ora di avvio/esecuzione: in questo modo
+        # gli intervalli restano ancorati alla mezzanotte del giorno corrente.
+        set_setting_value('notification_deadline_last_run_at', schedule_slot.isoformat(timespec='seconds'))
     result = {
         'sent': sent,
         'skipped': skipped,
@@ -2173,6 +2231,8 @@ def run_deadline_notification_check(force=False, source='request'):
         'executed': True,
         'source': source,
         'interval_minutes': deadline_interval_minutes(),
+        'schedule_slot': schedule_slot.isoformat(timespec='seconds'),
+        'next_run_at': next_deadline_notification_at(now).isoformat(timespec='seconds'),
         'incidents_checked': incidents_checked,
         'incidents_with_pending': incidents_with_pending,
     }
@@ -2373,7 +2433,8 @@ def notification_settings():
     }
     settings = {k: setting_value(k, defaults.get(k,'')) for k in keys}
     preview_subject, preview_body = sample_deadline_preview()
-    return render_template('notification_settings.html', settings=settings, deadline_placeholders=DEADLINE_NOTIFICATION_PLACEHOLDERS, preview_subject=preview_subject, preview_body=preview_body)
+    schedule_info = format_deadline_schedule_info()
+    return render_template('notification_settings.html', settings=settings, deadline_placeholders=DEADLINE_NOTIFICATION_PLACEHOLDERS, preview_subject=preview_subject, preview_body=preview_body, schedule_info=schedule_info)
 
 @bp.route('/notifiche/template/nuovo', methods=['GET','POST'])
 @login_required
