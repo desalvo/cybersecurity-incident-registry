@@ -353,6 +353,6 @@ User and administrator documentation has been reorganised into clearer chapters 
 - The Admin → Audit page displays, filters and exports date/time values in the application configured timezone.
 
 
-## Update 0.1.0-123 - SSO/OAuth2 profile logos
+## Update 0.1.0-124 - SSO/OAuth2 profile logos
 
 Each SSO/OAuth2 profile configured from **Admin → SSO** can now have an optional logo uploaded from the profile form. The logo is shown in the configured profiles table and, when the profile is active, on the SSO button in the login page. The Google example profile uses the bundled Google logo by default; it can still be replaced or removed like any other profile logo. SSO profile logos are included in full export/import together with the profile configuration.

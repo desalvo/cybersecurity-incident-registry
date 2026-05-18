@@ -555,6 +555,6 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 - La pagina Admin → Audit mostra, filtra ed esporta le date e ore nel fuso orario configurato nell’applicazione.
 
 
-## Aggiornamento 0.1.0-123 - Loghi profili SSO/OAuth2
+## Aggiornamento 0.1.0-124 - Loghi profili SSO/OAuth2
 
 Ogni profilo SSO/OAuth2 configurabile da **Admin → SSO** può ora avere un logo opzionale, caricato dalla form del profilo. Il logo viene mostrato nella tabella dei profili configurati e, quando il profilo è attivo, nel pulsante SSO della pagina di login. Il profilo Google di esempio usa per default il logo Google fornito dall’applicazione; il logo può comunque essere sostituito o rimosso come per ogni altro profilo. I loghi dei profili SSO sono inclusi nel full export/import insieme alla configurazione dei profili.

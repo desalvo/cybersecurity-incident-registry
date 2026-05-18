@@ -32,6 +32,24 @@
   </form>
 </div>
 
+
+<div class="card">
+  <h3>Storage loghi SSO</h3>
+  <p class="muted">Carica qui i loghi disponibili per i profili SSO/OAuth2. Tutti i loghi sono conservati nella stessa area di storage, possono essere riutilizzati da più profili e sono inclusi nel full export/import.</p>
+  <form method="post" enctype="multipart/form-data" class="toolbar">
+    <input type="hidden" name="profile" value="{{ settings.id }}">
+    <div><label>Nuovo logo</label><input type="file" name="sso_logo_upload" accept="image/svg+xml,image/png,image/jpeg,image/gif,image/webp"></div>
+    <button name="action" value="upload_sso_logo" class="secondary" type="submit">Carica logo nello storage</button>
+  </form>
+  {% if sso_logos %}
+  <div class="sso-logo-gallery">
+    {% for logo in sso_logos %}
+      <div class="sso-logo-tile"><img src="{{ url_for('static', filename=logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'"><code>{{ logo.name }}</code></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
 <div class="card">
   <h3>Profilo SSO</h3>
   <form method="post" class="form-grid" style="margin-top:1rem" enctype="multipart/form-data">
@@ -58,10 +76,22 @@
         <div class="sso-logo-preview"><img src="{{ url_for('static', filename=settings.sso_logo_path) }}" alt="Logo {{ settings.sso_provider_name or 'SSO' }}" onerror="this.style.display='none'"><span class="muted">Logo corrente: <code>{{ settings.sso_logo_path }}</code></span></div>
         <label class="inline-check"><input type="checkbox" name="remove_sso_logo" value="1"> Rimuovi logo corrente</label>
       {% else %}
-        <p class="muted">Nessun logo configurato. Il pulsante di login mostrerà solo il nome del provider.</p>
+        <p class="muted">Nessun logo associato. Il pulsante di login mostrerà solo il nome del provider.</p>
       {% endif %}
-      <input type="file" name="sso_logo" accept="image/svg+xml,image/png,image/jpeg,image/gif,image/webp">
-      <small class="muted">Formati supportati: SVG, PNG, JPG, GIF, WEBP. Per il profilo Google di esempio viene proposto il logo Google predefinito, modificabile caricando un file.</small>
+      <select name="sso_logo_path">
+        <option value="">Nessun logo</option>
+        {% for logo in sso_logos %}
+          <option value="{{ logo.relative_path }}" {% if settings.sso_logo_path == logo.relative_path %}selected{% endif %}>{{ logo.name }}</option>
+        {% endfor %}
+      </select>
+      <small class="muted">I loghi sono condivisi tra tutti i profili SSO e salvati nello storage <code>static/sso</code>. Usare il pannello sotto per caricare nuovi loghi e poi selezionarli qui.</small>
+      {% if sso_logos %}
+      <div class="sso-logo-gallery">
+        {% for logo in sso_logos %}
+          <div class="sso-logo-tile"><img src="{{ url_for('static', filename=logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'"><code>{{ logo.name }}</code></div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
     <div class="wide" style="display:flex;gap:.5rem;flex-wrap:wrap">
       <button name="action" value="save" type="submit">Salva profilo SSO</button>
@@ -101,7 +131,7 @@
     <li>UserInfo endpoint: <code>{{ google_example.sso_userinfo_url }}</code></li>
     <li>Scope: <code>{{ google_example.sso_scopes }}</code></li>
     <li>Claim username/email/nome/soggetto: <code>email</code>, <code>email</code>, <code>name</code>, <code>sub</code></li>
-    <li>Logo predefinito: logo Google fornito dall’applicazione, sostituibile nella form del profilo.</li>
+    <li>Logo predefinito: logo Google disponibile nello storage loghi SSO condiviso, selezionabile e sostituibile dal profilo.</li>
   </ul>
 </div>
 <div class="card">

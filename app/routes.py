@@ -809,12 +809,33 @@ def google_sso_example_profile():
     }
 
 
-def save_sso_profile_logo_upload(file_storage, profile_id):
-    """Salva il logo opzionale del profilo SSO nella directory statica.
+def sso_logo_storage_dir():
+    """Directory unica dei loghi SSO, condivisa tra profili e full export."""
+    target_dir = Path(current_app.static_folder or 'app/static') / 'sso'
+    target_dir.mkdir(parents=True, exist_ok=True)
+    return target_dir
 
-    Restituisce un path relativo a app/static, utilizzabile con url_for('static').
-    Sono ammessi SVG, PNG, JPG/JPEG, GIF e WEBP. Un upload assente restituisce
-    stringa vuota e non modifica il profilo.
+
+def list_sso_logo_assets():
+    """Restituisce i loghi SSO disponibili nello storage condiviso."""
+    allowed = {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}
+    items = []
+    target_dir = sso_logo_storage_dir()
+    for path in sorted(target_dir.iterdir(), key=lambda p: p.name.lower()):
+        if path.is_file() and path.suffix.lower() in allowed:
+            items.append({
+                'name': path.name,
+                'relative_path': f'sso/{path.name}',
+                'size': path.stat().st_size,
+            })
+    return items
+
+
+def save_sso_logo_upload(file_storage):
+    """Aggiunge un logo allo storage SSO condiviso.
+
+    Il file viene salvato in app/static/sso e poi può essere associato a uno o
+    più profili dalla configurazione del profilo.
     """
     if not file_storage or not getattr(file_storage, 'filename', ''):
         return ''
@@ -822,11 +843,15 @@ def save_sso_profile_logo_upload(file_storage, profile_id):
     ext = Path(filename).suffix.lower()
     if ext not in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
         raise ValueError('Formato logo SSO non supportato. Usare SVG, PNG, JPG, GIF o WEBP.')
-    safe_profile = re.sub(r'[^a-z0-9_-]+', '-', (profile_id or 'sso').lower()).strip('-') or 'sso'
-    target_dir = Path(current_app.static_folder or 'app/static') / 'sso'
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_name = f'{safe_profile}-logo{ext}'
+    stem = re.sub(r'[^a-zA-Z0-9_-]+', '-', Path(filename).stem).strip('-') or 'sso-logo'
+    target_dir = sso_logo_storage_dir()
+    target_name = f'{stem}{ext}'
     target = target_dir / target_name
+    n = 2
+    while target.exists():
+        target_name = f'{stem}-{n}{ext}'
+        target = target_dir / target_name
+        n += 1
     file_storage.save(target)
     return f'sso/{target_name}'
 
@@ -1838,7 +1863,7 @@ def sso_settings_admin():
     if not can_admin(): return redirect(url_for('main.index'))
     profiles = sso_profiles(include_legacy=True)
     test_result = None
-    selected_id = request.values.get('profile') or (profiles[0]['id'] if profiles else 'google')
+    selected_id = request.values.get('profile') or request.form.get('profile_id') or (profiles[0]['id'] if profiles else 'google')
     if request.method == 'POST':
         action = request.form.get('action', 'save')
         profiles = sso_profiles(include_legacy=True)
@@ -1855,6 +1880,16 @@ def sso_settings_admin():
             else:
                 flash('Profilo SSO generico aggiunto. Compilare endpoint, Client ID e Client secret prima di abilitarlo.')
             return redirect(url_for('main.sso_settings_admin', profile=example['id']))
+        if action == 'upload_sso_logo':
+            try:
+                uploaded_logo_path = save_sso_logo_upload(request.files.get('sso_logo_upload'))
+                if uploaded_logo_path:
+                    flash('Logo SSO caricato nello storage condiviso')
+                else:
+                    flash('Selezionare un file logo da caricare', 'error')
+            except ValueError as exc:
+                flash(str(exc), 'error')
+            return redirect(url_for('main.sso_settings_admin', profile=selected_id))
         if action == 'delete_profile':
             delete_id = request.form.get('profile_id') or selected_id
             profiles = [p for p in profiles if p.get('id') != delete_id]
@@ -1877,19 +1912,12 @@ def sso_settings_admin():
             'sso_subject_claim': request.form.get('sso_subject_claim','sub'),
             'sso_auto_create_users': '1' if request.form.get('sso_auto_create_users') else '0',
             'sso_default_role': request.form.get('sso_default_role','disabled'),
-            'sso_logo_path': request.form.get('existing_sso_logo_path',''),
+            'sso_logo_path': request.form.get('sso_logo_path') or request.form.get('existing_sso_logo_path',''),
         }
         posted = _normalize_sso_profile(posted, selected_id)
         if request.form.get('remove_sso_logo'):
             posted['sso_logo_path'] = ''
-        try:
-            uploaded_logo_path = save_sso_profile_logo_upload(request.files.get('sso_logo'), posted['id'])
-            if uploaded_logo_path:
-                posted['sso_logo_path'] = uploaded_logo_path
-        except ValueError as exc:
-            flash(str(exc), 'error')
-            test_result = {'success': False, 'checks': [{'name': 'Logo SSO', 'ok': False, 'message': str(exc), 'detail': ''}], 'authorization_preview': ''}
-        
+
         selected_id = posted['id']
         replaced = False
         new_profiles = []
@@ -1921,7 +1949,7 @@ def sso_settings_admin():
     if not selected:
         selected = google_sso_example_profile() if not profiles else profiles[0]
         selected_id = selected['id']
-    return render_template('sso.html', settings=selected, profiles=profiles, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile(), generic_example=generic_sso_profile())
+    return render_template('sso.html', settings=selected, profiles=profiles, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile(), generic_example=generic_sso_profile(), sso_logos=list_sso_logo_assets())
 
 @bp.route('/admin/ldap',methods=['GET','POST'])
 @login_required
@@ -4051,20 +4079,17 @@ def export_full():
 
 
 
-    # Loghi dei profili SSO/OAuth2: includiamo sia quelli caricati da GUI sia
-    # il logo Google statico usato dall'esempio predefinito, così il full export
-    # resta autosufficiente anche dopo import su una nuova istanza.
-    for prof in sso_profiles(include_legacy=False):
-        rel = (prof.get('sso_logo_path') or '').strip()
-        if not rel:
-            continue
-        logo_file = Path(current_app.static_folder or '') / rel
-        if logo_file.exists() and logo_file.is_file():
-            payload['files']['sso_logos'].append({
-                'profile_id': prof.get('id'),
-                'relative_path': rel,
-                'archive_path': f'files/sso_logos/{rel}',
-            })
+    # Loghi SSO/OAuth2: il full export include tutto lo storage condiviso
+    # app/static/sso, compresi i loghi predefiniti e quelli caricati da GUI.
+    sso_dir = Path(current_app.static_folder or '') / 'sso'
+    if sso_dir.exists():
+        for logo_file in sorted(sso_dir.iterdir(), key=lambda p: p.name.lower()):
+            if logo_file.is_file() and logo_file.suffix.lower() in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+                rel = f'sso/{logo_file.name}'
+                payload['files']['sso_logos'].append({
+                    'relative_path': rel,
+                    'archive_path': f'files/sso_logos/{logo_file.name}',
+                })
 
     ssl_files = {}
     cert = ssl_cert_path()

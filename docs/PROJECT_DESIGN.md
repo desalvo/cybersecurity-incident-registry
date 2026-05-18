@@ -1118,6 +1118,6 @@ La documentazione utente espone le informazioni applicative essenziali lette da 
 
 La vista `Admin -> Audit` converte i timestamp audit, registrati internamente come UTC naive, nel fuso configurato in `application_timezone`; anche filtri temporali, purge per data ed export CSV interpretano/esportano i valori nel fuso applicativo.
 
-### Aggiornamento 0.1.0-123
+### Aggiornamento 0.1.0-124
 
 I profili SSO/OAuth2 supportano un logo opzionale per provider. Il profilo Google di esempio usa il logo Google statico incluso nel pacchetto. I loghi caricati sono salvati in `app/static/sso/`, referenziati nel JSON dei profili e inclusi nel full export/import.

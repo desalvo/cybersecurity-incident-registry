@@ -1,4 +1,4 @@
-0.1.0-123
+0.1.0-124
 - Aggiunto logo opzionale per profili SSO/OAuth2, con default Google per il profilo Google.
 - I pulsanti SSO della login mostrano il logo provider se configurato.
 - Full export/import esteso ai loghi SSO e documentazione aggiornata.
