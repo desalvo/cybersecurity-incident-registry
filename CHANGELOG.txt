@@ -1,3 +1,17 @@
+0.1.0-115
+- Riorganizzato il menu Aiuto: rimosse le voci dirette di download PDF.
+- Rinominata la voce Aiuto -> Documentazione in Aiuto -> Documentazione utente.
+- I PDF restano scaricabili dall’interno delle rispettive pagine online.
+- Aggiornate documentazioni IT/EN, README e documentazione progettuale.
+
+
+0.1.0-114
+- Aggiunto limite massimo configurabile dei record audit, default 10000, nella voce Admin → Audit.
+- Aggiunto purge automatico per numero massimo di record, oltre alla ritenzione temporale.
+- Aggiunti purge manuali audit per numero di record da conservare o per data limite.
+- Aggiunto salvataggio CSV dell’audit corrente con filtri applicati.
+- Aggiornate documentazioni bilingue online e PDF.
+
 0.1.0-102
 - Fixed incident PDF report first-page logo rendering to always include the application logo as a real image, using the PNG application asset as the primary source and SVG conversion only as fallback.
 - Kept the GUI-uploaded logo alongside the application logo when configured and omitted it when absent.

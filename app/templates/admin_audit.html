@@ -7,7 +7,53 @@
       <p class="muted">Registro delle operazioni utente, scheduler notifiche e task automatizzati. Ritenzione configurata: {{ retention_label }}; cutoff corrente: {{ cutoff.strftime('%Y-%m-%d %H:%M') }} UTC.</p>
       <p><strong>Record totali correnti:</strong> {{ total_records }} · <strong>Record filtrati:</strong> {{ filtered_count }} · <strong>Intervallo visualizzato:</strong> {{ selected_from }}-{{ selected_to }}</p>
     </div>
+    <div class="actions">
+      <a class="button secondary" href="{{ url_for('main.admin_audit_export_csv', q=search, operation_type=operation_type, username=username, actor_type=actor_type, start=start, end=end) }}">Salva CSV</a>
+    </div>
   </div>
+</div>
+
+<div class="card">
+  <h3>Configurazione e purge audit</h3>
+  <div class="two-column-grid">
+    <form method="post" class="form-grid compact-form">
+      <input type="hidden" name="action" value="save_audit_config">
+      <div>
+        <label>Record per pagina</label>
+        <input name="audit_records_per_page" type="number" min="1" max="100" value="{{ configured_page_size }}">
+        <p class="muted">Default della pagina Audit. Massimo 100.</p>
+      </div>
+      <div>
+        <label>Numero massimo record audit</label>
+        <input name="audit_max_records" type="number" min="100" max="1000000" value="{{ audit_max_records }}">
+        <p class="muted">Default 10000. Il purge automatico conserva i record più recenti.</p>
+      </div>
+      <div class="wide actions"><button>Salva configurazione audit</button></div>
+    </form>
+
+    <div class="manual-purge-panel">
+      <form method="post" class="form-grid compact-form">
+        <input type="hidden" name="action" value="purge_keep_count">
+        <div>
+          <label>Purge mantenendo solo N record</label>
+          <input name="purge_keep_count" type="number" min="0" max="1000000" value="{{ audit_max_records }}">
+        </div>
+        <div class="actions"><button class="danger">Esegui purge per numero record</button></div>
+      </form>
+      <form method="post" class="form-grid compact-form">
+        <input type="hidden" name="action" value="purge_older_than">
+        <div>
+          <label>Purge record più vecchi di</label>
+          <input name="purge_older_than" type="datetime-local">
+        </div>
+        <div class="actions"><button class="danger">Esegui purge per data</button></div>
+      </form>
+      <p class="muted">Il purge manuale registra a sua volta un evento audit sintetico.</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
   <form method="get" class="form-grid">
     <div>
       <label>Ricerca libera</label>

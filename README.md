@@ -250,7 +250,7 @@ Nel dettaglio incidente il sistema mostra avvisi procedurali quando non risultan
 
 La guida utente è disponibile dal menu **Aiuto -> Documentazione**. È stata riscritta come manuale operativo completo, con capitoli separati, esempi dettagliati passo-passo, checklist e descrizione delle principali funzioni di gestione incidenti. La pagina è ricercabile: il campo di ricerca filtra in tempo reale i capitoli della documentazione online.
 
-Dal menu **Aiuto -> Scarica documentazione PDF** è possibile scaricare la stessa documentazione in formato PDF.
+Dal menu **Aiuto -> Documentazione utente** è possibile aprire la guida online; il PDF corrispondente resta scaricabile dal pulsante interno alla pagina.
 
 L’applicazione include inoltre un logo pittorico statico che rappresenta un cybersecurity incident registry. Il logo è mostrato sempre nella pagina di login e, nelle viste desktop/non mobile, anche nella barra del menu principale; resta disponibile anche la variante decorativa in basso a destra nelle pagine interne. Non sostituisce e non modifica il logo custom configurabile da **Admin -> Logo**, che continua a funzionare come nelle versioni precedenti. Nella versione mobile il logo pittorico della barra e quello decorativo sono nascosti per preservare lo spazio dello schermo. La barra menu desktop/non mobile usa background blu e mostra il nome **Cybersecurity Incident Registry** in verticale, con una parola per riga. La voce **Nuovo incidente** è rimossa dalla barra dei menu: la creazione avviene dal pulsante omonimo nella pagina principale degli incidenti.
 
@@ -269,7 +269,7 @@ Nella configurazione moduli è ora possibile rinominare un template PDF esistent
 
 ## Documentazione utente
 
-La documentazione utente è disponibile dal menu **Aiuto → Documentazione** come guida online ricercabile e da **Aiuto → Scarica documentazione PDF** come PDF formattato professionalmente. La guida include il logo applicativo, diagrammi di flusso, grafici e schermate illustrative. Il logo custom configurato dall'amministratore non viene incluso nella documentazione utente.
+La documentazione utente è disponibile dal menu **Aiuto → Documentazione utente** come guida online ricercabile; il PDF formattato professionalmente resta scaricabile dal pulsante interno alla pagina. La guida include il logo applicativo, diagrammi di flusso, grafici e schermate illustrative. Il logo custom configurato dall'amministratore non viene incluso nella documentazione utente.
 
 ## Documentazione amministrativa
 
@@ -285,7 +285,7 @@ Dal menu **Aiuto → Documentazione amministrativa** è disponibile una guida de
 - full export, import, backup, ripristino e continuità operativa;
 - controlli periodici, audit, qualità dati e troubleshooting.
 
-Dal menu **Aiuto → Scarica documentazione amministrativa PDF** è possibile scaricare la versione PDF professionale della guida amministrativa. Il PDF include copertina, logo applicativo, informazioni di versione lette da `APP_INFO`, indice, header/footer, numerazione pagine, diagrammi di flusso, grafici e schermate illustrative. Anche in questo caso viene usato esclusivamente il logo applicativo, senza includere il logo custom configurabile dall'amministratore.
+Dal menu **Aiuto → Documentazione amministrativa** è possibile aprire la guida amministrativa; la versione PDF professionale è scaricabile dal pulsante interno alla pagina. Il PDF include copertina, logo applicativo, informazioni di versione lette da `APP_INFO`, indice, header/footer, numerazione pagine, diagrammi di flusso, grafici e schermate illustrative. Anche in questo caso viene usato esclusivamente il logo applicativo, senza includere il logo custom configurabile dall'amministratore.
 
 ## Multi-factor authentication TOTP
 
@@ -500,3 +500,7 @@ Le documentazioni utente e amministrativa, online e PDF, sono state riviste per 
 ### Audit anti-flooding e note di rilascio
 
 Il registro audit collassa i record consecutivi identici incrementando il campo `Occorrenze` invece di creare molte righe uguali. Al raggiungimento di 100 occorrenze viene scritto un nuovo record e il contatore riparte. I sommari di aggiornamento sono ora disponibili dal menu **Aiuto → Note di rilascio**, anche in formato PDF, separati dalla documentazione operativa.
+
+### Audit: limite massimo, purge manuale e CSV
+
+La pagina `Admin → Audit` include la configurazione del numero massimo di record audit da mantenere, con default 10000. Il purge automatico applica sia la ritenzione temporale sia il limite massimo di righe, eliminando i record più vecchi. Dalla stessa pagina è possibile eseguire purge manuali per numero di record da conservare o per data limite, ed esportare in CSV l’audit corrente secondo i filtri applicati.

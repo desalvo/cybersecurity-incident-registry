@@ -17,7 +17,7 @@
     <div>
       <h2>Registro operativo degli incidenti, dalla segnalazione alla chiusura</h2>
       <p>La guida integra testo, diagrammi, grafici e schermate illustrative dell'applicazione. Il logo mostrato è esclusivamente il logo pittorico dell'applicazione e non include il logo custom configurabile dall'amministratore.</p>
-      <p>Per le configurazioni avanzate è disponibile anche la <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>, con relativo PDF scaricabile dal menu Aiuto.</p>
+      <p>Per le configurazioni avanzate è disponibile anche la <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>, con relativo PDF scaricabile dalla pagina stessa.</p>
     </div>
   </section>
 
@@ -84,7 +84,7 @@
       </tbody>
     </table>
     <h3>Menu principali</h3>
-    <p>Il menu <strong>Incidenti</strong> apre la pagina principale. La creazione di una nuova scheda avviene esclusivamente dal pulsante <strong>Nuovo incidente</strong> presente nella pagina principale, così la barra dei menu resta più compatta. <strong>Report</strong> contiene le statistiche. <strong>Export</strong> contiene CSV, export completo e import. <strong>Moduli</strong> gestisce template PDF e mapping. <strong>Notifiche</strong> è riservato agli amministratori. <strong>Admin</strong> contiene liste, personale, logo, utenti, LDAP, SSO, dati titolare, struttura, responsabile, raccomandazioni e altre configurazioni. <strong>Aiuto</strong> apre questa guida e il PDF scaricabile. Nelle viste desktop/non mobile la barra mostra il nome dell’applicazione <strong>Cybersecurity Incident Registry</strong> disposto su tre righe, una parola per riga, per ridurre l’ingombro orizzontale.</p>
+    <p>Il menu <strong>Incidenti</strong> apre la pagina principale. La creazione di una nuova scheda avviene esclusivamente dal pulsante <strong>Nuovo incidente</strong> presente nella pagina principale, così la barra dei menu resta più compatta. <strong>Report</strong> contiene le statistiche. <strong>Export</strong> contiene CSV, export completo e import. <strong>Moduli</strong> gestisce template PDF e mapping. <strong>Notifiche</strong> è riservato agli amministratori. <strong>Admin</strong> contiene liste, personale, logo, utenti, LDAP, SSO, dati titolare, struttura, responsabile, raccomandazioni e altre configurazioni. <strong>Aiuto</strong> apre la documentazione utente, la documentazione amministrativa e le note di rilascio; i PDF restano scaricabili dall’interno delle rispettive pagine. Nelle viste desktop/non mobile la barra mostra il nome dell’applicazione <strong>Cybersecurity Incident Registry</strong> disposto su tre righe, una parola per riga, per ridurre l’ingombro orizzontale.</p>
   </section>
 
   <section id="cap-dashboard" class="doc-chapter" data-doc-title="Pagina principale ricerca filtri simbolo pericolo avvisi procedurali">
@@ -340,4 +340,7 @@
 
 <section class="doc-chapter card" data-doc-title="audit collasso record ripetuti note rilascio"><h2>Audit sintetico e note di rilascio</h2><p>Il registro audit collassa i record consecutivi identici: invece di creare molte righe uguali, incrementa il numero di occorrenze del record corrente. Ogni blocco viene comunque chiuso al raggiungimento di 100 occorrenze, poi il conteggio riparte su un nuovo record.</p><p>Le note di versione sono disponibili dal menu <strong>Aiuto → Note di rilascio</strong>, separate dalla documentazione operativa.</p></section>
 
+
+<section class="doc-chapter card" data-doc-title="audit csv purge amministrazione"><h2>Audit e salvataggio CSV</h2><p>Gli amministratori possono consultare l’audit con ricerca, paginazione, conteggi totali e intervallo visualizzato. La pagina Audit consente anche di salvare il registro corrente in CSV e di gestire purge automatico o manuale secondo ritenzione temporale e numero massimo di record.</p></section>
+<section class="doc-chapter card" data-doc-title="menu aiuto documentazione utente pdf note rilascio"><h2>Menu Aiuto e PDF</h2><p>Il menu <strong>Aiuto</strong> contiene <strong>Documentazione utente</strong>, <strong>Documentazione amministrativa</strong> e <strong>Note di rilascio</strong>. Le voci dirette per scaricare i PDF sono state rimosse dal menu; ogni PDF resta scaricabile dal pulsante presente nella pagina corrispondente.</p></section>
 {% endblock %}

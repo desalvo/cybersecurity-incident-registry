@@ -56,12 +56,6 @@
       </div>
       <p class="muted">Periodo di conservazione delle registrazioni di audit espresso in mesi, giorni, ore e minuti. Il default è 6 mesi; valore corrente: {{ audit_retention_label }}. La pulizia viene applicata automaticamente in modo opportunistico.</p>
     </div>
-
-    <div class="wide">
-      <label>Record audit per pagina</label>
-      <input name="audit_records_per_page" type="number" min="1" max="100" value="{{ audit_records_per_page or 20 }}">
-      <p class="muted">Numero predefinito di record mostrati per pagina in Admin → Audit. Default 20, massimo 100.</p>
-    </div>
     <button class="admin-config-save-button">Salva configurazione</button>
   </form>
 </div>

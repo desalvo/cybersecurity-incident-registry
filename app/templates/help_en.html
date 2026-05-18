@@ -42,4 +42,7 @@
 
 <section class="doc-chapter card" data-doc-title="audit collapsed repeated records release notes"><h2>Concise audit log and release notes</h2><p>The audit log collapses consecutive identical records: instead of creating many equal rows, it increments the occurrence count of the current record. Each block is closed at 100 occurrences and the counter then restarts on a new record.</p><p>Version notes are available from <strong>Help → Release notes</strong>, separate from the operational documentation.</p></section>
 
+
+<section class="doc-chapter card" data-doc-title="audit csv purge administration"><h2>Audit and CSV save</h2><p>Administrators can browse audit records with search, pagination, total counts and the displayed interval. The Audit page can also save the current register as CSV and manage automatic or manual purge based on time retention and maximum row count.</p></section>
+<section class="doc-chapter card" data-doc-title="help menu user documentation pdf release notes"><h2>Help menu and PDFs</h2><p>The <strong>Help</strong> menu contains <strong>User documentation</strong>, <strong>Administrator documentation</strong> and <strong>Release notes</strong>. Direct PDF download entries have been removed from the menu; each PDF can still be downloaded from the button inside the corresponding page.</p></section>
 {% endblock %}

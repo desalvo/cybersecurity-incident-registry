@@ -152,7 +152,7 @@ The package also includes `docs/PROJECT_DESIGN.md`, which describes the logical 
 
 ## Help
 
-The **Help** menu provides online user documentation and PDF download. The administrator documentation is available from **Help → Administrator documentation** and also provides a PDF download. The selected language follows the resolved interface language.
+The **Help** menu provides **User documentation**, **Administrator documentation** and **Release notes**. Direct PDF download entries are not shown in the menu; each page provides its own PDF download button. The selected language follows the resolved interface language.
 
 ## PostgreSQL 18.4 note
 
@@ -295,4 +295,8 @@ User and administrator documentation, both online and PDF, has been revised to p
 
 ### Audit anti-flooding and release notes
 
-The audit log collapses consecutive identical records by incrementing the `Occurrences` field instead of creating many identical rows. When 100 occurrences are reached, a new record is written and the counter restarts. Update summaries are now available from **Help → Release notes**, also as PDF, separate from the operational documentation.
+The audit log collapses consecutive identical records by incrementing the `Occurrences` field instead of creating many identical rows. When 100 occurrences are reached, a new record is written and the counter restarts. Update summaries are available from **Help → Release notes**, with the PDF downloadable from inside that page, separate from the operational documentation.
+
+### Audit: maximum records, manual purge and CSV
+
+The `Admin → Audit` page includes the maximum audit row configuration, defaulting to 10000 records. The automatic purge applies both time-based retention and the maximum row limit, deleting the oldest records first. The same page supports manual purge by number of records to keep or by cutoff date, and can export the current filtered audit view as CSV.

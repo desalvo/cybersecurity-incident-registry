@@ -80,14 +80,48 @@ def audit_retention_label():
 def audit_cutoff_datetime():
     return datetime.utcnow() - audit_retention_delta()
 
-def purge_audit_logs(commit=False):
-    """Elimina i record di audit più vecchi della retention configurata.
+def audit_max_records(default=10000):
+    """Numero massimo di righe audit da mantenere.
 
-    La funzione è richiamata in modo opportunistico dopo le operazioni
-    utente e dopo i task schedulati/automatici, così la tabella resta
-    coerente con il periodo configurato in Admin -> Altre configurazioni.
+    Il limite è espresso in record fisici della tabella, non in occorrenze
+    collassate nel campo repeat_count. Il default è 10000 record.
+    """
+    return _bounded_int(setting_value('audit_max_records', str(default)) or str(default), default, 100, 1000000)
+
+def purge_audit_logs(commit=False):
+    """Elimina i record audit oltre la retention e oltre il numero massimo.
+
+    Prima applica il periodo di ritenzione configurato, poi se il numero di
+    record resta superiore al limite massimo configurato mantiene i record più
+    recenti ed elimina i più vecchi.
     """
     deleted = AuditLog.query.filter(AuditLog.occurred_at < audit_cutoff_datetime()).delete(synchronize_session=False)
+    max_records = audit_max_records()
+    total = AuditLog.query.count()
+    if total > max_records:
+        overflow = total - max_records
+        old_ids = [row.id for row in AuditLog.query.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(overflow).all()]
+        if old_ids:
+            deleted += AuditLog.query.filter(AuditLog.id.in_(old_ids)).delete(synchronize_session=False)
+    if commit:
+        db.session.commit()
+    return deleted
+
+def purge_audit_keep_latest(keep_count, commit=False):
+    """Purge manuale: conserva solo gli ultimi keep_count record audit."""
+    keep_count = _bounded_int(keep_count, audit_max_records(), 0, 1000000)
+    total = AuditLog.query.count()
+    if total <= keep_count:
+        return 0
+    old_ids = [row.id for row in AuditLog.query.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(total - keep_count).all()]
+    deleted = AuditLog.query.filter(AuditLog.id.in_(old_ids)).delete(synchronize_session=False) if old_ids else 0
+    if commit:
+        db.session.commit()
+    return deleted
+
+def purge_audit_older_than(cutoff_dt, commit=False):
+    """Purge manuale: elimina i record audit più vecchi della data indicata."""
+    deleted = AuditLog.query.filter(AuditLog.occurred_at < cutoff_dt).delete(synchronize_session=False)
     if commit:
         db.session.commit()
     return deleted
@@ -149,6 +183,13 @@ def audit_detail_summary(operation_type, details):
             sent = data.get('sent') or data.get('sent_count') or 0
             due = data.get('due') or data.get('due_count') or 0
             return f"Scheduler: controllo notifiche task in scadenza, elementi in scadenza {due}, notifiche inviate {sent}, sorgente {short(data.get('source')) or '-'}"
+        if op == 'admin:audit_purge_manual':
+            if data.get('mode') == 'keep_count':
+                return f"Purge manuale audit: conservati al massimo {data.get('keep_count','-')} record, eliminati {data.get('deleted',0)} record"
+            if data.get('mode') == 'older_than':
+                return f"Purge manuale audit: eliminati record più vecchi di {short(data.get('older_than')) or '-'}, eliminati {data.get('deleted',0)} record"
+        if op == 'admin:audit_config_update':
+            return f"Configurazione audit aggiornata: massimo {data.get('audit_max_records','-')} record, {data.get('audit_records_per_page','-')} record per pagina"
         if 'endpoint' in data or 'path' in data:
             return f"Richiesta {short(data.get('method')) or '-'} {short(data.get('path')) or '-'} completata con stato {data.get('status_code','-')}"
         if 'incident_id' in data:
@@ -4307,21 +4348,14 @@ def set_setting_value(key, value):
     return s
 
 
-@bp.route('/admin/audit')
-@login_required
-def admin_audit():
-    if not can_admin():
-        return redirect(url_for('main.index'))
-    purge_audit_logs()
-    db.session.commit()
+def _audit_filtered_query_from_request():
     q = AuditLog.query
-    total_records = AuditLog.query.count()
-    search = (request.args.get('q') or '').strip()
-    operation_type = (request.args.get('operation_type') or '').strip()
-    username = (request.args.get('username') or '').strip()
-    actor_type = (request.args.get('actor_type') or '').strip()
-    start = (request.args.get('start') or '').strip()
-    end = (request.args.get('end') or '').strip()
+    search = (request.values.get('q') or '').strip()
+    operation_type = (request.values.get('operation_type') or '').strip()
+    username = (request.values.get('username') or '').strip()
+    actor_type = (request.values.get('actor_type') or '').strip()
+    start_value = (request.values.get('start') or '').strip()
+    end_value = (request.values.get('end') or '').strip()
     if search:
         pattern = f'%{search}%'
         q = q.filter(or_(
@@ -4336,16 +4370,64 @@ def admin_audit():
         q = q.filter(AuditLog.username.ilike(f'%{username}%'))
     if actor_type:
         q = q.filter(AuditLog.actor_type == actor_type)
-    if start:
+    if start_value:
         try:
-            q = q.filter(AuditLog.occurred_at >= datetime.fromisoformat(start))
+            q = q.filter(AuditLog.occurred_at >= datetime.fromisoformat(start_value))
         except ValueError:
             flash('Data inizio ricerca audit non valida', 'error')
-    if end:
+    if end_value:
         try:
-            q = q.filter(AuditLog.occurred_at <= datetime.fromisoformat(end))
+            q = q.filter(AuditLog.occurred_at <= datetime.fromisoformat(end_value))
         except ValueError:
             flash('Data fine ricerca audit non valida', 'error')
+    return q, {
+        'search': search,
+        'operation_type': operation_type,
+        'username': username,
+        'actor_type': actor_type,
+        'start': start_value,
+        'end': end_value,
+    }
+
+@bp.route('/admin/audit', methods=['GET','POST'])
+@login_required
+def admin_audit():
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    if request.method == 'POST':
+        action = request.form.get('action') or ''
+        if action == 'save_audit_config':
+            audit_records_per_page = _bounded_int(request.form.get('audit_records_per_page', '20'), 20, 1, 100)
+            max_records = _bounded_int(request.form.get('audit_max_records', '10000'), 10000, 100, 1000000)
+            set_setting_value('audit_records_per_page', str(audit_records_per_page))
+            set_setting_value('audit_max_records', str(max_records))
+            audit_log('admin:audit_config_update', {'audit_records_per_page': audit_records_per_page, 'audit_max_records': max_records}, actor_type='user')
+            db.session.commit()
+            flash('Configurazione audit aggiornata', 'success')
+            return redirect(url_for('main.admin_audit'))
+        if action == 'purge_keep_count':
+            keep_count = _bounded_int(request.form.get('purge_keep_count', '10000'), 10000, 0, 1000000)
+            deleted = purge_audit_keep_latest(keep_count, commit=False)
+            audit_log('admin:audit_purge_manual', {'mode': 'keep_count', 'keep_count': keep_count, 'deleted': deleted}, actor_type='user')
+            db.session.commit()
+            flash(f'Purge audit completato: eliminati {deleted} record, conservati al massimo {keep_count} record.', 'success')
+            return redirect(url_for('main.admin_audit'))
+        if action == 'purge_older_than':
+            raw_date = (request.form.get('purge_older_than') or '').strip()
+            try:
+                cutoff_dt = datetime.fromisoformat(raw_date)
+            except ValueError:
+                flash('Data di purge non valida', 'error')
+                return redirect(url_for('main.admin_audit'))
+            deleted = purge_audit_older_than(cutoff_dt, commit=False)
+            audit_log('admin:audit_purge_manual', {'mode': 'older_than', 'older_than': raw_date, 'deleted': deleted}, actor_type='user')
+            db.session.commit()
+            flash(f'Purge audit completato: eliminati {deleted} record più vecchi di {raw_date}.', 'success')
+            return redirect(url_for('main.admin_audit'))
+    purge_audit_logs()
+    db.session.commit()
+    q, filters = _audit_filtered_query_from_request()
+    total_records = AuditLog.query.count()
     configured_page_size = _bounded_int(setting_value('audit_records_per_page', '20') or '20', 20, 1, 100)
     page_size = _bounded_int(request.args.get('per_page') or configured_page_size, configured_page_size, 1, 100)
     page = _bounded_int(request.args.get('page') or '1', 1, 1, 10**9)
@@ -4361,12 +4443,12 @@ def admin_audit():
     return render_template(
         'admin_audit.html',
         logs=logs,
-        search=search,
-        operation_type=operation_type,
-        username=username,
-        actor_type=actor_type,
-        start=start,
-        end=end,
+        search=filters['search'],
+        operation_type=filters['operation_type'],
+        username=filters['username'],
+        actor_type=filters['actor_type'],
+        start=filters['start'],
+        end=filters['end'],
         retention_label=audit_retention_label(),
         retention_parts=audit_retention_parts(),
         cutoff=audit_cutoff_datetime(),
@@ -4374,10 +4456,34 @@ def admin_audit():
         filtered_count=filtered_count,
         page=page,
         page_size=page_size,
+        configured_page_size=configured_page_size,
         max_page=max_page,
         selected_from=selected_from,
         selected_to=selected_to,
+        audit_max_records=audit_max_records(),
     )
+
+@bp.route('/admin/audit/export.csv')
+@login_required
+def admin_audit_export_csv():
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    q, _filters = _audit_filtered_query_from_request()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['id','occurred_at_utc','operation_type','username','actor_type','occurrences','details'])
+    for log in q.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).all():
+        writer.writerow([
+            log.id,
+            log.occurred_at.strftime('%Y-%m-%d %H:%M:%S') if log.occurred_at else '',
+            log.operation_type or '',
+            log.username or '',
+            log.actor_type or '',
+            log.repeat_count or 1,
+            audit_detail_summary(log.operation_type, log.details),
+        ])
+    filename = f"audit_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={filename}'})
 
 @bp.route('/admin/other-configurations', methods=['GET','POST'])
 @login_required
@@ -4393,7 +4499,6 @@ def admin_other_configurations():
             set_setting_value(key, str(_bounded_int(request.form.get(key, '0'), 0, 0, 120 if key == 'audit_retention_months_part' else 3650 if key == 'audit_retention_days_part' else 23 if key == 'audit_retention_hours_part' else 59)))
         # Mantiene aggiornata anche la chiave storica per compatibilità con archivi precedenti.
         set_setting_value('audit_retention_months', str(_bounded_int(request.form.get('audit_retention_months_part', '6'), 6, 0, 120)))
-        set_setting_value('audit_records_per_page', str(_bounded_int(request.form.get('audit_records_per_page', '20'), 20, 1, 100)))
         db.session.commit()
         flash('Altre configurazioni aggiornate', 'success')
         return redirect(url_for('main.admin_other_configurations'))
@@ -4406,7 +4511,6 @@ def admin_other_configurations():
         interface_language=setting_value('interface_language', 'auto') or 'auto',
         audit_retention_parts=audit_retention_parts(),
         audit_retention_label=audit_retention_label(),
-        audit_records_per_page=_bounded_int(setting_value('audit_records_per_page', '20') or '20', 20, 1, 100),
     )
 
 def incident_consequences(inc):

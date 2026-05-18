@@ -495,7 +495,7 @@ Il database deve essere persistente e riutilizzabile tra riavvii e versioni succ
 
 ## 12. Documentazione utente
 
-La documentazione utente è disponibile solo dal menu Aiuto. Deve essere estesa, divisa in capitoli, ricercabile e scaricabile in PDF.
+La documentazione utente è disponibile dal menu Aiuto come voce `Documentazione utente`. Deve essere estesa, divisa in capitoli, ricercabile e scaricabile in PDF dall’interno della pagina.
 
 Il menu Info contiene Applicazione con nome, versione, build e autore; l'email dell'autore è cliccabile tramite link `mailto:`.
 
@@ -518,7 +518,7 @@ Crea liste configurabili per gravità, dati interessati, categorie, label azioni
 
 Implementa logo applicativo caricato da admin, mostrato nella barra superiore e nella login con altezza massima 2 cm. Menu accessibili con tastiera, ARIA, focus visibile, dropdown leggibili e z-index corretto. UI responsive/mobile con menu compatto, lista incidenti a schede e form touch-friendly. Login centrata e senza informazioni sull'admin di default. Redirigi alla login se non autenticato. Mostra nome utente corrente a destra nella barra.
 
-Menu: Incidenti, Report, Export, Admin solo admin, Notifiche solo admin, Impostazioni, Info, Aiuto. La voce `Nuovo incidente` non è presente nella barra dei menu; il relativo pulsante resta nella pagina principale degli incidenti. Nel menu Admin includi gestione utenti, LDAP, SSO, liste configurabili, personale, logo. Nel menu Impostazioni includi cambio password e impostazioni SMTP/notifiche. Nel menu Info includi Applicazione con nome, versione, build e autore, con email autore cliccabile mailto. Nel menu Aiuto mostra documentazione estesa, capitoli, ricerca e download PDF.
+Menu: Incidenti, Report, Export, Admin solo admin, Notifiche solo admin, Impostazioni, Info, Aiuto. La voce `Nuovo incidente` non è presente nella barra dei menu; il relativo pulsante resta nella pagina principale degli incidenti. Nel menu Admin includi gestione utenti, LDAP, SSO, liste configurabili, personale, logo. Nel menu Impostazioni includi cambio password e impostazioni SMTP/notifiche. Nel menu Info includi Applicazione con nome, versione, build e autore, con email autore cliccabile mailto. Nel menu Aiuto mostra `Documentazione utente`, `Documentazione amministrativa` e `Note di rilascio`; non mostrare voci dirette di download PDF, perché i PDF devono essere scaricabili dai pulsanti interni alle rispettive pagine.
 
 Implementa LDAP configurabile con server URI, base DN, bind DN/password opzionali, filtro utenti, attributi uid/cn/email. Implementa inoltre SSO/OAuth2/OpenID Connect configurabile da Admin → SSO con endpoint authorization/token/userinfo, client ID/secret, scope, mapping claim, ruolo predefinito, controllo non distruttivo della configurazione e avvio del test login interattivo. Permetti test comunicazione e ricerca utente tramite uid mostrando attributi ottenuti. Permetti da admin inserire utenti LDAP nell'app e assegnare ruoli. Permetti account locali aggiunta/rimozione, ma admin non eliminabile e email admin modificabile. Cambio password per utenti locali con doppia verifica nuova password.
 
@@ -651,7 +651,7 @@ La documentazione utente è disponibile dal menu `Aiuto -> Documentazione` ed è
 
 La documentazione online è ricercabile lato client tramite `makeDocumentationSearch()` in `app/static/app.js`. Il campo di ricerca filtra i blocchi `.doc-chapter` usando il testo del capitolo e l’attributo `data-doc-title`; il conteggio dei risultati viene aggiornato in tempo reale e viene mostrato un messaggio dedicato quando non esistono capitoli corrispondenti. La ricerca non richiede chiamate server e resta disponibile anche per utenti con permessi di sola lettura, purché autenticati.
 
-La versione PDF della documentazione è generata dalla rotta `GET /aiuto/pdf`, usando lo stesso template HTML della guida online. La rotta converte il contenuto documentale in PDF ReportLab, rimuovendo gli elementi interattivi non necessari come indice di navigazione e controlli di ricerca. Il PDF resta scaricabile dal menu `Aiuto -> Scarica documentazione PDF` e dal pulsante presente nella guida.
+La versione PDF della documentazione è generata dalla rotta `GET /aiuto/pdf`, usando lo stesso template HTML della guida online. La rotta converte il contenuto documentale in PDF ReportLab, rimuovendo gli elementi interattivi non necessari come indice di navigazione e controlli di ricerca. Il PDF resta scaricabile dal pulsante presente nella guida; il menu Aiuto non contiene voci dirette di download PDF.
 
 È stato aggiunto un logo pittorico applicativo statico in `app/static/cir-application-logo.svg`. Il logo rappresenta graficamente il concetto di registro incidenti cybersecurity tramite scudo, registro, lucchetto, tracciati digitali e simbolo di pericolo. Questo logo è separato dal logo custom configurabile dall’amministratore:
 
@@ -1058,4 +1058,9 @@ La documentazione online e la documentazione PDF bilingue usano immagini illustr
 
 ### Audit anti-flooding and release notes
 
-The audit subsystem stores concise details and collapses consecutive equal events by updating `audit_log.repeat_count`. A new row is forced every 100 equal consecutive occurrences to preserve periodic evidence without flooding the table. Release notes are exposed through a dedicated Help menu entry and PDF endpoint, keeping operational user/admin documentation focused on procedures.
+The audit subsystem stores concise details and collapses consecutive equal events by updating `audit_log.repeat_count`. A new row is forced every 100 equal consecutive occurrences to preserve periodic evidence without flooding the table. Release notes are exposed through a dedicated Help menu entry and PDF endpoint; the PDF is downloaded from inside the release-notes page, keeping operational user/admin documentation focused on procedures.
+
+
+## Audit retention, maximum size and export
+
+The audit subsystem applies two independent controls: time-based retention and maximum table size. `audit_max_records` defaults to 10000 and is configured from Admin → Audit. Automatic purge first removes records older than the configured retention window, then removes the oldest remaining records if the physical row count exceeds the configured maximum. Manual purge actions can keep only the latest N records or delete rows older than a selected cutoff date. The Audit page also exposes filtered CSV export.

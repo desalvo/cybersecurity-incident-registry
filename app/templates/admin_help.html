@@ -200,7 +200,7 @@
   <section id="admin-documents" class="doc-chapter" data-doc-title="logo documentazione menu aiuto guida utente amministrativa PDF ricerca online">
     <h2>9. Logo, documentazione e menu Aiuto</h2>
     <p>L'applicazione distingue il logo custom, configurabile dall'amministratore, dal logo pittorico applicativo usato nella login, nella barra desktop e nella documentazione. La documentazione utente e amministrativa sono disponibili dal menu <strong>Aiuto</strong> e sono ricercabili online.</p>
-    <p>Dal menu Aiuto sono disponibili quattro voci: documentazione utente, download PDF della documentazione utente, documentazione amministrativa e download PDF della documentazione amministrativa. I PDF sono generati dinamicamente in formato professionale con copertina, logo applicativo, indice, header, footer, numerazione pagine, grafici e schermate illustrative.</p>
+    <p>Dal menu Aiuto sono disponibili tre voci: documentazione utente, documentazione amministrativa e note di rilascio. Le voci dirette di download PDF non sono più mostrate nel menu; i PDF restano scaricabili dai pulsanti presenti all’interno delle rispettive pagine. I PDF sono generati dinamicamente in formato professionale con copertina, logo applicativo, indice, header, footer, numerazione pagine, grafici e schermate illustrative.</p>
   </section>
 
   <section id="admin-export" class="doc-chapter" data-doc-title="export completo import backup ripristino database allegati volume dati PostgreSQL">
@@ -315,4 +315,7 @@
 
 <section class="doc-chapter card" data-doc-title="audit collasso flooding record ripetuti note rilascio"><h2>Audit anti-flooding e note di rilascio</h2><p>La registrazione audit evita il flooding della tabella: se due o più eventi consecutivi hanno stesso tipo, origine, utente e dettagli sintetici, viene aggiornato il contatore <strong>Occorrenze</strong> del record esistente. Al raggiungimento di 100 occorrenze viene scritto un nuovo record e il contatore riparte da 1.</p><p>I sommari di aggiornamento sono stati spostati nella voce <strong>Aiuto → Note di rilascio</strong>, disponibile anche in PDF.</p></section>
 
+
+<section class="doc-chapter card" data-doc-title="audit purge massimo record csv manuale"><h2>Audit: limite massimo, purge manuale ed export CSV</h2><p>La voce <strong>Admin → Audit</strong> permette di configurare il numero massimo di record da mantenere nella tabella audit, con default 10000 record. Oltre alla ritenzione temporale, il purge automatico elimina i record più vecchi quando il limite massimo viene superato, conservando sempre i record più recenti.</p><p>Dalla stessa pagina è possibile eseguire un purge manuale conservando solo un numero specificato di record oppure eliminando i record più vecchi di una data indicata. Il comando <strong>Salva CSV</strong> esporta l’audit corrente in formato CSV, rispettando i filtri di ricerca selezionati.</p></section>
+<section class="doc-chapter card" data-doc-title="menu aiuto documentazione utente pdf note rilascio"><h2>Menu Aiuto e download PDF</h2><p>Il menu <strong>Aiuto</strong> espone solo le pagine informative principali: <strong>Documentazione utente</strong>, <strong>Documentazione amministrativa</strong> e <strong>Note di rilascio</strong>. I download PDF sono disponibili dentro le rispettive pagine e non come voci separate di menu.</p></section>
 {% endblock %}
