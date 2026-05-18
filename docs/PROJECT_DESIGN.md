@@ -1005,3 +1005,11 @@ Il template `base.html` riorganizza il menu Admin in gruppi `<details>` collassa
 Il sottosistema delle notifiche automatiche dei task in scadenza introduce le funzioni `deadline_schedule_reference_midnight()`, `current_deadline_schedule_slot()`, `next_deadline_notification_at()` e `format_deadline_schedule_info()`. Queste funzioni calcolano gli slot funzionali partendo dalla mezzanotte del giorno corrente nel fuso orario applicativo, evitando che l'orario di avvio del processo determini la cadenza delle notifiche. La funzione `run_deadline_notification_check()` confronta l'ultimo slot eseguito con lo slot corrente e memorizza in `notification_deadline_last_run_at` lo slot pianificato, non l'orario effettivo di invocazione.
 
 Il template `app/templates/notification_settings.html` visualizza una sezione informativa con il prossimo invio stimato, l'intervallo effettivo, la mezzanotte di riferimento, lo slot corrente e l'ultima esecuzione automatica. Il pulsante manuale continua a usare `force=True` e non sposta la pianificazione automatica basata sugli slot.
+
+## Promemoria specifici e scheduler
+
+È stata aggiunta la tabella `incident_reminder`, collegata a `incident`, per gestire promemoria non periodici con `scheduled_at`, `message`, `cc_emails`, `sent_at`, autore e ultimo errore di invio. La pagina dettaglio incidente espone una sezione dedicata per creare, modificare, cancellare e, se necessario, sbloccare il reinvio di un promemoria già marcato come inviato.
+
+Il thread scheduler esegue sia il controllo periodico dei task in scadenza sia il recupero dei promemoria specifici. Per i task periodici la pianificazione resta ancorata agli slot calcolati dalla mezzanotte nella timezone applicativa e, in caso di riavvio, viene considerato l’ultimo slot registrato nelle impostazioni o nell’audit. Per i promemoria specifici non periodici vengono invece inviati tutti i record scaduti con `sent_at` nullo, evitando duplicazioni tramite controllo dei record `scheduler:incident_reminder_sent` nella tabella audit.
+
+Il full export/import include `incident_reminders`; le migrazioni leggere creano automaticamente la nuova tabella sui database esistenti e riallineano la sequenza PostgreSQL.

@@ -454,3 +454,11 @@ Il menu **Admin** è stato riorganizzato in sottogruppi collassabili: configuraz
 La pagina **Impostazioni → Notifiche** mostra ora una sezione **Prossimo invio stimato** per i promemoria automatici dei task in scadenza. La sezione indica lo stato del controllo automatico, lo stato dell'invio email, l'intervallo effettivo in minuti, la mezzanotte di riferimento nel fuso applicativo, lo slot corrente, l'ultima esecuzione automatica registrata e la data/ora stimata del prossimo invio.
 
 Lo scheduler non calcola più gli intervalli a partire dall'avvio dell'applicazione. Gli slot di esecuzione sono sempre multipli dell'intervallo configurato a partire dalla mezzanotte del giorno corrente nel fuso orario impostato in **Admin → Altre configurazioni**. Per esempio, con intervallo di 4 ore, gli slot sono 00:00, 04:00, 08:00, 12:00, 16:00 e 20:00. Il pulsante manuale continua a eseguire subito il controllo senza modificare la pianificazione automatica.
+
+## Promemoria specifici per incidente
+
+Ogni incidente dispone ora della sezione **Promemoria specifici**, dalla quale gli utenti con permessi di scrittura possono programmare, modificare e cancellare promemoria non periodici con data e ora puntuali. Il messaggio è definito dall’utente, i destinatari principali sono automaticamente le persone associate all’incidente con indirizzo e-mail valorizzato ed è possibile indicare ulteriori indirizzi in CC.
+
+Lo scheduler invia tutti i promemoria specifici scaduti e non ancora inviati. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti, confrontando lo stato del promemoria con i record di audit di invio. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
+
+Il full export/import include anche la tabella dei promemoria specifici e mantiene la cronologia audit degli invii automatici.

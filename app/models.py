@@ -101,7 +101,24 @@ class Incident(db.Model):
         value = self.effective_duration
         return value.total_seconds() if value is not None else None
 
-    creator=db.relationship(User); severity=db.relationship(ConfigLabel,foreign_keys=[severity_id]); categories=db.relationship(ConfigLabel,secondary=incident_categories); data_types=db.relationship(ConfigLabel,secondary=incident_data_types); people=db.relationship(Person,secondary=incident_people); recommendations=db.relationship(Recommendation,secondary=incident_recommendations); actions=db.relationship('Action',cascade='all,delete-orphan',order_by='Action.when_at'); documents=db.relationship('Document',cascade='all,delete-orphan')
+    creator=db.relationship(User); severity=db.relationship(ConfigLabel,foreign_keys=[severity_id]); categories=db.relationship(ConfigLabel,secondary=incident_categories); data_types=db.relationship(ConfigLabel,secondary=incident_data_types); people=db.relationship(Person,secondary=incident_people); recommendations=db.relationship(Recommendation,secondary=incident_recommendations); actions=db.relationship('Action',cascade='all,delete-orphan',order_by='Action.when_at'); documents=db.relationship('Document',cascade='all,delete-orphan'); reminders=db.relationship('IncidentReminder',cascade='all,delete-orphan',order_by='IncidentReminder.scheduled_at',back_populates='incident')
+
+
+class IncidentReminder(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    incident_id=db.Column(db.Integer,db.ForeignKey('incident.id'),nullable=False,index=True)
+    scheduled_at=db.Column(db.DateTime,nullable=False,index=True)
+    message=db.Column(db.Text,nullable=False,default='')
+    cc_emails=db.Column(db.Text,default='')
+    sent_at=db.Column(db.DateTime,nullable=True,index=True)
+    created_at=db.Column(db.DateTime,default=datetime.utcnow,nullable=False)
+    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow,nullable=False)
+    created_by_id=db.Column(db.Integer,db.ForeignKey('user.id'),nullable=True)
+    created_by_name=db.Column(db.String(160),default='')
+    last_error=db.Column(db.Text,default='')
+    incident=db.relationship('Incident',back_populates='reminders')
+    created_by=db.relationship('User',foreign_keys=[created_by_id])
+
 class Action(db.Model):
     id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); when_at=db.Column(db.DateTime,nullable=False); person_name=db.Column(db.String(160)); description=db.Column(db.Text,nullable=True); consequence_text=db.Column(db.Text,nullable=True); label_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); exportable=db.Column(db.Boolean,default=True,nullable=False); label=db.relationship(ConfigLabel); attachments=db.relationship('ActionAttachment',cascade='all,delete-orphan')
 

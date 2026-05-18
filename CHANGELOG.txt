@@ -460,3 +460,11 @@ Notification menu and SMTP sender fix
 - Scheduler notifiche task ancorato agli slot calcolati dalla mezzanotte del giorno corrente nella timezone applicativa.
 - Il controllo manuale non modifica la pianificazione automatica.
 - Documentazione italiana e inglese aggiornata.
+
+0.1.0-105
+- Aggiunti promemoria specifici per incidente con data/ora, messaggio utente e CC opzionali.
+- Invio automatico al personale associato all’incidente e recupero post-riavvio dei promemoria non periodici saltati.
+- Deduplicazione tramite audit per evitare reinvii dei promemoria già notificati.
+- Scheduler aggiornato per confrontare anche l’audit delle notifiche periodiche dei task in scadenza.
+- Full export/import esteso alla tabella incident_reminder.
+- Documentazione IT/EN aggiornata.

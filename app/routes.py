@@ -897,7 +897,73 @@ def incident_detail(iid):
         application_timezone=application_timezone_name(),
         section_messages=section_messages,
         global_messages=global_messages,
+        split_email_list=_split_email_list,
     )
+
+@bp.route('/incident/<int:iid>/reminder/add',methods=['POST'])
+@login_required
+def add_incident_reminder(iid):
+    inc=visible(Incident.query).get_or_404(iid)
+    if not can_write():
+        section_flash('Permessi insufficienti','incident-reminders','error')
+        return incident_detail_redirect(iid, 'incident-reminders')
+    try:
+        scheduled_at = datetime.fromisoformat((request.form.get('scheduled_at') or '').strip())
+    except Exception:
+        section_flash('Data e ora del promemoria non valide','incident-reminders','error')
+        return incident_detail_redirect(iid, 'incident-reminders')
+    message = (request.form.get('message') or '').strip()
+    if not message:
+        section_flash('Il messaggio del promemoria è obbligatorio','incident-reminders','error')
+        return incident_detail_redirect(iid, 'incident-reminders')
+    rem=IncidentReminder(incident_id=inc.id, scheduled_at=scheduled_at, message=message, cc_emails=request.form.get('cc_emails') or '', created_by_id=current_user.id, created_by_name=current_user.name or current_user.username)
+    db.session.add(rem)
+    db.session.flush()
+    audit_log('incident_reminder:create', json.dumps({'reminder_id': rem.id, 'incident_id': inc.id, 'scheduled_at': scheduled_at.isoformat(timespec='seconds')}, ensure_ascii=False))
+    db.session.commit()
+    section_flash('Promemoria aggiunto','incident-reminders','success')
+    return incident_detail_redirect(iid, 'incident-reminders')
+
+@bp.route('/incident/reminder/<int:rid>/update',methods=['POST'])
+@login_required
+def update_incident_reminder(rid):
+    rem=IncidentReminder.query.get_or_404(rid)
+    inc=visible(Incident.query).get_or_404(rem.incident_id)
+    if not can_write():
+        section_flash('Permessi insufficienti','incident-reminders','error')
+        return incident_detail_redirect(inc.id, 'incident-reminders')
+    try:
+        scheduled_at = datetime.fromisoformat((request.form.get('scheduled_at') or '').strip())
+    except Exception:
+        section_flash('Data e ora del promemoria non valide','incident-reminders','error')
+        return incident_detail_redirect(inc.id, 'incident-reminders')
+    message = (request.form.get('message') or '').strip()
+    if not message:
+        section_flash('Il messaggio del promemoria è obbligatorio','incident-reminders','error')
+        return incident_detail_redirect(inc.id, 'incident-reminders')
+    rem.scheduled_at=scheduled_at; rem.message=message; rem.cc_emails=request.form.get('cc_emails') or ''; rem.updated_at=datetime.utcnow()
+    if request.form.get('reset_sent'):
+        rem.sent_at=None; rem.last_error=''
+    audit_log('incident_reminder:update', json.dumps({'reminder_id': rem.id, 'incident_id': inc.id, 'scheduled_at': scheduled_at.isoformat(timespec='seconds'), 'reset_sent': bool(request.form.get('reset_sent'))}, ensure_ascii=False))
+    db.session.commit()
+    section_flash('Promemoria aggiornato','incident-reminders','success')
+    return incident_detail_redirect(inc.id, 'incident-reminders')
+
+@bp.route('/incident/reminder/<int:rid>/delete',methods=['POST'])
+@login_required
+def delete_incident_reminder(rid):
+    rem=IncidentReminder.query.get_or_404(rid)
+    iid=rem.incident_id
+    visible(Incident.query).get_or_404(iid)
+    if not can_write():
+        section_flash('Permessi insufficienti','incident-reminders','error')
+        return incident_detail_redirect(iid, 'incident-reminders')
+    audit_log('incident_reminder:delete', json.dumps({'reminder_id': rem.id, 'incident_id': iid, 'scheduled_at': rem.scheduled_at.isoformat(timespec='seconds') if rem.scheduled_at else None}, ensure_ascii=False))
+    db.session.delete(rem)
+    db.session.commit()
+    section_flash('Promemoria cancellato','incident-reminders','success')
+    return incident_detail_redirect(iid, 'incident-reminders')
+
 @bp.route('/incident/<int:iid>/delete',methods=['POST'])
 @login_required
 def incident_delete(iid):
@@ -2168,6 +2234,96 @@ def send_deadline_summary_email(inc, pending_rows):
     return True, ', '.join(recipients)
 
 
+
+
+def _split_email_list(value):
+    if not value:
+        return []
+    parts = re.split(r'[,;\n]+', value)
+    return [p.strip() for p in parts if p and p.strip()]
+
+def _reminder_subject(reminder):
+    inc = reminder.incident
+    return f'Promemoria incidente: {inc.name if inc else reminder.incident_id}'
+
+def _reminder_body(reminder, now=None):
+    inc = reminder.incident
+    when_text = format_application_datetime(reminder.scheduled_at) if reminder.scheduled_at else '-'
+    generated_at = format_application_datetime(now or application_now())
+    return (
+        f'Promemoria specifico per incidente.\n\n'
+        f'Incidente: {inc.name if inc else reminder.incident_id}\n'
+        f'Riferimento: {(inc.reference if inc else "") or "-"}\n'
+        f'Data e ora promemoria: {when_text}\n\n'
+        f'Messaggio:\n{reminder.message or ""}\n\n'
+        f'Questa mail è stata generata automaticamente da Cybersecurity Incident Registry il {generated_at}.\n'
+        f'Accesso applicazione: {setting_value("application_external_url", "http://localhost:8000") or "http://localhost:8000"}'
+    )
+
+def send_incident_reminder_email(reminder):
+    inc = reminder.incident
+    recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()}) if inc else []
+    if not recipients:
+        return False, 'nessun indirizzo email nel personale associato all incidente'
+    host = setting_value('smtp_host')
+    if not host:
+        return False, 'SMTP non configurato'
+    sender = smtp_sender_address()
+    msg = EmailMessage()
+    msg['From'] = sender
+    msg['To'] = ', '.join(recipients)
+    cc_list = _split_email_list(reminder.cc_emails)
+    if cc_list:
+        msg['Cc'] = ', '.join(cc_list)
+    msg['Subject'] = _reminder_subject(reminder)
+    msg.set_content(_reminder_body(reminder))
+    try:
+        port = int(setting_value('smtp_port', '587') or '587')
+    except ValueError:
+        return False, 'porta SMTP non valida'
+    smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
+    with smtp_cls(host, port, timeout=20) as smtp:
+        if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
+            smtp.starttls()
+        if setting_value('smtp_auth_enabled', '0') == '1':
+            username = setting_value('smtp_username')
+            if not username:
+                return False, 'autenticazione SMTP abilitata senza username'
+            smtp.login(username, setting_value('smtp_password') or '')
+        smtp.send_message(msg)
+    return True, ', '.join(recipients + cc_list)
+
+def _audit_has_reminder_sent(reminder_id):
+    pattern = f'"reminder_id": {int(reminder_id)}'
+    return AuditLog.query.filter(AuditLog.operation_type=='scheduler:incident_reminder_sent', AuditLog.details.contains(pattern)).first() is not None
+
+def process_due_incident_reminders(source='background_scheduler'):
+    now = application_now()
+    due = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).all()
+    sent = skipped = 0
+    errors = []
+    for reminder in due:
+        if _audit_has_reminder_sent(reminder.id):
+            reminder.sent_at = now
+            reminder.last_error = ''
+            skipped += 1
+            continue
+        ok, info = send_incident_reminder_email(reminder)
+        if ok:
+            reminder.sent_at = now
+            reminder.last_error = ''
+            sent += 1
+            audit_log('scheduler:incident_reminder_sent', json.dumps({'reminder_id': reminder.id, 'incident_id': reminder.incident_id, 'scheduled_at': reminder.scheduled_at.isoformat(timespec='seconds'), 'recipients': info, 'source': source}, ensure_ascii=False), actor_type='scheduler')
+        else:
+            reminder.last_error = info
+            skipped += 1
+            errors.append(f'Promemoria {reminder.id}: {info}')
+    if due:
+        audit_log('scheduler:incident_reminder_check', json.dumps({'source': source, 'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
+        purge_audit_logs()
+        db.session.commit()
+    return {'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors}
+
 def run_deadline_notification_check(force=False, source='request'):
     """Controlla e invia le notifiche periodiche dei task in scadenza.
 
@@ -2188,6 +2344,14 @@ def run_deadline_notification_check(force=False, source='request'):
     now = application_now()
     schedule_slot = current_deadline_schedule_slot(now)
     last_raw = setting_value('notification_deadline_last_run_at', '')
+    if not last_raw:
+        last_audit = AuditLog.query.filter_by(operation_type='scheduler:deadline_notification_check').order_by(AuditLog.occurred_at.desc()).first()
+        if last_audit:
+            try:
+                last_details = json.loads(last_audit.details or '{}')
+                last_raw = last_details.get('schedule_slot') or ''
+            except Exception:
+                last_raw = ''
     if not force:
         try:
             last = datetime.fromisoformat(last_raw) if last_raw else None
@@ -2250,6 +2414,7 @@ def maybe_run_deadline_notification_check():
         if request.endpoint and request.endpoint.startswith('static'):
             return
         run_deadline_notification_check(force=False, source='request_hook')
+        process_due_incident_reminders(source='request_hook')
     except Exception:
         db.session.rollback()
         current_app.logger.exception('Controllo automatico scadenze azioni non completato')
@@ -2283,12 +2448,13 @@ def start_deadline_notification_scheduler(app):
         poll_seconds = max(30, int(os.getenv('CIR_DEADLINE_SCHEDULER_POLL_SECONDS', '60') or '60'))
         app.logger.info('Scheduler notifiche task in scadenza avviato con poll=%ss', poll_seconds)
         while True:
-            time.sleep(poll_seconds)
             if not _deadline_scheduler_lock.acquire(blocking=False):
+                time.sleep(poll_seconds)
                 continue
             try:
                 with app.app_context():
                     run_deadline_notification_check(force=False, source='background_scheduler')
+                    process_due_incident_reminders(source='background_scheduler')
             except Exception:
                 try:
                     with app.app_context():
@@ -2298,6 +2464,7 @@ def start_deadline_notification_scheduler(app):
                     app.logger.exception('Scheduler notifiche task in scadenza non completato')
             finally:
                 _deadline_scheduler_lock.release()
+            time.sleep(poll_seconds)
 
     t = threading.Thread(target=loop, name='cir-deadline-notification-scheduler', daemon=True)
     t.start()
@@ -2953,7 +3120,7 @@ FULL_EXPORT_MODELS = [
     Setting, User, MfaTotpToken, ConfigLabel, Person, Recommendation,
     NotificationType, NotificationTemplate, FormTemplateConfig,
     FormTemplateBinary, FormFieldMapping, Incident, Action, Document,
-    ActionAttachment, AuditLog,
+    ActionAttachment, IncidentReminder, AuditLog,
 ]
 
 FULL_EXPORT_TABLES = {
@@ -2972,6 +3139,7 @@ FULL_EXPORT_TABLES = {
     'actions': Action,
     'documents': Document,
     'action_attachments': ActionAttachment,
+    'incident_reminders': IncidentReminder,
     'audit_logs': AuditLog,
 }
 
@@ -3286,7 +3454,7 @@ def import_full():
                 db.session.execute(incident_categories.delete())
                 db.session.execute(incident_data_types.delete())
                 db.session.execute(incident_recommendations.delete())
-                for model in [ActionAttachment, Document, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
+                for model in [ActionAttachment, Document, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
                     db.session.query(model).delete()
                 db.session.flush()
 
@@ -3340,6 +3508,8 @@ def import_full():
                     db.session.add(Document(**_coerce_row_for_model(Document, row)))
                 for row in tables.get('action_attachments', []):
                     db.session.add(ActionAttachment(**_coerce_row_for_model(ActionAttachment, row)))
+                for row in tables.get('incident_reminders', []):
+                    db.session.add(IncidentReminder(**_coerce_row_for_model(IncidentReminder, row)))
                 db.session.flush()
 
                 for row in relations.get('incident_people', []):

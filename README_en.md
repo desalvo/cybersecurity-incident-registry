@@ -250,3 +250,11 @@ The **Admin** menu has been reorganised into collapsible subgroups: general conf
 The **Settings → Notifications** page now shows a **Estimated next send** section for automatic deadline task reminders. It displays whether the automatic check is enabled, whether email sending is enabled, the effective interval in minutes, the reference midnight in the application time zone, the current schedule slot, the last automatic execution and the estimated next send date and time.
 
 The scheduler no longer computes intervals from the application startup time. Execution slots are always multiples of the configured interval starting from midnight of the current day in the time zone configured in **Admin → Other settings**. For example, with a 4-hour interval, the slots are 00:00, 04:00, 08:00, 12:00, 16:00 and 20:00. The manual button still runs the check immediately without changing the automatic schedule.
+
+## Incident-specific reminders
+
+Each incident now includes a **Specific reminders** section where users with write permissions can schedule, edit, and delete one-off reminders for exact dates and times. The message is defined by the user, the primary recipients are automatically the personnel associated with the incident that have an e-mail address, and additional CC addresses can be configured.
+
+The scheduler sends every due, one-off reminder that has not been sent yet. After an application restart, all missed one-off reminders are recovered by comparing the reminder status with the audit records for sent reminders. Periodic deadline-task notifications remain deduplicated by type/interval: when multiple slots are missed, only the latest due notification for that type is executed.
+
+Full export/import now includes the incident-specific reminder table and preserves the audit history for automated sends.
