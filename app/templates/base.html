@@ -70,19 +70,31 @@
     {% if current_user.role=='admin' %}
     <div class="dropdown">
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-admin">Admin</button>
-      <div id="menu-admin" class="dropdown-content" role="menu" aria-label="Admin">
-        <a role="menuitem" href="{{ url_for('main.admin_labels') }}">Liste configurabili</a>
-        <a role="menuitem" href="{{ url_for('main.admin_people') }}">Personale</a>
-        <a role="menuitem" href="{{ url_for('main.admin_logo') }}">Logo</a>
-        <a role="menuitem" href="{{ url_for('main.admin_users') }}">Utenti</a>
-        <a role="menuitem" href="{{ url_for('main.ldap_settings') }}">LDAP</a>
-        <a role="menuitem" href="{{ url_for('main.sso_settings_admin') }}">SSO</a>
-        <a role="menuitem" href="{{ url_for('main.admin_security_owner') }}">Dati titolare</a>
-        <a role="menuitem" href="{{ url_for('main.admin_structure') }}">Struttura</a>
-        <a role="menuitem" href="{{ url_for('main.admin_security_responsible') }}">Dati responsabile</a>
-        <a role="menuitem" href="{{ url_for('main.admin_recommendations') }}">Raccomandazioni</a>
-        <a role="menuitem" href="{{ url_for('main.admin_audit') }}">Audit</a>
-        <a role="menuitem" href="{{ url_for('main.admin_other_configurations') }}">Altre configurazioni</a>
+      <div id="menu-admin" class="dropdown-content admin-menu" role="menu" aria-label="Admin">
+        <details class="admin-menu-group" open>
+          <summary>Configurazione generale</summary>
+          <a role="menuitem" href="{{ url_for('main.admin_other_configurations') }}">Altre configurazioni</a>
+          <a role="menuitem" href="{{ url_for('main.admin_logo') }}">Logo</a>
+          <a role="menuitem" href="{{ url_for('main.admin_structure') }}">Struttura</a>
+          <a role="menuitem" href="{{ url_for('main.admin_security_owner') }}">Dati titolare</a>
+          <a role="menuitem" href="{{ url_for('main.admin_security_responsible') }}">Dati responsabile</a>
+        </details>
+        <details class="admin-menu-group">
+          <summary>Anagrafiche e workflow</summary>
+          <a role="menuitem" href="{{ url_for('main.admin_labels') }}">Liste configurabili</a>
+          <a role="menuitem" href="{{ url_for('main.admin_people') }}">Personale</a>
+          <a role="menuitem" href="{{ url_for('main.admin_recommendations') }}">Raccomandazioni</a>
+        </details>
+        <details class="admin-menu-group">
+          <summary>Utenti e accesso</summary>
+          <a role="menuitem" href="{{ url_for('main.admin_users') }}">Utenti</a>
+          <a role="menuitem" href="{{ url_for('main.ldap_settings') }}">LDAP</a>
+          <a role="menuitem" href="{{ url_for('main.sso_settings_admin') }}">SSO</a>
+        </details>
+        <details class="admin-menu-group">
+          <summary>Controllo e audit</summary>
+          <a role="menuitem" href="{{ url_for('main.admin_audit') }}">Audit</a>
+        </details>
       </div>
     </div>
     {% endif %}

@@ -442,3 +442,9 @@ Nei report PDF degli incidenti i loghi della prima pagina vengono renderizzati c
 ## Aggiornamento 0.1.0-102 - Report PDF incidenti: logo applicativo e logo caricato
 
 Nei report PDF degli incidenti il logo applicativo viene ora inserito usando come sorgente primaria l’immagine PNG applicativa già usata dalla documentazione, con fallback allo SVG solo se necessario. Questo evita che nel PDF compaia testo o che il logo applicativo venga omesso. Il logo caricato da GUI continua ad apparire accanto al logo applicativo quando configurato e presente su filesystem; se non è stato caricato alcun logo da GUI, viene mostrato solo il logo applicativo.
+
+## Aggiornamento 0.1.0-103 - Scheduler notifiche e menu Admin raggruppato
+
+Le notifiche periodiche dei task in scadenza non dipendono più dal passaggio di richieste web sull'applicazione. All'avvio viene avviato uno scheduler interno leggero che controlla periodicamente se l'intervallo configurato in **Admin → Notifiche** è trascorso e, in caso positivo, esegue lo stesso controllo usato dal pulsante manuale. Il poll tecnico dello scheduler è configurabile con la variabile d'ambiente `CIR_DEADLINE_SCHEDULER_POLL_SECONDS` e può essere disabilitato con `CIR_ENABLE_DEADLINE_SCHEDULER=0` per installazioni che preferiscono un job esterno. Ogni esecuzione effettiva registra un record nella tabella `audit_log` con tipo operazione `scheduler:deadline_notification_check`, attore `scheduler`, sorgente dell'esecuzione e riepilogo di incidenti controllati, invii, salti ed errori.
+
+Il menu **Admin** è stato riorganizzato in sottogruppi collassabili: configurazione generale, anagrafiche e workflow, utenti e accesso, controllo e audit. La riorganizzazione riduce l'altezza del menu e consente di visualizzare meglio tutte le voci amministrative anche su schermi più piccoli.

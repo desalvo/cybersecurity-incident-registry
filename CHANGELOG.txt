@@ -444,3 +444,13 @@ Notification menu and SMTP sender fix
 - Aggiunta nella sintesi dei report PDF degli incidenti la durata, quando disponibile, calcolata come nella pagina principale dell'applicazione.
 - Incident PDF reports now format all textual date/time values without microseconds and with seconds always shown as integer values.
 - The incident PDF summary now includes duration, when available, calculated as on the application main page.
+
+0.1.0-103
+- Corrette le notifiche periodiche dei task in scadenza: aggiunto scheduler interno in background non dipendente dal traffico web.
+- Aggiunto audit dettagliato per ogni esecuzione effettiva dello scheduler notifiche con sorgente, conteggi ed errori.
+- Mantenuto il pulsante manuale, ora marcato in audit come sorgente manual_button.
+- Riorganizzato il menu Admin in sottogruppi collassabili con altezza limitata e scroll interno.
+- Aggiornate documentazioni utente, amministratore, README, README_en e progettuale.
+- Fixed periodic deadline notifications by adding an internal background scheduler independent from web traffic.
+- Added detailed audit records for every effective scheduler run.
+- Reorganised the Admin menu into collapsible subgroups with bounded height and internal scrolling.

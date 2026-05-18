@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from ldap3 import Server, Connection, ALL
 from urllib.parse import urlencode
 import requests
+import threading, time
 import pyotp
 import qrcode
 from .models import *
@@ -2117,27 +2118,43 @@ def send_deadline_summary_email(inc, pending_rows):
     return True, ', '.join(recipients)
 
 
-def run_deadline_notification_check(force=False):
+def run_deadline_notification_check(force=False, source='request'):
+    """Controlla e invia le notifiche periodiche dei task in scadenza.
+
+    La funzione è usata sia dal pulsante manuale sia dallo scheduler automatico.
+    Lo scheduler automatico non dipende più dal traffico web: un thread interno
+    richiama questa funzione a intervalli brevi e la funzione decide se
+    l'intervallo configurato è realmente trascorso. Ogni esecuzione effettiva
+    registra un record di audit con attore scheduler/automatic_task.
+    """
     if setting_value('notification_deadline_enabled', '0') != '1' and not force:
-        return {'sent': 0, 'skipped': 0, 'errors': []}
+        return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'disabled'}
     if setting_value('notification_deadline_email_enabled', '1') != '1':
-        return {'sent': 0, 'skipped': 0, 'errors': ['Invio email per task in scadenza disabilitato nelle impostazioni notifiche']}
+        result = {'sent': 0, 'skipped': 0, 'errors': ['Invio email per task in scadenza disabilitato nelle impostazioni notifiche'], 'executed': True}
+        audit_log('scheduler:deadline_notification_check', json.dumps({**result, 'source': source}, ensure_ascii=False), actor_type='scheduler')
+        purge_audit_logs()
+        db.session.commit()
+        return result
     now = application_now()
     last_raw = setting_value('notification_deadline_last_run_at', '')
     if last_raw and not force:
         try:
             last = datetime.fromisoformat(last_raw)
             if now - last < timedelta(minutes=deadline_interval_minutes()):
-                return {'sent': 0, 'skipped': 0, 'errors': []}
+                return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'interval_not_elapsed'}
         except ValueError:
             pass
     sent = skipped = 0
     errors = []
+    incidents_checked = 0
+    incidents_with_pending = 0
     incidents = Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all()
     for inc in incidents:
+        incidents_checked += 1
         rows = pending_deadline_actions_for_incident(inc, now=now)
         if not rows:
             continue
+        incidents_with_pending += 1
         try:
             ok, info = send_deadline_summary_email(inc, rows)
             if ok:
@@ -2149,10 +2166,20 @@ def run_deadline_notification_check(force=False):
             current_app.logger.exception('Errore notifica scadenze incidente %s', inc.id)
             errors.append(f'Incidente {inc.id}: {exc}')
     set_setting_value('notification_deadline_last_run_at', now.isoformat(timespec='seconds'))
-    audit_log('scheduler:deadline_notification_check', json.dumps({'sent': sent, 'skipped': skipped, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
+    result = {
+        'sent': sent,
+        'skipped': skipped,
+        'errors': errors,
+        'executed': True,
+        'source': source,
+        'interval_minutes': deadline_interval_minutes(),
+        'incidents_checked': incidents_checked,
+        'incidents_with_pending': incidents_with_pending,
+    }
+    audit_log('scheduler:deadline_notification_check', json.dumps({**result, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
     purge_audit_logs()
     db.session.commit()
-    return {'sent': sent, 'skipped': skipped, 'errors': errors}
+    return result
 
 
 @bp.before_app_request
@@ -2162,11 +2189,58 @@ def maybe_run_deadline_notification_check():
     try:
         if request.endpoint and request.endpoint.startswith('static'):
             return
-        run_deadline_notification_check(force=False)
+        run_deadline_notification_check(force=False, source='request_hook')
     except Exception:
         db.session.rollback()
         current_app.logger.exception('Controllo automatico scadenze azioni non completato')
 
+
+
+_deadline_scheduler_started = False
+_deadline_scheduler_lock = threading.Lock()
+
+def start_deadline_notification_scheduler(app):
+    """Avvia il controllo periodico automatico delle notifiche in scadenza.
+
+    Il controllo precedente era solo opportunistico e partiva durante le
+    richieste web: se l'applicazione restava inattiva, nessuna notifica veniva
+    inviata allo scadere dell'intervallo. Questo thread interno esegue il poll
+    indipendentemente dal traffico web. La funzione resta idempotente per
+    evitare avvii duplicati nello stesso processo.
+    """
+    global _deadline_scheduler_started
+    if _deadline_scheduler_started:
+        return
+    if os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() in {'0', 'false', 'no'}:
+        app.logger.info('Scheduler notifiche task in scadenza disabilitato da CIR_ENABLE_DEADLINE_SCHEDULER')
+        return
+    # Evita il doppio thread quando si usa il reloader di Flask in sviluppo.
+    if app.debug and os.environ.get('WERKZEUG_RUN_MAIN') == 'false':
+        return
+    _deadline_scheduler_started = True
+
+    def loop():
+        poll_seconds = max(30, int(os.getenv('CIR_DEADLINE_SCHEDULER_POLL_SECONDS', '60') or '60'))
+        app.logger.info('Scheduler notifiche task in scadenza avviato con poll=%ss', poll_seconds)
+        while True:
+            time.sleep(poll_seconds)
+            if not _deadline_scheduler_lock.acquire(blocking=False):
+                continue
+            try:
+                with app.app_context():
+                    run_deadline_notification_check(force=False, source='background_scheduler')
+            except Exception:
+                try:
+                    with app.app_context():
+                        db.session.rollback()
+                        app.logger.exception('Scheduler notifiche task in scadenza non completato')
+                except Exception:
+                    app.logger.exception('Scheduler notifiche task in scadenza non completato')
+            finally:
+                _deadline_scheduler_lock.release()
+
+    t = threading.Thread(target=loop, name='cir-deadline-notification-scheduler', daemon=True)
+    t.start()
 
 
 @bp.before_app_request
@@ -2257,7 +2331,7 @@ def notification_settings():
                 flash(f'Errore invio mail di prova: {exc}', 'error')
         elif action == 'run_deadline_check':
             try:
-                result = run_deadline_notification_check(force=True)
+                result = run_deadline_notification_check(force=True, source='manual_button')
                 msg = f"Controllo scadenze completato: {result['sent']} email inviate, {result['skipped']} incidenti saltati."
                 if result.get('errors'):
                     msg += ' Dettagli: ' + '; '.join(result['errors'][:5])

@@ -67,10 +67,11 @@ def create_app():
         except Exception:
             data['modules_menu_visible'] = False
         return data
-    from .routes import bp; app.register_blueprint(bp)
+    from .routes import bp, start_deadline_notification_scheduler; app.register_blueprint(bp)
     with app.app_context():
         wait_db(db)
         bootstrap(app)
+    start_deadline_notification_scheduler(app)
     return app
 
 def wait_db(db):

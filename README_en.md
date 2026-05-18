@@ -238,3 +238,9 @@ Incident PDF reports now render first-page logos as actual images. The static SV
 ## Update 0.1.0-102 - Incident PDF reports: application logo and uploaded logo
 
 Incident PDF reports now insert the application logo using the application PNG asset already used by the documentation as the primary source, with SVG conversion only as a fallback. This prevents text from appearing in the PDF and prevents the application logo from being omitted. The GUI-uploaded logo continues to appear next to the application logo when configured and present on the filesystem; when no GUI logo has been uploaded, only the application logo is shown.
+
+## Update 0.1.0-103 - Deadline notification scheduler and grouped Admin menu
+
+Periodic deadline notifications no longer depend on incoming web requests. At application startup, a lightweight internal scheduler checks periodically whether the interval configured in **Admin → Notifications** has elapsed and, when due, runs the same check used by the manual button. The technical polling interval can be configured with the `CIR_DEADLINE_SCHEDULER_POLL_SECONDS` environment variable and can be disabled with `CIR_ENABLE_DEADLINE_SCHEDULER=0` for deployments that prefer an external job. Every effective run writes an `audit_log` record with operation type `scheduler:deadline_notification_check`, actor `scheduler`, execution source, checked incidents, sent messages, skipped messages and errors.
+
+The **Admin** menu has been reorganised into collapsible subgroups: general configuration, master data and workflow, users and access, control and audit. This reduces menu height and makes all administration entries easier to view on smaller screens.
