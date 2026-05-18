@@ -490,3 +490,16 @@ Notification menu and SMTP sender fix
 - Scheduler ancorato alla mezzanotte del fuso applicativo, non all’avvio app.
 - Logica di invio ricontrollata con audit degli esiti/errori SMTP.
 - Documentazione online/PDF bilingue aggiornata.
+
+0.1.0-109
+- Menu Admin: tutti i sottogruppi collassabili sono chiusi per default a ogni caricamento pagina.
+- Documentazione IT/EN aggiornata.
+
+0.1.0-110
+- Corretto scheduler notifiche task in scadenza: deduplica per incidente e slot invece di blocco globale dello slot.
+- I poll successivi nello stesso slot possono inviare notifiche se i task diventano rilevabili dopo un primo controllo vuoto.
+- Il rilevamento dei task pendenti è separato dalla presenza di destinatari; gli incidenti senza e-mail sono conteggiati e tracciati come saltati.
+- Aggiunto audit dedicato scheduler:deadline_notification_sent per gli invii riusciti.
+- Documentazione IT/EN aggiornata.
+- Fixed deadline notification scheduler deduplication per incident and slot.
+- Pending task detection is now independent from recipient availability; missing recipients are logged as skipped.

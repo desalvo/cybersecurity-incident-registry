@@ -1036,3 +1036,13 @@ Tutte le notifiche relative a incidenti includono sempre un link diretto alla pa
 Dalla versione 0.1.0-108 le notifiche dei task con scadenza usano una pianificazione unificata gestita dalle impostazioni `notification_deadline_schedule_mode`, `notification_deadline_cron_times`, `notification_deadline_interval_hours` e `notification_deadline_interval_minutes`. La modalità `interval` produce slot regolari calcolati dalla mezzanotte applicativa; la modalità `cron` aggiunge orari giornalieri espliciti nel formato `HH:MM` agli slot di intervallo. La funzione `current_deadline_schedule_slot()` determina l’ultimo slot dovuto rispetto alla mezzanotte nel fuso configurato, mentre `next_deadline_notification_at()` calcola il prossimo slot. Il timestamp tecnico `notification_deadline_last_run_at` memorizza lo slot eseguito, non l’ora di avvio del processo.
 
 La funzione `run_deadline_notification_check()` è condivisa da pulsante manuale, scheduler di background e hook opportunistico. In esecuzione automatica esegue solo l’ultimo slot periodico dovuto, così un riavvio dopo più slot saltati non genera invii duplicati. Il record audit `scheduler:deadline_notification_check` contiene modalità, orari cron, slot, prossimo invio, incidenti controllati, incidenti con task pendenti, invii, salti ed errori SMTP sintetizzati.
+
+### Admin menu 0.1.0-109
+Il menu Admin usa gruppi HTML `<details>` senza attributo `open`, così ogni caricamento pagina presenta i sottogruppi chiusi per default. Questo evita stato iniziale espanso e mantiene il menu compatto.
+
+
+## Scheduler notifiche task 0.1.0-110
+
+La logica di `run_deadline_notification_check()` è stata corretta per evitare falsi negativi nei controlli automatici. In precedenza lo slot corrente poteva essere marcato come eseguito anche quando il primo poll dello scheduler non trovava task pendenti; eventuali task presenti o diventati rilevabili subito dopo nello stesso slot non venivano più notificati fino allo slot successivo.
+
+La deduplica è ora per incidente e slot, tramite record audit `scheduler:deadline_notification_sent` con marker leggibile `Incidente <id>; slot <timestamp>`. Il record globale `scheduler:deadline_notification_check` resta diagnostico e contiene incidenti controllati, incidenti con task pendenti, invii, salti, incidenti già notificati nello slot e incidenti senza destinatari. La funzione `pending_deadline_actions_for_incident()` rileva le azioni mancanti indipendentemente dalla presenza di destinatari; l'assenza di personale o indirizzi email viene gestita in fase di invio come condizione di skip, rendendo audit e diagnostica coerenti con i task effettivamente presenti.

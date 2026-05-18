@@ -2184,12 +2184,11 @@ def pending_deadline_actions_for_incident(inc, now=None):
     start = first_initial_information_at(inc)
     if getattr(inc, 'deadline_notifications_muted', False):
         return []
-    # Le notifiche di scadenza sono inviate solo se esiste personale
-    # esplicitamente associato all'incidente. L'assenza di unità di
-    # personale significa che non deve partire alcuna mail, anche se
-    # esistono azioni mancanti con Tempo massimo configurato.
-    if not list(inc.people or []):
-        return []
+    # La presenza di personale non deve influire sulla ricerca delle azioni
+    # mancanti: i task in scadenza devono essere rilevati e conteggiati anche
+    # quando l'invio email verrà poi saltato per assenza di destinatari.
+    # In questo modo scheduler, audit e diagnostica mostrano correttamente gli
+    # incidenti con scadenze pendenti.
     if not start:
         return []
     done_label_ids = {a.label_id for a in (inc.actions or []) if a.label_id}
@@ -2376,6 +2375,25 @@ def _statistics_pdf_for_deadline_notification():
     periods = [_period_statistics(p['name'], p['incidents'], p.get('start'), p.get('end')) for p in raw_periods]
     return statistics_pdf(periods)
 
+def _deadline_notification_already_sent_for_slot(incident_id, schedule_slot):
+    """Evita reinvii multipli dello stesso riepilogo nello stesso slot.
+
+    Lo scheduler di background può eseguire più poll all'interno dello stesso
+    slot cron/intervallo. La deduplica è quindi per incidente e slot, non più
+    sul solo ultimo controllo globale: se al primo poll non erano ancora
+    presenti task pendenti, un poll successivo nello stesso slot li può ancora
+    rilevare e inviare.
+    """
+    if not incident_id or not schedule_slot:
+        return False
+    slot_label = _deadline_slot_label(schedule_slot)
+    marker = f'Incidente {int(incident_id)}; slot {slot_label}'
+    return AuditLog.query.filter(
+        AuditLog.operation_type == 'scheduler:deadline_notification_sent',
+        AuditLog.details.contains(marker),
+    ).first() is not None
+
+
 def send_deadline_summary_email(inc, pending_rows):
     recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()})
     if not recipients:
@@ -2506,11 +2524,11 @@ def process_due_incident_reminders(source='background_scheduler'):
 def run_deadline_notification_check(force=False, source='request'):
     """Controlla e invia le notifiche periodiche dei task in scadenza.
 
-    La funzione è usata sia dal pulsante manuale sia dallo scheduler automatico.
-    Lo scheduler automatico non dipende più dal traffico web: un thread interno
-    richiama questa funzione a intervalli brevi e la funzione decide se
-    l'intervallo configurato è realmente trascorso. Ogni esecuzione effettiva
-    registra un record di audit con attore scheduler/automatic_task.
+    La pianificazione cron/intervallo decide quando eseguire il controllo, ma
+    la deduplica dell'invio è per incidente e slot. Questo evita il problema
+    per cui un controllo automatico partito troppo presto nello stesso slot
+    marcava lo slot come eseguito e impediva notifiche successive, anche se nel
+    frattempo erano presenti task pendenti.
     """
     if setting_value('notification_deadline_enabled', '0') != '1' and not force:
         return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'disabled'}
@@ -2520,32 +2538,26 @@ def run_deadline_notification_check(force=False, source='request'):
         purge_audit_logs()
         db.session.commit()
         return result
+
     now = application_now()
     schedule_slot = current_deadline_schedule_slot(now)
-    last_raw = setting_value('notification_deadline_last_run_at', '')
-    if not last_raw:
-        last_audit = AuditLog.query.filter_by(operation_type='scheduler:deadline_notification_check').order_by(AuditLog.occurred_at.desc()).first()
-        if last_audit:
-            try:
-                last_details = json.loads(last_audit.details or '{}')
-                last_raw = last_details.get('schedule_slot') or ''
-            except Exception:
-                last_raw = ''
-    if not force:
-        try:
-            last = datetime.fromisoformat(last_raw) if last_raw else None
-        except ValueError:
-            last = None
-        if last and last >= schedule_slot:
-            return {
-                'sent': 0, 'skipped': 0, 'errors': [], 'executed': False,
-                'reason': 'schedule_slot_already_executed',
-                'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
-            }
+    # Se la modalità cron prevede solo slot futuri nella giornata corrente,
+    # current_deadline_schedule_slot restituisce l'ultimo slot del giorno
+    # precedente. In quel caso il controllo automatico deve attendere il primo
+    # slot odierno; il pulsante manuale resta sempre disponibile.
+    if not force and schedule_slot.date() < now.date():
+        return {
+            'sent': 0, 'skipped': 0, 'errors': [], 'executed': False,
+            'reason': 'waiting_for_first_scheduled_slot',
+            'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
+        }
+
     sent = skipped = 0
     errors = []
     incidents_checked = 0
     incidents_with_pending = 0
+    incidents_already_sent = 0
+    incidents_without_recipients = 0
     incidents = Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all()
     for inc in incidents:
         incidents_checked += 1
@@ -2553,19 +2565,32 @@ def run_deadline_notification_check(force=False, source='request'):
         if not rows:
             continue
         incidents_with_pending += 1
+        if not force and _deadline_notification_already_sent_for_slot(inc.id, schedule_slot):
+            incidents_already_sent += 1
+            skipped += 1
+            continue
         try:
             ok, info = send_deadline_summary_email(inc, rows)
             if ok:
                 sent += 1
+                audit_log(
+                    'scheduler:deadline_notification_sent',
+                    f'Incidente {inc.id}; slot {_deadline_slot_label(schedule_slot)}; destinatari {info}; sorgente {source}',
+                    actor_type='scheduler',
+                )
             else:
                 skipped += 1
+                if 'nessun indirizzo email' in info or 'personale' in info:
+                    incidents_without_recipients += 1
                 errors.append(f'Incidente {inc.id}: {info}')
         except Exception as exc:
             current_app.logger.exception('Errore notifica scadenze incidente %s', inc.id)
+            skipped += 1
             errors.append(f'Incidente {inc.id}: {exc}')
+
     if not force:
-        # Memorizza lo slot pianificato, non l'ora di avvio/esecuzione: in questo modo
-        # gli intervalli restano ancorati alla mezzanotte del giorno corrente.
+        # Campo informativo per la pagina Notifiche: non viene più usato come
+        # blocco globale dello slot, perché la deduplica avviene per incidente.
         set_setting_value('notification_deadline_last_run_at', schedule_slot.isoformat(timespec='minutes'))
     result = {
         'sent': sent,
@@ -2580,6 +2605,8 @@ def run_deadline_notification_check(force=False, source='request'):
         'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
         'incidents_checked': incidents_checked,
         'incidents_with_pending': incidents_with_pending,
+        'incidents_already_sent': incidents_already_sent,
+        'incidents_without_recipients': incidents_without_recipients,
     }
     audit_log('scheduler:deadline_notification_check', json.dumps({**result, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
     purge_audit_logs()

@@ -278,3 +278,10 @@ All incident-related notifications always include a direct link to the specific 
 Automatic deadline task notifications now use a cron-style schedule in addition to regular intervals. In **Admin → Notifications**, administrators can choose **Regular interval** or **Cron / specific times**. In cron mode, daily times can be entered as `HH:MM`, separated by commas, spaces, or new lines; interval-based slots remain available and are always calculated from midnight in the application timezone. The scheduler does not use the application start time as the reference. If the application restarts after one or more missed slots, only the latest due periodic slot is executed and the outcome is recorded in the audit table. The page also shows configured slots, current slot, estimated next run and last automatic execution.
 
 The sending logic has been reviewed: the internal scheduler keeps running independently from web traffic, uses the same execution path as the manual button, records SMTP errors and delivery summaries in audit, and always keeps the direct incident link in the notification body even when a custom template does not include the `%incident_url%` placeholder.
+
+### Update 0.1.0-109
+- The Admin menu grouped into collapsible subsections now always loads with all submenus closed by default, improving readability when reloading or changing pages.
+
+### Update 0.1.0-110
+
+Fixed the deadline-task notification scheduler. The automatic check no longer treats a cron/interval slot as permanently completed just because the first poll found no pending tasks: deduplication is now performed per incident and per scheduled slot. If the scheduler starts before pending tasks become detectable, later polls in the same slot can still send the notifications. Pending-task detection is separated from recipient validation: incidents without assigned staff or e-mail addresses are counted and logged as skipped instead of being reported as no pending task. Successful sends also create a `scheduler:deadline_notification_sent` audit entry with incident, slot and recipients.
