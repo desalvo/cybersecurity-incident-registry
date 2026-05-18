@@ -1,1 +1,52 @@
-{% extends 'base.html' %}{% block content %}<div class="card"><h2>Raccomandazioni</h2><p class="muted">Gestione delle raccomandazioni selezionabili negli incidenti e disponibili nei moduli generati.</p><form method="post"><label>Nuova raccomandazione</label><textarea name="text" required></textarea><button>Aggiungi</button></form></div><div class="card"><h3>Raccomandazioni configurate</h3><table class="table"><tr><th>Testo</th><th>Modifica</th><th>Cancella</th></tr>{% for r in recommendations %}<tr><td>{{ r.text }}</td><td><form method="post"><input type="hidden" name="id" value="{{ r.id }}"><textarea name="text" required>{{ r.text }}</textarea><button>Salva</button></form></td><td><form method="post" action="{{ url_for('main.admin_recommendation_delete', rid=r.id) }}" onsubmit="return confirm('Cancellare questa raccomandazione e rimuoverla dagli incidenti?')"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="3" class="muted">Nessuna raccomandazione.</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Raccomandazioni</h2>
+  <p class="muted">Gestione delle raccomandazioni selezionabili negli incidenti e disponibili nei moduli generati.</p>
+</div>
+<div class="card">
+  <h3>Configurazione raccomandazioni</h3>
+  <form method="post" class="toolbar">
+    <input type="hidden" name="action" value="save_config">
+    <div>
+      <label>Numero massimo di raccomandazioni selezionabili per incidente</label>
+      <input type="number" name="recommendations_max_per_incident" min="1" max="999" value="{{ recommendations_max_per_incident or 3 }}" required>
+      <p class="muted">Default: 3. Il limite è applicato sia nella pagina incidente sia lato server.</p>
+    </div>
+    <button>Salva configurazione</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Nuova raccomandazione</h3>
+  <form method="post">
+    <label>Nuova raccomandazione</label>
+    <textarea name="text" required></textarea>
+    <button>Aggiungi</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Raccomandazioni configurate</h3>
+  <table class="table">
+    <tr><th>Testo</th><th>Modifica</th><th>Cancella</th></tr>
+    {% for r in recommendations %}
+      <tr>
+        <td>{{ r.text }}</td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="id" value="{{ r.id }}">
+            <textarea name="text" required>{{ r.text }}</textarea>
+            <button>Salva</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('main.admin_recommendation_delete', rid=r.id) }}" onsubmit="return confirm('Cancellare questa raccomandazione e rimuoverla dagli incidenti?')">
+            <button class="danger">Cancella</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3" class="muted">Nessuna raccomandazione.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -990,7 +990,7 @@ def incident_new():
                 flash('Errore di sequenza del database corretto. Riprovare la creazione dell\'incidente.', 'error')
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all())
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
@@ -1031,6 +1031,7 @@ def incident_detail(iid):
         notification_types=notification_type_records(),
         form_templates=list_templates(),
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),
+        recommendations_max_per_incident=recommendations_limit(),
         owner_name=setting_value('security_owner_name'),
         owner_role=setting_value('security_owner_role'),
         structure_name=setting_value('structure_name'),
@@ -1424,21 +1425,31 @@ def admin_security_responsible():
 def admin_recommendations():
     if not can_admin(): return redirect(url_for('main.index'))
     if request.method=='POST':
-        text=(request.form.get('text') or '').strip()
-        rid=request.form.get('id')
-        if not text:
-            flash('Indicare il testo della raccomandazione','error')
-        elif rid:
-            rec=Recommendation.query.get_or_404(int(rid)); rec.text=text
-            try: db.session.commit(); flash('Raccomandazione aggiornata','success')
-            except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
-        elif Recommendation.query.filter_by(text=text).first():
-            flash('Raccomandazione già presente','info')
+        action = request.form.get('action') or ''
+        if action == 'save_config':
+            max_selected = _bounded_int(request.form.get('recommendations_max_per_incident', '3'), 3, 1, 999)
+            set_setting_value('recommendations_max_per_incident', str(max_selected))
+            audit_log('admin:recommendations_config_update', {'recommendations_max_per_incident': max_selected}, actor_type='user')
+            try:
+                db.session.commit(); flash('Configurazione raccomandazioni aggiornata','success')
+            except Exception as exc:
+                db.session.rollback(); flash(f'Errore: {exc}','error')
         else:
-            db.session.add(Recommendation(text=text))
-            try: db.session.commit(); flash('Raccomandazione aggiunta','success')
-            except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
-    return render_template('admin_recommendations.html', recommendations=Recommendation.query.order_by(Recommendation.text).all())
+            text=(request.form.get('text') or '').strip()
+            rid=request.form.get('id')
+            if not text:
+                flash('Indicare il testo della raccomandazione','error')
+            elif rid:
+                rec=Recommendation.query.get_or_404(int(rid)); rec.text=text
+                try: db.session.commit(); flash('Raccomandazione aggiornata','success')
+                except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
+            elif Recommendation.query.filter_by(text=text).first():
+                flash('Raccomandazione già presente','info')
+            else:
+                db.session.add(Recommendation(text=text))
+                try: db.session.commit(); flash('Raccomandazione aggiunta','success')
+                except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
+    return render_template('admin_recommendations.html', recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit())
 
 @bp.route('/admin/recommendations/<int:rid>/delete',methods=['POST'])
 @login_required
@@ -4328,8 +4339,16 @@ def confirm_generated_forms(iid):
         section_flash(f'Errore salvataggio documenti generati: {exc}', 'incident-forms', 'error')
     return incident_detail_redirect(iid, 'incident-forms')
 
+
+def recommendations_limit():
+    return _bounded_int(setting_value('recommendations_max_per_incident', '3') or '3', 3, 1, 999)
+
 def recommendations_from_form(field='recommendations'):
     ids=unique_int_list(field)
+    limit = recommendations_limit()
+    if limit and len(ids) > limit:
+        section_flash(f'Selezionare al massimo {limit} raccomandazioni per incidente.', 'incident-main', 'danger')
+        ids = ids[:limit]
     if not ids:
         return []
     return Recommendation.query.filter(Recommendation.id.in_(ids)).order_by(Recommendation.text).all()

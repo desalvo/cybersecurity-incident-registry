@@ -12,6 +12,8 @@ Open `http://localhost:8000`. The initial local user is `admin`; the initial pas
 
 ## Main features
 
+- Configurable maximum number of recommendations selectable per incident in Admin → Recommendations, default 3.
+
 - Persistent PostgreSQL database.
 - Local login, configurable LDAP authentication with user filter, and configurable SSO/OAuth2/OpenID Connect login from the Admin interface.
 - Roles: admin, operator, reader, writer, disabled.

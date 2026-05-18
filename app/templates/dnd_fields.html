@@ -41,6 +41,7 @@
   </div>
   <div>
     <h4>Raccomandazioni disponibili</h4>
+    <p class="muted">Massimo selezionabile per incidente: {{ recommendations_max_per_incident or 3 }}.</p>
     <div class="palette">
       {% for r in recommendations %}
         <span class="chip" draggable="true" data-id="{{r.id}}" data-text="{{r.text}}" data-target="recommendations">{{r.text}}</span>
@@ -51,6 +52,6 @@
   </div>
   <div>
     <h4>Raccomandazioni selezionate</h4>
-    <div class="dropzone" data-target="recommendations">{% if inc %}{% for r in inc.recommendations %}<span class="chip">{{r.text}} ×<input type="hidden" name="recommendations" value="{{r.id}}"></span>{% endfor %}{% endif %}</div>
+    <div class="dropzone" data-target="recommendations" data-max-items="{{ recommendations_max_per_incident or 3 }}">{% if inc %}{% for r in inc.recommendations %}<span class="chip">{{r.text}} ×<input type="hidden" name="recommendations" value="{{r.id}}"></span>{% endfor %}{% endif %}</div>
   </div>
 </div>

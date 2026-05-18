@@ -21,6 +21,11 @@ function makeDnd(){
       let d=JSON.parse(e.dataTransfer.getData('text/plain'));
       if(d.target!==zone.dataset.target)return;
       if(zone.querySelector('input[value="'+d.id+'"][name="'+zone.dataset.target+'"]'))return;
+      const maxItems=parseInt(zone.dataset.maxItems||'0',10);
+      if(maxItems>0 && zone.querySelectorAll('input[name="'+zone.dataset.target+'"]').length>=maxItems){
+        alert('Numero massimo di elementi selezionabili raggiunto: '+maxItems);
+        return;
+      }
       let s=document.createElement('span');
       s.className='chip';
       s.textContent=d.text+' ×';
