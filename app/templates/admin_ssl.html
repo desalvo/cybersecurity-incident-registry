@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Configurazione HTTPS/SSL</h2>
+  <p class="muted">HTTP sulla porta 8000 resta sempre disponibile. HTTPS sulla porta {{ status.port }} viene avviato solo quando l'accesso SSL è abilitato e certificato e chiave privata sono presenti.</p>
+
+  <div class="grid two-cols">
+    <div class="status-card">
+      <h3>Stato corrente</h3>
+      <p><strong>Abilitato da ambiente:</strong> {{ 'sì' if status.env_enabled else 'no' }}</p>
+      <p><strong>Abilitato da interfaccia:</strong> {{ 'sì' if status.ui_enabled else 'no' }}</p>
+      <p><strong>Certificato presente:</strong> {{ 'sì' if status.cert_present else 'no' }}</p>
+      <p><strong>Chiave privata presente:</strong> {{ 'sì' if status.key_present else 'no' }}</p>
+      <p><strong>HTTPS pronto:</strong> {{ 'sì' if status.https_ready else 'no' }}</p>
+    </div>
+    <div class="status-card">
+      <h3>Percorsi runtime</h3>
+      <p><strong>Certificato:</strong><br><code>{{ status.cert_path }}</code></p>
+      <p><strong>Chiave privata:</strong><br><code>{{ status.key_path }}</code></p>
+      <p class="muted">I percorsi possono essere definiti anche con <code>SSL_CERT_FILE</code> e <code>SSL_KEY_FILE</code> in Docker Compose o Kubernetes.</p>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    <input type="hidden" name="action" value="save">
+    <div class="wide">
+      <label><input type="checkbox" name="ssl_enabled" value="1" {% if status.ui_enabled %}checked{% endif %}> Abilita accesso HTTPS/SSL da interfaccia</label>
+      <p class="muted">Se mancano certificato o chiave privata, l'abilitazione non blocca l'avvio HTTP e il listener HTTPS resta spento.</p>
+    </div>
+    <div>
+      <label>Certificato host PEM</label>
+      <input type="file" name="ssl_cert_file" accept=".pem,.crt,.cert,text/plain">
+    </div>
+    <div>
+      <label>Chiave privata PEM</label>
+      <input type="file" name="ssl_key_file" accept=".pem,.key,text/plain">
+    </div>
+    <div class="wide form-actions">
+      <button type="submit">Salva configurazione SSL</button>
+    </div>
+  </form>
+
+  <form method="post" class="danger-zone" onsubmit="return confirm('Rimuovere i certificati SSL caricati dall’interfaccia?');">
+    <input type="hidden" name="action" value="delete_certificates">
+    <button type="submit" class="danger">Rimuovi certificati caricati</button>
+  </form>
+</div>
+{% endblock %}

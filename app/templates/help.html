@@ -19,7 +19,7 @@
       <p>La guida integra testo, diagrammi, grafici e schermate illustrative dell'applicazione. Il logo mostrato è esclusivamente il logo pittorico dell'applicazione e non include il logo custom configurabile dall'amministratore.</p>
       <p>Per le configurazioni avanzate è disponibile anche la <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>, con relativo PDF scaricabile dalla pagina stessa.</p>
     </div>
-  <p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google”, compilare Client ID e Client secret e registrare sul provider il redirect URI mostrato dall’applicazione.</p></section>
+  <p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google” oppure “Aggiungi profilo generico”, compilare Client ID, Client secret ed endpoint richiesti e registrare sul provider il redirect URI HTTPS mostrato dall’applicazione.</p></section>
 
   <figure class="doc-figure">
     <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma di flusso del ciclo di vita di un incidente">
@@ -232,7 +232,7 @@
     <h3>SSO / OAuth2 / OpenID Connect</h3>
     <p>La voce <strong>Admin → SSO</strong> consente agli amministratori di configurare più profili di login federato tramite provider OAuth2/OpenID Connect, anche attivi contemporaneamente. Per attivarlo:</p>
     <ol>
-      <li>Registrare l’applicazione sul provider SSO e copiare il redirect URI mostrato nella pagina Admin → SSO.</li>
+      <li>Registrare l’applicazione sul provider SSO e copiare il redirect URI HTTPS mostrato nella pagina Admin → SSO.</li>
       <li>Compilare authorization endpoint, token endpoint e userinfo endpoint.</li>
       <li>Inserire client ID e client secret generati dal provider.</li>
       <li>Lasciare gli scope <code>openid email profile</code> per provider OIDC standard, oppure adattarli alle policy del provider.</li>
@@ -243,7 +243,7 @@
       <li>Usare <strong>Avvia test login interattivo</strong> per provare il flusso reale con redirect verso il provider e ritorno sulla callback applicativa.</li>
       <li>Abilitare il login SSO e salvare. Nella login comparirà un pulsante “Accedi con …” per ciascun profilo SSO attivo.</li>
     </ol>
-    <p>Nel controllo SSO una risposta 401 o 403 dallo UserInfo endpoint può essere normale, perché la verifica tecnica non possiede un access token reale. Gli utenti SSO non usano password locali nell’applicazione; il cambio password resta disponibile solo per utenti locali.</p>
+    <p>Il pulsante Controlla configurazione non richiede conferme di cancellazione e usa i valori correnti della form. Nel controllo SSO una risposta 401 o 403 dallo UserInfo endpoint può essere normale, perché la verifica tecnica non possiede un access token reale. Gli utenti SSO non usano password locali nell’applicazione; il cambio password resta disponibile solo per utenti locali.</p>
 
     <h3>Logo custom e logo applicativo</h3>
     <p>Il logo custom caricato dall’amministratore resta visualizzato nella barra superiore e nella login. Il nuovo logo pittorico dell’applicazione è un elemento separato: appare sempre nella pagina di login e nella barra del menu principale nelle viste desktop/non mobile; la variante decorativa in basso a destra resta disponibile nelle pagine interne desktop. Nella versione mobile il logo pittorico della barra e quello decorativo sono nascosti per preservare spazio operativo. Il logo custom non viene sostituito o modificato.</p>

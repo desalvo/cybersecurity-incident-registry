@@ -10,24 +10,34 @@ spec:
       containers:
       - name: web
         image: cybersecurity-incident-registry:latest
-        ports: [{containerPort: 8000}]
+        ports:
+        - {containerPort: 8000}
+        - {containerPort: 8443}
         env:
         - {name: DATABASE_URL, valueFrom: {secretKeyRef: {name: cir-secrets, key: database-url}}}
         - {name: SECRET_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: secret-key}}}
         - {name: ADMIN_INITIAL_PASSWORD, valueFrom: {secretKeyRef: {name: cir-secrets, key: admin-initial-password}}}
         - {name: FORM_TEMPLATE_DIR, value: /data/form_templates}
+        - {name: SSL_DIR, value: /data/ssl}
+        - {name: SSL_PORT, value: "8443"}
+        - {name: SSL_ENABLED, value: "0"}
         volumeMounts:
         - {name: uploads, mountPath: /data/uploads}
         - {name: form-templates, mountPath: /data/form_templates}
+        - {name: ssl-certs, mountPath: /data/ssl}
       volumes:
       - name: uploads
         persistentVolumeClaim: {claimName: cir-uploads}
       - name: form-templates
         persistentVolumeClaim: {claimName: cir-form-templates}
+      - name: ssl-certs
+        persistentVolumeClaim: {claimName: cir-ssl-certs}
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: cybersecurity-incident-registry}
 spec:
   selector: {app: cybersecurity-incident-registry}
-  ports: [{port: 80, targetPort: 8000}]
+  ports:
+  - {name: http, port: 80, targetPort: 8000}
+  - {name: https, port: 443, targetPort: 8443}

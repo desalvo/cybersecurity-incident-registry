@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="doc-chapter card"><h2>Multiple SSO/OAuth2 profiles</h2><p>Admin → SSO supports multiple OAuth2/OpenID Connect profiles enabled at the same time. The login page displays one button for each active provider. The Google example pre-fills the standard Google OIDC endpoints and claims; administrators only need to add Client ID and Client secret and register the displayed redirect URI.</p></section>
+<section class="doc-chapter card"><h2>Multiple SSO/OAuth2 profiles</h2><p>Admin → SSO supports multiple OAuth2/OpenID Connect profiles enabled at the same time. The login page displays one button for each active provider. The Google example pre-fills the standard Google OIDC endpoints and claims; administrators can also add a generic empty profile. The displayed redirect URI always uses HTTPS and must be registered with the provider.</p></section>
 <div class="doc-shell">
   <div class="doc-hero card">
     <img class="doc-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Application logo">

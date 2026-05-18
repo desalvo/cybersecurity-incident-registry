@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
+<div class="card"><h2>0.1.0-120</h2><ul><li>Added optional HTTPS/SSL support on container port 8443.</li><li>HTTP on port 8000 always remains available even when SSL certificates are missing.</li><li>New Admin → HTTPS/SSL page to enable or disable HTTPS and upload the host certificate and private key.</li><li>Docker Compose, Kubernetes, full export/import and documentation updated.</li></ul></div>
+<div class="card"><h2>0.1.0-119</h2><ul><li>The SSO/OAuth2 callback is always displayed and used with HTTPS scheme.</li><li>SSO save and check buttons no longer show delete-style confirmations.</li><li>Added a button to create a generic SSO/OAuth2 profile.</li></ul></div>
+
 <div class="card"><h2>0.1.0-118</h2><ul><li>SSO/OAuth2 now supports multiple configurable profiles active at the same time.</li><li>The login page shows one button for each active SSO provider.</li><li>Admin → SSO includes a prefilled Google OpenID Connect example.</li></ul></div>
 <div class="card doc-page">
   <div class="page-header">

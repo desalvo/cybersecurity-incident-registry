@@ -88,13 +88,18 @@ function makeDeleteConfirmations(){
   const defaultMessage='Confermi la cancellazione? L’operazione non potrà essere annullata.';
   document.querySelectorAll('form').forEach(form=>{
     const action=(form.getAttribute('action')||'').toLowerCase();
-    const hasDeleteAction=action.includes('/delete');
-    const hasDeleteButton=!!form.querySelector('button.danger, input[type="submit"].danger, input[name="action"][value="delete"]');
-    if(!hasDeleteAction && !hasDeleteButton)return;
+    const formLooksDelete=action.includes('/delete') || form.hasAttribute('data-confirm-delete');
+    const hasDeleteControl=!!form.querySelector('button.danger, input[type="submit"].danger, input[name="action"][value="delete"], button[name="action"][value*="delete"]');
+    if(!formLooksDelete && !hasDeleteControl)return;
     if(form.dataset.confirmAttached==='true')return;
     form.dataset.confirmAttached='true';
     form.addEventListener('submit',ev=>{
       if(form.dataset.confirmed==='true')return;
+      const submitter=ev.submitter;
+      const submitterAction=(submitter && submitter.getAttribute('value') || '').toLowerCase();
+      const submitterIsDelete=!!(submitter && (submitter.classList.contains('danger') || submitterAction.includes('delete') || submitterAction.includes('del_')));
+      const mustConfirm=formLooksDelete || submitterIsDelete;
+      if(!mustConfirm)return;
       const msg=form.getAttribute('data-confirm-delete') || defaultMessage;
       if(!window.confirm(msg))ev.preventDefault();
       else form.dataset.confirmed='true';

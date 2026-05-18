@@ -323,3 +323,18 @@ The **Add Google example** button pre-fills a Google OpenID Connect profile with
 - claims: `email`, `email`, `name`, `sub`.
 
 Then enter the Client ID and Client secret obtained from the Google console and register the redirect URI shown by the application. SSO profiles are stored in application settings and included in full export/import.
+
+## Update 0.1.0-119 - SSO/OAuth2 profiles: HTTPS callback and generic profile
+
+SSO/OAuth2 profile configuration now always generates and uses a redirect/callback URI with the `https://` scheme, even when the application receives internal HTTP traffic behind a reverse proxy or container network. **Save SSO profile** and **Check configuration** no longer ask for delete-style confirmation; confirmation is limited to actual profile deletion.
+
+**Admin → SSO** now also provides **Add generic profile**, in addition to the Google example, to create an empty OAuth2/OpenID Connect profile that can be completed with the endpoints of the chosen Identity Provider.
+
+
+## Update 0.1.0-120 - Optional HTTPS/SSL access
+
+The container now also exposes port 8443 for optional HTTPS/SSL access. HTTP port 8000 always remains available, and a missing SSL configuration or missing certificates never prevents the application from starting.
+
+Configuration can be provided through Docker Compose or Kubernetes environment variables: `SSL_ENABLED`, `SSL_PORT`, `SSL_DIR`, `SSL_CERT_FILE` and `SSL_KEY_FILE`. Alternatively, an administrator can use the new **Admin → HTTPS/SSL** page to enable or disable HTTPS access and upload the host certificate and private key in PEM format. If HTTPS is enabled but the certificate or private key is missing, the HTTPS listener remains disabled while HTTP access keeps working.
+
+Full export/import includes SSL certificates uploaded from the web interface, so the complete application configuration remains restorable.

@@ -8,6 +8,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UPLOAD_DIR=/data/uploads \
     LOGO_DIR=/data/logo \
     FORM_TEMPLATE_DIR=/data/form_templates \
+    SSL_DIR=/data/ssl \
+    SSL_PORT=8443 \
+    SSL_ENABLED=0 \
     PORT=8000 \
     WEB_CONCURRENCY=1
 
@@ -34,14 +37,14 @@ RUN set -eux; \
 COPY . .
 
 RUN set -eux; \
-    mkdir -p /data/uploads /data/logo /data/form_templates; \
+    mkdir -p /data/uploads /data/logo /data/form_templates /data/ssl; \
     useradd --create-home --shell /usr/sbin/nologin appuser; \
     chown -R appuser:appuser /app /data
 
 USER appuser
-EXPOSE 8000
+EXPOSE 8000 8443
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8000/healthz || exit 1
 
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-1} --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-180} --access-logfile - --error-logfile - wsgi:app"]
+CMD ["/app/docker-entrypoint.sh"]

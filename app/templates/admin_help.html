@@ -26,7 +26,7 @@
         </tbody>
       </table>
     </div>
-  <p>Da <strong>Admin → Raccomandazioni</strong> si imposta anche il numero massimo di raccomandazioni selezionabili per ciascun incidente. Il default è 3; il valore è salvato nelle configurazioni applicative ed è incluso nel full export/import.</p><p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google”, compilare Client ID e Client secret e registrare sul provider il redirect URI mostrato dall’applicazione.</p></section>
+  <p>Da <strong>Admin → Raccomandazioni</strong> si imposta anche il numero massimo di raccomandazioni selezionabili per ciascun incidente. Il default è 3; il valore è salvato nelle configurazioni applicative ed è incluso nel full export/import.</p><p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google” oppure “Aggiungi profilo generico”, compilare Client ID, Client secret ed endpoint richiesti e registrare sul provider il redirect URI HTTPS mostrato dall’applicazione.</p></section>
 
   <figure class="doc-figure">
     <img src="{{ url_for('static', filename='help/admin-flow.png') }}" alt="Diagramma di flusso amministrativo">
@@ -113,13 +113,13 @@
     <p>L'applicazione può autenticare gli utenti tramite login locale, LDAP oppure OAuth2/SSO. Le configurazioni LDAP e SSO sono accessibili dal menu Admin e devono essere modificate solo da personale autorizzato.</p>
     <figure class="doc-figure"><img src="{{ url_for('static', filename='help/admin-screenshot-sso.png') }}" alt="Schermata illustrativa configurazione SSO"><figcaption>Figura 2 - Configurazione SSO con parametri e controllo guidato.</figcaption></figure>
     <h3>Configurazione SSO</h3>
-    <p>Da <strong>Admin → SSO</strong> si configurano endpoint OAuth2/OpenID Connect, client ID, client secret, scope, redirect URI, claim utente, claim email, claim nome e ruolo predefinito per gli utenti creati tramite SSO.</p>
+    <p>Da <strong>Admin → SSO</strong> si configurano più profili OAuth2/OpenID Connect, endpoint, client ID, client secret, scope, redirect URI HTTPS, claim utente, claim email, claim nome e ruolo predefinito per gli utenti creati tramite SSO. Sono disponibili un profilo Google di esempio e un profilo generico vuoto.</p>
     <p>Il pulsante <strong>Controlla configurazione</strong> consente di verificare la presenza dei parametri obbligatori, la raggiungibilità degli endpoint e la coerenza dei claim configurati. Il controllo non sostituisce il test di login reale, ma aiuta a individuare errori comuni prima della messa in esercizio.</p>
     <h3>Procedura consigliata per attivare SSO</h3>
     <ol>
       <li>Registrare l'applicazione presso il provider identità.</li>
       <li>Inserire la redirect URI prodotta dall'applicazione nel provider.</li>
-      <li>Compilare i parametri in <strong>Admin → SSO</strong>.</li>
+      <li>Compilare i parametri in <strong>Admin → SSO</strong>, usando il profilo Google di esempio o il profilo generico.</li>
       <li>Salvare e premere <strong>Controlla configurazione</strong>.</li>
       <li>Eseguire un login di test con utente pilota.</li>
       <li>Verificare creazione utente, ruolo assegnato e dati anagrafici ricevuti dai claim.</li>
@@ -319,4 +319,5 @@
 <section class="doc-chapter card" data-doc-title="audit purge massimo record csv manuale"><h2>Audit: limite massimo, purge manuale ed export CSV</h2><p>La voce <strong>Admin → Audit</strong> permette di configurare il numero massimo di record da mantenere nella tabella audit, con default 10000 record. Oltre alla ritenzione temporale, il purge automatico elimina i record più vecchi quando il limite massimo viene superato, conservando sempre i record più recenti.</p><p>Dalla stessa pagina è possibile eseguire un purge manuale conservando solo un numero specificato di record oppure eliminando i record più vecchi di una data indicata. Il comando <strong>Salva CSV</strong> esporta l’audit corrente in formato CSV, rispettando i filtri di ricerca selezionati.</p></section>
 <section class="doc-chapter card" data-doc-title="menu aiuto documentazione utente pdf note rilascio"><h2>Menu Aiuto e download PDF</h2><p>Il menu <strong>Aiuto</strong> espone solo le pagine informative principali: <strong>Documentazione utente</strong>, <strong>Documentazione amministrativa</strong> e <strong>Note di rilascio</strong>. I download PDF sono disponibili dentro le rispettive pagine e non come voci separate di menu.</p></section>
 <section class="doc-chapter card"><h2>Notifiche deadline senza duplicati</h2><p>Le notifiche dei task in scadenza non vengono reinviate più volte nello stesso intervallo tra due schedule successive: l’applicazione conserva l’ultimo invio riuscito per incidente e salta i poll ripetuti della stessa finestra.</p></section>
+<section class="doc-section"><h2>HTTPS/SSL opzionale</h2><p>La voce <strong>Admin → HTTPS/SSL</strong> consente agli amministratori di abilitare o disabilitare il listener HTTPS sulla porta 8443 e di caricare certificato host e chiave privata PEM. L'accesso HTTP su 8000 resta sempre disponibile anche se SSL non è configurato.</p></section>
 {% endblock %}

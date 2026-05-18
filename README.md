@@ -525,3 +525,18 @@ Nella pagina di login, quando sono presenti profili SSO attivi e completi, viene
 - claim: `email`, `email`, `name`, `sub`.
 
 Compilare poi Client ID e Client secret ottenuti dalla console Google e registrare il redirect URI mostrato dall'applicazione. I profili SSO sono salvati nelle configurazioni applicative e inclusi nel full export/import.
+
+## Aggiornamento 0.1.0-119 - Profili SSO/OAuth2: callback HTTPS e profilo generico
+
+La configurazione dei profili SSO/OAuth2 genera e usa sempre un redirect/callback URI con schema `https://`, anche quando l'applicazione riceve traffico interno HTTP dietro reverse proxy o container. I pulsanti **Salva profilo SSO** e **Controlla configurazione** non richiedono più conferme di cancellazione; la conferma resta limitata alla sola eliminazione del profilo.
+
+In **Admin → SSO** è disponibile anche il pulsante **Aggiungi profilo generico**, oltre all'esempio Google, per creare un profilo OAuth2/OpenID Connect vuoto da completare con gli endpoint del proprio Identity Provider.
+
+
+## Aggiornamento 0.1.0-120 - Accesso HTTPS/SSL opzionale
+
+Il container espone ora anche la porta 8443 per l'accesso HTTPS/SSL opzionale. La porta HTTP 8000 resta sempre disponibile e la mancata configurazione SSL o l'assenza dei certificati non blocca l'avvio dell'applicazione.
+
+La configurazione può essere eseguita tramite variabili di ambiente in Docker Compose o Kubernetes: `SSL_ENABLED`, `SSL_PORT`, `SSL_DIR`, `SSL_CERT_FILE` e `SSL_KEY_FILE`. In alternativa, un amministratore può usare la nuova voce **Admin → HTTPS/SSL** per abilitare o disabilitare l'accesso HTTPS e caricare certificato host e chiave privata in formato PEM. Se HTTPS viene abilitato ma certificato o chiave privata non sono presenti, il listener HTTPS resta spento e l'accesso HTTP continua a funzionare.
+
+Il full export/import include anche i certificati SSL caricati dall'interfaccia, così da mantenere ripristinabile la configurazione applicativa completa.

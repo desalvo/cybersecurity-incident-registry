@@ -1,3 +1,16 @@
+0.1.0-120
+- Aggiunto supporto opzionale HTTPS/SSL su porta 8443 nel container.
+- HTTP su porta 8000 resta sempre disponibile e non è bloccato dalla mancanza di certificati.
+- Aggiunta voce Admin > HTTPS/SSL per abilitare/disabilitare HTTPS e caricare certificato host e chiave privata.
+- Docker Compose e Kubernetes aggiornati con variabili SSL_ENABLED, SSL_PORT, SSL_DIR, SSL_CERT_FILE e SSL_KEY_FILE.
+- Full export/import esteso ai certificati SSL caricati dall'applicazione.
+
+0.1.0-119
+- SSO/OAuth2 callback URI always generated and used with https:// scheme.
+- Fixed SSO profile save/check buttons so they no longer trigger delete-style confirmation dialogs.
+- Added a generic SSO/OAuth2 profile button alongside the Google example.
+- Updated bilingual documentation.
+
 0.1.0-118
 - SSO/OAuth2 esteso a profili multipli configurabili e attivabili contemporaneamente.
 - Login con scelta del provider SSO attivo.

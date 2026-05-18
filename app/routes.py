@@ -715,7 +715,40 @@ def sso_is_enabled(cfg=None):
 
 
 def sso_callback_url():
-    return url_for('main.sso_callback', _external=True)
+    """Return the OAuth2 callback URL using HTTPS.
+
+    Identity Providers generally require secure redirect URIs in production.
+    The application therefore always displays and uses an https:// callback
+    URL for SSO/OAuth2 profiles, even when Flask receives an internal HTTP
+    request behind a reverse proxy or in a container network.
+    """
+    try:
+        return url_for('main.sso_callback', _external=True, _scheme='https')
+    except Exception:
+        url = url_for('main.sso_callback', _external=True)
+        if url.startswith('http://'):
+            return 'https://' + url[len('http://'):]
+        return url
+
+
+def generic_sso_profile():
+    return {
+        'id': 'generic-sso',
+        'sso_enabled': '0',
+        'sso_provider_name': 'Generic SSO',
+        'sso_authorization_url': '',
+        'sso_token_url': '',
+        'sso_userinfo_url': '',
+        'sso_client_id': '',
+        'sso_client_secret': '',
+        'sso_scopes': 'openid email profile',
+        'sso_username_claim': 'preferred_username',
+        'sso_email_claim': 'email',
+        'sso_name_claim': 'name',
+        'sso_subject_claim': 'sub',
+        'sso_auto_create_users': '1',
+        'sso_default_role': 'disabled',
+    }
 
 
 def google_sso_example_profile():
@@ -1748,15 +1781,18 @@ def sso_settings_admin():
     if request.method == 'POST':
         action = request.form.get('action', 'save')
         profiles = sso_profiles(include_legacy=True)
-        if action == 'add_google_example':
-            example = google_sso_example_profile()
+        if action in ('add_google_example', 'add_generic_profile'):
+            example = google_sso_example_profile() if action == 'add_google_example' else generic_sso_profile()
             ids = {p['id'] for p in profiles}
             base = example['id']; n = 2
             while example['id'] in ids:
                 example['id'] = f'{base}-{n}'; n += 1
             profiles.append(example)
             save_sso_profiles(profiles); db.session.commit()
-            flash('Profilo SSO Google di esempio aggiunto. Compilare Client ID e Client secret prima di abilitarlo.')
+            if action == 'add_google_example':
+                flash('Profilo SSO Google di esempio aggiunto. Compilare Client ID e Client secret prima di abilitarlo.')
+            else:
+                flash('Profilo SSO generico aggiunto. Compilare endpoint, Client ID e Client secret prima di abilitarlo.')
             return redirect(url_for('main.sso_settings_admin', profile=example['id']))
         if action == 'delete_profile':
             delete_id = request.form.get('profile_id') or selected_id
@@ -1811,7 +1847,7 @@ def sso_settings_admin():
     if not selected:
         selected = google_sso_example_profile() if not profiles else profiles[0]
         selected_id = selected['id']
-    return render_template('sso.html', settings=selected, profiles=profiles, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile())
+    return render_template('sso.html', settings=selected, profiles=profiles, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile(), generic_example=generic_sso_profile())
 
 @bp.route('/admin/ldap',methods=['GET','POST'])
 @login_required
@@ -3784,7 +3820,7 @@ def _export_schema_payload():
     schema['_coverage'] = {
         'database_tables': sorted(FULL_EXPORT_TABLES.keys()),
         'relation_tables': sorted(FULL_EXPORT_RELATION_TABLES.keys()),
-        'file_groups': ['documents', 'action_attachments', 'form_templates', 'custom_logo', 'application_logos'],
+        'file_groups': ['documents', 'action_attachments', 'form_templates', 'custom_logo', 'application_logos', 'ssl_certificates'],
     }
     return schema
 
@@ -3911,6 +3947,7 @@ def export_full():
             ],
             'logo': None,
             'application_logos': [],
+            'ssl_certificates': {},
             # Template moduli PDF: il full export deve essere autosufficiente.
             # Oltre al file PDF originario vengono riportati anche i nomi campo
             # rilevati nel modello; le mappature sono esportate nella tabella
@@ -3936,6 +3973,15 @@ def export_full():
             'path': logo_setting.value,
             'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'
         }
+
+    ssl_files = {}
+    cert = ssl_cert_path()
+    key = ssl_key_path()
+    if cert.exists() and cert.is_file():
+        ssl_files['certificate'] = {'archive_path': 'files/ssl/current.crt', 'path': str(cert)}
+    if key.exists() and key.is_file():
+        ssl_files['private_key'] = {'archive_path': 'files/ssl/current.key', 'path': str(key)}
+    payload['files']['ssl_certificates'] = ssl_files
 
     static_logo_candidates = [
         Path(current_app.static_folder or '') / 'cir-application-logo.svg',
@@ -3966,6 +4012,11 @@ def export_full():
 
         if payload['files']['logo']:
             archive.add(logo_setting.value, arcname=payload['files']['logo']['archive_path'])
+        for ssl_item in payload['files'].get('ssl_certificates', {}).values():
+            src = ssl_item.get('path')
+            if src and os.path.exists(src):
+                archive.add(src, arcname=ssl_item['archive_path'])
+
         for app_logo in payload['files'].get('application_logos', []):
             src = Path(current_app.static_folder or '') / app_logo.get('relative_path', '')
             if src.exists() and src.is_file():
@@ -4176,6 +4227,33 @@ def import_full():
                         db.session.merge(setting)
                     except KeyError:
                         current_app.logger.warning('Logo indicato nel manifest ma non presente nell archivio')
+
+                ssl_manifest = data.get('files', {}).get('ssl_certificates', {}) or {}
+                ssl_storage_dir().mkdir(parents=True, exist_ok=True)
+                cert_manifest = ssl_manifest.get('certificate')
+                if cert_manifest and cert_manifest.get('archive_path'):
+                    try:
+                        src = archive.extractfile(archive.getmember(cert_manifest['archive_path']))
+                        with open(ssl_cert_path(), 'wb') as out:
+                            shutil.copyfileobj(src, out)
+                    except KeyError:
+                        current_app.logger.warning('Certificato SSL indicato nel manifest ma non presente nell archivio')
+                key_manifest = ssl_manifest.get('private_key')
+                if key_manifest and key_manifest.get('archive_path'):
+                    try:
+                        src = archive.extractfile(archive.getmember(key_manifest['archive_path']))
+                        with open(ssl_key_path(), 'wb') as out:
+                            shutil.copyfileobj(src, out)
+                        try:
+                            os.chmod(ssl_key_path(), 0o600)
+                        except OSError:
+                            pass
+                    except KeyError:
+                        current_app.logger.warning('Chiave SSL indicata nel manifest ma non presente nell archivio')
+                if setting_value('ssl_enabled', '0') == '1':
+                    write_ssl_enabled_marker(True)
+                else:
+                    write_ssl_enabled_marker(False)
 
                 os.makedirs(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', exist_ok=True)
                 for tmpl in data.get('files', {}).get('form_templates', []):
@@ -4574,6 +4652,51 @@ def confirm_generated_forms(iid):
     return incident_detail_redirect(iid, 'incident-forms')
 
 
+
+
+def ssl_storage_dir():
+    path = Path(os.environ.get('SSL_DIR') or '/data/ssl')
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def ssl_marker_path():
+    return ssl_storage_dir() / 'enabled'
+
+def ssl_cert_path():
+    configured = os.environ.get('SSL_CERT_FILE')
+    return Path(configured) if configured else ssl_storage_dir() / 'current.crt'
+
+def ssl_key_path():
+    configured = os.environ.get('SSL_KEY_FILE')
+    return Path(configured) if configured else ssl_storage_dir() / 'current.key'
+
+def ssl_config_status():
+    cert = ssl_cert_path()
+    key = ssl_key_path()
+    env_enabled = (os.environ.get('SSL_ENABLED') or '0').lower() in {'1','true','yes','on'}
+    ui_enabled = setting_value('ssl_enabled', '0') == '1' or ssl_marker_path().exists()
+    cert_present = cert.exists() and cert.is_file()
+    key_present = key.exists() and key.is_file()
+    https_ready = (env_enabled or ui_enabled) and cert_present and key_present
+    return {
+        'env_enabled': env_enabled,
+        'ui_enabled': ui_enabled,
+        'enabled': env_enabled or ui_enabled,
+        'cert_present': cert_present,
+        'key_present': key_present,
+        'https_ready': https_ready,
+        'cert_path': str(cert),
+        'key_path': str(key),
+        'port': os.environ.get('SSL_PORT') or '8443',
+    }
+
+def write_ssl_enabled_marker(enabled):
+    marker = ssl_marker_path()
+    if enabled:
+        marker.write_text('enabled\n', encoding='utf-8')
+    else:
+        marker.unlink(missing_ok=True)
+
 def recommendations_limit():
     return _bounded_int(setting_value('recommendations_max_per_incident', '3') or '3', 3, 1, 999)
 
@@ -4737,6 +4860,57 @@ def admin_audit_export_csv():
         ])
     filename = f"audit_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={filename}'})
+
+
+@bp.route('/admin/ssl', methods=['GET','POST'])
+@login_required
+def admin_ssl():
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    if request.method == 'POST':
+        action = request.form.get('action') or 'save'
+        if action == 'save':
+            enabled = request.form.get('ssl_enabled') == '1'
+            set_setting_value('ssl_enabled', '1' if enabled else '0')
+            write_ssl_enabled_marker(enabled)
+            cert_file = request.files.get('ssl_cert_file')
+            key_file = request.files.get('ssl_key_file')
+            saved = []
+            if cert_file and cert_file.filename:
+                data = cert_file.read()
+                if b'BEGIN CERTIFICATE' not in data[:4096]:
+                    flash('Il certificato caricato non sembra essere in formato PEM valido.', 'error')
+                    return redirect(url_for('main.admin_ssl'))
+                ssl_cert_path().parent.mkdir(parents=True, exist_ok=True)
+                ssl_cert_path().write_bytes(data)
+                saved.append('certificato')
+            if key_file and key_file.filename:
+                data = key_file.read()
+                if b'PRIVATE KEY' not in data[:4096]:
+                    flash('La chiave privata caricata non sembra essere in formato PEM valido.', 'error')
+                    return redirect(url_for('main.admin_ssl'))
+                ssl_key_path().parent.mkdir(parents=True, exist_ok=True)
+                ssl_key_path().write_bytes(data)
+                try:
+                    os.chmod(ssl_key_path(), 0o600)
+                except OSError:
+                    pass
+                saved.append('chiave privata')
+            audit_log('admin:ssl_config_update', {'enabled': enabled, 'uploaded': saved}, actor_type='user')
+            db.session.commit()
+            if enabled and not (ssl_cert_path().exists() and ssl_key_path().exists()):
+                flash('Configurazione salvata. HTTPS resterà inattivo finché certificato e chiave privata non saranno disponibili; HTTP su 8000 resta attivo.', 'warning')
+            else:
+                flash('Configurazione SSL/HTTPS aggiornata. Il listener HTTPS viene avviato/arrestato automaticamente dal container entro pochi secondi.', 'success')
+            return redirect(url_for('main.admin_ssl'))
+        if action == 'delete_certificates':
+            ssl_cert_path().unlink(missing_ok=True)
+            ssl_key_path().unlink(missing_ok=True)
+            audit_log('admin:ssl_certificates_delete', {'certificates_removed': True}, actor_type='user')
+            db.session.commit()
+            flash('Certificati SSL rimossi. HTTP su 8000 resta attivo.', 'success')
+            return redirect(url_for('main.admin_ssl'))
+    return render_template('admin_ssl.html', status=ssl_config_status())
 
 @bp.route('/admin/other-configurations', methods=['GET','POST'])
 @login_required
