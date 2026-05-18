@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-chapter card"><h2>Multiple SSO/OAuth2 profiles</h2><p>Admin → SSO supports multiple OAuth2/OpenID Connect profiles enabled at the same time. The login page displays one button for each active provider. The Google example pre-fills the standard Google OIDC endpoints and claims; administrators only need to add Client ID and Client secret and register the displayed redirect URI.</p></section>
 <div class="doc-shell">
   <div class="doc-hero card">
     <img class="doc-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Application logo">
@@ -45,4 +46,5 @@
 
 <section class="doc-chapter card" data-doc-title="audit csv purge administration"><h2>Audit and CSV save</h2><p>Administrators can browse audit records with search, pagination, total counts and the displayed interval. The Audit page can also save the current register as CSV and manage automatic or manual purge based on time retention and maximum row count.</p></section>
 <section class="doc-chapter card" data-doc-title="help menu user documentation pdf release notes"><h2>Help menu and PDFs</h2><p>The <strong>Help</strong> menu contains <strong>User documentation</strong>, <strong>Administrator documentation</strong> and <strong>Release notes</strong>. Direct PDF download entries have been removed from the menu; each PDF can still be downloaded from the button inside the corresponding page.</p></section>
+<section class="doc-chapter card"><h2>Duplicate-free deadline notifications</h2><p>Deadline-task notifications are not resent multiple times within the same interval between two consecutive schedules: the application keeps the last successful send per incident and skips repeated polls in the same window.</p></section>
 {% endblock %}

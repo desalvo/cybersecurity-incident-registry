@@ -504,3 +504,24 @@ Il registro audit collassa i record consecutivi identici incrementando il campo 
 ### Audit: limite massimo, purge manuale e CSV
 
 La pagina `Admin → Audit` include la configurazione del numero massimo di record audit da mantenere, con default 10000. Il purge automatico applica sia la ritenzione temporale sia il limite massimo di righe, eliminando i record più vecchi. Dalla stessa pagina è possibile eseguire purge manuali per numero di record da conservare o per data limite, ed esportare in CSV l’audit corrente secondo i filtri applicati.
+
+## Aggiornamento 0.1.0-117 - Deduplica notifiche deadline nello stesso intervallo
+
+Le notifiche automatiche dei task con scadenza ora mantengono uno stato persistente dell’ultimo invio riuscito per ogni notifica riepilogativa di incidente. Prima di spedire una nuova mail, lo scheduler verifica la finestra compresa tra lo slot pianificato corrente e quello successivo: se una notifica dello stesso tipo per lo stesso incidente è già stata inviata con successo in quella finestra, il messaggio viene saltato. Questo evita reinvii multipli durante l’intervallo di pausa tra due schedule successive, anche in presenza di poll tecnici ripetuti o riavvii dell’applicazione. Gli invii riusciti continuano a essere registrati in audit e aggiornano la tabella di stato `deadline_notification_state`, inclusa nel full export/import.
+
+
+## Aggiornamento 0.1.0-118 - Profili multipli SSO/OAuth2
+
+L'accesso federato SSO/OAuth2/OpenID Connect supporta ora più profili configurabili e attivabili contemporaneamente da **Admin → SSO**. Ogni profilo ha un ID tecnico, nome provider, stato attivo/disattivo, endpoint authorization/token/userinfo, client ID, client secret, scope e mapping dei claim.
+
+Nella pagina di login, quando sono presenti profili SSO attivi e completi, viene mostrato un pulsante per ciascun provider, così l'utente può scegliere quale SSO utilizzare. Il redirect URI resta comune e viene mostrato nella pagina Admin → SSO. Gli utenti creati automaticamente da SSO mantengono il ruolo predefinito del profilo; il valore consigliato resta `disabled` per consentire la successiva abilitazione amministrativa.
+
+È disponibile il pulsante **Aggiungi esempio Google**, che precompila un profilo Google OpenID Connect con:
+
+- Authorization endpoint: `https://accounts.google.com/o/oauth2/v2/auth`;
+- Token endpoint: `https://oauth2.googleapis.com/token`;
+- UserInfo endpoint: `https://openidconnect.googleapis.com/v1/userinfo`;
+- scope: `openid email profile`;
+- claim: `email`, `email`, `name`, `sub`.
+
+Compilare poi Client ID e Client secret ottenuti dalla console Google e registrare il redirect URI mostrato dall'applicazione. I profili SSO sono salvati nelle configurazioni applicative e inclusi nel full export/import.

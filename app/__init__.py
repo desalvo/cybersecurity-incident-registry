@@ -213,6 +213,28 @@ def run_schema_migrations(app):
             if 'repeat_count' in {c['name'] for c in inspector.get_columns('audit_log')}:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE audit_log SET repeat_count = 1 WHERE repeat_count IS NULL OR repeat_count < 1'))
+
+        if 'deadline_notification_state' in tables:
+            cols = {c['name'] for c in inspector.get_columns('deadline_notification_state')}
+            expected_cols = {
+                'notification_key': 'VARCHAR(255)',
+                'notification_type': 'VARCHAR(80)',
+                'incident_id': 'INTEGER',
+                'last_success_at': 'TIMESTAMP',
+                'last_schedule_slot': 'TIMESTAMP',
+                'last_recipients': 'TEXT',
+                'last_details': 'TEXT',
+                'send_count': 'INTEGER',
+                'updated_at': 'TIMESTAMP',
+            }
+            for col_name, col_type in expected_cols.items():
+                if col_name not in cols:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f'ALTER TABLE deadline_notification_state ADD COLUMN {col_name} {col_type}'))
+                    app.logger.info('Schema migration applied: deadline_notification_state.%s added', col_name)
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE deadline_notification_state SET notification_type = 'deadline' WHERE notification_type IS NULL"))
+                conn.execute(text('UPDATE deadline_notification_state SET send_count = 1 WHERE send_count IS NULL OR send_count < 1'))
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}
             if 'action_label_id' not in cols:
@@ -235,7 +257,7 @@ def run_schema_migrations(app):
                 app.logger.info('Schema migration applied: mfa_totp_token.verified_at added')
         # Le nuove tabelle vengono create da create_all(); questa sezione resta
         # intenzionalmente idempotente per database creati con versioni precedenti.
-        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables:
+        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables:
             db.create_all()
             app.logger.info('Schema migration applied: auxiliary tables ensured')
     except Exception:
@@ -339,7 +361,7 @@ def bootstrap(app):
             db.session.add(admin)
         else:
             admin.role='admin'; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
-        for k,v in {'security_owner_name':'','security_owner_role':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','csirt_email':'','dpo_email':'','csirt_cc':'','dpo_cc':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','recommendations_max_per_incident':'3','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nDati personali: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nDati personali: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti'}.items(): ensure_setting(k,v)
+        for k,v in {'security_owner_name':'','security_owner_role':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','csirt_email':'','dpo_email':'','csirt_cc':'','dpo_cc':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','recommendations_max_per_incident':'3','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nDati personali: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nDati personali: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti'}.items(): ensure_setting(k,v)
         for v in ['molto bassa','bassa','media','alta','critica']: ensure_label('severity',v,'gravità')
         for v in ['password','dati personali']: ensure_label('data_type',v,'dati interessati')
         for v in ['furto di credenziali','phishing','SPAM','altro']: ensure_label('category',v,'categorie')

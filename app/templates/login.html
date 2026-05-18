@@ -18,9 +18,13 @@
         <label>Password</label><input name="password" type="password" required>
         <br><br><button style="width:100%">Accedi</button>
       </form>
-      {% if sso_enabled %}
+      {% if sso_enabled and sso_profiles %}
       <div class="login-separator"><span>oppure</span></div>
-      <a class="button sso-login-button" href="{{ url_for('main.sso_login') }}">Accedi con {{ sso.sso_provider_name or 'SSO' }}</a>
+      <div class="sso-login-list">
+        {% for profile in sso_profiles %}
+          <a class="button sso-login-button" href="{{ url_for('main.sso_login', profile_id=profile.id) }}">Accedi con {{ profile.sso_provider_name or 'SSO' }}</a>
+        {% endfor %}
+      </div>
       {% endif %}
     </div>
   </div>

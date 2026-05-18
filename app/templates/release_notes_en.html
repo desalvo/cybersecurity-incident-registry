@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card"><h2>0.1.0-116</h2><ul><li>Maximum number of recommendations selectable per incident configurable in <strong>Admin → Recommendations</strong>, default 3.</li></ul></div>
+<div class="card"><h2>0.1.0-118</h2><ul><li>SSO/OAuth2 now supports multiple configurable profiles active at the same time.</li><li>The login page shows one button for each active SSO provider.</li><li>Admin → SSO includes a prefilled Google OpenID Connect example.</li></ul></div>
 <div class="card doc-page">
   <div class="page-header">
     <div>
       <h1>Release notes</h1>
-      <p class="muted">Concise list of package updates. Release notes are separated from the operational documentation to keep the user and administrator guides easier to read.</p>
+      <p class="muted">Summary of package updates. Release notes are kept separate from operational guides to keep user and administrator documentation readable.</p>
     </div>
     <a class="button secondary" href="{{ url_for('main.release_notes_pdf') }}">Download PDF</a>
   </div>

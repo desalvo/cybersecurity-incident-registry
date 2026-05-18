@@ -181,8 +181,11 @@ def audit_detail_summary(operation_type, details):
             return f"Scheduler: controllo promemoria specifici, scaduti {data.get('due',0)}, inviati {data.get('sent',0)}, saltati {data.get('skipped',0)}, errori {len(data.get('errors') or [])}"
         if op == 'scheduler:deadline_notification_check':
             sent = data.get('sent') or data.get('sent_count') or 0
-            due = data.get('due') or data.get('due_count') or 0
-            return f"Scheduler: controllo notifiche task in scadenza, elementi in scadenza {due}, notifiche inviate {sent}, sorgente {short(data.get('source')) or '-'}"
+            due = data.get('due') or data.get('due_count') or data.get('incidents_with_pending') or 0
+            slot = short(data.get('schedule_slot')) or '-'
+            return f"Scheduler: controllo notifiche task in scadenza, slot {slot}, elementi in scadenza {due}, notifiche inviate {sent}, sorgente {short(data.get('source')) or '-'}"
+        if op == 'scheduler:deadline_notification_sent':
+            return f"Scheduler: notifica task in scadenza inviata. {short(raw, 220)}"
         if op == 'admin:audit_purge_manual':
             if data.get('mode') == 'keep_count':
                 return f"Purge manuale audit: conservati al massimo {data.get('keep_count','-')} record, eliminati {data.get('deleted',0)} record"
@@ -614,9 +617,10 @@ def bool_setting(cfg, key, default=False):
     value = str(cfg.get(key, '1' if default else '') or '').strip().lower()
     return value in {'1', 'true', 'yes', 'on', 'si', 'sì'}
 
-def sso_settings():
+def sso_legacy_settings():
     cfg = setting_map()
     return {
+        'id': 'legacy',
         'sso_enabled': cfg.get('sso_enabled', '0'),
         'sso_provider_name': cfg.get('sso_provider_name', 'SSO'),
         'sso_authorization_url': cfg.get('sso_authorization_url', ''),
@@ -633,12 +637,105 @@ def sso_settings():
         'sso_default_role': cfg.get('sso_default_role', 'disabled'),
     }
 
+
+def _normalize_sso_profile(profile, fallback_id=None):
+    profile = dict(profile or {})
+    raw_id = str(profile.get('id') or fallback_id or profile.get('sso_provider_name') or 'sso').strip().lower()
+    profile_id = re.sub(r'[^a-z0-9_-]+', '-', raw_id).strip('-') or 'sso'
+    return {
+        'id': profile_id[:80],
+        'sso_enabled': '1' if bool_setting(profile, 'sso_enabled') else '0',
+        'sso_provider_name': str(profile.get('sso_provider_name') or profile.get('name') or 'SSO').strip() or 'SSO',
+        'sso_authorization_url': str(profile.get('sso_authorization_url') or '').strip(),
+        'sso_token_url': str(profile.get('sso_token_url') or '').strip(),
+        'sso_userinfo_url': str(profile.get('sso_userinfo_url') or '').strip(),
+        'sso_client_id': str(profile.get('sso_client_id') or '').strip(),
+        'sso_client_secret': str(profile.get('sso_client_secret') or ''),
+        'sso_scopes': str(profile.get('sso_scopes') or 'openid email profile').strip() or 'openid email profile',
+        'sso_username_claim': str(profile.get('sso_username_claim') or 'preferred_username').strip() or 'preferred_username',
+        'sso_email_claim': str(profile.get('sso_email_claim') or 'email').strip() or 'email',
+        'sso_name_claim': str(profile.get('sso_name_claim') or 'name').strip() or 'name',
+        'sso_subject_claim': str(profile.get('sso_subject_claim') or 'sub').strip() or 'sub',
+        'sso_auto_create_users': '1' if bool_setting(profile, 'sso_auto_create_users', True) else '0',
+        'sso_default_role': str(profile.get('sso_default_role') or 'disabled').strip() or 'disabled',
+    }
+
+
+def sso_profiles(include_legacy=True):
+    cfg = setting_map()
+    raw = cfg.get('sso_profiles_json', '')
+    profiles = []
+    if raw:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                seen = set()
+                for idx, item in enumerate(data):
+                    if isinstance(item, dict):
+                        prof = _normalize_sso_profile(item, f'sso-{idx+1}')
+                        base = prof['id']; n = 2
+                        while prof['id'] in seen:
+                            prof['id'] = f'{base}-{n}'; n += 1
+                        seen.add(prof['id'])
+                        profiles.append(prof)
+        except Exception:
+            current_app.logger.exception('Unable to parse sso_profiles_json')
+    if not profiles and include_legacy:
+        legacy = sso_legacy_settings()
+        if bool_setting(legacy, 'sso_enabled') or legacy.get('sso_client_id') or legacy.get('sso_authorization_url'):
+            profiles.append(_normalize_sso_profile(legacy, 'legacy'))
+    return profiles
+
+
+def save_sso_profiles(profiles):
+    normalized = [_normalize_sso_profile(p, f'sso-{i+1}') for i, p in enumerate(profiles or [])]
+    s = Setting.query.get('sso_profiles_json') or Setting(key='sso_profiles_json')
+    s.value = json.dumps(normalized, ensure_ascii=False, indent=2)
+    db.session.merge(s)
+
+
+def sso_settings(profile_id=None):
+    profiles = sso_profiles()
+    if profile_id:
+        for profile in profiles:
+            if profile.get('id') == profile_id:
+                return profile
+    if profiles:
+        return profiles[0]
+    return _normalize_sso_profile({}, 'sso')
+
+
+def active_sso_profiles():
+    return [p for p in sso_profiles() if sso_is_enabled(p)]
+
+
 def sso_is_enabled(cfg=None):
     cfg = cfg or sso_settings()
     return bool_setting(cfg, 'sso_enabled') and bool(cfg.get('sso_authorization_url')) and bool(cfg.get('sso_token_url')) and bool(cfg.get('sso_client_id'))
 
+
 def sso_callback_url():
     return url_for('main.sso_callback', _external=True)
+
+
+def google_sso_example_profile():
+    return {
+        'id': 'google',
+        'sso_enabled': '0',
+        'sso_provider_name': 'Google',
+        'sso_authorization_url': 'https://accounts.google.com/o/oauth2/v2/auth',
+        'sso_token_url': 'https://oauth2.googleapis.com/token',
+        'sso_userinfo_url': 'https://openidconnect.googleapis.com/v1/userinfo',
+        'sso_client_id': '',
+        'sso_client_secret': '',
+        'sso_scopes': 'openid email profile',
+        'sso_username_claim': 'email',
+        'sso_email_claim': 'email',
+        'sso_name_claim': 'name',
+        'sso_subject_claim': 'sub',
+        'sso_auto_create_users': '1',
+        'sso_default_role': 'disabled',
+    }
 
 
 def sso_test_configuration(cfg):
@@ -689,7 +786,6 @@ def sso_test_configuration(cfg):
             elif label == 'Token endpoint':
                 response = requests.options(url, headers=headers, timeout=timeout, allow_redirects=False)
                 if response.status_code in (404, 405, 501):
-                    # Molti provider non implementano OPTIONS: proviamo una POST minima, che deve rispondere con errore OAuth2 e non con errore di rete.
                     response = requests.post(url, data={'grant_type': 'authorization_code', 'code': 'configuration-test', 'redirect_uri': sso_callback_url(), 'client_id': cfg.get('sso_client_id') or 'configuration-test'}, headers={'Accept': 'application/json'}, timeout=timeout, allow_redirects=False)
                 ok = response.status_code < 500
                 add(label, ok, f'Endpoint raggiungibile, HTTP {response.status_code}' if ok else f'Errore server HTTP {response.status_code}')
@@ -714,6 +810,7 @@ def sso_test_configuration(cfg):
     success = all(item['ok'] for item in checks)
     return {'checks': checks, 'success': success, 'authorization_preview': auth_preview}
 
+
 def sso_user_from_claims(claims, cfg):
     subject_claim = cfg.get('sso_subject_claim') or 'sub'
     username_claim = cfg.get('sso_username_claim') or 'preferred_username'
@@ -725,22 +822,24 @@ def sso_user_from_claims(claims, cfg):
     name = str(claims.get(name_claim) or claims.get('name') or username).strip()
     if not username:
         raise ValueError('Il provider SSO non ha restituito un identificativo utente utilizzabile')
+    profile_id = cfg.get('id') or 'sso'
+    external_subject = f"{profile_id}:{subject}" if subject else None
     user = None
-    if subject:
-        user = User.query.filter_by(auth_provider='sso', external_id=subject).first()
+    if external_subject:
+        user = User.query.filter_by(auth_provider='sso', external_id=external_subject).first()
     if not user:
         user = User.query.filter_by(username=username).first()
     if not user:
         if not bool_setting(cfg, 'sso_auto_create_users', True):
             raise ValueError('Utente SSO non registrato e creazione automatica disabilitata')
-        user = User(username=username, name=name, email=email, role=cfg.get('sso_default_role') or 'disabled', is_ldap=False, auth_provider='sso', external_id=subject or None, password_hash=None)
+        user = User(username=username, name=name, email=email, role=cfg.get('sso_default_role') or 'disabled', is_ldap=False, auth_provider='sso', external_id=external_subject, password_hash=None)
         db.session.add(user)
     else:
         user.name = name or user.name
         user.email = email or user.email
         user.auth_provider = 'sso'
-        if subject:
-            user.external_id = subject
+        if external_subject:
+            user.external_id = external_subject
         user.is_ldap = False
     db.session.commit()
     return user
@@ -775,16 +874,24 @@ def login():
             if user.role=='disabled': flash('Utente LDAP registrato ma disabilitato.','error'); return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled())
             return complete_login_or_mfa(user)
         current_app.logger.warning('Errore password/login per utente %s',u); flash('Credenziali non valide.','error')
-    return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled())
+    profiles = active_sso_profiles()
+    return render_template('login.html', sso=sso_settings(), sso_enabled=bool(profiles), sso_profiles=profiles)
 
 @bp.route('/sso/login')
-def sso_login():
-    cfg = sso_settings()
-    if not sso_is_enabled(cfg):
+@bp.route('/sso/login/<profile_id>')
+def sso_login(profile_id=None):
+    profiles = active_sso_profiles()
+    if not profiles:
         flash('Login SSO non configurato o non abilitato.', 'error')
+        return redirect(url_for('main.login'))
+    requested_profile = profile_id or request.args.get('profile')
+    cfg = sso_settings(requested_profile) if requested_profile else profiles[0]
+    if not sso_is_enabled(cfg):
+        flash('Profilo SSO non configurato o non abilitato.', 'error')
         return redirect(url_for('main.login'))
     state = secrets.token_urlsafe(32)
     session['sso_state'] = state
+    session['sso_profile_id'] = cfg.get('id')
     params = {
         'response_type': 'code',
         'client_id': cfg.get('sso_client_id'),
@@ -796,7 +903,7 @@ def sso_login():
 
 @bp.route('/sso/callback')
 def sso_callback():
-    cfg = sso_settings()
+    cfg = sso_settings(session.get('sso_profile_id'))
     if not sso_is_enabled(cfg):
         flash('Login SSO non configurato o non abilitato.', 'error')
         return redirect(url_for('main.login'))
@@ -806,6 +913,7 @@ def sso_callback():
     if not request.args.get('state') or request.args.get('state') != session.pop('sso_state', None):
         flash('Stato SSO non valido. Riprovare il login.', 'error')
         return redirect(url_for('main.login'))
+    session.pop('sso_profile_id', None)
     code = request.args.get('code')
     if not code:
         flash('Codice OAuth2 mancante nella risposta SSO.', 'error')
@@ -1634,31 +1742,76 @@ def change_password():
 @login_required
 def sso_settings_admin():
     if not can_admin(): return redirect(url_for('main.index'))
-    keys = ['sso_enabled','sso_provider_name','sso_authorization_url','sso_token_url','sso_userinfo_url','sso_client_id','sso_client_secret','sso_scopes','sso_username_claim','sso_email_claim','sso_name_claim','sso_subject_claim','sso_auto_create_users','sso_default_role']
-    settings = sso_settings()
+    profiles = sso_profiles(include_legacy=True)
     test_result = None
+    selected_id = request.values.get('profile') or (profiles[0]['id'] if profiles else 'google')
     if request.method == 'POST':
         action = request.form.get('action', 'save')
-        for k in keys:
-            value = request.form.get(k, '')
-            if k in ['sso_enabled','sso_auto_create_users']:
-                value = '1' if request.form.get(k) else '0'
-            settings[k] = value
+        profiles = sso_profiles(include_legacy=True)
+        if action == 'add_google_example':
+            example = google_sso_example_profile()
+            ids = {p['id'] for p in profiles}
+            base = example['id']; n = 2
+            while example['id'] in ids:
+                example['id'] = f'{base}-{n}'; n += 1
+            profiles.append(example)
+            save_sso_profiles(profiles); db.session.commit()
+            flash('Profilo SSO Google di esempio aggiunto. Compilare Client ID e Client secret prima di abilitarlo.')
+            return redirect(url_for('main.sso_settings_admin', profile=example['id']))
+        if action == 'delete_profile':
+            delete_id = request.form.get('profile_id') or selected_id
+            profiles = [p for p in profiles if p.get('id') != delete_id]
+            save_sso_profiles(profiles); db.session.commit()
+            flash('Profilo SSO eliminato')
+            return redirect(url_for('main.sso_settings_admin'))
+        posted = {
+            'id': request.form.get('profile_id') or selected_id,
+            'sso_enabled': '1' if request.form.get('sso_enabled') else '0',
+            'sso_provider_name': request.form.get('sso_provider_name','SSO'),
+            'sso_authorization_url': request.form.get('sso_authorization_url',''),
+            'sso_token_url': request.form.get('sso_token_url',''),
+            'sso_userinfo_url': request.form.get('sso_userinfo_url',''),
+            'sso_client_id': request.form.get('sso_client_id',''),
+            'sso_client_secret': request.form.get('sso_client_secret',''),
+            'sso_scopes': request.form.get('sso_scopes','openid email profile'),
+            'sso_username_claim': request.form.get('sso_username_claim','preferred_username'),
+            'sso_email_claim': request.form.get('sso_email_claim','email'),
+            'sso_name_claim': request.form.get('sso_name_claim','name'),
+            'sso_subject_claim': request.form.get('sso_subject_claim','sub'),
+            'sso_auto_create_users': '1' if request.form.get('sso_auto_create_users') else '0',
+            'sso_default_role': request.form.get('sso_default_role','disabled'),
+        }
+        posted = _normalize_sso_profile(posted, selected_id)
+        selected_id = posted['id']
+        replaced = False
+        new_profiles = []
+        for prof in profiles:
+            if prof.get('id') == (request.form.get('original_profile_id') or posted['id']):
+                new_profiles.append(posted); replaced = True
+            else:
+                new_profiles.append(prof)
+        if not replaced:
+            new_profiles.append(posted)
+        profiles = new_profiles
         if action == 'test_connection':
-            test_result = sso_test_configuration(settings)
+            test_result = sso_test_configuration(posted)
             if test_result['success']:
                 flash('Test configurazione SSO completato senza errori bloccanti')
             else:
                 flash('Test configurazione SSO completato con criticità: verificare i dettagli', 'warning')
         else:
-            for k in keys:
-                s = Setting.query.get(k) or Setting(key=k)
-                s.value = settings.get(k, '')
-                db.session.merge(s)
-            db.session.commit()
-            flash('Parametri SSO salvati')
-            return redirect(url_for('main.sso_settings_admin'))
-    return render_template('sso.html', settings=settings, callback_url=sso_callback_url(), test_result=test_result)
+            save_sso_profiles(profiles); db.session.commit()
+            flash('Profilo SSO salvato')
+            return redirect(url_for('main.sso_settings_admin', profile=selected_id))
+    profiles = sso_profiles(include_legacy=True)
+    selected = None
+    for prof in profiles:
+        if prof.get('id') == selected_id:
+            selected = prof; break
+    if not selected:
+        selected = google_sso_example_profile() if not profiles else profiles[0]
+        selected_id = selected['id']
+    return render_template('sso.html', settings=selected, profiles=profiles, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile())
 
 @bp.route('/admin/ldap',methods=['GET','POST'])
 @login_required
@@ -2216,6 +2369,77 @@ def next_deadline_notification_at(now=None):
     return midnight + timedelta(days=1, minutes=deadline_schedule_slots_for_day(now)[0])
 
 
+
+def deadline_schedule_window(now=None):
+    """Restituisce lo slot corrente e il successivo per le notifiche deadline.
+
+    La finestra [slot_corrente, slot_successivo) rappresenta l'intervallo di
+    pausa tra due schedule successive: all'interno di questa finestra una
+    stessa notifica con deadline non deve essere inviata più volte.
+    """
+    now = now or application_now()
+    current_slot = current_deadline_schedule_slot(now)
+    next_slot = next_deadline_notification_at(now)
+    if next_slot <= current_slot:
+        next_slot = current_slot + timedelta(minutes=max(1, raw_deadline_interval_minutes() or deadline_interval_minutes() or 1440))
+    return current_slot, next_slot
+
+
+def _deadline_notification_key(incident_id, notification_type='deadline_summary'):
+    return f'{notification_type}:incident:{int(incident_id)}'
+
+
+def _deadline_state_for_incident(incident_id):
+    key = _deadline_notification_key(incident_id)
+    return DeadlineNotificationState.query.filter_by(notification_key=key).first()
+
+
+def _deadline_notification_sent_in_current_window(incident_id, schedule_slot, next_slot):
+    """True se la stessa notifica è già stata inviata nello stesso intervallo.
+
+    Usa prima la tabella di stato persistente, poi l'audit come fallback per
+    database importati o versioni precedenti.
+    """
+    if not incident_id or not schedule_slot:
+        return False
+    state = _deadline_state_for_incident(incident_id)
+    if state and state.last_success_at:
+        last = state.last_success_at
+        if last >= schedule_slot and (not next_slot or last < next_slot):
+            return True
+        if state.last_schedule_slot and state.last_schedule_slot == schedule_slot:
+            return True
+    return _deadline_notification_already_sent_for_slot(incident_id, schedule_slot)
+
+
+def _record_deadline_notification_success(incident_id, schedule_slot, recipients, details=''):
+    """Aggiorna lo stato dell'ultimo invio riuscito di una notifica deadline."""
+    key = _deadline_notification_key(incident_id)
+    now = application_now()
+    state = DeadlineNotificationState.query.filter_by(notification_key=key).first()
+    if not state:
+        state = DeadlineNotificationState(
+            notification_key=key,
+            notification_type='deadline_summary',
+            incident_id=incident_id,
+            last_success_at=now,
+            last_schedule_slot=schedule_slot,
+            last_recipients=recipients or '',
+            last_details=details or '',
+            send_count=1,
+        )
+        db.session.add(state)
+    else:
+        state.notification_type = 'deadline_summary'
+        state.incident_id = incident_id
+        state.last_success_at = now
+        state.last_schedule_slot = schedule_slot
+        state.last_recipients = recipients or ''
+        state.last_details = details or ''
+        state.send_count = int(state.send_count or 0) + 1
+        state.updated_at = datetime.utcnow()
+    return state
+
 def _deadline_slot_label(value):
     if isinstance(value, datetime):
         return value.isoformat(timespec='minutes')
@@ -2630,7 +2854,7 @@ def run_deadline_notification_check(force=False, source='request'):
     oppure quando vengono inviate notifiche, evitando rumore dai poll tecnici.
     """
     now = application_now()
-    schedule_slot = current_deadline_schedule_slot(now)
+    schedule_slot, next_schedule_slot = deadline_schedule_window(now)
 
     if setting_value('notification_deadline_enabled', '0') != '1' and not force:
         return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'disabled'}
@@ -2640,7 +2864,7 @@ def run_deadline_notification_check(force=False, source='request'):
             'errors': ['Invio email per task in scadenza disabilitato nelle impostazioni notifiche'],
             'executed': True, 'source': source,
             'schedule_slot': schedule_slot.isoformat(timespec='minutes'),
-            'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
+            'next_run_at': next_schedule_slot.isoformat(timespec='minutes'),
         }
         if force or not _deadline_notification_check_already_audited_for_slot(schedule_slot):
             audit_log('scheduler:deadline_notification_check', json.dumps(result, ensure_ascii=False), actor_type='scheduler')
@@ -2656,7 +2880,7 @@ def run_deadline_notification_check(force=False, source='request'):
         return {
             'sent': 0, 'skipped': 0, 'errors': [], 'executed': False,
             'reason': 'waiting_for_first_scheduled_slot',
-            'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
+            'next_run_at': next_schedule_slot.isoformat(timespec='minutes'),
         }
 
     sent = skipped = 0
@@ -2672,7 +2896,7 @@ def run_deadline_notification_check(force=False, source='request'):
         if not rows:
             continue
         incidents_with_pending += 1
-        if not force and _deadline_notification_already_sent_for_slot(inc.id, schedule_slot):
+        if _deadline_notification_sent_in_current_window(inc.id, schedule_slot, next_schedule_slot):
             incidents_already_sent += 1
             skipped += 1
             continue
@@ -2680,6 +2904,12 @@ def run_deadline_notification_check(force=False, source='request'):
             ok, info = send_deadline_summary_email(inc, rows)
             if ok:
                 sent += 1
+                _record_deadline_notification_success(
+                    inc.id,
+                    schedule_slot,
+                    info,
+                    details=f'Notifica task in scadenza inviata; slot {_deadline_slot_label(schedule_slot)}; sorgente {source}',
+                )
                 audit_log(
                     'scheduler:deadline_notification_sent',
                     f'Incidente {inc.id}; slot {_deadline_slot_label(schedule_slot)}; destinatari {info}; sorgente {source}',
@@ -2709,7 +2939,8 @@ def run_deadline_notification_check(force=False, source='request'):
         'schedule_mode': deadline_schedule_mode(),
         'cron_times': ','.join(format_minutes_as_hhmm(m) for m in parse_deadline_cron_times()),
         'schedule_slot': schedule_slot.isoformat(timespec='minutes'),
-        'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
+        'schedule_window_end': next_schedule_slot.isoformat(timespec='minutes'),
+        'next_run_at': next_schedule_slot.isoformat(timespec='minutes'),
         'incidents_checked': incidents_checked,
         'incidents_with_pending': incidents_with_pending,
         'incidents_already_sent': incidents_already_sent,
@@ -3500,7 +3731,7 @@ FULL_EXPORT_MODELS = [
     Setting, User, MfaTotpToken, ConfigLabel, Person, Recommendation,
     NotificationType, NotificationTemplate, FormTemplateConfig,
     FormTemplateBinary, FormFieldMapping, Incident, Action, Document,
-    ActionAttachment, IncidentReminder, AuditLog,
+    ActionAttachment, IncidentReminder, DeadlineNotificationState, AuditLog,
 ]
 
 FULL_EXPORT_TABLES = {
@@ -3520,6 +3751,7 @@ FULL_EXPORT_TABLES = {
     'documents': Document,
     'action_attachments': ActionAttachment,
     'incident_reminders': IncidentReminder,
+    'deadline_notification_states': DeadlineNotificationState,
     'audit_logs': AuditLog,
 }
 
@@ -3834,7 +4066,7 @@ def import_full():
                 db.session.execute(incident_categories.delete())
                 db.session.execute(incident_data_types.delete())
                 db.session.execute(incident_recommendations.delete())
-                for model in [ActionAttachment, Document, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
+                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
                     db.session.query(model).delete()
                 db.session.flush()
 
@@ -3890,6 +4122,8 @@ def import_full():
                     db.session.add(ActionAttachment(**_coerce_row_for_model(ActionAttachment, row)))
                 for row in tables.get('incident_reminders', []):
                     db.session.add(IncidentReminder(**_coerce_row_for_model(IncidentReminder, row)))
+                for row in tables.get('deadline_notification_states', []):
+                    db.session.add(DeadlineNotificationState(**_coerce_row_for_model(DeadlineNotificationState, row)))
                 db.session.flush()
 
                 for row in relations.get('incident_people', []):

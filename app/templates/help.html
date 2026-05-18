@@ -19,7 +19,7 @@
       <p>La guida integra testo, diagrammi, grafici e schermate illustrative dell'applicazione. Il logo mostrato è esclusivamente il logo pittorico dell'applicazione e non include il logo custom configurabile dall'amministratore.</p>
       <p>Per le configurazioni avanzate è disponibile anche la <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>, con relativo PDF scaricabile dalla pagina stessa.</p>
     </div>
-  </section>
+  <p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google”, compilare Client ID e Client secret e registrare sul provider il redirect URI mostrato dall’applicazione.</p></section>
 
   <figure class="doc-figure">
     <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma di flusso del ciclo di vita di un incidente">
@@ -230,7 +230,7 @@
     <p>Le liste determinano valori disponibili per gravità, categorie, dati interessati e label azioni. Modificarle con attenzione perché influenzano classificazione, report, notifiche e moduli. La pagina <strong>Admin → Liste configurabili</strong> mostra le sezioni in sequenza verticale, una sotto l’altra, per dare più spazio ai campi Nome, Descrizione, Tempo massimo (ore) ed Esportabile per default durante la modifica. Nella sezione <strong>Label azioni</strong>, il flag Esportabile per default determina il valore iniziale del campo exportable quando una nuova azione viene inserita in un incidente.</p>
 
     <h3>SSO / OAuth2 / OpenID Connect</h3>
-    <p>La voce <strong>Admin → SSO</strong> consente agli amministratori di configurare il login federato tramite provider OAuth2/OpenID Connect. Per attivarlo:</p>
+    <p>La voce <strong>Admin → SSO</strong> consente agli amministratori di configurare più profili di login federato tramite provider OAuth2/OpenID Connect, anche attivi contemporaneamente. Per attivarlo:</p>
     <ol>
       <li>Registrare l’applicazione sul provider SSO e copiare il redirect URI mostrato nella pagina Admin → SSO.</li>
       <li>Compilare authorization endpoint, token endpoint e userinfo endpoint.</li>
@@ -241,7 +241,7 @@
       <li>Premere <strong>Controlla configurazione</strong> per verificare subito i valori inseriti nella form. Il controllo verifica parametri obbligatori, raggiungibilità degli endpoint, scope e claim principali senza creare utenti e senza modificare il database.</li>
       <li>Se il controllo non mostra errori bloccanti, salvare la configurazione.</li>
       <li>Usare <strong>Avvia test login interattivo</strong> per provare il flusso reale con redirect verso il provider e ritorno sulla callback applicativa.</li>
-      <li>Abilitare il login SSO e salvare. Nella login comparirà il pulsante “Accedi con …”.</li>
+      <li>Abilitare il login SSO e salvare. Nella login comparirà un pulsante “Accedi con …” per ciascun profilo SSO attivo.</li>
     </ol>
     <p>Nel controllo SSO una risposta 401 o 403 dallo UserInfo endpoint può essere normale, perché la verifica tecnica non possiede un access token reale. Gli utenti SSO non usano password locali nell’applicazione; il cambio password resta disponibile solo per utenti locali.</p>
 
@@ -343,4 +343,5 @@
 
 <section class="doc-chapter card" data-doc-title="audit csv purge amministrazione"><h2>Audit e salvataggio CSV</h2><p>Gli amministratori possono consultare l’audit con ricerca, paginazione, conteggi totali e intervallo visualizzato. La pagina Audit consente anche di salvare il registro corrente in CSV e di gestire purge automatico o manuale secondo ritenzione temporale e numero massimo di record.</p></section>
 <section class="doc-chapter card" data-doc-title="menu aiuto documentazione utente pdf note rilascio"><h2>Menu Aiuto e PDF</h2><p>Il menu <strong>Aiuto</strong> contiene <strong>Documentazione utente</strong>, <strong>Documentazione amministrativa</strong> e <strong>Note di rilascio</strong>. Le voci dirette per scaricare i PDF sono state rimosse dal menu; ogni PDF resta scaricabile dal pulsante presente nella pagina corrispondente.</p></section>
+<section class="doc-chapter card"><h2>Notifiche deadline senza duplicati</h2><p>Le notifiche dei task in scadenza non vengono reinviate più volte nello stesso intervallo tra due schedule successive: l’applicazione conserva l’ultimo invio riuscito per incidente e salta i poll ripetuti della stessa finestra.</p></section>
 {% endblock %}

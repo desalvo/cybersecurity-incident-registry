@@ -1,3 +1,17 @@
+0.1.0-118
+- SSO/OAuth2 esteso a profili multipli configurabili e attivabili contemporaneamente.
+- Login con scelta del provider SSO attivo.
+- Aggiunto esempio guidato di profilo Google OIDC.
+- Documentazione IT/EN aggiornata.
+
+0.1.0-117
+- Le notifiche automatiche dei task con scadenza tracciano l’ultimo invio riuscito per ogni riepilogo di incidente nella nuova tabella deadline_notification_state.
+- Lo scheduler evita reinvii dello stesso tipo di notifica per lo stesso incidente all’interno della finestra tra uno slot pianificato e il successivo.
+- La deduplica resta compatibile con l’audit storico e la nuova tabella è inclusa nel full export/import.
+- Documentazione IT/EN aggiornata.
+- Automatic deadline-task notifications now track the last successful send per incident summary in the new deadline_notification_state table.
+- The scheduler avoids resending the same notification type for the same incident within the window between consecutive scheduled slots.
+
 0.1.0-116
 - Numero massimo raccomandazioni per incidente configurabile in Admin → Raccomandazioni, default 3.
 

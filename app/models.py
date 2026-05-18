@@ -143,6 +143,28 @@ class Document(db.Model):
     id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow)
 
 
+
+
+class DeadlineNotificationState(db.Model):
+    """Stato dell'ultimo invio riuscito delle notifiche task in scadenza.
+
+    Evita reinvii multipli della stessa tipologia di notifica all'interno
+    dell'intervallo tra due slot pianificati, anche se lo scheduler effettua
+    poll ripetuti o l'applicazione viene riavviata.
+    """
+    id=db.Column(db.Integer,primary_key=True)
+    notification_key=db.Column(db.String(255),unique=True,nullable=False,index=True)
+    notification_type=db.Column(db.String(80),nullable=False,default='deadline')
+    incident_id=db.Column(db.Integer,db.ForeignKey('incident.id'),nullable=True,index=True)
+    last_success_at=db.Column(db.DateTime,nullable=False,index=True)
+    last_schedule_slot=db.Column(db.DateTime,nullable=True,index=True)
+    last_recipients=db.Column(db.Text,default='')
+    last_details=db.Column(db.Text,default='')
+    send_count=db.Column(db.Integer,nullable=False,default=1)
+    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow,nullable=False)
+    incident=db.relationship('Incident',foreign_keys=[incident_id])
+
+
 class NotificationType(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     code=db.Column(db.String(40),unique=True,nullable=False,index=True)

@@ -1064,3 +1064,29 @@ The audit subsystem stores concise details and collapses consecutive equal event
 ## Audit retention, maximum size and export
 
 The audit subsystem applies two independent controls: time-based retention and maximum table size. `audit_max_records` defaults to 10000 and is configured from Admin → Audit. Automatic purge first removes records older than the configured retention window, then removes the oldest remaining records if the physical row count exceeds the configured maximum. Manual purge actions can keep only the latest N records or delete rows older than a selected cutoff date. The Audit page also exposes filtered CSV export.
+
+
+## Aggiornamento 0.1.0-117 - Stato persistente ultimo invio notifiche deadline
+
+È stata introdotta la tabella `deadline_notification_state`, indicizzata tramite `notification_key`, per tracciare l’ultimo invio riuscito delle notifiche automatiche dei task in scadenza. Per le notifiche riepilogative l’identificatore è nella forma `deadline_summary:incident:<id>`, con `last_success_at`, `last_schedule_slot`, destinatari e contatore invii.
+
+La funzione `deadline_schedule_window()` calcola la finestra funzionale `[slot_corrente, slot_successivo)` a partire dalla pianificazione cron/intervalli. Prima dell’invio, `_deadline_notification_sent_in_current_window()` verifica la tabella di stato e usa l’audit `scheduler:deadline_notification_sent` come fallback per dati storici. Se lo stesso riepilogo di incidente è già stato inviato con successo nella finestra corrente, lo scheduler non invia una seconda email e incrementa i contatori di skip del controllo.
+
+Gli invii riusciti chiamano `_record_deadline_notification_success()`, che aggiorna o crea il record persistente. La tabella è inclusa in full export/import, così la deduplica sopravvive a backup, restore e riavvii.
+
+
+## Aggiornamento 0.1.0-118 - Profili multipli SSO/OAuth2
+
+L'accesso federato SSO/OAuth2/OpenID Connect supporta ora più profili configurabili e attivabili contemporaneamente da **Admin → SSO**. Ogni profilo ha un ID tecnico, nome provider, stato attivo/disattivo, endpoint authorization/token/userinfo, client ID, client secret, scope e mapping dei claim.
+
+Nella pagina di login, quando sono presenti profili SSO attivi e completi, viene mostrato un pulsante per ciascun provider, così l'utente può scegliere quale SSO utilizzare. Il redirect URI resta comune e viene mostrato nella pagina Admin → SSO. Gli utenti creati automaticamente da SSO mantengono il ruolo predefinito del profilo; il valore consigliato resta `disabled` per consentire la successiva abilitazione amministrativa.
+
+È disponibile il pulsante **Aggiungi esempio Google**, che precompila un profilo Google OpenID Connect con:
+
+- Authorization endpoint: `https://accounts.google.com/o/oauth2/v2/auth`;
+- Token endpoint: `https://oauth2.googleapis.com/token`;
+- UserInfo endpoint: `https://openidconnect.googleapis.com/v1/userinfo`;
+- scope: `openid email profile`;
+- claim: `email`, `email`, `name`, `sub`.
+
+Compilare poi Client ID e Client secret ottenuti dalla console Google e registrare il redirect URI mostrato dall'applicazione. I profili SSO sono salvati nelle configurazioni applicative e inclusi nel full export/import.

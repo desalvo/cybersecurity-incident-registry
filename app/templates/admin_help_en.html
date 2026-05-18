@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-chapter card"><h2>Multiple SSO/OAuth2 profiles</h2><p>Admin → SSO supports multiple OAuth2/OpenID Connect profiles enabled at the same time. The login page displays one button for each active provider. The Google example pre-fills the standard Google OIDC endpoints and claims; administrators only need to add Client ID and Client secret and register the displayed redirect URI.</p></section>
 <div class="doc-shell">
   <div class="doc-hero card">
     <img class="doc-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Application logo">
@@ -46,4 +47,5 @@
 
 <section class="doc-chapter card" data-doc-title="audit purge maximum records csv manual"><h2>Audit: maximum records, manual purge and CSV export</h2><p><strong>Admin → Audit</strong> lets administrators configure the maximum number of audit rows to retain, with a default of 10000 records. In addition to time-based retention, the automatic purge removes the oldest rows when the maximum limit is exceeded, keeping the most recent records.</p><p>The same page provides manual purge actions: keep only a specified number of rows, or remove rows older than a selected date. <strong>Save CSV</strong> exports the current audit view as CSV and respects the selected search filters.</p></section>
 <section class="doc-chapter card" data-doc-title="help menu user documentation pdf release notes"><h2>Help menu and PDF downloads</h2><p>The <strong>Help</strong> menu exposes only the main information pages: <strong>User documentation</strong>, <strong>Administrator documentation</strong> and <strong>Release notes</strong>. PDF downloads are available inside the corresponding pages and not as separate menu entries.</p></section>
+<section class="doc-chapter card"><h2>Duplicate-free deadline notifications</h2><p>Deadline-task notifications are not resent multiple times within the same interval between two consecutive schedules: the application keeps the last successful send per incident and skips repeated polls in the same window.</p></section>
 {% endblock %}

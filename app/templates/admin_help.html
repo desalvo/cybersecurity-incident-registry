@@ -26,7 +26,7 @@
         </tbody>
       </table>
     </div>
-  <p>Da <strong>Admin → Raccomandazioni</strong> si imposta anche il numero massimo di raccomandazioni selezionabili per ciascun incidente. Il default è 3; il valore è salvato nelle configurazioni applicative ed è incluso nel full export/import.</p></section>
+  <p>Da <strong>Admin → Raccomandazioni</strong> si imposta anche il numero massimo di raccomandazioni selezionabili per ciascun incidente. Il default è 3; il valore è salvato nelle configurazioni applicative ed è incluso nel full export/import.</p><p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google”, compilare Client ID e Client secret e registrare sul provider il redirect URI mostrato dall’applicazione.</p></section>
 
   <figure class="doc-figure">
     <img src="{{ url_for('static', filename='help/admin-flow.png') }}" alt="Diagramma di flusso amministrativo">
@@ -318,4 +318,5 @@
 
 <section class="doc-chapter card" data-doc-title="audit purge massimo record csv manuale"><h2>Audit: limite massimo, purge manuale ed export CSV</h2><p>La voce <strong>Admin → Audit</strong> permette di configurare il numero massimo di record da mantenere nella tabella audit, con default 10000 record. Oltre alla ritenzione temporale, il purge automatico elimina i record più vecchi quando il limite massimo viene superato, conservando sempre i record più recenti.</p><p>Dalla stessa pagina è possibile eseguire un purge manuale conservando solo un numero specificato di record oppure eliminando i record più vecchi di una data indicata. Il comando <strong>Salva CSV</strong> esporta l’audit corrente in formato CSV, rispettando i filtri di ricerca selezionati.</p></section>
 <section class="doc-chapter card" data-doc-title="menu aiuto documentazione utente pdf note rilascio"><h2>Menu Aiuto e download PDF</h2><p>Il menu <strong>Aiuto</strong> espone solo le pagine informative principali: <strong>Documentazione utente</strong>, <strong>Documentazione amministrativa</strong> e <strong>Note di rilascio</strong>. I download PDF sono disponibili dentro le rispettive pagine e non come voci separate di menu.</p></section>
+<section class="doc-chapter card"><h2>Notifiche deadline senza duplicati</h2><p>Le notifiche dei task in scadenza non vengono reinviate più volte nello stesso intervallo tra due schedule successive: l’applicazione conserva l’ultimo invio riuscito per incidente e salta i poll ripetuti della stessa finestra.</p></section>
 {% endblock %}

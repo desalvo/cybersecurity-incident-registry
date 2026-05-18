@@ -302,3 +302,24 @@ The audit log collapses consecutive identical records by incrementing the `Occur
 ### Audit: maximum records, manual purge and CSV
 
 The `Admin → Audit` page includes the maximum audit row configuration, defaulting to 10000 records. The automatic purge applies both time-based retention and the maximum row limit, deleting the oldest records first. The same page supports manual purge by number of records to keep or by cutoff date, and can export the current filtered audit view as CSV.
+
+## Update 0.1.0-117 - Deadline notification deduplication within the same schedule window
+
+Automatic deadline-task notifications now keep a persistent last-success state for each incident summary notification. Before sending a new email, the scheduler checks the window between the current scheduled slot and the next one: if the same notification type for the same incident was already successfully sent in that window, the message is skipped. This prevents repeated messages during the pause between two consecutive schedules, even with repeated technical polls or application restarts. Successful sends are still audited and update the `deadline_notification_state` table, which is included in full export/import.
+
+
+## Update 0.1.0-118 - Multiple SSO/OAuth2 profiles
+
+Federated SSO/OAuth2/OpenID Connect login now supports multiple profiles that can be configured and enabled at the same time from **Admin → SSO**. Each profile has a technical ID, provider name, enabled/disabled status, authorization/token/userinfo endpoints, client ID, client secret, scopes and claim mapping.
+
+On the login page, when complete active SSO profiles exist, one button is shown for each provider so users can choose which SSO provider to use. The redirect URI is common and is displayed in Admin → SSO. Automatically created SSO users receive the default role configured for the selected profile; the recommended default remains `disabled` so administrators can enable them later.
+
+The **Add Google example** button pre-fills a Google OpenID Connect profile with:
+
+- Authorization endpoint: `https://accounts.google.com/o/oauth2/v2/auth`;
+- Token endpoint: `https://oauth2.googleapis.com/token`;
+- UserInfo endpoint: `https://openidconnect.googleapis.com/v1/userinfo`;
+- scopes: `openid email profile`;
+- claims: `email`, `email`, `name`, `sub`.
+
+Then enter the Client ID and Client secret obtained from the Google console and register the redirect URI shown by the application. SSO profiles are stored in application settings and included in full export/import.
