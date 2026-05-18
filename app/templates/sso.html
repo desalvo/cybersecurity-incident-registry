@@ -35,7 +35,7 @@
 
 <div class="card">
   <h3>Storage loghi SSO</h3>
-  <p class="muted">Carica qui i loghi disponibili per i profili SSO/OAuth2. Tutti i loghi sono conservati nella stessa area di storage, possono essere riutilizzati da più profili e sono inclusi nel full export/import.</p>
+  <p class="muted">Carica qui i loghi disponibili per i profili SSO/OAuth2. Tutti i loghi sono conservati nella stessa area di storage, possono essere riutilizzati da più profili, rimossi quando non servono più e sono inclusi nel full export/import. La rimozione di un logo lo sgancia automaticamente dai profili associati.</p>
   <form method="post" enctype="multipart/form-data" class="toolbar">
     <input type="hidden" name="profile" value="{{ settings.id }}">
     <div><label>Nuovo logo</label><input type="file" name="sso_logo_upload" accept="image/svg+xml,image/png,image/jpeg,image/gif,image/webp"></div>
@@ -44,7 +44,15 @@
   {% if sso_logos %}
   <div class="sso-logo-gallery">
     {% for logo in sso_logos %}
-      <div class="sso-logo-tile"><img src="{{ url_for('static', filename=logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'"><code>{{ logo.name }}</code></div>
+      <div class="sso-logo-tile">
+        <img src="{{ url_for('static', filename=logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'">
+        <code>{{ logo.name }}</code>
+        <form method="post" data-confirm-delete="Rimuovere questo logo dallo storage SSO? Il logo sarà rimosso anche dai profili associati.">
+          <input type="hidden" name="profile" value="{{ settings.id }}">
+          <input type="hidden" name="sso_logo_path_to_delete" value="{{ logo.relative_path }}">
+          <button name="action" value="delete_sso_logo" type="submit" class="danger small">Rimuovi</button>
+        </form>
+      </div>
     {% endfor %}
   </div>
   {% endif %}
@@ -84,7 +92,7 @@
           <option value="{{ logo.relative_path }}" {% if settings.sso_logo_path == logo.relative_path %}selected{% endif %}>{{ logo.name }}</option>
         {% endfor %}
       </select>
-      <small class="muted">I loghi sono condivisi tra tutti i profili SSO e salvati nello storage <code>static/sso</code>. Usare il pannello sotto per caricare nuovi loghi e poi selezionarli qui.</small>
+      <small class="muted">I loghi sono condivisi tra tutti i profili SSO e salvati nello storage <code>static/sso</code>. Usare il pannello sopra per caricare o rimuovere i loghi e poi selezionarli qui.</small>
       {% if sso_logos %}
       <div class="sso-logo-gallery">
         {% for logo in sso_logos %}

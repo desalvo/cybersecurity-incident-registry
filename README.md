@@ -557,4 +557,10 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 
 ## Aggiornamento 0.1.0-124 - Loghi profili SSO/OAuth2
 
-Ogni profilo SSO/OAuth2 configurabile da **Admin → SSO** può ora avere un logo opzionale, caricato dalla form del profilo. Il logo viene mostrato nella tabella dei profili configurati e, quando il profilo è attivo, nel pulsante SSO della pagina di login. Il profilo Google di esempio usa per default il logo Google fornito dall’applicazione; il logo può comunque essere sostituito o rimosso come per ogni altro profilo. I loghi dei profili SSO sono inclusi nel full export/import insieme alla configurazione dei profili.
+Ogni profilo SSO/OAuth2 configurabile da **Admin → SSO** può avere un logo opzionale scelto dallo storage condiviso dei loghi SSO. Il logo viene mostrato nella tabella dei profili configurati e, quando il profilo è attivo, nel pulsante SSO della pagina di login. Lo storage contiene per default i loghi Google, Facebook e Apple, consente il caricamento di nuovi loghi e permette la rimozione dei loghi non più necessari. La rimozione di un logo elimina automaticamente l’associazione dai profili SSO che lo utilizzavano. Tutti i loghi SSO sono inclusi nel full export/import insieme alla configurazione dei profili.
+
+
+### Aggiornamento 0.1.0-125
+- I pulsanti SSO nella pagina di login sono grigio chiaro.
+- Lo storage condiviso dei loghi SSO permette anche la rimozione dei loghi.
+- Quando un logo viene rimosso, viene rimosso automaticamente anche dai profili SSO associati.

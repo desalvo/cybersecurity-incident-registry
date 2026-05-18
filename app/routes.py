@@ -857,6 +857,30 @@ def save_sso_logo_upload(file_storage):
 
 
 
+
+def delete_sso_logo_asset(relative_path):
+    """Rimuove un logo dallo storage condiviso e lo sgancia dai profili SSO.
+
+    La rimozione è limitata alla directory static/sso per evitare path traversal.
+    Restituisce il numero di profili aggiornati.
+    """
+    rel = str(relative_path or '').strip().replace('\\', '/')
+    if not rel.startswith('sso/') or '/' in rel[4:]:
+        raise ValueError('Logo SSO non valido.')
+    target = sso_logo_storage_dir() / Path(rel).name
+    if not target.exists() or not target.is_file():
+        raise ValueError('Logo SSO non trovato nello storage.')
+    target.unlink()
+    profiles = sso_profiles(include_legacy=True)
+    changed = 0
+    for prof in profiles:
+        if prof.get('sso_logo_path') == rel:
+            prof['sso_logo_path'] = ''
+            changed += 1
+    if changed:
+        save_sso_profiles(profiles)
+    return changed
+
 def sso_test_configuration(cfg):
     """Esegue controlli non distruttivi sulla configurazione OAuth2/SSO.
 
@@ -1888,6 +1912,19 @@ def sso_settings_admin():
                 else:
                     flash('Selezionare un file logo da caricare', 'error')
             except ValueError as exc:
+                flash(str(exc), 'error')
+            return redirect(url_for('main.sso_settings_admin', profile=selected_id))
+        if action == 'delete_sso_logo':
+            logo_path = request.form.get('sso_logo_path_to_delete', '')
+            try:
+                changed = delete_sso_logo_asset(logo_path)
+                db.session.commit()
+                if changed:
+                    flash(f'Logo SSO rimosso dallo storage e sganciato da {changed} profili associati.')
+                else:
+                    flash('Logo SSO rimosso dallo storage.')
+            except ValueError as exc:
+                db.session.rollback()
                 flash(str(exc), 'error')
             return redirect(url_for('main.sso_settings_admin', profile=selected_id))
         if action == 'delete_profile':

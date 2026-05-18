@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-section"><h2>0.1.0-125</h2><ul><li>Pulsanti SSO grigio chiaro nella pagina di login.</li><li>Rimozione dei loghi dallo storage SSO condiviso.</li><li>La rimozione di un logo elimina automaticamente l’associazione dai profili SSO collegati.</li></ul></section>
+
 <div class="card"><h2>0.1.0-122</h2><ul><li>Aggiornata la documentazione utente con informazioni di versione/build/autore e specifica sulle sole azioni esportabili nella generazione documenti.</li><li>Corretta la schermata illustrativa del dettaglio incidente per evitare overflow nel riquadro Scheda principale.</li><li>Aggiornata la vista Audit per mostrare e filtrare date/ore nella timezone applicativa configurata.</li></ul></div>
 
 <div class="card"><h2>0.1.0-120</h2><ul><li>Aggiunto supporto opzionale HTTPS/SSL su porta 8443 nel container.</li><li>HTTP su porta 8000 resta sempre disponibile anche senza certificati SSL.</li><li>Nuova voce Admin → HTTPS/SSL per abilitare o disabilitare HTTPS e caricare certificato host e chiave privata.</li><li>Docker Compose, Kubernetes, full export/import e documentazione aggiornati.</li></ul></div>
@@ -17,5 +19,5 @@
   <pre class="release-notes-text">{{ changelog }}</pre>
 </div>
 
-<section class="doc-section"><h2>0.1.0-124</h2><ul><li>Pulsanti SSO verdi nella pagina di login.</li><li>Storage condiviso dei loghi SSO con upload centralizzato e selezione per profilo.</li><li>Loghi predefiniti Google, Facebook e Apple.</li><li>Full export/import esteso a tutti i loghi SSO.</li></ul></section>
+<section class="doc-section"><h2>0.1.0-124</h2><ul><li>Pulsanti SSO grigio chiaro nella pagina di login.</li><li>Storage condiviso dei loghi SSO con upload centralizzato e selezione per profilo.</li><li>Loghi predefiniti Google, Facebook e Apple.</li><li>Full export/import esteso a tutti i loghi SSO.</li></ul></section>
 {% endblock %}

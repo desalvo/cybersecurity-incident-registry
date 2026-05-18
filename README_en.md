@@ -355,4 +355,10 @@ User and administrator documentation has been reorganised into clearer chapters 
 
 ## Update 0.1.0-124 - SSO/OAuth2 profile logos
 
-Each SSO/OAuth2 profile configured from **Admin → SSO** can now have an optional logo uploaded from the profile form. The logo is shown in the configured profiles table and, when the profile is active, on the SSO button in the login page. The Google example profile uses the bundled Google logo by default; it can still be replaced or removed like any other profile logo. SSO profile logos are included in full export/import together with the profile configuration.
+Each SSO/OAuth2 profile configured from **Admin → SSO** can have an optional logo selected from the shared SSO logo storage. The logo is shown in the configured profiles table and, when the profile is active, on the SSO button in the login page. The storage includes Google, Facebook and Apple logos by default, supports uploading additional logos and allows logos to be removed when no longer needed. Removing a logo automatically clears the association from SSO profiles that used it. All SSO logos are included in full export/import together with the profile configuration.
+
+
+### Update 0.1.0-125
+- SSO buttons on the login page are light grey.
+- Shared SSO logo storage also supports logo removal.
+- When a logo is removed, it is automatically cleared from associated SSO profiles.

@@ -1,3 +1,10 @@
+
+## 0.1.0-125
+- Pulsanti SSO nella pagina di login aggiornati a grigio chiaro.
+- Aggiunta la rimozione dei loghi dallo storage SSO condiviso.
+- La rimozione di un logo elimina automaticamente l’associazione dai profili SSO che lo utilizzavano.
+- Documentazione IT/EN aggiornata.
+
 0.1.0-124
 - Aggiunto logo opzionale per profili SSO/OAuth2, con default Google per il profilo Google.
 - I pulsanti SSO della login mostrano il logo provider se configurato.
