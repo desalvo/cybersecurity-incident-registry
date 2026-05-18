@@ -343,3 +343,10 @@ Full export/import includes SSL certificates uploaded from the web interface, so
 ## Documentation - 0.1.0-121
 
 User and administrator documentation has been reorganised into clearer chapters with procedures, checklists, examples and improved layout to prevent text from overflowing boxes in online and PDF versions.
+
+## Update 0.1.0-122
+
+- The user documentation now shows application version, build and author in the guide page.
+- It clarifies that only actions marked as exportable are considered when generating documents and dynamic PDF form fields.
+- The administrator documentation was refined in the SSO and HTTPS/SSL chapters.
+- The Admin → Audit page displays, filters and exports date/time values in the application configured timezone.

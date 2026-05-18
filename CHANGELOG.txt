@@ -1,3 +1,8 @@
+0.1.0-122
+- Documentazione utente aggiornata con versione, build, autore e chiarimento sulle azioni esportabili usate nella generazione documenti.
+- Documentazione amministrativa corretta nei capitoli SSO e HTTPS/SSL.
+- Vista Audit aggiornata per mostrare, filtrare ed esportare date e ore nella timezone applicativa configurata.
+
 
 0.1.0-121
 - Riorganizzata la documentazione utente e amministrativa in capitoli più completi, con procedure, checklist, esempi e troubleshooting.

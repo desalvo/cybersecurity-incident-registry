@@ -4,7 +4,7 @@
   <div class="page-header">
     <div>
       <h2>Audit</h2>
-      <p class="muted">Registro delle operazioni utente, scheduler notifiche e task automatizzati. Ritenzione configurata: {{ retention_label }}; cutoff corrente: {{ cutoff.strftime('%Y-%m-%d %H:%M') }} UTC.</p>
+      <p class="muted">Registro delle operazioni utente, scheduler notifiche e task automatizzati. Ritenzione configurata: {{ retention_label }}; cutoff corrente: {{ cutoff.strftime('%Y-%m-%d %H:%M') }} {{ audit_timezone }}.</p>
       <p><strong>Record totali correnti:</strong> {{ total_records }} · <strong>Record filtrati:</strong> {{ filtered_count }} · <strong>Intervallo visualizzato:</strong> {{ selected_from }}-{{ selected_to }}</p>
     </div>
     <div class="actions">
@@ -44,7 +44,7 @@
         <input type="hidden" name="action" value="purge_older_than">
         <div>
           <label>Purge record più vecchi di</label>
-          <input name="purge_older_than" type="datetime-local">
+          <input name="purge_older_than" type="datetime-local"><p class="muted">La data è interpretata nel fuso {{ audit_timezone }}.</p>
         </div>
         <div class="actions"><button class="danger">Esegui purge per data</button></div>
       </form>
@@ -78,11 +78,11 @@
     </div>
     <div>
       <label>Da</label>
-      <input name="start" type="datetime-local" value="{{ start }}">
+      <input name="start" type="datetime-local" value="{{ start }}"><p class="muted">Fuso {{ audit_timezone }}.</p>
     </div>
     <div>
       <label>A</label>
-      <input name="end" type="datetime-local" value="{{ end }}">
+      <input name="end" type="datetime-local" value="{{ end }}"><p class="muted">Fuso {{ audit_timezone }}.</p>
     </div>
     <div>
       <label>Record per pagina</label>
@@ -101,10 +101,10 @@
     <p class="muted">Pagina {{ page }} di {{ max_page }}; visualizzati {{ selected_from }}-{{ selected_to }} di {{ filtered_count }} record filtrati.</p>
   </div>
   <table class="table">
-    <tr><th>Data/ora UTC</th><th>Tipo operazione</th><th>Utente</th><th>Origine</th><th>Occorrenze</th><th>Dettagli</th></tr>
+    <tr><th>Data/ora ({{ audit_timezone }})</th><th>Tipo operazione</th><th>Utente</th><th>Origine</th><th>Occorrenze</th><th>Dettagli</th></tr>
     {% for log in logs %}
       <tr>
-        <td>{{ log.occurred_at.strftime('%Y-%m-%d %H:%M:%S') if log.occurred_at else '' }}</td>
+        <td>{{ log.local_occurred_at }}</td>
         <td>{{ log.operation_type }}</td>
         <td>{{ log.username }}</td>
         <td>{{ log.actor_type }}</td>

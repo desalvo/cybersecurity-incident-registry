@@ -545,3 +545,10 @@ Il full export/import include anche i certificati SSL caricati dall'interfaccia,
 ## Documentazione - 0.1.0-121
 
 La documentazione utente e amministrativa è stata riorganizzata in capitoli più chiari, con procedure, checklist, esempi e layout migliorato per evitare testi fuori dai riquadri nelle versioni online e PDF.
+
+## Aggiornamento 0.1.0-122
+
+- La documentazione utente indica versione, build e autore dell’applicazione nella pagina della guida.
+- È chiarito che solo le azioni contrassegnate come esportabili vengono considerate nella generazione dei documenti e nei campi dinamici dei moduli PDF.
+- La documentazione amministrativa è stata rifinita nei capitoli SSO e HTTPS/SSL.
+- La pagina Admin → Audit mostra, filtra ed esporta le date e ore nel fuso orario configurato nell’applicazione.

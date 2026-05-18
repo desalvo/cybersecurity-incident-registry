@@ -357,6 +357,41 @@ def format_application_datetime(value, include_timezone=True):
     return value.strftime('%d/%m/%Y %H:%M') + suffix
 
 
+def utc_to_application_datetime(value):
+    """Converte un datetime naive UTC nel fuso applicativo configurato.
+
+    I record audit sono registrati con datetime.utcnow() naive. La pagina Audit
+    espone però sempre data e ora nel fuso configurato in Admin -> Altre
+    configurazioni.
+    """
+    if not value:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=ZoneInfo('UTC'))
+    return value.astimezone(ZoneInfo(application_timezone_name())).replace(tzinfo=None)
+
+
+def application_to_utc_datetime(value):
+    """Converte un datetime naive del fuso applicativo in UTC naive.
+
+    Serve per applicare correttamente i filtri e i purge inseriti dalla UI
+    Audit, dove l'utente lavora nella timezone applicativa.
+    """
+    if not value:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=ZoneInfo(application_timezone_name()))
+    return value.astimezone(ZoneInfo('UTC')).replace(tzinfo=None)
+
+
+def format_audit_datetime(value, include_timezone=True):
+    local_value = utc_to_application_datetime(value)
+    if not local_value:
+        return ''
+    suffix = f' {application_timezone_name()}' if include_timezone else ''
+    return local_value.strftime('%Y-%m-%d %H:%M:%S') + suffix
+
+
 def is_conclusion_action(label=None, description=None):
     """Individua le azioni di conclusione dalla label, descrizione label o testo libero."""
     text = ' '.join([
@@ -4748,12 +4783,12 @@ def _audit_filtered_query_from_request():
         q = q.filter(AuditLog.actor_type == actor_type)
     if start_value:
         try:
-            q = q.filter(AuditLog.occurred_at >= datetime.fromisoformat(start_value))
+            q = q.filter(AuditLog.occurred_at >= application_to_utc_datetime(datetime.fromisoformat(start_value)))
         except ValueError:
             flash('Data inizio ricerca audit non valida', 'error')
     if end_value:
         try:
-            q = q.filter(AuditLog.occurred_at <= datetime.fromisoformat(end_value))
+            q = q.filter(AuditLog.occurred_at <= application_to_utc_datetime(datetime.fromisoformat(end_value)))
         except ValueError:
             flash('Data fine ricerca audit non valida', 'error')
     return q, {
@@ -4791,7 +4826,7 @@ def admin_audit():
         if action == 'purge_older_than':
             raw_date = (request.form.get('purge_older_than') or '').strip()
             try:
-                cutoff_dt = datetime.fromisoformat(raw_date)
+                cutoff_dt = application_to_utc_datetime(datetime.fromisoformat(raw_date))
             except ValueError:
                 flash('Data di purge non valida', 'error')
                 return redirect(url_for('main.admin_audit'))
@@ -4814,6 +4849,7 @@ def admin_audit():
     logs = q.order_by(AuditLog.occurred_at.desc(), AuditLog.id.desc()).offset(offset).limit(page_size).all()
     for log in logs:
         log.display_details = audit_detail_summary(log.operation_type, log.details)
+        log.local_occurred_at = format_audit_datetime(log.occurred_at, include_timezone=False)
     selected_from = offset + 1 if filtered_count else 0
     selected_to = min(offset + page_size, filtered_count)
     return render_template(
@@ -4827,7 +4863,8 @@ def admin_audit():
         end=filters['end'],
         retention_label=audit_retention_label(),
         retention_parts=audit_retention_parts(),
-        cutoff=audit_cutoff_datetime(),
+        cutoff=utc_to_application_datetime(audit_cutoff_datetime()),
+        audit_timezone=application_timezone_name(),
         total_records=total_records,
         filtered_count=filtered_count,
         page=page,
@@ -4847,11 +4884,12 @@ def admin_audit_export_csv():
     q, _filters = _audit_filtered_query_from_request()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['id','occurred_at_utc','operation_type','username','actor_type','occurrences','details'])
+    writer.writerow(['id','occurred_at','timezone','operation_type','username','actor_type','occurrences','details'])
     for log in q.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).all():
         writer.writerow([
             log.id,
-            log.occurred_at.strftime('%Y-%m-%d %H:%M:%S') if log.occurred_at else '',
+            format_audit_datetime(log.occurred_at, include_timezone=False),
+            application_timezone_name(),
             log.operation_type or '',
             log.username or '',
             log.actor_type or '',
