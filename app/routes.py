@@ -693,6 +693,7 @@ def _normalize_sso_profile(profile, fallback_id=None):
         'sso_subject_claim': str(profile.get('sso_subject_claim') or 'sub').strip() or 'sub',
         'sso_auto_create_users': '1' if bool_setting(profile, 'sso_auto_create_users', True) else '0',
         'sso_default_role': str(profile.get('sso_default_role') or 'disabled').strip() or 'disabled',
+        'sso_logo_path': str(profile.get('sso_logo_path') or '').strip(),
     }
 
 
@@ -783,6 +784,7 @@ def generic_sso_profile():
         'sso_subject_claim': 'sub',
         'sso_auto_create_users': '1',
         'sso_default_role': 'disabled',
+        'sso_logo_path': '',
     }
 
 
@@ -803,7 +805,31 @@ def google_sso_example_profile():
         'sso_subject_claim': 'sub',
         'sso_auto_create_users': '1',
         'sso_default_role': 'disabled',
+        'sso_logo_path': 'sso/google-logo.svg',
     }
+
+
+def save_sso_profile_logo_upload(file_storage, profile_id):
+    """Salva il logo opzionale del profilo SSO nella directory statica.
+
+    Restituisce un path relativo a app/static, utilizzabile con url_for('static').
+    Sono ammessi SVG, PNG, JPG/JPEG, GIF e WEBP. Un upload assente restituisce
+    stringa vuota e non modifica il profilo.
+    """
+    if not file_storage or not getattr(file_storage, 'filename', ''):
+        return ''
+    filename = secure_filename(file_storage.filename)
+    ext = Path(filename).suffix.lower()
+    if ext not in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+        raise ValueError('Formato logo SSO non supportato. Usare SVG, PNG, JPG, GIF o WEBP.')
+    safe_profile = re.sub(r'[^a-z0-9_-]+', '-', (profile_id or 'sso').lower()).strip('-') or 'sso'
+    target_dir = Path(current_app.static_folder or 'app/static') / 'sso'
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_name = f'{safe_profile}-logo{ext}'
+    target = target_dir / target_name
+    file_storage.save(target)
+    return f'sso/{target_name}'
+
 
 
 def sso_test_configuration(cfg):
@@ -1851,8 +1877,19 @@ def sso_settings_admin():
             'sso_subject_claim': request.form.get('sso_subject_claim','sub'),
             'sso_auto_create_users': '1' if request.form.get('sso_auto_create_users') else '0',
             'sso_default_role': request.form.get('sso_default_role','disabled'),
+            'sso_logo_path': request.form.get('existing_sso_logo_path',''),
         }
         posted = _normalize_sso_profile(posted, selected_id)
+        if request.form.get('remove_sso_logo'):
+            posted['sso_logo_path'] = ''
+        try:
+            uploaded_logo_path = save_sso_profile_logo_upload(request.files.get('sso_logo'), posted['id'])
+            if uploaded_logo_path:
+                posted['sso_logo_path'] = uploaded_logo_path
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            test_result = {'success': False, 'checks': [{'name': 'Logo SSO', 'ok': False, 'message': str(exc), 'detail': ''}], 'authorization_preview': ''}
+        
         selected_id = posted['id']
         replaced = False
         new_profiles = []
@@ -1864,7 +1901,9 @@ def sso_settings_admin():
         if not replaced:
             new_profiles.append(posted)
         profiles = new_profiles
-        if action == 'test_connection':
+        if test_result is not None and not test_result.get('success', True):
+            pass
+        elif action == 'test_connection':
             test_result = sso_test_configuration(posted)
             if test_result['success']:
                 flash('Test configurazione SSO completato senza errori bloccanti')
@@ -3983,6 +4022,7 @@ def export_full():
             'logo': None,
             'application_logos': [],
             'ssl_certificates': {},
+            'sso_logos': [],
             # Template moduli PDF: il full export deve essere autosufficiente.
             # Oltre al file PDF originario vengono riportati anche i nomi campo
             # rilevati nel modello; le mappature sono esportate nella tabella
@@ -4008,6 +4048,23 @@ def export_full():
             'path': logo_setting.value,
             'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'
         }
+
+
+
+    # Loghi dei profili SSO/OAuth2: includiamo sia quelli caricati da GUI sia
+    # il logo Google statico usato dall'esempio predefinito, così il full export
+    # resta autosufficiente anche dopo import su una nuova istanza.
+    for prof in sso_profiles(include_legacy=False):
+        rel = (prof.get('sso_logo_path') or '').strip()
+        if not rel:
+            continue
+        logo_file = Path(current_app.static_folder or '') / rel
+        if logo_file.exists() and logo_file.is_file():
+            payload['files']['sso_logos'].append({
+                'profile_id': prof.get('id'),
+                'relative_path': rel,
+                'archive_path': f'files/sso_logos/{rel}',
+            })
 
     ssl_files = {}
     cert = ssl_cert_path()
@@ -4051,6 +4108,11 @@ def export_full():
             src = ssl_item.get('path')
             if src and os.path.exists(src):
                 archive.add(src, arcname=ssl_item['archive_path'])
+
+        for sso_logo in payload['files'].get('sso_logos', []):
+            src = Path(current_app.static_folder or '') / sso_logo.get('relative_path', '')
+            if src.exists() and src.is_file():
+                archive.add(src, arcname=sso_logo['archive_path'])
 
         for app_logo in payload['files'].get('application_logos', []):
             src = Path(current_app.static_folder or '') / app_logo.get('relative_path', '')
@@ -4289,6 +4351,25 @@ def import_full():
                     write_ssl_enabled_marker(True)
                 else:
                     write_ssl_enabled_marker(False)
+
+                for sso_logo in data.get('files', {}).get('sso_logos', []) or []:
+                    arcname = sso_logo.get('archive_path')
+                    rel = sso_logo.get('relative_path') or ''
+                    if not arcname or not rel:
+                        continue
+                    safe_rel = Path(rel)
+                    if safe_rel.is_absolute() or '..' in safe_rel.parts:
+                        current_app.logger.warning('Logo SSO ignorato per path non sicuro: %s', rel)
+                        continue
+                    try:
+                        src = archive.extractfile(archive.getmember(arcname))
+                    except KeyError:
+                        current_app.logger.warning('Logo SSO indicato nel manifest ma non presente nell archivio: %s', arcname)
+                        continue
+                    dst = Path(current_app.static_folder or '') / safe_rel
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    with open(dst, 'wb') as out:
+                        shutil.copyfileobj(src, out)
 
                 os.makedirs(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', exist_ok=True)
                 for tmpl in data.get('files', {}).get('form_templates', []):

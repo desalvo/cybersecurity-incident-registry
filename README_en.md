@@ -33,7 +33,8 @@ Administrators can configure federated login from **Admin → SSO**. The configu
 - client ID and client secret;
 - OAuth2/OpenID Connect scopes, default `openid email profile`;
 - claim names used for username, email, display name and unique identifier;
-- automatic creation of SSO users and default role, default `disabled`.
+- automatic creation of SSO users and default role, default `disabled`;
+- optional provider logo, displayed on the login button when present.
 
 The redirect URI to register on the provider is shown in **Admin → SSO**. The same page includes **Check configuration**, which validates the values currently present in the form even before saving and checks mandatory parameters, authorization endpoint, token endpoint, UserInfo endpoint, scopes and main claims. The check is non-destructive: it does not create users and does not complete a real login. A full test is available through **Start interactive login test**, which uses the standard OAuth2 redirect flow. Local and LDAP login remain available. Automatically created SSO users can be enabled or promoted from **Admin → Users**.
 
@@ -350,3 +351,8 @@ User and administrator documentation has been reorganised into clearer chapters 
 - It clarifies that only actions marked as exportable are considered when generating documents and dynamic PDF form fields.
 - The administrator documentation was refined in the SSO and HTTPS/SSL chapters.
 - The Admin → Audit page displays, filters and exports date/time values in the application configured timezone.
+
+
+## Update 0.1.0-123 - SSO/OAuth2 profile logos
+
+Each SSO/OAuth2 profile configured from **Admin → SSO** can now have an optional logo uploaded from the profile form. The logo is shown in the configured profiles table and, when the profile is active, on the SSO button in the login page. The Google example profile uses the bundled Google logo by default; it can still be replaced or removed like any other profile logo. SSO profile logos are included in full export/import together with the profile configuration.

@@ -32,7 +32,8 @@ Gli amministratori possono configurare l’accesso federato da **Admin → SSO**
 - client ID e client secret;
 - scope OAuth2/OpenID Connect, di default `openid email profile`;
 - nomi dei claim da usare per username, email, nome e identificativo univoco;
-- creazione automatica degli utenti SSO e ruolo predefinito, di default `disabled`.
+- creazione automatica degli utenti SSO e ruolo predefinito, di default `disabled`;
+- logo opzionale del provider, mostrato sul pulsante di login se presente.
 
 Il redirect URI da registrare sul provider viene mostrato nella pagina Admin → SSO. La stessa pagina include il pulsante **Controlla configurazione**, che usa i valori presenti nella form anche prima del salvataggio e verifica parametri obbligatori, endpoint di autorizzazione, token endpoint, UserInfo endpoint, scope e claim principali. Il controllo è non distruttivo: non crea utenti e non completa un login reale. Per la prova completa è disponibile anche **Avvia test login interattivo**, che usa il normale flusso OAuth2 con redirect verso il provider. Il login locale e LDAP restano disponibili. Gli utenti SSO creati automaticamente possono essere abilitati o promossi da **Admin → Utenti**.
 
@@ -552,3 +553,8 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 - È chiarito che solo le azioni contrassegnate come esportabili vengono considerate nella generazione dei documenti e nei campi dinamici dei moduli PDF.
 - La documentazione amministrativa è stata rifinita nei capitoli SSO e HTTPS/SSL.
 - La pagina Admin → Audit mostra, filtra ed esporta le date e ore nel fuso orario configurato nell’applicazione.
+
+
+## Aggiornamento 0.1.0-123 - Loghi profili SSO/OAuth2
+
+Ogni profilo SSO/OAuth2 configurabile da **Admin → SSO** può ora avere un logo opzionale, caricato dalla form del profilo. Il logo viene mostrato nella tabella dei profili configurati e, quando il profilo è attivo, nel pulsante SSO della pagina di login. Il profilo Google di esempio usa per default il logo Google fornito dall’applicazione; il logo può comunque essere sostituito o rimosso come per ogni altro profilo. I loghi dei profili SSO sono inclusi nel full export/import insieme alla configurazione dei profili.

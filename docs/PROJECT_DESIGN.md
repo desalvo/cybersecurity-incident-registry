@@ -1117,3 +1117,7 @@ User and administrator documentation is maintained in Italian and English. The o
 La documentazione utente espone le informazioni applicative essenziali lette da `APP_INFO` e chiarisce che la generazione dei documenti considera solo le azioni contrassegnate come esportabili. La schermata illustrativa del dettaglio incidente è stata rigenerata con il riquadro “Scheda principale” più alto per evitare overflow del testo nella guida online e PDF.
 
 La vista `Admin -> Audit` converte i timestamp audit, registrati internamente come UTC naive, nel fuso configurato in `application_timezone`; anche filtri temporali, purge per data ed export CSV interpretano/esportano i valori nel fuso applicativo.
+
+### Aggiornamento 0.1.0-123
+
+I profili SSO/OAuth2 supportano un logo opzionale per provider. Il profilo Google di esempio usa il logo Google statico incluso nel pacchetto. I loghi caricati sono salvati in `app/static/sso/`, referenziati nel JSON dei profili e inclusi nel full export/import.

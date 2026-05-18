@@ -22,7 +22,7 @@
       <div class="login-separator"><span>oppure</span></div>
       <div class="sso-login-list">
         {% for profile in sso_profiles %}
-          <a class="button sso-login-button" href="{{ url_for('main.sso_login', profile_id=profile.id) }}">Accedi con {{ profile.sso_provider_name or 'SSO' }}</a>
+          <a class="button sso-login-button" href="{{ url_for('main.sso_login', profile_id=profile.id) }}">{% if profile.sso_logo_path %}<img class="sso-provider-logo" src="{{ url_for('static', filename=profile.sso_logo_path) }}" alt="" onerror="this.style.display='none'">{% endif %}<span>Accedi con {{ profile.sso_provider_name or 'SSO' }}</span></a>
         {% endfor %}
       </div>
       {% endif %}

@@ -1,3 +1,8 @@
+0.1.0-123
+- Aggiunto logo opzionale per profili SSO/OAuth2, con default Google per il profilo Google.
+- I pulsanti SSO della login mostrano il logo provider se configurato.
+- Full export/import esteso ai loghi SSO e documentazione aggiornata.
+
 0.1.0-122
 - Documentazione utente aggiornata con versione, build, autore e chiarimento sulle azioni esportabili usate nella generazione documenti.
 - Documentazione amministrativa corretta nei capitoli SSO e HTTPS/SSL.
