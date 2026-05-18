@@ -516,3 +516,9 @@ Notification menu and SMTP sender fix
 - Corretto lo screenshot della pagina principale: il pulsante Nuovo incidente non oscura più il titolo.
 - Aggiunte regole CSS robuste per wrapping, card responsive e contenimento del testo nei riquadri.
 - Improved online/PDF user and administrator documentation formatting, regenerated readable figures and strengthened responsive wrapping rules.
+
+0.1.0-113
+- Audit log anti-flooding: record consecutivi identici vengono collassati tramite il contatore repeat_count/Occorrenze; ogni blocco genera comunque un nuovo record ogni 100 occorrenze.
+- Aggiunta la voce Aiuto -> Note di rilascio, con pagina online e PDF dedicato.
+- Spostati i sommari di aggiornamento fuori dalla documentazione utente/amministrativa e nelle note di rilascio.
+- Documentazione IT/EN aggiornata.

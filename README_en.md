@@ -292,3 +292,7 @@ The automatic deadline notification check still uses a frequent technical poll, 
 
 ### Update 0.1.0-112 - Documentation formatting
 User and administrator documentation, both online and PDF, has been revised to prevent titles or text from overflowing cards. The illustrative images for the recommended workflow, main page, incident detail and module configuration have been regenerated with text wrapping and wider spacing. The main-page screenshot no longer has the “New incident” button overlapping the title. Documentation CSS includes stronger responsive and wrapping rules for desktop and mobile layouts.
+
+### Audit anti-flooding and release notes
+
+The audit log collapses consecutive identical records by incrementing the `Occurrences` field instead of creating many identical rows. When 100 occurrences are reached, a new record is written and the counter restarts. Update summaries are now available from **Help → Release notes**, also as PDF, separate from the operational documentation.

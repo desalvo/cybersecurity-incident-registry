@@ -202,6 +202,17 @@ def run_schema_migrations(app):
             if 'default_exportable' in {c['name'] for c in inspector.get_columns('config_label')}:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE config_label SET default_exportable = TRUE WHERE default_exportable IS NULL'))
+
+        if 'audit_log' in tables:
+            cols = {c['name'] for c in inspector.get_columns('audit_log')}
+            if 'repeat_count' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE audit_log ADD COLUMN repeat_count INTEGER'))
+                    conn.execute(text('UPDATE audit_log SET repeat_count = 1 WHERE repeat_count IS NULL'))
+                app.logger.info('Schema migration applied: audit_log.repeat_count added')
+            if 'repeat_count' in {c['name'] for c in inspector.get_columns('audit_log')}:
+                with db.engine.begin() as conn:
+                    conn.execute(text('UPDATE audit_log SET repeat_count = 1 WHERE repeat_count IS NULL OR repeat_count < 1'))
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}
             if 'action_label_id' not in cols:

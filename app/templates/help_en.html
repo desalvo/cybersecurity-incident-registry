@@ -17,34 +17,29 @@
 </div>
 
   <section class="doc-chapter card"><h2>8. Package README</h2><p>The package now includes <code>README_en.md</code> as the English counterpart of <code>README.md</code>. Bilingual maintenance covers the interface, user and administrator documentation, the Italian README and the English README.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-98 incident PDF reports times duration"><h2>Update 0.1.0-98 - Incident PDF reports: times and duration</h2><p>Incident PDF reports now show every textual time value with integer seconds in the <code>YYYY-MM-DD HH:MM:SS</code> format. The report summary also includes duration, when available, calculated as on the main page: from the first recorded action to the incident closing time.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-99 incident PDF reports professional layout logos table of contents page numbers">
-  <h2>Update 0.1.0-99 - Incident PDF reports: professional layout</h2>
-  <p>Incident PDF reports have been reformatted with a more professional layout. The beginning of the report shows the application logo; if a logo has been uploaded from the GUI, it is also shown without the "custom logo" wording. If no GUI logo has been uploaded, that slot is omitted. A concise table of contents follows. Section titles are highlighted and kept on the same page as their related information whenever possible, avoiding orphan headings. The footer includes page numbering.</p>
-</section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-104 next deadline notification send"><h2>Update 0.1.0-104 - Next deadline notification send</h2><p>The Settings → Notifications page shows the estimated next send for automatic deadline task reminders. Intervals are calculated from midnight of the current day in the application time zone, not from application startup.</p></section>
-<h2>Incident-specific reminders</h2><p>From the incident detail page, users can schedule reminders with an exact date and time, a custom message, and optional CC addresses. Primary recipients are the personnel associated with the incident.</p><p>After a restart, the scheduler recovers all due one-off reminders that have not been sent yet and records automated sends in the audit table.</p><section class="doc-chapter card" data-doc-title="Update 0.1.0-106 incident closing paginated audit notification links"><h2>Update 0.1.0-106 - Incident closing, audit and notifications</h2><p>Manual or automatic incident closing is blocked while active procedural warnings remain. Admin → Audit is paginated, shows total records, filtered records and the displayed interval; the default page size is configurable in Admin → Other settings, with a maximum of 100. Incident-related notifications always include a direct link to the incident page.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-108 cron deadline notifications"><h2>Update 0.1.0-108 - Cron-style deadline task notifications</h2><p>Automatic deadline task notifications can now be scheduled in cron style from <strong>Admin → Notifications</strong>, using specific daily times in <code>HH:MM</code> format in addition to regular intervals. Slots are always calculated from midnight in the application timezone and never from the application startup time. After a restart, only the latest due periodic slot is executed and the outcome is recorded in audit.</p><p>The same sending logic is used by the automatic scheduler and by the manual button. The page shows schedule mode, cron times, configured slots, estimated next run and last automatic execution.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-110 deadline notification scheduler"><h2>Update 0.1.0-110 - Deadline notification scheduler</h2><p>The deadline-task notification scheduler now deduplicates sends per incident and scheduled slot, not with a global slot lock. If an initial automatic check finds no pending tasks, later checks in the same slot can still detect them and send the notification. Incidents without e-mail recipients are counted and logged as skipped, so the audit log clearly shows the cause.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-111 deadline notification scheduler audit"><h2>Update 0.1.0-111 - Deadline notification scheduler audit</h2><p>The automatic deadline notification check still uses frequent technical polling, but the global <code>scheduler:deadline_notification_check</code> record is written only when notifications are sent or once for the cron/interval slot when sending would have occurred, even if no tasks are due. Intermediate polls in the same slot no longer create repeated audit rows.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.110-97 PDF reports documents upload timestamp integer seconds">
-  <h2>Update 0.110-97 - PDF reports and attached documents</h2>
-  <p>In incident PDF reports, the Documents section gives more space to the document name and reduces the width of the upload date/time column. Upload time is displayed as <code>YYYY-MM-DD HH:MM:SS</code>, without microseconds and with seconds always shown as integer values.</p>
-</section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-100 - Incident PDF reports: logos"><h2>Update 0.1.0-100 - Incident PDF reports: logos</h2><p>Incident PDF reports no longer show the <strong>custom logo</strong> wording. The GUI-uploaded logo is included only when the configured file exists; otherwise the slot is omitted.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-101 incident PDF logo image rendering"><h2>Update 0.1.0-101 - Incident PDF reports: logo image rendering</h2><p>First-page logos in incident PDF reports are now inserted as actual images. The SVG application logo is internally converted to PNG before being added to the PDF, preventing fallback text or metadata from appearing instead of the image. Textual labels below logos have been removed.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-102 incident PDF application and uploaded logos"><h2>Update 0.1.0-102 - Incident PDF reports: application and uploaded logos</h2><p>The PDF report now uses the already-rasterised application PNG as the primary application-logo source. The SVG remains only as a fallback. The GUI-uploaded logo is shown next to the application logo only when configured and present; otherwise it is omitted without text or empty cells.</p></section>
+<h2>Incident-specific reminders</h2><p>From the incident detail page, users can schedule reminders with an exact date and time, a custom message, and optional CC addresses. Primary recipients are the personnel associated with the incident.</p><p>After a restart, the scheduler recovers all due one-off reminders that have not been sent yet and records automated sends in the audit table.</p>
+
+
+
+
+
+
+
+
+
+
 
 <section class="doc-chapter card"><h2>Deadline notification scheduler</h2><p>Periodic deadline notifications are executed by an internal scheduler that does not depend on web traffic. The functional interval remains the one configured in <strong>Admin → Notifications</strong>; every effective run is recorded in the audit log.</p></section>
-<section class="doc-chapter"><h2>Update 0.1.0-107</h2><p>The incident Specific reminders section is now optimized for mobile devices with responsive cards. Audit details are concise and show only the essential information about the operation.</p></section>
+<section class="doc-chapter"><section class="doc-chapter" data-doc-title="admin menu closed subgroups default"><h2>Compact Admin menu</h2><p>The Admin menu is organized into collapsible subgroups and, on every page load, all subgroups are shown closed by default.</p></section>
 
-<section class="doc-chapter" data-doc-title="admin menu closed subgroups default"><h2>Compact Admin menu</h2><p>The Admin menu is organized into collapsible subgroups and, on every page load, all subgroups are shown closed by default.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-112 documentation formatting figures cards"><h2>Update 0.1.0-112 - Documentation formatting</h2><p>User documentation images and cards have been revised to avoid clipped or overlapping text. The recommended workflow, main-page screenshot, main tab card and PDF-module figures now use wrapped text, larger spacing and responsive containers. The PDF version scales images while preserving their original aspect ratio.</p></section>
+
+
+<section class="doc-chapter card" data-doc-title="audit collapsed repeated records release notes"><h2>Concise audit log and release notes</h2><p>The audit log collapses consecutive identical records: instead of creating many equal rows, it increments the occurrence count of the current record. Each block is closed at 100 occurrences and the counter then restarts on a new record.</p><p>Version notes are available from <strong>Help → Release notes</strong>, separate from the operational documentation.</p></section>
 
 {% endblock %}

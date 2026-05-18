@@ -1055,3 +1055,7 @@ In assenza di task da notificare viene quindi mantenuta una sola evidenza per lo
 
 ## Aggiornamento 0.1.0-112 - Qualità grafica della documentazione
 La documentazione online e la documentazione PDF bilingue usano immagini illustrative rigenerate e regole CSS più robuste per evitare overflow di titoli, testi e pulsanti nei riquadri. I generatori PDF della documentazione mantengono il rapporto originale delle immagini e le ridimensionano entro l'area utile della pagina, riducendo il rischio di tagli o deformazioni. Le risorse in `app/static/help/` devono essere mantenute con testi già leggibili alla risoluzione originale e con spazi interni sufficienti per la versione PDF.
+
+### Audit anti-flooding and release notes
+
+The audit subsystem stores concise details and collapses consecutive equal events by updating `audit_log.repeat_count`. A new row is forced every 100 equal consecutive occurrences to preserve periodic evidence without flooding the table. Release notes are exposed through a dedicated Help menu entry and PDF endpoint, keeping operational user/admin documentation focused on procedures.

@@ -55,17 +55,18 @@
     <p class="muted">Pagina {{ page }} di {{ max_page }}; visualizzati {{ selected_from }}-{{ selected_to }} di {{ filtered_count }} record filtrati.</p>
   </div>
   <table class="table">
-    <tr><th>Data/ora UTC</th><th>Tipo operazione</th><th>Utente</th><th>Origine</th><th>Dettagli</th></tr>
+    <tr><th>Data/ora UTC</th><th>Tipo operazione</th><th>Utente</th><th>Origine</th><th>Occorrenze</th><th>Dettagli</th></tr>
     {% for log in logs %}
       <tr>
         <td>{{ log.occurred_at.strftime('%Y-%m-%d %H:%M:%S') if log.occurred_at else '' }}</td>
         <td>{{ log.operation_type }}</td>
         <td>{{ log.username }}</td>
         <td>{{ log.actor_type }}</td>
+        <td>{{ log.repeat_count or 1 }}</td>
         <td><pre class="audit-details">{{ log.display_details or log.details or '' }}</pre></td>
       </tr>
     {% else %}
-      <tr><td colspan="5">Nessun record di audit trovato.</td></tr>
+      <tr><td colspan="6">Nessun record di audit trovato.</td></tr>
     {% endfor %}
   </table>
   <div class="actions pagination-actions">

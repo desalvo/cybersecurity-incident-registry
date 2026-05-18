@@ -18,6 +18,7 @@ class AuditLog(db.Model):
     user_id=db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
     actor_type=db.Column(db.String(40), nullable=False, default='user')
     details=db.Column(db.Text, default='')
+    repeat_count=db.Column(db.Integer, nullable=False, default=1)
     user=db.relationship('User', foreign_keys=[user_id])
 
 class User(UserMixin,db.Model):

@@ -496,3 +496,7 @@ Il controllo automatico delle notifiche per task in scadenza continua a essere e
 
 ### Aggiornamento 0.1.0-112 - Formattazione documentazione
 Le documentazioni utente e amministrativa, online e PDF, sono state riviste per evitare che titoli o testi escano dai riquadri. Le immagini illustrative del flusso operativo consigliato, della pagina principale, del dettaglio incidente e della configurazione moduli sono state rigenerate con wrapping del testo e spaziature più ampie. La schermata della pagina principale non presenta più il pulsante “Nuovo incidente” sovrapposto al titolo. I CSS della documentazione includono regole responsive e di wrapping più robuste per desktop e mobile.
+
+### Audit anti-flooding e note di rilascio
+
+Il registro audit collassa i record consecutivi identici incrementando il campo `Occorrenze` invece di creare molte righe uguali. Al raggiungimento di 100 occorrenze viene scritto un nuovo record e il contatore riparte. I sommari di aggiornamento sono ora disponibili dal menu **Aiuto → Note di rilascio**, anche in formato PDF, separati dalla documentazione operativa.

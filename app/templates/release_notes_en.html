@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card doc-page">
+  <div class="page-header">
+    <div>
+      <h1>Release notes</h1>
+      <p class="muted">Concise list of package updates. Release notes are separated from the operational documentation to keep the user and administrator guides easier to read.</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('main.release_notes_pdf') }}">Download PDF</a>
+  </div>
+  <pre class="release-notes-text">{{ changelog }}</pre>
+</div>
+{% endblock %}

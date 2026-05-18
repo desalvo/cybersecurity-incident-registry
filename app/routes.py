@@ -163,17 +163,46 @@ def audit_detail_summary(operation_type, details):
     return 'Operazione registrata'
 
 def audit_log(operation_type, details='', actor_type='system', commit=False):
+    """Registra un evento audit evitando flooding da record consecutivi uguali.
+
+    Se l'ultimo record audit ha lo stesso tipo, utente, origine e dettagli
+    sintetici, viene incrementato repeat_count invece di inserire una nuova
+    riga. Ogni blocco viene comunque chiuso a 100 occorrenze: la 101-esima
+    occorrenza crea una nuova riga e riparte da 1. In questo modo messaggi
+    identici salvo data/ora vengono collassati senza perdere la frequenza.
+    """
     user_id, username, resolved_actor_type = audit_actor(actor_type)
-    db.session.add(AuditLog(
-        occurred_at=datetime.utcnow(),
-        operation_type=(operation_type or 'operazione')[:120],
+    op = (operation_type or 'operazione')[:120]
+    summarized_details = audit_detail_summary(operation_type, details)[:1000]
+    now = datetime.utcnow()
+    try:
+        last = AuditLog.query.order_by(AuditLog.id.desc()).first()
+        if (last and last.operation_type == op and last.username == username
+                and last.actor_type == resolved_actor_type
+                and (last.details or '') == summarized_details
+                and int(getattr(last, 'repeat_count', 1) or 1) < 100):
+            last.repeat_count = int(getattr(last, 'repeat_count', 1) or 1) + 1
+            last.occurred_at = now
+            if user_id is not None:
+                last.user_id = user_id
+            if commit:
+                db.session.commit()
+            return last
+    except Exception:
+        current_app.logger.exception('Collasso audit non completato; inserisco un nuovo record')
+    log = AuditLog(
+        occurred_at=now,
+        operation_type=op,
         username=username,
         user_id=user_id,
         actor_type=resolved_actor_type,
-        details=audit_detail_summary(operation_type, details)[:1000],
-    ))
+        details=summarized_details,
+        repeat_count=1,
+    )
+    db.session.add(log)
     if commit:
         db.session.commit()
+    return log
 
 def audit_operation_name():
     endpoint = request.endpoint or 'unknown'
@@ -3041,6 +3070,47 @@ def notify_send(iid, kind):
 def help_page():
     return render_template('help_en.html' if getattr(g, 'lang', 'it') == 'en' else 'help.html')
 
+
+
+
+@bp.route('/aiuto/note-rilascio')
+@login_required
+def release_notes():
+    changelog_path = Path(current_app.root_path).parent / 'CHANGELOG.txt'
+    changelog = changelog_path.read_text(encoding='utf-8') if changelog_path.exists() else ''
+    return render_template('release_notes_en.html' if getattr(g, 'lang', 'it') == 'en' else 'release_notes.html', changelog=changelog)
+
+
+@bp.route('/aiuto/note-rilascio/pdf')
+@login_required
+def release_notes_pdf():
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from xml.sax.saxutils import escape
+    buf = io.BytesIO()
+    lang = getattr(g, 'lang', 'it')
+    title = 'Release notes' if lang == 'en' else 'Note di rilascio'
+    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=1.6*cm, leftMargin=1.6*cm, topMargin=1.6*cm, bottomMargin=1.6*cm, title=title)
+    styles = getSampleStyleSheet()
+    h1 = ParagraphStyle('release_h1', parent=styles['Heading1'], fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'), spaceAfter=12)
+    normal = ParagraphStyle('release_normal', parent=styles['BodyText'], fontSize=9.2, leading=12.5, spaceAfter=4)
+    story = [Paragraph(title, h1), Paragraph('Cybersecurity Incident Registry', normal), Spacer(1, .25*cm)]
+    changelog_path = Path(current_app.root_path).parent / 'CHANGELOG.txt'
+    lines = changelog_path.read_text(encoding='utf-8').splitlines() if changelog_path.exists() else []
+    for line in lines:
+        clean = line.strip()
+        if not clean:
+            story.append(Spacer(1, .12*cm)); continue
+        story.append(Paragraph(escape(clean), normal))
+    def page_canvas(canvas, doc_obj):
+        canvas.saveState(); canvas.setFont('Helvetica', 8); canvas.drawRightString(A4[0]-1.6*cm, .8*cm, f'Pagina {doc_obj.page}' if lang != 'en' else f'Page {doc_obj.page}'); canvas.restoreState()
+    doc.build(story, onFirstPage=page_canvas, onLaterPages=page_canvas)
+    buf.seek(0)
+    filename = 'cybersecurity-incident-registry-note-rilascio.pdf' if lang != 'en' else 'cybersecurity-incident-registry-release-notes.pdf'
+    return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 
 @bp.route('/aiuto/amministrazione')

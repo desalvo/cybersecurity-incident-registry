@@ -289,113 +289,30 @@
 </section>
 
 </div>
-<section class="doc-chapter" data-doc-title="URL applicazione placeholder external_url report statistics notifiche task scadenza"><h2>Aggiornamento notifiche e URL esterna</h2><p>Aggiornamento 0.110-82: configurazione URL applicazione e placeholder notifiche. Nel menu Admin → Altre configurazioni è disponibile il campo “URL applicazione”, con default http://localhost:8000, usato per generare link esterni nelle email. Nei template delle email dei task in scadenza sono disponibili <code>%external_url%</code>, <code>%report%</code> e <code>%statistics%</code>: il primo inserisce la URL esterna configurata, mentre <code>%report%</code> e <code>%statistics%</code> richiedono rispettivamente l'allegato PDF del report incidente e il PDF delle statistiche, generati al momento dell'invio. Nei template generali del menu Notifiche è disponibile anche <code>%EXTERNAL_URL%</code>. L’anteprima dei task in scadenza segnala gli allegati previsti senza inviare email.</p></section>
-
-<section class="doc-chapter" data-doc-title="mantenimento posizione pagina incidente salvataggio azione upload documenti generazione moduli">
-  <h2>Aggiornamento 0.110-84 - mantenimento della posizione nella pagina incidente</h2>
-  <p>Dopo il salvataggio delle modifiche dell’incidente, l’aggiunta di una azione, l’upload di documenti e la generazione o conferma dei moduli PDF, la pagina torna automaticamente alla sezione da cui l’operatore ha premuto il pulsante. Le aree operative principali dispongono di ancore dedicate: dati incidente, azioni, documenti e generazione moduli. Questo evita di ritornare in cima alla pagina e rende più fluide le attività su incidenti con molte informazioni.</p>
-</section>
-
-
-<section class="doc-chapter" data-doc-title="time zone applicazione azioni data ora predefinita conclusione chiusura automatica">
-  <h2>Aggiornamento 0.110-85: fuso orario azioni e chiusura automatica</h2>
-  <p>Nel dettaglio incidente, la form di inserimento di una nuova azione propone automaticamente data e ora del momento in cui la pagina è stata caricata. Il valore usa il fuso orario configurato in <strong>Admin → Altre configurazioni → Time zone applicazione</strong>, con default <code>Europe/Rome</code>, e può essere modificato prima del salvataggio.</p>
-  <p>Quando viene registrata un’azione riconosciuta come <strong>conclusione</strong>, perché la label, la descrizione della label o il testo dell’azione contiene “conclusione”, l’incidente viene aggiornato automaticamente con stato <strong>chiuso</strong>. La data e l’ora fine vengono sempre copiate dalla data/ora dell’azione di conclusione: il sistema aggiorna esplicitamente i campi Data fine e Ora fine dell’incidente, oltre allo stato chiuso, mantenendo coerenti form, lista, export, report, statistiche e moduli PDF.</p>
-</section>
+<section class="doc-chapter" data-doc-title="URL applicazione placeholder external_url report statistics notifiche task scadenza"><section class="doc-chapter" data-doc-title="mantenimento posizione pagina incidente salvataggio azione upload documenti generazione moduli">
+  <section class="doc-chapter" data-doc-title="time zone applicazione azioni data ora predefinita conclusione chiusura automatica">
+  <section class="doc-chapter" data-doc-title="validazione campi obbligatori moduli PDF generazione template mapping campi mancanti">
+  <section class="doc-chapter" data-doc-title="audit log errori contestuali menu moduli retention">
+  <section class="doc-chapter" data-doc-title="audit admin export import retention ricerca configurazioni">
+  <section class="doc-chapter" data-doc-title="retention audit mesi giorni ore minuti configurazioni">
+  <h2>Promemoria specifici per incidente</h2><p>Dal dettaglio incidente è possibile programmare promemoria con data e ora, messaggio personalizzato e CC opzionali. I destinatari principali sono il personale associato all’incidente.</p><p>Lo scheduler recupera dopo un riavvio tutti i promemoria specifici scaduti e non ancora inviati, registrando gli invii nella tabella audit.</p>
 
 
-<section class="doc-chapter" data-doc-title="validazione campi obbligatori moduli PDF generazione template mapping campi mancanti">
-  <h2>Aggiornamento 0.110-87 - validazione dei campi prima della generazione moduli</h2>
-  <p>Quando un template PDF usa, tramite mapping, un campo dell’incidente, quel valore deve essere presente prima di generare il documento. Premendo <strong>Genera documenti</strong>, l’applicazione controlla tutti i template selezionati e blocca la generazione se trova campi vuoti.</p>
-  <p>L’operatore riceve un unico messaggio con l’elenco dei campi da completare, raggruppati per template e campo PDF. È quindi possibile compilare più campi mancanti nella stessa scheda incidente, salvare le modifiche e ripetere la generazione dalla sezione <strong>Generazione moduli</strong>.</p>
-  <p>Il controllo evita la produzione di PDF incompleti e si applica sia ai campi semplici dell’incidente sia ai campi derivati configurati nei mapping, come categorie, descrizioni, persone coinvolte, azioni, misure adottate e altri dati disponibili nella lista dei campi database incidente.</p>
-</section>
 
 
-<section class="doc-chapter" data-doc-title="audit log errori contestuali menu moduli retention">
-  <h2>Aggiornamento 0.110-88 - errori contestuali, audit e menu Moduli</h2>
-  <p>Nel dettaglio incidente i messaggi relativi a un’operazione vengono mostrati direttamente nella sezione in cui l’operazione è stata richiesta. Gli errori sulla modifica dei dati principali compaiono nei dati incidente, quelli sulle azioni nella sezione Azioni, quelli sui documenti nella sezione Documenti e quelli sulla generazione PDF nella sezione Generazione moduli.</p>
-  <p>Ogni operazione mutativa effettuata dagli utenti viene registrata nella tabella di audit con data, ora, tipo di operazione e utente. Anche il controllo automatico delle notifiche in scadenza registra una voce con attore scheduler. La ritenzione predefinita è di 6 mesi ed è configurabile dagli amministratori in <strong>Admin → Altre configurazioni → Ritenzione audit log</strong>. I record più vecchi della retention vengono eliminati automaticamente dopo operazioni utente, scheduler notifiche e full import.</p><p>Gli amministratori possono consultare il registro da <strong>Admin → Audit</strong>, cercando per testo libero, tipo operazione, utente, origine e intervallo temporale. Il full export/import include sia la tabella audit sia tutte le configurazioni applicative.</p>
-  <p>Il menu <strong>Moduli</strong> viene visualizzato solo quando l’utente dispone di almeno una voce accessibile; se il menu sarebbe vuoto, non viene mostrato.</p>
-</section>
-
-<section class="doc-chapter" data-doc-title="audit admin export import retention ricerca configurazioni">
-  <h2>Aggiornamento 0.110-89 - Audit amministrativo ed export/import</h2>
-  <p>La voce <strong>Admin → Audit</strong>, visibile solo agli amministratori, permette di visualizzare e cercare i record della tabella audit. La pagina espone filtri per testo libero, tipo operazione, utente, origine e intervallo temporale, mostrando gli ultimi 500 risultati ordinati dal più recente.</p>
-  <p>Il full export/import include la tabella <code>audit_log</code> e tutte le configurazioni applicative della tabella <code>setting</code>. Dopo ogni import completo viene applicata la retention configurata, eliminando i record audit più vecchi del periodo definito in <strong>Admin → Altre configurazioni</strong>.</p>
-</section>
 
 
-<section class="doc-chapter" data-doc-title="retention audit mesi giorni ore minuti configurazioni">
-  <h2>Aggiornamento 0.110-90 - ritenzione audit granulare</h2>
-  <p>La ritenzione del registro audit in <strong>Admin → Altre configurazioni</strong> è ora configurabile con campi separati per mesi, giorni, ore e minuti. Il default resta 6 mesi; se tutti i valori sono zero, l'applicazione mantiene automaticamente il default per evitare una conservazione nulla.</p>
-  <p>Il pulsante <strong>Salva configurazione</strong> della pagina Altre configurazioni è limitato a un'altezza massima di 1 cm per mantenere il layout compatto.</p>
-</section>
 
 
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-91 avvisi procedurali dettaglio incidenti">
-  <h2>Aggiornamento 0.110-91 - avvisi procedurali in cima al dettaglio incidente</h2>
-  <p>La pagina di dettaglio incidente mostra ora gli <strong>Avvisi procedurali</strong> in posizione alta, subito dopo la scheda principale. Per gli amministratori questo rende più immediato il controllo della completezza operativa degli incidenti e delle notifiche attese.</p>
-</section>
 
 
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-92 label azioni exportable default configurabile amministratore">
-  <h2>Aggiornamento 0.110-92 - configurazione exportable default delle label azioni</h2>
-  <p>In <strong>Admin → Liste configurabili → Label azioni</strong> l’amministratore può impostare il campo <strong>Esportabile per default</strong>. Il valore viene usato durante l’inserimento di nuove azioni negli incidenti per inizializzare automaticamente il flag <strong>exportable</strong> dell’azione specifica. La scelta configurata viene inclusa nel modello dati <code>ConfigLabel.default_exportable</code> e nel full export/import insieme alle altre configurazioni delle label.</p>
-</section>
-
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-93 tempo massimo ore timezone notifiche task scadenza">
-  <h2>Aggiornamento 0.110-93 - tempo massimo in ore e timezone notifiche</h2>
-  <p>In <strong>Admin → Liste configurabili → Label azioni</strong> la colonna è denominata <strong>Tempo massimo (ore)</strong>, così l’unità di misura è visibile nella tabella e nelle operazioni di modifica. Le email automatiche dei task in scadenza indicano scadenza, prima informazione iniziale e data di generazione nel fuso orario configurato in <strong>Admin → Altre configurazioni</strong>, riportando anche il nome della timezone nel testo della notifica.</p>
-</section>
-
-
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-94 gestione bilingue interfaccia e documentazione">
-  <h2>Aggiornamento 0.110-94 gestione bilingue interfaccia e documentazione</h2>
-  <p>L'interfaccia web e le documentazioni utente e amministratore sono disponibili in italiano e inglese. In modalità automatica l'applicazione usa il locale del browser: italiano per locale italiano, inglese per tutti gli altri locale. Gli amministratori possono forzare una lingua specifica in <strong>Admin → Altre configurazioni → Lingua interfaccia</strong>.</p>
-  <p>Da questa versione le modifiche funzionali devono mantenere allineate entrambe le lingue: le istruzioni operative possono essere fornite in italiano e la traduzione inglese dell'interfaccia e delle documentazioni deve essere aggiornata contestualmente.</p>
-</section>
-
-
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-95 README inglese pacchetto">
-  <h2>Aggiornamento 0.110-95 - README inglese del pacchetto</h2>
-  <p>Il pacchetto include ora <code>README_en.md</code> come controparte inglese di <code>README.md</code>. In caso di modifiche funzionali, di configurazione o di deploy, l'amministratore deve considerare entrambi i README parte della documentazione da mantenere allineata.</p>
-</section>
-
-
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-96 notifica utente richiesta avvisi procedurali">
-  <h2>Aggiornamento 0.110-96 - notifica all'utente richiesta</h2>
-  <p>Negli <strong>Avvisi procedurali</strong> del dettaglio incidente la voce è ora <strong>Notifica all'utente richiesta</strong>. La dicitura evidenzia che l'azione deve essere registrata o generata tramite notifica quando prevista dalla procedura.</p>
-</section>
-
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.1.0-98 report PDF incidenti orari durata"><h2>Aggiornamento 0.1.0-98 - Report PDF incidenti: orari e durata</h2><p>La generazione dei report PDF incidente usa un formatter unico per data/ora, senza microsecondi e con secondi interi. Nel riepilogo PDF è stato aggiunto il campo Durata, valorizzato con <code>Incident.effective_duration</code> e quindi coerente con la pagina principale.</p></section>
-
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-99 report PDF impaginazione professionale loghi indice numeri pagina">
-  <h2>Aggiornamento 0.1.0-99 - Report PDF incidenti: impaginazione professionale</h2>
-  <p>I report PDF degli incidenti sono stati riformattati in modo più professionale. All'inizio del report viene mostrato il logo applicativo; se è stato caricato un logo da GUI viene mostrato anch'esso senza la dicitura <strong>logo custom</strong>. Se nessun logo è caricato da GUI, il relativo spazio viene omesso. Segue un indice sintetico delle sezioni. I titoli delle sezioni sono evidenziati e mantenuti sulla stessa pagina delle informazioni relative quando possibile, evitando titoli isolati. Il piè di pagina riporta la numerazione delle pagine.</p>
-</section>
-
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-104 scheduler notifiche da mezzanotte"><h2>Aggiornamento 0.1.0-104 - Scheduler notifiche da mezzanotte</h2><p>Lo scheduler dei task in scadenza usa slot calcolati dalla mezzanotte locale applicativa. In Impostazioni → Notifiche sono visibili prossimo invio stimato, intervallo effettivo, slot corrente e ultima esecuzione automatica.</p></section>
-<h2>Promemoria specifici per incidente</h2><p>Dal dettaglio incidente è possibile programmare promemoria con data e ora, messaggio personalizzato e CC opzionali. I destinatari principali sono il personale associato all’incidente.</p><p>Lo scheduler recupera dopo un riavvio tutti i promemoria specifici scaduti e non ancora inviati, registrando gli invii nella tabella audit.</p><section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-106 audit paginazione chiusura incidenti link notifiche"><h2>Aggiornamento 0.1.0-106 - Audit paginato e controlli procedurali</h2><p>Admin → Audit usa ora paginazione configurabile: default 20 record, massimo 100. In cima sono visibili totale record, totale filtrato e chunk corrente. La chiusura degli incidenti viene impedita se restano avvisi procedurali attivi. Tutte le notifiche incidente includono il link diretto alla scheda incidente.</p></section>
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-108 scheduler cron notifiche"><h2>Aggiornamento 0.1.0-108 - Scheduler cron notifiche task</h2><p>In <strong>Admin → Notifiche</strong> la pianificazione delle notifiche dei task in scadenza supporta ora sia intervalli regolari sia orari specifici giornalieri in formato <code>HH:MM</code>. Gli amministratori possono usare la modalità cron per definire invii a orari precisi, mantenendo eventuali slot di intervallo. La pianificazione è ancorata alla mezzanotte del fuso applicativo, non all’avvio dell’applicazione, e gli invii automatici registrano in audit slot, esito ed eventuali errori SMTP.</p></section>
-
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-110 scheduler notifiche task"><h2>Aggiornamento 0.1.0-110 - Scheduler notifiche task</h2><p>La deduplica delle notifiche periodiche dei task in scadenza è stata spostata a livello di incidente e slot cron/intervallo. Il record <code>scheduler:deadline_notification_check</code> resta diagnostico, mentre ogni invio riuscito genera <code>scheduler:deadline_notification_sent</code>. I task pendenti vengono rilevati anche se mancano destinatari; in quel caso lo scheduler registra uno skip con errore leggibile.</p></section>
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-111 audit scheduler notifiche task"><h2>Aggiornamento 0.1.0-111 - Audit scheduler notifiche task</h2><p>Il record diagnostico <code>scheduler:deadline_notification_check</code> viene registrato solo per invii effettivi, controlli manuali o una sola volta per lo slot pianificato cron/intervallo senza notifiche da inviare. Questo riduce il rumore del registro audit causato dai poll tecnici ripetuti.</p></section>
-<section class="doc-chapter" data-doc-title="Aggiornamento 0.110-97 report PDF documenti data ora caricamento secondi interi">
-  <h2>Aggiornamento 0.110-97 - report PDF e documenti allegati</h2>
-  <p>La generazione dei report PDF degli incidenti usa una larghezza esplicita per la tabella Documenti: il nome del documento è privilegiato rispetto alla colonna data/ora di caricamento. I timestamp sono normalizzati senza microsecondi e con secondi sempre interi.</p>
-</section>
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi"><h2>Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi</h2><p>La generazione dei report PDF incidente non etichetta più il logo caricato da GUI come <strong>logo custom</strong>. Il logo viene incluso solo se il file configurato esiste; in caso contrario la cella non viene generata.</p></section>
-
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-101 report PDF rendering immagini logo"><h2>Aggiornamento 0.1.0-101 - Report PDF incidenti: rendering immagini logo</h2><p>La generazione PDF rasterizza gli SVG dei loghi in PNG temporanei prima di passarli a ReportLab come immagini. La tabella iniziale dei loghi contiene solo immagini, senza etichette testuali; il logo GUI resta condizionato alla presenza del file configurato.</p></section>
-
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-102 report PDF logo applicativo e logo caricato"><h2>Aggiornamento 0.1.0-102 - Report PDF incidenti: logo applicativo e logo caricato</h2><p>La generazione PDF degli incidenti carica il logo applicativo dal PNG statico della documentazione, più affidabile per ReportLab, e usa lo SVG solo come fallback. Il percorso del logo caricato da GUI viene risolto sia se assoluto sia se relativo; il logo viene incluso accanto a quello applicativo solo quando il file esiste.</p></section>
 
 <section class="doc-chapter card"><h2>Scheduler notifiche e menu Admin</h2><p>Il controllo periodico dei task in scadenza viene eseguito da uno scheduler interno avviato con l’applicazione e non richiede richieste HTTP attive. Ogni esecuzione effettiva è registrata in audit. Il menu Admin è organizzato in sottogruppi collassabili per migliorare la navigazione.</p></section>
-<section class="doc-chapter"><h2>Aggiornamento 0.1.0-107</h2><p>La consultazione Audit mostra dettagli operativi sintetici e leggibili. La sezione promemoria specifici nei dettagli incidente usa un layout responsive adatto anche a smartphone.</p></section>
+<section class="doc-chapter"><section class="doc-chapter" data-doc-title="menu admin sottogruppi collassabili chiusi default"><h2>Menu Admin collassabile</h2><p>Le voci Admin sono raggruppate in sottosezioni collassabili. Nessuna sottosezione viene aperta automaticamente al ricaricamento della pagina.</p></section>
 
-<section class="doc-chapter" data-doc-title="menu admin sottogruppi collassabili chiusi default"><h2>Menu Admin collassabile</h2><p>Le voci Admin sono raggruppate in sottosezioni collassabili. Nessuna sottosezione viene aperta automaticamente al ricaricamento della pagina.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-112 formattazione documentazione amministrativa"><h2>Aggiornamento 0.1.0-112 - Formattazione documentazione amministrativa</h2><p>La documentazione amministrativa online e PDF è stata rivista per migliorare la leggibilità dei riquadri, del flusso operativo consigliato e delle figure. Titoli e testi usano wrapping più robusto e le immagini sono ridimensionate mantenendo il rapporto originale.</p></section>
+
+
+<section class="doc-chapter card" data-doc-title="audit collasso flooding record ripetuti note rilascio"><h2>Audit anti-flooding e note di rilascio</h2><p>La registrazione audit evita il flooding della tabella: se due o più eventi consecutivi hanno stesso tipo, origine, utente e dettagli sintetici, viene aggiornato il contatore <strong>Occorrenze</strong> del record esistente. Al raggiungimento di 100 occorrenze viene scritto un nuovo record e il contatore riparte da 1.</p><p>I sommari di aggiornamento sono stati spostati nella voce <strong>Aiuto → Note di rilascio</strong>, disponibile anche in PDF.</p></section>
 
 {% endblock %}

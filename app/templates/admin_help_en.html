@@ -18,34 +18,29 @@
 </div>
 
   <section class="doc-chapter card"><h2>9. Package README</h2><p>The package includes <code>README_en.md</code> as the English counterpart of <code>README.md</code>. Functional, configuration and deployment changes must update both README files together with the online documentation.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-98 incident PDF reports times duration"><h2>Update 0.1.0-98 - Incident PDF reports: times and duration</h2><p>Incident PDF generation now uses a single date/time formatter, without microseconds and with integer seconds. The PDF summary includes the Duration field, populated through <code>Incident.effective_duration</code> and therefore consistent with the main page.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-99 incident PDF reports professional layout logos table of contents page numbers">
-  <h2>Update 0.1.0-99 - Incident PDF reports: professional layout</h2>
-  <p>Incident PDF reports have been reformatted with a more professional layout. The beginning of the report shows the application logo; if a logo has been uploaded from the GUI, it is also shown without the "custom logo" wording. If no GUI logo has been uploaded, that slot is omitted. A concise table of contents follows. Section titles are highlighted and kept on the same page as their related information whenever possible, avoiding orphan headings. The footer includes page numbering.</p>
-</section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-104 midnight-based deadline scheduler"><h2>Update 0.1.0-104 - Midnight-based deadline scheduler</h2><p>The deadline task scheduler uses slots calculated from application-local midnight. Settings → Notifications shows the estimated next send, effective interval, current slot and last automatic execution.</p></section>
-<h2>Incident-specific reminders</h2><p>From the incident detail page, users can schedule reminders with an exact date and time, a custom message, and optional CC addresses. Primary recipients are the personnel associated with the incident.</p><p>After a restart, the scheduler recovers all due one-off reminders that have not been sent yet and records automated sends in the audit table.</p><section class="doc-chapter card" data-doc-title="Update 0.1.0-106 paginated audit incident closure notification links"><h2>Update 0.1.0-106 - Paginated audit and procedural controls</h2><p>Admin → Audit now has configurable pagination: default 20 records, maximum 100. The top of the page shows total records, filtered records and the current chunk. Incidents cannot be closed while active procedural warnings remain. All incident notifications include a direct link to the incident detail page.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-108 cron notification scheduler"><h2>Update 0.1.0-108 - Cron notification scheduler</h2><p>In <strong>Admin → Notifications</strong>, deadline task notifications now support both regular intervals and specific daily times in <code>HH:MM</code> format. Administrators can use cron mode to define exact sending times while keeping interval slots. The schedule is anchored to midnight in the application timezone, not to the application startup time, and automatic deliveries record slot, outcome and SMTP errors in audit.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-110 deadline notification scheduler"><h2>Update 0.1.0-110 - Deadline notification scheduler</h2><p>Periodic deadline notifications are now deduplicated at incident and cron/interval slot level. The <code>scheduler:deadline_notification_check</code> record remains diagnostic, while every successful send creates <code>scheduler:deadline_notification_sent</code>. Pending tasks are detected even when recipients are missing; in that case the scheduler records a readable skipped result.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-111 deadline notification scheduler audit"><h2>Update 0.1.0-111 - Deadline notification scheduler audit</h2><p>The diagnostic <code>scheduler:deadline_notification_check</code> record is stored only for actual sends, manual checks, or once per planned cron/interval slot with no notifications to send. This reduces audit noise from repeated technical polls.</p></section>
-<section class="doc-chapter card" data-doc-title="Update 0.110-97 PDF reports documents upload timestamp integer seconds">
-  <h2>Update 0.110-97 - PDF reports and attached documents</h2>
-  <p>Incident PDF report generation uses explicit column widths for the Documents table: the document name is prioritised over the upload date/time column. Timestamps are normalised without microseconds and with seconds always shown as integer values.</p>
-</section>
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-100 - Incident PDF reports: logos"><h2>Update 0.1.0-100 - Incident PDF reports: logos</h2><p>Incident PDF report generation no longer labels the GUI-uploaded logo as <strong>custom logo</strong>. The logo is included only when the configured file exists; otherwise the cell is not generated.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-101 incident PDF logo image rendering"><h2>Update 0.1.0-101 - Incident PDF reports: logo image rendering</h2><p>PDF generation now rasterises SVG logos into temporary PNG files before passing them to ReportLab as images. The initial logo table contains images only, without textual labels; the GUI logo is still conditional on the configured file being present.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-102 incident PDF application and uploaded logos"><h2>Update 0.1.0-102 - Incident PDF reports: application and uploaded logos</h2><p>Incident PDF generation loads the application logo from the static documentation PNG, which is more reliable for ReportLab, and uses the SVG only as a fallback. The GUI-uploaded logo path is resolved whether absolute or relative; the logo is included next to the application logo only when the file exists.</p></section>
+<h2>Incident-specific reminders</h2><p>From the incident detail page, users can schedule reminders with an exact date and time, a custom message, and optional CC addresses. Primary recipients are the personnel associated with the incident.</p><p>After a restart, the scheduler recovers all due one-off reminders that have not been sent yet and records automated sends in the audit table.</p>
+
+
+
+
+
+
+
+
+
+
 
 <section class="doc-chapter card"><h2>Notification scheduler and Admin menu</h2><p>The periodic deadline-task check is executed by an internal scheduler started with the application and does not require active HTTP requests. Every effective run is recorded in the audit log. The Admin menu is organised into collapsible subgroups for easier navigation.</p></section>
-<section class="doc-chapter"><h2>Update 0.1.0-107</h2><p>The Audit view displays concise and readable operational details. The incident-specific reminders section uses a responsive layout suitable for smartphones.</p></section>
+<section class="doc-chapter"><section class="doc-chapter" data-doc-title="collapsible admin menu closed by default"><h2>Collapsible Admin menu</h2><p>Admin entries are grouped into collapsible subsections. No subsection is automatically opened when the page is reloaded.</p></section>
 
-<section class="doc-chapter" data-doc-title="collapsible admin menu closed by default"><h2>Collapsible Admin menu</h2><p>Admin entries are grouped into collapsible subsections. No subsection is automatically opened when the page is reloaded.</p></section>
 
-<section class="doc-chapter card" data-doc-title="Update 0.1.0-112 administrator documentation formatting"><h2>Update 0.1.0-112 - Administrator documentation formatting</h2><p>The online and PDF administrator documentation has been revised to improve readability of cards, the recommended workflow and figures. Titles and text use stronger wrapping and images are scaled while preserving their original aspect ratio.</p></section>
+
+
+<section class="doc-chapter card" data-doc-title="audit anti flooding repeated records release notes"><h2>Audit anti-flooding and release notes</h2><p>Audit logging avoids table flooding: if consecutive events have the same type, source, user and concise details, the existing record's <strong>Occurrences</strong> counter is updated. When 100 occurrences are reached, a new record is written and the counter restarts from 1.</p><p>Update summaries have been moved to <strong>Help → Release notes</strong>, also available as PDF.</p></section>
 
 {% endblock %}
