@@ -1013,3 +1013,19 @@ Il template `app/templates/notification_settings.html` visualizza una sezione in
 Il thread scheduler esegue sia il controllo periodico dei task in scadenza sia il recupero dei promemoria specifici. Per i task periodici la pianificazione resta ancorata agli slot calcolati dalla mezzanotte nella timezone applicativa e, in caso di riavvio, viene considerato l’ultimo slot registrato nelle impostazioni o nell’audit. Per i promemoria specifici non periodici vengono invece inviati tutti i record scaduti con `sent_at` nullo, evitando duplicazioni tramite controllo dei record `scheduler:incident_reminder_sent` nella tabella audit.
 
 Il full export/import include `incident_reminders`; le migrazioni leggere creano automaticamente la nuova tabella sui database esistenti e riallineano la sequenza PostgreSQL.
+
+
+## Aggiornamento 0.1.0-106 - Chiusura incidenti, audit paginato e link diretti nelle notifiche
+
+La chiusura manuale o automatica di un incidente viene impedita quando sono ancora presenti avvisi procedurali attivi. Il messaggio di blocco viene mostrato nella sezione dell'operazione richiesta: dati principali dell'incidente per la chiusura manuale, sezione Azioni per la chiusura automatica tramite azione di conclusione.
+
+La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
+
+Tutte le notifiche relative a incidenti includono sempre un link diretto alla pagina dello specifico incidente. Nei template di notifica generale è disponibile il placeholder `%INCIDENT_URL%`; nei template dei task in scadenza è disponibile `%incident_url%`. Anche con template personalizzati che non includono il placeholder, il link diretto viene aggiunto automaticamente al messaggio inviato.
+
+## Aggiornamento 0.1.0-107 / Update 0.1.0-107
+
+- IT: la UI dei promemoria specifici incidente è stata convertita in un layout responsive a schede, con griglia desktop e disposizione verticale mobile per impedire overflow laterali.
+- EN: the incident-specific reminder UI has been converted to a responsive card layout, using a desktop grid and a vertical mobile layout to prevent horizontal overflow.
+- IT: la funzione centrale di audit normalizza ora i dettagli tramite una sintesi applicativa, conservando soltanto campi identificativi, contatori, esiti e descrizioni brevi.
+- EN: the central audit function now normalizes details through an application-level summary, retaining only identifiers, counters, outcomes and short descriptions.

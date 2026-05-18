@@ -462,3 +462,17 @@ Ogni incidente dispone ora della sezione **Promemoria specifici**, dalla quale g
 Lo scheduler invia tutti i promemoria specifici scaduti e non ancora inviati. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti, confrontando lo stato del promemoria con i record di audit di invio. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
 
 Il full export/import include anche la tabella dei promemoria specifici e mantiene la cronologia audit degli invii automatici.
+
+
+## Aggiornamento 0.1.0-106 - Chiusura incidenti, audit paginato e link diretti nelle notifiche
+
+La chiusura manuale o automatica di un incidente viene impedita quando sono ancora presenti avvisi procedurali attivi. Il messaggio di blocco viene mostrato nella sezione dell'operazione richiesta: dati principali dell'incidente per la chiusura manuale, sezione Azioni per la chiusura automatica tramite azione di conclusione.
+
+La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
+
+Tutte le notifiche relative a incidenti includono sempre un link diretto alla pagina dello specifico incidente. Nei template di notifica generale è disponibile il placeholder `%INCIDENT_URL%`; nei template dei task in scadenza è disponibile `%incident_url%`. Anche con template personalizzati che non includono il placeholder, il link diretto viene aggiunto automaticamente al messaggio inviato.
+
+### Aggiornamento 0.1.0-107
+
+- La sezione **Promemoria specifici** nella pagina del singolo incidente usa un layout responsive a schede: su smartphone data/ora, messaggio, CC, stato e azioni restano visibili e modificabili senza scorrimento orizzontale.
+- I record di **Audit** registrano e mostrano dettagli sintetici, leggibili e limitati alle informazioni essenziali dell’operazione, evitando di salvare payload lunghi o poco comprensibili.

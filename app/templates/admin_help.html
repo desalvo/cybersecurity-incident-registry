@@ -376,7 +376,8 @@
 </section>
 
 <section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-104 scheduler notifiche da mezzanotte"><h2>Aggiornamento 0.1.0-104 - Scheduler notifiche da mezzanotte</h2><p>Lo scheduler dei task in scadenza usa slot calcolati dalla mezzanotte locale applicativa. In Impostazioni → Notifiche sono visibili prossimo invio stimato, intervallo effettivo, slot corrente e ultima esecuzione automatica.</p></section>
-<h2>Promemoria specifici per incidente</h2><p>Dal dettaglio incidente è possibile programmare promemoria con data e ora, messaggio personalizzato e CC opzionali. I destinatari principali sono il personale associato all’incidente.</p><p>Lo scheduler recupera dopo un riavvio tutti i promemoria specifici scaduti e non ancora inviati, registrando gli invii nella tabella audit.</p>{% endblock %}
+<h2>Promemoria specifici per incidente</h2><p>Dal dettaglio incidente è possibile programmare promemoria con data e ora, messaggio personalizzato e CC opzionali. I destinatari principali sono il personale associato all’incidente.</p><p>Lo scheduler recupera dopo un riavvio tutti i promemoria specifici scaduti e non ancora inviati, registrando gli invii nella tabella audit.</p><section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-106 audit paginazione chiusura incidenti link notifiche"><h2>Aggiornamento 0.1.0-106 - Audit paginato e controlli procedurali</h2><p>Admin → Audit usa ora paginazione configurabile: default 20 record, massimo 100. In cima sono visibili totale record, totale filtrato e chunk corrente. La chiusura degli incidenti viene impedita se restano avvisi procedurali attivi. Tutte le notifiche incidente includono il link diretto alla scheda incidente.</p></section>
+{% endblock %}
 
 
 
@@ -391,3 +392,4 @@
 <section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-102 report PDF logo applicativo e logo caricato"><h2>Aggiornamento 0.1.0-102 - Report PDF incidenti: logo applicativo e logo caricato</h2><p>La generazione PDF degli incidenti carica il logo applicativo dal PNG statico della documentazione, più affidabile per ReportLab, e usa lo SVG solo come fallback. Il percorso del logo caricato da GUI viene risolto sia se assoluto sia se relativo; il logo viene incluso accanto a quello applicativo solo quando il file esiste.</p></section>
 
 <section class="doc-chapter card"><h2>Scheduler notifiche e menu Admin</h2><p>Il controllo periodico dei task in scadenza viene eseguito da uno scheduler interno avviato con l’applicazione e non richiede richieste HTTP attive. Ogni esecuzione effettiva è registrata in audit. Il menu Admin è organizzato in sottogruppi collassabili per migliorare la navigazione.</p></section>
+<section class="doc-chapter"><h2>Aggiornamento 0.1.0-107</h2><p>La consultazione Audit mostra dettagli operativi sintetici e leggibili. La sezione promemoria specifici nei dettagli incidente usa un layout responsive adatto anche a smartphone.</p></section>

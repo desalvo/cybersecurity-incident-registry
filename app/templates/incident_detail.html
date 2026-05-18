@@ -63,22 +63,52 @@
     <button type="submit">Aggiungi promemoria</button>
   </form>
   {% endif %}
-  <table class="table">
-    <thead><tr><th>Data e ora</th><th>Messaggio</th><th>CC</th><th>Stato</th><th>Azioni</th></tr></thead>
-    <tbody>
-      {% for r in inc.reminders %}
-      <tr>
-        <td>{{ r.scheduled_at.strftime('%d/%m/%Y %H:%M') if r.scheduled_at else '-' }}</td>
-        <td>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{ url_for('main.update_incident_reminder', rid=r.id) }}" class="stacked-inline-form" data-scroll-anchor="incident-reminders"><input type="hidden" name="scroll_anchor" value="incident-reminders"><textarea name="message" required>{{ r.message or '' }}</textarea>{% else %}{{ r.message or '' }}{% endif %}</td>
-        <td>{% if current_user.role in ['admin','writer'] %}<input name="cc_emails" value="{{ r.cc_emails or '' }}">{% else %}{{ r.cc_emails or '-' }}{% endif %}</td>
-        <td>{% if r.sent_at %}Inviato {{ r.sent_at.strftime('%d/%m/%Y %H:%M') }}{% elif r.last_error %}<span class="flash error">Errore: {{ r.last_error }}</span>{% else %}Programmato{% endif %}</td>
-        <td>{% if current_user.role in ['admin','writer'] %}<input type="datetime-local" name="scheduled_at" value="{{ r.scheduled_at.strftime('%Y-%m-%dT%H:%M') if r.scheduled_at else '' }}" required><label><input type="checkbox" name="reset_sent" value="1"> reinvia se già inviato</label><button class="secondary" type="submit">Salva</button></form><form method="post" action="{{ url_for('main.delete_incident_reminder', rid=r.id) }}" onsubmit="return confirm('Cancellare questo promemoria?')" data-scroll-anchor="incident-reminders"><input type="hidden" name="scroll_anchor" value="incident-reminders"><button class="danger" type="submit">Elimina</button></form>{% endif %}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="5" class="muted">Nessun promemoria specifico configurato.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="incident-reminder-list">
+    {% for r in inc.reminders %}
+      <div class="incident-reminder-card">
+        {% if current_user.role in ['admin','writer'] %}
+          <form method="post" action="{{ url_for('main.update_incident_reminder', rid=r.id) }}" class="incident-reminder-form" data-scroll-anchor="incident-reminders">
+            <input type="hidden" name="scroll_anchor" value="incident-reminders">
+            <div class="reminder-field reminder-when">
+              <label>Data e ora</label>
+              <input type="datetime-local" name="scheduled_at" value="{{ r.scheduled_at.strftime('%Y-%m-%dT%H:%M') if r.scheduled_at else '' }}" required>
+            </div>
+            <div class="reminder-field reminder-message">
+              <label>Messaggio</label>
+              <textarea name="message" required>{{ r.message or '' }}</textarea>
+            </div>
+            <div class="reminder-field reminder-cc">
+              <label>CC</label>
+              <input name="cc_emails" value="{{ r.cc_emails or '' }}" placeholder="email1@example.org, email2@example.org">
+            </div>
+            <div class="reminder-field reminder-status">
+              <label>Stato</label>
+              <div>{% if r.sent_at %}Inviato {{ r.sent_at.strftime('%d/%m/%Y %H:%M') }}{% elif r.last_error %}<span class="flash error">Errore: {{ r.last_error }}</span>{% else %}Programmato{% endif %}</div>
+            </div>
+            <div class="reminder-field reminder-options">
+              <label class="checkbox-inline"><input type="checkbox" name="reset_sent" value="1"> reinvia se già inviato</label>
+            </div>
+            <div class="reminder-actions">
+              <button class="secondary" type="submit">Salva</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('main.delete_incident_reminder', rid=r.id) }}" onsubmit="return confirm('Cancellare questo promemoria?')" class="incident-reminder-delete" data-scroll-anchor="incident-reminders">
+            <input type="hidden" name="scroll_anchor" value="incident-reminders">
+            <button class="danger" type="submit">Elimina</button>
+          </form>
+        {% else %}
+          <div class="incident-reminder-readonly">
+            <div><strong>Data e ora</strong><br>{{ r.scheduled_at.strftime('%d/%m/%Y %H:%M') if r.scheduled_at else '-' }}</div>
+            <div><strong>Messaggio</strong><br>{{ r.message or '' }}</div>
+            <div><strong>CC</strong><br>{{ r.cc_emails or '-' }}</div>
+            <div><strong>Stato</strong><br>{% if r.sent_at %}Inviato {{ r.sent_at.strftime('%d/%m/%Y %H:%M') }}{% elif r.last_error %}<span class="flash error">Errore: {{ r.last_error }}</span>{% else %}Programmato{% endif %}</div>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="muted">Nessun promemoria specifico configurato.</p>
+    {% endfor %}
+  </div>
 </div>
 
 <div class="card" id="incident-documents">

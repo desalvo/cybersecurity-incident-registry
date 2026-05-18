@@ -468,3 +468,19 @@ Notification menu and SMTP sender fix
 - Scheduler aggiornato per confrontare anche l’audit delle notifiche periodiche dei task in scadenza.
 - Full export/import esteso alla tabella incident_reminder.
 - Documentazione IT/EN aggiornata.
+
+
+0.1.0-106
+- Impedita la chiusura manuale o automatica degli incidenti quando sono presenti avvisi procedurali attivi.
+- Aggiunta paginazione alla pagina Admin -> Audit con default configurabile a 20 record e massimo 100 per pagina.
+- La pagina Audit mostra totale record correnti, totale filtrato e intervallo di record visualizzato.
+- Tutte le notifiche relative a incidenti includono sempre il link diretto allo specifico incidente; aggiunti i placeholder %INCIDENT_URL% e %incident_url%.
+- Documentazione IT/EN aggiornata.
+- Incident closing is now blocked while active procedural warnings remain.
+- Admin -> Audit now supports pagination with configurable default page size and a maximum of 100 records per page.
+- Incident notifications always include a direct link to the related incident.
+
+0.1.0-107
+- Migliorata la sezione Promemoria specifici nella pagina dettaglio incidente con layout responsive a schede, utilizzabile anche da dispositivi mobili senza uscire dallo schermo.
+- I dettagli dei record di audit sono ora sintetizzati in messaggi leggibili, con solo le informazioni operative importanti e senza payload estesi.
+- Aggiornata la documentazione bilingue utente/amministratore/progettuale.

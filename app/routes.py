@@ -100,6 +100,68 @@ def audit_actor(default_actor_type='system'):
         pass
     return None, 'system', default_actor_type
 
+
+
+def audit_detail_summary(operation_type, details):
+    """Restituisce dettagli audit sintetici, leggibili e privi di payload estesi.
+
+    I record di audit devono aiutare a capire cosa è successo senza salvare
+    copie complete di form, risultati o messaggi lunghi.
+    """
+    op = operation_type or 'operazione'
+    raw = details or ''
+    data = None
+    if isinstance(raw, dict):
+        data = raw
+    elif isinstance(raw, str) and raw.strip():
+        try:
+            data = json.loads(raw)
+        except Exception:
+            data = None
+    def short(value, limit=180):
+        if value is None:
+            return ''
+        if isinstance(value, (list, tuple, set)):
+            text = ', '.join(short(v, 60) for v in list(value)[:6])
+            if len(value) > 6:
+                text += f' (+{len(value)-6})'
+        elif isinstance(value, dict):
+            text = ', '.join(f'{k}={short(v, 40)}' for k, v in list(value.items())[:6])
+            if len(value) > 6:
+                text += f' (+{len(value)-6} campi)'
+        else:
+            text = str(value)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text[:limit-1] + '…' if len(text) > limit else text
+    if isinstance(data, dict):
+        if op.startswith('incident_reminder:create'):
+            return f"Promemoria incidente creato: incidente #{data.get('incident_id','-')}, promemoria #{data.get('reminder_id','-')}, invio {short(data.get('scheduled_at')) or '-'}"
+        if op.startswith('incident_reminder:update'):
+            reset = ' sì' if data.get('reset_sent') else ' no'
+            return f"Promemoria incidente aggiornato: incidente #{data.get('incident_id','-')}, promemoria #{data.get('reminder_id','-')}, invio {short(data.get('scheduled_at')) or '-'}, reinvio:{reset}"
+        if op.startswith('incident_reminder:delete'):
+            return f"Promemoria incidente eliminato: incidente #{data.get('incident_id','-')}, promemoria #{data.get('reminder_id','-')}"
+        if op == 'scheduler:incident_reminder_sent':
+            return f"Scheduler: inviato promemoria incidente #{data.get('incident_id','-')} / promemoria #{data.get('reminder_id','-')} ({short(data.get('scheduled_at')) or '-'})"
+        if op == 'scheduler:incident_reminder_check':
+            return f"Scheduler: controllo promemoria specifici, scaduti {data.get('due',0)}, inviati {data.get('sent',0)}, saltati {data.get('skipped',0)}, errori {len(data.get('errors') or [])}"
+        if op == 'scheduler:deadline_notification_check':
+            sent = data.get('sent') or data.get('sent_count') or 0
+            due = data.get('due') or data.get('due_count') or 0
+            return f"Scheduler: controllo notifiche task in scadenza, elementi in scadenza {due}, notifiche inviate {sent}, sorgente {short(data.get('source')) or '-'}"
+        if 'endpoint' in data or 'path' in data:
+            return f"Richiesta {short(data.get('method')) or '-'} {short(data.get('path')) or '-'} completata con stato {data.get('status_code','-')}"
+        if 'incident_id' in data:
+            return f"Operazione su incidente #{data.get('incident_id')}: {short(data)}"
+        keys = list(data.keys())
+        shown = ', '.join(f"{k}: {short(data.get(k), 80)}" for k in keys[:5])
+        if len(keys) > 5:
+            shown += f" (+{len(keys)-5} altri campi)"
+        return shown or 'Operazione registrata'
+    if raw:
+        return short(raw, 300)
+    return 'Operazione registrata'
+
 def audit_log(operation_type, details='', actor_type='system', commit=False):
     user_id, username, resolved_actor_type = audit_actor(actor_type)
     db.session.add(AuditLog(
@@ -108,7 +170,7 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
         username=username,
         user_id=user_id,
         actor_type=resolved_actor_type,
-        details=(details or '')[:4000],
+        details=audit_detail_summary(operation_type, details)[:1000],
     ))
     if commit:
         db.session.commit()
@@ -247,6 +309,9 @@ def close_incident_from_conclusion_action(incident_id, action):
         return False
     inc = Incident.query.get(incident_id)
     if not inc:
+        return False
+    if incident_procedural_status(inc)['has_warnings']:
+        setattr(inc, '_closure_blocked_by_procedural_warnings', True)
         return False
     inc.status = 'chiuso'
     if action.when_at:
@@ -822,6 +887,13 @@ def incident_detail_redirect(iid, default_anchor=''):
     target = url_for('main.incident_detail', iid=iid)
     return redirect(f'{target}#{anchor}' if anchor else target)
 
+
+def incident_absolute_url(inc_or_id):
+    """Restituisce il link diretto assoluto alla pagina dettaglio incidente."""
+    incident_id = getattr(inc_or_id, 'id', inc_or_id)
+    base = (setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000').rstrip('/')
+    return f'{base}{url_for("main.incident_detail", iid=incident_id)}'
+
 @bp.route('/incident/new',methods=['GET','POST'])
 @login_required
 def incident_new():
@@ -855,7 +927,12 @@ def incident_detail(iid):
     inc=visible(Incident.query).get_or_404(iid)
     if request.method=='POST':
         if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.incident_detail',iid=iid))
-        inc.name=request.form['name']; inc.reference=request.form.get('reference') or None; inc.recipient=request.form.get('recipient') or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc); inc.status=request.form.get('status')
+        requested_status = request.form.get('status')
+        inc.name=request.form['name']; inc.reference=request.form.get('reference') or None; inc.recipient=request.form.get('recipient') or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc)
+        if requested_status == 'chiuso' and incident_procedural_status(inc)['has_warnings']:
+            section_flash('Impossibile chiudere l’incidente: sono ancora presenti avvisi procedurali attivi.', 'incident-main', 'danger')
+        else:
+            inc.status=requested_status
         inc.categories = labels_from_form('category', 'categories')
         inc.data_types = labels_from_form('data_type', 'data_types')
         inc.people = people_from_form('people')
@@ -1019,6 +1096,8 @@ def add_action(iid):
     if can_write():
         try:
             action = create_manual_action_safely(iid)
+            if getattr(Incident.query.get(iid), '_closure_blocked_by_procedural_warnings', False):
+                section_flash('Incidente non chiuso: sono ancora presenti avvisi procedurali attivi.', 'incident-actions', 'warning')
             for f in request.files.getlist('action_files'):
                 save_action_attachment_file(f, action)
             db.session.commit()
@@ -1044,6 +1123,8 @@ def update_action(aid):
         a.label_id=label_id
         a.exportable=bool(request.form.get('exportable'))
         close_incident_from_conclusion_action(iid, a)
+        if getattr(Incident.query.get(iid), '_closure_blocked_by_procedural_warnings', False):
+            section_flash('Incidente non chiuso: sono ancora presenti avvisi procedurali attivi.', 'incident-actions', 'warning')
         try:
             db.session.commit(); section_flash('Azione aggiornata', 'incident-actions', 'success')
         except Exception as exc:
@@ -1573,6 +1654,7 @@ NOTIFICATION_FIELDS = [
     ('%ACTIONS%', 'Lista cronologica delle azioni finora intraprese, con data e ora'),
     ('%STATUS%', 'Stato dell’incidente'),
     ('%EXTERNAL_URL%', 'URL esterna dell’applicazione configurata in Admin → Altre configurazioni'),
+    ('%INCIDENT_URL%', 'Link diretto alla pagina dell’incidente'),
 ]
 
 DEFAULT_NOTIFICATION_SUBJECTS = {
@@ -1597,6 +1679,8 @@ Descrizione:
 
 Azioni finora intraprese:
 %ACTIONS%
+
+Link diretto incidente: %INCIDENT_URL%
 
 Operatore: %OPERATOR%
 
@@ -1623,6 +1707,8 @@ Azioni finora intraprese:
 Report aggiornato: %REPORT%
 Documenti allegati: %DOCUMENTS%
 
+Link diretto incidente: %INCIDENT_URL%
+
 Notifica inviata da: %OPERATOR%""",
     'dpo': """Buongiorno,
 si invia notifica al DPO relativa al seguente incidente informatico.
@@ -1645,6 +1731,8 @@ Azioni finora intraprese:
 
 Report aggiornato: %REPORT%
 Documenti allegati: %DOCUMENTS%
+
+Link diretto incidente: %INCIDENT_URL%
 
 Notifica inviata da: %OPERATOR%""",
 }
@@ -1780,6 +1868,7 @@ def render_notification_text(template, inc, selected_documents=None):
         '%ACTIONS%': actions,
         '%STATUS%': inc.status or '',
         '%EXTERNAL_URL%': setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000',
+        '%INCIDENT_URL%': incident_absolute_url(inc),
     }
     text = template or ''
     for key, value in replacements.items():
@@ -1794,7 +1883,11 @@ def notification_body_template(kind, template_id=None):
     return get_notification_template(kind, template_id).body
 
 def notification_body(kind, inc, selected_documents=None, template_id=None):
-    return render_notification_text(notification_body_template(kind, template_id), inc, selected_documents=selected_documents)
+    body = render_notification_text(notification_body_template(kind, template_id), inc, selected_documents=selected_documents)
+    link = incident_absolute_url(inc)
+    if link not in (body or ''):
+        body = (body or '').rstrip() + f'\n\nLink diretto incidente: {link}'
+    return body
 
 def notification_needs_report(kind, template_id=None):
     return '%REPORT%' in (notification_body_template(kind, template_id) or '')
@@ -1851,6 +1944,9 @@ def send_notification_email(kind, inc, recipient, cc, subject, body, attach_repo
     if cc:
         msg['Cc'] = cc
     msg['Subject'] = subject
+    link = incident_absolute_url(inc)
+    if link not in (body or ''):
+        body = (body or '').rstrip() + f'\n\nLink diretto incidente: {link}'
     msg.set_content(body)
     if attach_report:
         pdf_file = incident_pdf(inc)
@@ -2059,6 +2155,7 @@ DEADLINE_NOTIFICATION_PLACEHOLDERS = [
     ('%generated_at%', 'Data e ora di generazione del messaggio'),
     ('%application_name%', 'Nome dell’applicazione'),
     ('%external_url%', 'URL esterna dell’applicazione configurata in Admin → Altre configurazioni'),
+    ('%incident_url%', 'Link diretto alla pagina dell’incidente'),
     ('%report%', 'Richiede allegato PDF del report dell’incidente generato al momento dell’invio'),
     ('%statistics%', 'Richiede allegato PDF delle statistiche incidenti generato al momento dell’invio'),
 ]
@@ -2079,6 +2176,7 @@ def default_deadline_body_template():
         '%pending_actions%\n\n'
         'Destinatari: %recipients%\n\n'
         'Questa mail è stata generata automaticamente da %application_name% il %generated_at%.\n'
+        'Link incidente: %incident_url%\n'
         'Accesso applicazione: %external_url%'
     )
 
@@ -2108,6 +2206,7 @@ def render_deadline_template(template, inc, pending_rows, recipients, now=None):
         '%generated_at%': format_application_datetime(now),
         '%application_name%': 'Cybersecurity Incident Registry',
         '%external_url%': setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000',
+        '%incident_url%': incident_absolute_url(inc),
         '%report%': '[report incidente allegato]',
         '%statistics%': '[report statistiche allegato]',
     }
@@ -2128,6 +2227,9 @@ def build_deadline_email_content(inc, pending_rows, recipients, now=None):
     body_template = setting_value('notification_deadline_body_template', default_deadline_body_template()) or default_deadline_body_template()
     subject = render_deadline_template(subject_template, inc, pending_rows, recipients, now=now).strip() or default_deadline_subject_template().replace('%incident_name%', inc.name or '')
     body = render_deadline_template(body_template, inc, pending_rows, recipients, now=now)
+    link = incident_absolute_url(inc)
+    if link not in body:
+        body = body.rstrip() + f'\n\nLink diretto incidente: {link}'
     return subject, body
 
 
@@ -2256,6 +2358,7 @@ def _reminder_body(reminder, now=None):
         f'Riferimento: {(inc.reference if inc else "") or "-"}\n'
         f'Data e ora promemoria: {when_text}\n\n'
         f'Messaggio:\n{reminder.message or ""}\n\n'
+        f'Link diretto incidente: {incident_absolute_url(inc) if inc else "-"}\n\n'
         f'Questa mail è stata generata automaticamente da Cybersecurity Incident Registry il {generated_at}.\n'
         f'Accesso applicazione: {setting_value("application_external_url", "http://localhost:8000") or "http://localhost:8000"}'
     )
@@ -3987,6 +4090,7 @@ def admin_audit():
     purge_audit_logs()
     db.session.commit()
     q = AuditLog.query
+    total_records = AuditLog.query.count()
     search = (request.args.get('q') or '').strip()
     operation_type = (request.args.get('operation_type') or '').strip()
     username = (request.args.get('username') or '').strip()
@@ -4017,7 +4121,18 @@ def admin_audit():
             q = q.filter(AuditLog.occurred_at <= datetime.fromisoformat(end))
         except ValueError:
             flash('Data fine ricerca audit non valida', 'error')
-    logs = q.order_by(AuditLog.occurred_at.desc(), AuditLog.id.desc()).limit(500).all()
+    configured_page_size = _bounded_int(setting_value('audit_records_per_page', '20') or '20', 20, 1, 100)
+    page_size = _bounded_int(request.args.get('per_page') or configured_page_size, configured_page_size, 1, 100)
+    page = _bounded_int(request.args.get('page') or '1', 1, 1, 10**9)
+    filtered_count = q.count()
+    max_page = max(1, (filtered_count + page_size - 1) // page_size)
+    page = min(page, max_page)
+    offset = (page - 1) * page_size
+    logs = q.order_by(AuditLog.occurred_at.desc(), AuditLog.id.desc()).offset(offset).limit(page_size).all()
+    for log in logs:
+        log.display_details = audit_detail_summary(log.operation_type, log.details)
+    selected_from = offset + 1 if filtered_count else 0
+    selected_to = min(offset + page_size, filtered_count)
     return render_template(
         'admin_audit.html',
         logs=logs,
@@ -4030,6 +4145,13 @@ def admin_audit():
         retention_label=audit_retention_label(),
         retention_parts=audit_retention_parts(),
         cutoff=audit_cutoff_datetime(),
+        total_records=total_records,
+        filtered_count=filtered_count,
+        page=page,
+        page_size=page_size,
+        max_page=max_page,
+        selected_from=selected_from,
+        selected_to=selected_to,
     )
 
 @bp.route('/admin/other-configurations', methods=['GET','POST'])
@@ -4046,6 +4168,7 @@ def admin_other_configurations():
             set_setting_value(key, str(_bounded_int(request.form.get(key, '0'), 0, 0, 120 if key == 'audit_retention_months_part' else 3650 if key == 'audit_retention_days_part' else 23 if key == 'audit_retention_hours_part' else 59)))
         # Mantiene aggiornata anche la chiave storica per compatibilità con archivi precedenti.
         set_setting_value('audit_retention_months', str(_bounded_int(request.form.get('audit_retention_months_part', '6'), 6, 0, 120)))
+        set_setting_value('audit_records_per_page', str(_bounded_int(request.form.get('audit_records_per_page', '20'), 20, 1, 100)))
         db.session.commit()
         flash('Altre configurazioni aggiornate', 'success')
         return redirect(url_for('main.admin_other_configurations'))
@@ -4058,6 +4181,7 @@ def admin_other_configurations():
         interface_language=setting_value('interface_language', 'auto') or 'auto',
         audit_retention_parts=audit_retention_parts(),
         audit_retention_label=audit_retention_label(),
+        audit_records_per_page=_bounded_int(setting_value('audit_records_per_page', '20') or '20', 20, 1, 100),
     )
 
 def incident_consequences(inc):

@@ -5,6 +5,7 @@
     <div>
       <h2>Audit</h2>
       <p class="muted">Registro delle operazioni utente, scheduler notifiche e task automatizzati. Ritenzione configurata: {{ retention_label }}; cutoff corrente: {{ cutoff.strftime('%Y-%m-%d %H:%M') }} UTC.</p>
+      <p><strong>Record totali correnti:</strong> {{ total_records }} · <strong>Record filtrati:</strong> {{ filtered_count }} · <strong>Intervallo visualizzato:</strong> {{ selected_from }}-{{ selected_to }}</p>
     </div>
   </div>
   <form method="get" class="form-grid">
@@ -37,6 +38,11 @@
       <label>A</label>
       <input name="end" type="datetime-local" value="{{ end }}">
     </div>
+    <div>
+      <label>Record per pagina</label>
+      <input name="per_page" type="number" min="1" max="100" value="{{ page_size }}">
+      <p class="muted">Massimo 100 record per pagina.</p>
+    </div>
     <div class="wide actions">
       <button>Cerca</button>
       <a class="button" href="{{ url_for('main.admin_audit') }}">Azzera filtri</a>
@@ -44,8 +50,10 @@
   </form>
 </div>
 <div class="card table-card">
-  <h3>Risultati</h3>
-  <p class="muted">Sono mostrati al massimo gli ultimi 500 record corrispondenti ai filtri.</p>
+  <div class="page-header">
+    <h3>Risultati</h3>
+    <p class="muted">Pagina {{ page }} di {{ max_page }}; visualizzati {{ selected_from }}-{{ selected_to }} di {{ filtered_count }} record filtrati.</p>
+  </div>
   <table class="table">
     <tr><th>Data/ora UTC</th><th>Tipo operazione</th><th>Utente</th><th>Origine</th><th>Dettagli</th></tr>
     {% for log in logs %}
@@ -54,11 +62,22 @@
         <td>{{ log.operation_type }}</td>
         <td>{{ log.username }}</td>
         <td>{{ log.actor_type }}</td>
-        <td><pre class="audit-details">{{ log.details or '' }}</pre></td>
+        <td><pre class="audit-details">{{ log.display_details or log.details or '' }}</pre></td>
       </tr>
     {% else %}
       <tr><td colspan="5">Nessun record di audit trovato.</td></tr>
     {% endfor %}
   </table>
+  <div class="actions pagination-actions">
+    {% set args = request.args.to_dict() %}
+    {% if page > 1 %}
+      {% set _ = args.update({'page': page - 1, 'per_page': page_size}) %}
+      <a class="button secondary" href="{{ url_for('main.admin_audit', **args) }}">Pagina precedente</a>
+    {% endif %}
+    {% if page < max_page %}
+      {% set _ = args.update({'page': page + 1, 'per_page': page_size}) %}
+      <a class="button secondary" href="{{ url_for('main.admin_audit', **args) }}">Pagina successiva</a>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

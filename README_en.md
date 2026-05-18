@@ -258,3 +258,17 @@ Each incident now includes a **Specific reminders** section where users with wri
 The scheduler sends every due, one-off reminder that has not been sent yet. After an application restart, all missed one-off reminders are recovered by comparing the reminder status with the audit records for sent reminders. Periodic deadline-task notifications remain deduplicated by type/interval: when multiple slots are missed, only the latest due notification for that type is executed.
 
 Full export/import now includes the incident-specific reminder table and preserves the audit history for automated sends.
+
+
+## Update 0.1.0-106 - Incident closing, paginated audit and direct links in notifications
+
+Manual or automatic incident closing is now blocked when active procedural warnings are still present. The blocking message is shown in the section where the operation was requested: the main incident data section for manual closing, and the Actions section for automatic closing through a conclusion action.
+
+The **Admin → Audit** page now uses pagination. The default number of records per page can be configured in **Admin → Other settings** through **Audit records per page**, with default 20 and maximum 100. The top of the Audit page shows the current total number of audit records, the filtered record count and the currently selected interval.
+
+All incident-related notifications always include a direct link to the specific incident page. General notification templates support the `%INCIDENT_URL%` placeholder; deadline-task templates support `%incident_url%`. Even when custom templates do not contain the placeholder, the direct link is automatically appended to the sent message.
+
+### Update 0.1.0-107
+
+- The **Specific reminders** section in the incident detail page now uses a responsive card layout: on smartphones, date/time, message, CC, status and actions remain visible and editable without horizontal overflow.
+- **Audit** records now store and display concise, readable details limited to the essential operational information, avoiding long or unclear payloads.
