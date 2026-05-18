@@ -4,7 +4,7 @@
   <div class="page-header">
     <div>
       <h1 id="doc-title">Documentazione utente</h1>
-      <p class="muted">Cybersecurity Incident Registry · guida operativa completa, ricercabile online e scaricabile in PDF.</p>
+      <p class="muted">Cybersecurity Incident Registry · guida operativa completa, consultabile online e scaricabile in PDF.</p>
     </div>
     <div class="button-row">
       <a class="button secondary" href="#indice">Vai all’indice</a>
@@ -12,336 +12,175 @@
     </div>
   </div>
 
-  <section class="doc-hero card-lite" aria-label="Logo e sintesi visiva dell'applicazione">
+  <section class="doc-hero card-lite" aria-label="Sintesi della guida utente">
     <img class="doc-app-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Logo applicativo Cybersecurity Incident Registry">
     <div>
-      <h2>Registro operativo degli incidenti, dalla segnalazione alla chiusura</h2>
-      <p>La guida integra testo, diagrammi, grafici e schermate illustrative dell'applicazione. Il logo mostrato è esclusivamente il logo pittorico dell'applicazione e non include il logo custom configurabile dall'amministratore.</p>
-      <p>Per le configurazioni avanzate è disponibile anche la <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>, con relativo PDF scaricabile dalla pagina stessa.</p>
+      <h2>Guida pratica per registrare, seguire e chiudere gli incidenti</h2>
+      <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
+      <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p>
     </div>
-  <p><strong>Esempio Google.</strong> Da Admin → SSO usare “Aggiungi esempio Google” oppure “Aggiungi profilo generico”, compilare Client ID, Client secret ed endpoint richiesti e registrare sul provider il redirect URI HTTPS mostrato dall’applicazione.</p></section>
+  </section>
 
   <figure class="doc-figure">
-    <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma di flusso del ciclo di vita di un incidente">
-    <figcaption>Figura 1 - Flusso consigliato per la gestione completa di un incidente.</figcaption>
+    <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma del ciclo di vita di un incidente">
+    <figcaption>Figura 1 - Flusso operativo consigliato: apertura, analisi, azioni, notifiche, documentazione, verifica e chiusura.</figcaption>
   </figure>
 
   <div class="doc-search" role="search" aria-label="Ricerca nella documentazione">
     <label for="doc-search-input">Cerca nella documentazione</label>
-    <input id="doc-search-input" type="search" placeholder="Esempi: notifica utente, full export, PDF, azioni, avvisi procedurali..." autocomplete="off">
+    <input id="doc-search-input" type="search" placeholder="Esempi: nuovo incidente, promemoria, avvisi procedurali, report PDF, export..." autocomplete="off">
     <p id="doc-search-count" class="muted" aria-live="polite">Digita una parola per filtrare i capitoli.</p>
   </div>
-  <div id="doc-no-results" class="card-lite doc-no-results" hidden>Nessun capitolo contiene il testo cercato. Prova con una parola più generale, ad esempio “incidente”, “notifica”, “PDF” o “export”.</div>
+  <div id="doc-no-results" class="card-lite doc-no-results" hidden>Nessun capitolo contiene il testo cercato. Prova con una parola più generale, ad esempio “incidente”, “notifica”, “PDF” o “azioni”.</div>
 
-  <nav id="indice" class="doc-index card-lite" aria-label="Indice della documentazione">
+  <nav id="indice" class="doc-index card-lite" aria-label="Indice della documentazione utente">
     <h2>Indice</h2>
     <ol>
-      <li><a href="#cap-sistema">Scopo dell’applicazione e concetti base</a></li>
-      <li><a href="#cap-accesso">Accesso, ruoli e navigazione</a></li>
-      <li><a href="#cap-dashboard">Pagina principale, ricerca e avvisi procedurali</a></li>
-      <li><a href="#cap-nuovo-incidente">Creare un nuovo incidente passo-passo</a></li>
-      <li><a href="#cap-modifica-incidente">Modificare, clonare, chiudere o cancellare un incidente</a></li>
-      <li><a href="#cap-azioni">Gestione delle azioni effettuate</a></li>
-      <li><a href="#cap-notifiche">Notifiche e-mail e notifica all’utente richiesta</a></li>
-      <li><a href="#cap-documenti">Documenti e allegati</a></li>
-      <li><a href="#cap-moduli">Configurazione e generazione moduli PDF</a></li>
-      <li><a href="#cap-report">Report, statistiche, export e import</a></li>
-      <li><a href="#cap-admin">Amministrazione e configurazioni</a></li>
-      <li><a href="#cap-esempi">Esempi completi di gestione incidente</a></li>
+      <li><a href="#cap-panorama">Panoramica e concetti di base</a></li>
+      <li><a href="#cap-accesso">Accesso, ruoli e lingua</a></li>
+      <li><a href="#cap-dashboard">Pagina principale e ricerca incidenti</a></li>
+      <li><a href="#cap-creazione">Creare un nuovo incidente</a></li>
+      <li><a href="#cap-dettaglio">Pagina dello specifico incidente</a></li>
+      <li><a href="#cap-azioni">Azioni, allegati e chiusura</a></li>
+      <li><a href="#cap-avvisi">Avvisi procedurali e controlli prima della chiusura</a></li>
+      <li><a href="#cap-promemoria">Promemoria schedulati dell’incidente</a></li>
+      <li><a href="#cap-notifiche">Notifiche e-mail</a></li>
+      <li><a href="#cap-documenti">Documenti, moduli PDF e report</a></li>
+      <li><a href="#cap-export">Export, import e audit visibile all’utente</a></li>
       <li><a href="#cap-mobile">Uso mobile, accessibilità e buone pratiche</a></li>
+      <li><a href="#cap-esempi">Esempi operativi</a></li>
     </ol>
   </nav>
 
-  <section id="cap-sistema" class="doc-chapter" data-doc-title="Scopo applicazione concetti base registro incidenti cybersecurity">
-    <h2>1. Scopo dell’applicazione e concetti base</h2>
-    <p><strong>Cybersecurity Incident Registry</strong> è un registro web per documentare l’intero ciclo di vita di un incidente informatico: apertura, classificazione, analisi, misure adottate, notifiche, allegati, chiusura, reportistica ed esportazione completa.</p>
-    <p>Ogni incidente è composto da una scheda principale e da elementi collegati: azioni cronologiche, documenti dell’incidente, allegati delle azioni, categorie, dati interessati, personale coinvolto, raccomandazioni e moduli PDF compilati.</p>
-    <p>La selezione di categorie, dati interessati, personale e raccomandazioni avviene con un meccanismo drag & drop uniforme: trascinare la voce dalla colonna “disponibili” alla colonna “selezionati”. Per rimuovere una voce già selezionata è sufficiente fare clic sulla relativa chip. Le raccomandazioni non usano più una lista di checkbox nella scheda incidente.</p><p>Il numero massimo di raccomandazioni selezionabili per ogni incidente è configurato dagli amministratori in <strong>Admin → Raccomandazioni</strong>; il valore predefinito è 3 e viene applicato anche lato server.</p>
-    <h3>Flusso operativo raccomandato</h3>
+  <section id="cap-panorama" class="doc-chapter" data-doc-title="panoramica concetti base registro incidenti cybersecurity">
+    <h2>1. Panoramica e concetti di base</h2>
+    <p><strong>Cybersecurity Incident Registry</strong> consente di documentare l’intero ciclo di vita di un incidente informatico: apertura, classificazione, attività tecniche e organizzative, notifiche, documenti, report, moduli ufficiali e chiusura.</p>
+    <p>Un incidente contiene una scheda principale e diversi elementi collegati: azioni cronologiche, personale associato, categorie, dati coinvolti, raccomandazioni, allegati, documenti generati, promemoria e avvisi procedurali. Il registro permette di conservare una traccia ordinata e verificabile delle decisioni prese.</p>
+    <h3>Flusso operativo consigliato</h3>
     <ol>
       <li>Aprire l’incidente appena viene rilevato o comunicato.</li>
-      <li>Registrare come prima azione l’informazione iniziale, perché da essa derivano i campi dinamici “data venuta a conoscenza” e “ora venuta a conoscenza”.</li>
-      <li>Classificare gravità, categorie, dati interessati e presenza di dati personali.</li>
-      <li>Registrare tutte le azioni tecniche, organizzative e procedurali.</li>
-      <li>Inviare le notifiche richieste e verificare gli avvisi procedurali.</li>
-      <li>Allegare evidenze, report tecnici, comunicazioni e documenti prodotti.</li>
-      <li>Generare report, moduli PDF o export quando necessario.</li>
-      <li>Chiudere l’incidente quando le attività sono concluse.</li>
+      <li>Registrare come prima azione l’informazione iniziale, utile per data e ora di venuta a conoscenza.</li>
+      <li>Classificare gravità, categorie, dati interessati, personale e raccomandazioni.</li>
+      <li>Registrare le attività svolte tramite azioni e allegati.</li>
+      <li>Verificare gli avvisi procedurali e inviare le notifiche richieste.</li>
+      <li>Produrre report, moduli PDF o documenti di supporto.</li>
+      <li>Chiudere l’incidente solo quando non restano avvisi procedurali attivi.</li>
     </ol>
   </section>
 
-  <section id="cap-accesso" class="doc-chapter" data-doc-title="Accesso ruoli login navigazione menu">
-    <h2>2. Accesso, ruoli e navigazione</h2>
-    <p>La pagina di login consente l’accesso con utenti locali, LDAP o SSO/OAuth2/OpenID Connect, secondo la configurazione dell’amministratore. Nella pagina di login è mostrato il logo custom configurato, se presente, e il logo pittorico dell’applicazione. Il logo custom non viene sostituito o modificato.</p>
+  <section id="cap-accesso" class="doc-chapter" data-doc-title="accesso ruoli lingua login ldap sso">
+    <h2>2. Accesso, ruoli e lingua</h2>
+    <p>L’accesso può avvenire con utenti locali, LDAP o SSO/OAuth2/OpenID Connect, secondo quanto configurato dall’amministratore. Se sono presenti più profili SSO attivi, la pagina di login consente di scegliere il provider da utilizzare.</p>
     <table class="table doc-table">
-      <thead><tr><th>Ruolo</th><th>Funzioni disponibili</th></tr></thead>
+      <thead><tr><th>Ruolo</th><th>Operazioni principali</th></tr></thead>
       <tbody>
-        <tr><td>admin</td><td>Gestione completa di incidenti, configurazioni, utenti, LDAP, SSO, notifiche, moduli, import/export e amministrazione.</td></tr>
-        <tr><td>writer</td><td>Creazione e modifica degli incidenti, azioni, documenti, moduli e report operativi.</td></tr>
-        <tr><td>reader</td><td>Lettura degli incidenti e scarico dei report consentiti.</td></tr>
-        <tr><td>operator</td><td>Lettura limitata agli incidenti creati dall’utente, secondo le regole applicative.</td></tr>
-        <tr><td>disabled</td><td>Accesso operativo disabilitato.</td></tr>
+        <tr><td>admin</td><td>Gestione completa di incidenti, configurazioni, utenti, audit, notifiche, moduli, import/export e sicurezza.</td></tr>
+        <tr><td>writer</td><td>Creazione e modifica degli incidenti, inserimento azioni, gestione documenti e generazione report.</td></tr>
+        <tr><td>reader</td><td>Consultazione degli incidenti e dei report consentiti.</td></tr>
+        <tr><td>operator</td><td>Accesso operativo limitato secondo le regole definite dall’applicazione.</td></tr>
       </tbody>
     </table>
-    <h3>Menu principali</h3>
-    <p>Il menu <strong>Incidenti</strong> apre la pagina principale. La creazione di una nuova scheda avviene esclusivamente dal pulsante <strong>Nuovo incidente</strong> presente nella pagina principale, così la barra dei menu resta più compatta. <strong>Report</strong> contiene le statistiche. <strong>Export</strong> contiene CSV, export completo e import. <strong>Moduli</strong> gestisce template PDF e mapping. <strong>Notifiche</strong> è riservato agli amministratori. <strong>Admin</strong> contiene liste, personale, logo, utenti, LDAP, SSO, dati titolare, struttura, responsabile, raccomandazioni e altre configurazioni. <strong>Aiuto</strong> apre la documentazione utente, la documentazione amministrativa e le note di rilascio; i PDF restano scaricabili dall’interno delle rispettive pagine. Nelle viste desktop/non mobile la barra mostra il nome dell’applicazione <strong>Cybersecurity Incident Registry</strong> disposto su tre righe, una parola per riga, per ridurre l’ingombro orizzontale.</p>
+    <p>L’interfaccia è disponibile in italiano e inglese. Per default viene usato l’italiano con browser in locale italiano e l’inglese per gli altri locale. Gli amministratori possono forzare una lingua da <strong>Admin → Altre configurazioni</strong>.</p>
   </section>
 
-  <section id="cap-dashboard" class="doc-chapter" data-doc-title="Pagina principale ricerca filtri simbolo pericolo avvisi procedurali">
-    <h2>3. Pagina principale, ricerca e avvisi procedurali</h2>
-    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-dashboard.png') }}" alt="Schermata illustrativa della pagina principale"><figcaption>Figura 2 - Esempio della pagina principale con elenco incidenti e simbolo di pericolo per avvisi procedurali.</figcaption></figure>
-    <p>La pagina principale mostra l’elenco degli incidenti visibili all’utente. Per ogni riga sono disponibili nome, periodo, compilatore, personale, stato, durata e comandi. La durata è calcolata dal momento della prima azione registrata fino alla data e ora di conclusione dell’incidente; i campi data/ora inizio non entrano nel computo della durata. Se un incidente presenta avvisi procedurali, nella lista compare un simbolo di pericolo <strong>⚠</strong>, così l’operatore può aprire rapidamente il dettaglio e completare le attività mancanti.</p>
-    <h3>Ricerca e ordinamento</h3>
-    <p>La ricerca filtra gli incidenti in base a testo, date, stato e metadati. Le intestazioni ordinabili permettono di cambiare l’ordine dell’elenco. La ricerca online della documentazione, disponibile in questa pagina Aiuto, filtra invece i capitoli della guida senza ricaricare la pagina.</p>
-    <h3>Avvisi procedurali</h3>
-    <p>Gli avvisi procedurali evidenziano condizioni operative da verificare. Nel dettaglio di uno specifico incidente la sezione è ora collocata in cima alla pagina, subito dopo la scheda principale dell’incidente, così l’operatore vede prima di tutto eventuali notifiche o verifiche mancanti. In particolare, se la notifica all’utente è richiesta e non risulta nella lista delle azioni effettuate l’azione corrispondente, il sistema mostra un avviso. L’avviso scompare quando viene aggiunta o generata l’azione corretta.</p>
-    <p><strong>Esempio:</strong> se un incidente richiede la notifica all’utente ma nella sezione Azioni non esiste una voce con label o testo coerente con la notifica all’utente, l’incidente appare con ⚠ nella pagina principale e il dettaglio mostra l’avviso procedurale.</p>
+  <section id="cap-dashboard" class="doc-chapter" data-doc-title="dashboard pagina principale ricerca filtri durata avvisi">
+    <h2>3. Pagina principale e ricerca incidenti</h2>
+    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-dashboard.png') }}" alt="Schermata illustrativa della pagina principale"><figcaption>Figura 2 - Pagina principale con elenco incidenti, pulsante Nuovo incidente e avvisi procedurali.</figcaption></figure>
+    <p>La pagina principale mostra gli incidenti visibili all’utente. Ogni riga riporta le informazioni essenziali: titolo, periodo, compilatore, personale associato, stato, durata e comandi disponibili. La durata viene calcolata come nella pagina principale a partire dalla prima azione registrata e dalla data/ora di conclusione, quando disponibili.</p>
+    <p>Il pulsante <strong>Nuovo incidente</strong> apre la form di inserimento. La ricerca consente di filtrare rapidamente la lista. Le intestazioni e i controlli di pagina aiutano a individuare gli incidenti aperti, chiusi o con attività ancora da completare.</p>
   </section>
 
-  <section id="cap-nuovo-incidente" class="doc-chapter" data-doc-title="Nuovo incidente creazione passo passo campi date ore categorie dati personali">
-    <h2>4. Creare un nuovo incidente passo-passo</h2>
-    <ol>
-      <li>Aprire il menu <strong>Incidenti</strong> per visualizzare la pagina principale.</li>
-      <li>Premere il pulsante <strong>Nuovo incidente</strong> nella pagina principale.</li>
-      <li>Inserire un <strong>nome</strong> chiaro, ad esempio “Phishing credenziali casella amministrativa”.</li>
-      <li>Compilare il <strong>riferimento</strong> se esiste un ticket, protocollo o ID esterno.</li>
-      <li>Descrivere l’evento nel campo <strong>descrizione</strong>: fonte della segnalazione, sistemi coinvolti, impatto noto e prime evidenze.</li>
-      <li>Selezionare gravità, dati interessati, categorie e personale coinvolto tramite campi e liste configurabili.</li>
-      <li>Compilare <strong>data inizio</strong> e <strong>ora inizio</strong>. Se l’incidente è ancora aperto lasciare vuoti data e ora fine.</li>
-      <li>Indicare se sono coinvolti dati personali e se è richiesta la notifica all’utente, secondo la procedura interna.</li>
-      <li>Salvare. Dopo il salvataggio, aprire il dettaglio e aggiungere le azioni cronologiche.</li>
-    </ol>
-    <h3>Prima azione: informazione iniziale</h3>
-    <p>Per alimentare correttamente i campi dinamici dei moduli, aggiungere come prima azione significativa una voce di tipo <strong>informazione iniziale</strong>. La data e l’ora di questa azione diventano rispettivamente “data venuta a conoscenza” e “ora venuta a conoscenza”.</p>
-  </section>
-
-  <section id="cap-modifica-incidente" class="doc-chapter" data-doc-title="Modifica clone chiusura cancellazione incidente stato durata">
-    <h2>5. Modificare, clonare, chiudere o cancellare un incidente</h2>
-    <p>Dal dettaglio incidente è possibile aggiornare i dati principali, cambiare stato, aggiungere o rimuovere categorie, collegare personale e gestire documenti. La clonazione crea un nuovo incidente usando i dati di base dell’incidente selezionato, utile per eventi ricorrenti o correlati.</p>
-    <h3>Chiusura</h3>
-    <p>Per chiudere un incidente, valorizzare data e ora fine, aggiornare lo stato a <strong>chiuso</strong> e verificare che le azioni descrivano le misure adottate, la comunicazione agli interessati e gli eventuali passaggi di notifica.</p>
-    <h3>Durata operativa</h3>
-    <p>La durata visualizzata nella lista, esportata in CSV e usata nelle statistiche non è più calcolata dall’inizio dichiarato dell’incidente. Il sistema prende la prima azione cronologica come inizio operativo effettivo e calcola il tempo fino alla conclusione, cioè data e ora fine dell’incidente. Se manca la conclusione o non sono presenti azioni, la durata resta vuota/non disponibile.</p>
-    <h3>Cancellazione</h3>
-    <p>La cancellazione richiede conferma. Prima di eliminare un incidente, verificare che non sia necessario conservarne report, allegati o export ai fini di audit.</p>
-  </section>
-
-  <section id="cap-azioni" class="doc-chapter" data-doc-title="Azioni effettuate exportable misure adottate allegati data ora persona label">
-    <h2>6. Gestione delle azioni effettuate</h2>
-    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-incident-detail.png') }}" alt="Schermata illustrativa del dettaglio incidente"><figcaption>Figura 3 - Esempio di dettaglio incidente con timeline azioni, avvisi e stato exportable.</figcaption></figure>
-    <p>Le azioni sono il diario cronologico dell’incidente. Ogni azione contiene data, ora, persona, label, descrizione, conseguenze associate ed eventuali allegati. Le azioni possono essere create manualmente o automaticamente, ad esempio dopo l’invio di una notifica.</p>
-    <h3>Flag exportable</h3>
-    <p>Ogni azione ha il flag <strong>exportable</strong>. Il valore iniziale delle nuove azioni deriva dalla configurazione della relativa label azione in <strong>Admin → Liste configurabili → Label azioni</strong>, tramite il campo <strong>Esportabile per default</strong>. Per compatibilità, in assenza di una label configurata resta il fallback sulle parole chiave storiche “notifica”, “comunicazione”, “informazione iniziale”, “analisi” o “conclusione”. Il flag è modificabile nel dettaglio incidente. Il campo dei moduli <strong>measures_adopted</strong> include solo le azioni esportabili e usa la descrizione della label azione, se configurata, al posto del nome tecnico della label.</p>
-    <h3>Formato delle misure adottate</h3>
-    <p>Nei moduli PDF il campo <strong>measures_adopted</strong> visualizza, per ogni azione esportabile, prima il testo dell’azione e poi data e ora. Questo rende il testo più leggibile nei moduli finali, ad esempio: “Isolamento host compromesso — 2026-05-17 10:35”.</p>
-    <h3>Come aggiungere un’azione</h3>
-    <ol>
-      <li>Aprire il dettaglio incidente.</li>
-      <li>Nella sezione Azioni scegliere data e ora effettive.</li>
-      <li>Selezionare la label più appropriata.</li>
-      <li>Inserire una descrizione sintetica ma verificabile.</li>
-      <li>Compilare le conseguenze associate se l’azione documenta o produce un effetto specifico sull’incidente.</li><li>Caricare eventuali allegati tecnici o comunicazioni.</li>
-      <li>Controllare il flag exportable se l’azione deve comparire tra le misure adottate nei moduli.</li>
-      <li>Salvare.</li>
-    </ol>
-  </section>
-
-  <section id="cap-notifiche" class="doc-chapter" data-doc-title="Notifiche email utente CSIRT DPO template placeholder azione automatica">
-    <h2>7. Notifiche e-mail e notifica all’utente richiesta</h2>
-    <p>Le notifiche sono generate da template configurabili. Gli amministratori possono creare tipi di notifica, template, destinatari da impostazioni o destinatari manuali, oggetto, corpo e label azione da generare automaticamente dopo l’invio.</p>
-    <h3>Notifica all’utente</h3>
-    <p>Quando la notifica all’utente è richiesta, il registro deve contenere l’azione corrispondente. Se manca, viene mostrato un avviso procedurale nel dettaglio incidente e il simbolo ⚠ nella pagina principale. L’azione può essere inserita manualmente oppure generata dall’invio della notifica tramite template associato alla relativa label.</p>
-    <h3>Invio passo-passo</h3>
-    <ol>
-      <li>Aprire il dettaglio incidente.</li>
-      <li>Scegliere il tipo di notifica disponibile.</li>
-      <li>Se richiesto, inserire destinatario e CC manuali.</li>
-      <li>Selezionare eventuali documenti richiesti dal placeholder documenti.</li>
-      <li>Visualizzare l’anteprima dell’e-mail.</li>
-      <li>Confermare l’invio.</li>
-      <li>Verificare che nel diario azioni sia stata creata l’azione automatica con il PDF del testo mail inviato.</li>
-    </ol>
-    <p>I placeholder disponibili nei template permettono di inserire automaticamente dati dell’incidente, report, elenco documenti, elenco azioni, dati personali, categorie, stato e compilatore.</p>
-    <h3>Promemoria automatici delle scadenze azioni</h3>
-    <p>Gli amministratori possono assegnare alle label azione un <strong>Tempo massimo (ore)</strong> numerico espresso in ore. Il valore predefinito è 0: zero significa che non esiste un tempo massimo per quella azione e quindi la label non entra nei promemoria automatici. Se il valore è maggiore di zero, indica entro quante ore, a partire dalla prima azione di tipo informazione iniziale, quella specifica attività dovrebbe essere registrata nell’incidente.</p>
-    <p>Quando i promemoria sono abilitati nelle impostazioni notifiche, a intervalli regolari configurabili in ore e minuti il sistema controlla gli incidenti aperti non silenziati. L’invio delle email può essere disabilitato totalmente da Admin → Notifiche. Se l’invio è abilitato, la mail riepilogativa viene spedita solo per incidenti con almeno una unità di personale selezionata; in assenza di personale associato non parte alcuna email. Il messaggio elenca le azioni dotate di tempo massimo che non risultano ancora registrate, indicando per ciascuna la scadenza e il tempo rimanente o superato. Il testo del messaggio viene costruito dal template configurato dall’amministratore con placeholder nella sintassi <code>%testo%</code>, ad esempio <code>%incident_name%</code> e <code>%pending_actions%</code>. Nella pagina di dettaglio di ogni incidente gli utenti abilitati alla modifica possono attivare <strong>Silenzia notifiche email per task in scadenza</strong>: l’incidente resta aperto e gestibile, ma viene escluso dai promemoria automatici.</p>
-
-  </section>
-
-  <section id="cap-documenti" class="doc-chapter" data-doc-title="Documenti allegati file evidenze report caricamento scaricamento cancellazione">
-    <h2>8. Documenti e allegati</h2>
-    <p>I documenti dell’incidente rappresentano file generali collegati alla scheda, mentre gli allegati delle azioni rappresentano evidenze specifiche di una singola attività. Usare i documenti per report complessivi, protocolli, comunicazioni ricevute o prodotte; usare gli allegati azione per screenshot, log, e-mail o evidenze legate a una specifica fase temporale.</p>
-    <h3>Buone pratiche</h3>
+  <section id="cap-creazione" class="doc-chapter" data-doc-title="creare nuovo incidente campi obbligatori raccomandazioni drag drop">
+    <h2>4. Creare un nuovo incidente</h2>
+    <p>La form di creazione raccoglie i dati iniziali: titolo, descrizione, periodo, stato, gravità, presenza di dati personali e informazioni organizzative. Compilare i campi disponibili con dati precisi riduce il rischio di dover integrare informazioni prima della generazione dei moduli PDF.</p>
+    <p>Categorie, dati interessati, personale e raccomandazioni si selezionano con drag & drop. Le raccomandazioni sono limitate dal valore configurato in <strong>Admin → Raccomandazioni</strong>, con default pari a 3; il limite viene controllato anche lato server.</p>
+    <h3>Checklist di apertura</h3>
     <ul>
-      <li>Usare nomi file descrittivi e datati.</li>
-      <li>Caricare come allegato dell’azione il file che prova l’attività descritta.</li>
-      <li>Verificare che i documenti necessari siano presenti prima di inviare notifiche che li richiedono.</li>
-      <li>Conservare l’export completo quando serve migrare o archiviare l’intero registro.</li>
+      <li>Inserire un titolo chiaro e riconoscibile.</li>
+      <li>Descrivere i fatti noti senza ipotesi non verificate.</li>
+      <li>Associare il personale coinvolto o responsabile.</li>
+      <li>Selezionare le categorie e i dati interessati più appropriati.</li>
+      <li>Salvare e aggiungere subito l’azione di informazione iniziale se disponibile.</li>
     </ul>
   </section>
 
-  <section id="cap-moduli" class="doc-chapter" data-doc-title="Configurazione moduli PDF AcroForm mapping template sostituzione campi compilati stampa finale">
-    <h2>9. Configurazione e generazione moduli PDF</h2>
-    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-modules.png') }}" alt="Schermata illustrativa della configurazione moduli"><figcaption>Figura 4 - Esempio di mapping tra campi database e campi AcroForm dei template PDF.</figcaption></figure>
-    <p>La funzione Moduli consente di caricare template PDF AcroForm, analizzare i campi compilabili, associare ciascun campo PDF a un campo del database e generare documenti finali compilati.</p><p><strong>Persistenza dei template PDF.</strong> I template caricati nella configurazione moduli sono salvati nella directory operativa persistente e anche in una copia sicura nel database. Dopo un riavvio, se il file PDF non è più presente nella directory dei template, l’applicazione lo ripristina automaticamente dal database mantenendo mapping, font, dimensione e nome del template.</p><p>Nel dettaglio incidente, la sezione <strong>Generazione moduli</strong> mostra i template come schede selezionabili: per scegliere un template è sufficiente fare click sulla scheda. La scheda selezionata viene evidenziata con un colore diverso; un secondo click la deseleziona. È possibile selezionare più template prima di premere <strong>Genera documenti</strong>.</p>
-    <h3>Creare una configurazione modulo</h3>
-    <ol>
-      <li>Accedere a <strong>Moduli → Configurazione</strong>.</li>
-      <li>Caricare un PDF con campi AcroForm.</li>
-      <li>Analizzare il template: il sistema mostra i nomi dei campi PDF rilevati.</li>
-      <li>Associare ogni campo PDF al campo database desiderato trascinando o selezionando i campi disponibili.</li>
-      <li>Impostare font e dimensione da usare nella compilazione.</li>
-      <li>Salvare la configurazione.</li>
-    </ol>
-    <h3>Sostituire un PDF template mantenendo i mapping</h3>
-    <p>È possibile sostituire il modello PDF di un template esistente, a parità di campi compilabili. Il sistema confronta i campi AcroForm del nuovo PDF con quelli già configurati. Se sono compatibili, conserva mapping, nome template, font e impostazioni; se mancano campi necessari, la sostituzione viene bloccata per evitare perdite di compilazione.</p>
-    <h3>PDF generati come stampa finale</h3>
-    <p>Il PDF prodotto è un nuovo file statico: i valori vengono disegnati sulle pagine e i campi compilabili non restano presenti nel documento finale. Questo evita problemi di visualizzazione in lettori PDF diversi e rende il documento adatto ad archiviazione, invio e protocollazione.</p>
-    <h3>Campi dinamici disponibili</h3>
+  <section id="cap-dettaglio" class="doc-chapter" data-doc-title="dettaglio incidente scheda sezioni consultazione modifica">
+    <h2>5. Pagina dello specifico incidente</h2>
+    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-incident-detail.png') }}" alt="Schermata illustrativa del dettaglio incidente"><figcaption>Figura 3 - Dettaglio incidente con avvisi, azioni, promemoria e documenti collegati.</figcaption></figure>
+    <p>La pagina dello specifico incidente è il punto di lavoro principale. In alto sono mostrati riepilogo e avvisi procedurali. Seguono le sezioni operative per azioni, promemoria, documenti, allegati, moduli PDF e report.</p>
+    <p>Gli errori relativi a un’operazione vengono mostrati nella sezione in cui l’operazione è stata richiesta. Questo aiuta a capire immediatamente quale azione correggere, senza cercare messaggi generici in cima alla pagina.</p>
+  </section>
+
+  <section id="cap-azioni" class="doc-chapter" data-doc-title="azioni incidente exportable conclusione chiusura allegati timeline">
+    <h2>6. Azioni, allegati e chiusura</h2>
+    <p>Le azioni descrivono ciò che è stato fatto sull’incidente. Ogni azione ha una label, una data e ora, una descrizione e, se necessario, allegati. Le nuove azioni possono essere esportabili per default in base alla configurazione della relativa label.</p>
+    <p>L’inserimento dell’azione di conclusione può aggiornare automaticamente lo stato a <strong>chiuso</strong> e impostare data e ora di fine. La chiusura viene impedita se sono ancora presenti avvisi procedurali attivi.</p>
+    <p>Le date e ore predefinite nelle form usano la timezone applicativa configurata. Nei report PDF gli orari sono formattati con secondi interi.</p>
+  </section>
+
+  <section id="cap-avvisi" class="doc-chapter" data-doc-title="avvisi procedurali notifica utente richiesta blocco chiusura">
+    <h2>7. Avvisi procedurali e controlli prima della chiusura</h2>
+    <p>Gli avvisi procedurali evidenziano attività da valutare o completare. La sezione è collocata in cima alla pagina dello specifico incidente, così gli operatori vedono subito eventuali condizioni aperte.</p>
+    <p>La voce <strong>Notifica all’utente richiesta</strong> indica che la comunicazione verso l’utente deve essere gestita secondo le procedure interne. Quando l’avviso è attivo, occorre registrare o generare l’azione corrispondente prima di chiudere l’incidente.</p>
+    <p>Un incidente con avvisi attivi non può essere chiuso. Il sistema mostra il messaggio nella sezione interessata, permettendo di correggere i dati mancanti o registrare l’azione necessaria.</p>
+  </section>
+
+  <section id="cap-promemoria" class="doc-chapter" data-doc-title="promemoria schedulati incidente data ora messaggio cc personale">
+    <h2>8. Promemoria schedulati dell’incidente</h2>
+    <p>Per ogni incidente è possibile creare promemoria puntuali con data, ora, messaggio e indirizzi CC opzionali. I destinatari principali sono ricavati dal personale associato all’incidente.</p>
+    <p>Dalla pagina dello specifico incidente si possono aggiungere, modificare, cancellare e reinviare i promemoria. La sezione è formattata per essere utilizzabile anche da mobile: i campi si dispongono su più righe e non devono uscire dallo schermo.</p>
+    <p>Se l’applicazione viene riavviata, lo scheduler recupera i promemoria specifici scaduti e non ancora inviati. Per i promemoria puntuali vengono inviati tutti quelli ancora non inviati; la deduplicazione usa le informazioni già presenti nell’audit e nello stato delle notifiche.</p>
+  </section>
+
+  <section id="cap-notifiche" class="doc-chapter" data-doc-title="notifiche email deadline cron schedule link incidente">
+    <h2>9. Notifiche e-mail</h2>
+    <p>Le notifiche possono essere inviate manualmente dagli operatori oppure automaticamente dallo scheduler. Le notifiche relative a incidenti includono sempre il link diretto alla pagina dell’incidente, in modo che il destinatario possa aprire subito il contesto corretto.</p>
+    <p>Le notifiche per task con scadenza usano una pianificazione di tipo cron, con orari specifici o intervalli. La pianificazione è calcolata rispetto alla mezzanotte della timezone applicativa e non rispetto all’avvio dell’applicazione.</p>
+    <p>Per evitare duplicati, l’applicazione tiene traccia dell’ultimo invio riuscito per tipologia/notifica e non reinvia messaggi identici all’interno dello stesso intervallo tra due schedule successive.</p>
+  </section>
+
+  <section id="cap-documenti" class="doc-chapter" data-doc-title="documenti allegati moduli pdf report incidente logo indice">
+    <h2>10. Documenti, moduli PDF e report</h2>
+    <p>La sezione Documenti consente di allegare file all’incidente. Gli allegati delle singole azioni restano invece collegati alla relativa attività cronologica. I report PDF degli incidenti includono copertina, loghi, indice sintetico, sezioni ordinate, numeri di pagina e durata quando disponibile.</p>
+    <p>I moduli PDF sono generati a partire dai template configurati dall’amministratore. Prima della generazione, se un campo richiesto dal template non è compilato, l’applicazione chiede di inserire i dati mancanti anche per più campi contemporaneamente.</p>
+    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-modules.png') }}" alt="Schermata illustrativa della generazione moduli"><figcaption>Figura 4 - Configurazione e generazione dei moduli PDF da template.</figcaption></figure>
+  </section>
+
+  <section id="cap-export" class="doc-chapter" data-doc-title="export import audit csv backup tracciamento">
+    <h2>11. Export, import e audit visibile all’utente</h2>
+    <p>Le funzioni di export permettono di salvare dati in CSV o in un archivio completo. Il full export/import include configurazioni, incidenti, documenti, moduli, audit, stato notifiche, certificati SSL e altri dati applicativi previsti.</p>
+    <p>Le operazioni degli utenti, dello scheduler e dei task automatizzati sono registrate nella tabella di audit. Per ridurre il flooding, i record consecutivi identici vengono collassati e conteggiati; viene comunque scritto un nuovo record ogni 100 occorrenze uguali.</p>
+  </section>
+
+  <section id="cap-mobile" class="doc-chapter" data-doc-title="mobile accessibilita responsive buone pratiche leggibilita">
+    <h2>12. Uso mobile, accessibilità e buone pratiche</h2>
+    <p>L’interfaccia è progettata per funzionare anche su schermi piccoli. Tabelle, promemoria e form critiche usano wrapping e layout responsive per mantenere i campi leggibili.</p>
     <ul>
-      <li><strong>data venuta a conoscenza</strong>: data della prima azione di tipo informazione iniziale.</li>
-      <li><strong>ora venuta a conoscenza</strong>: ora della prima azione di tipo informazione iniziale.</li>
-      <li><strong>measures_adopted</strong>: elenco delle sole azioni exportable, con descrizione della label azione se presente, testo prima e data/ora dopo.</li><li><strong>category_descriptions</strong>: descrizioni delle categorie incidente associate, usate come “Descrizione e causa”.</li><li><strong>data_subjects_count</strong>: numero o descrizione sintetica degli interessati.</li><li><strong>data_volume</strong>: volume dati interessato.</li><li><strong>privacy_authority_non_notification_reason</strong>: motivazione non comunicazione al Garante configurata in Admin → Altre configurazioni.</li><li><strong>documentation_location</strong>: luogo di conservazione della documentazione configurato in Admin → Altre configurazioni.</li>
-      <li><strong>actions</strong>: elenco completo delle azioni cronologiche.</li>
-      <li><strong>ruolo titolare</strong>, <strong>struttura</strong>, dati responsabile e raccomandazioni configurate.</li>
+      <li>Usare descrizioni brevi ma complete.</li>
+      <li>Allegare evidenze in formato leggibile e con nomi significativi.</li>
+      <li>Controllare gli avvisi procedurali prima di generare report o chiudere l’incidente.</li>
+      <li>Evitare modifiche non necessarie dopo la chiusura; se indispensabili, documentarle con un’azione.</li>
     </ul>
   </section>
 
-  <section id="cap-report" class="doc-chapter" data-doc-title="Report statistiche PDF CSV full export full import backup database campi">
-    <h2>10. Report, statistiche, export e import</h2>
-    <figure class="doc-figure"><img src="{{ url_for('static', filename='help/charts-reporting.png') }}" alt="Esempi di grafici della reportistica"><figcaption>Figura 5 - Esempi di grafici usati nella reportistica PDF e nelle statistiche.</figcaption></figure>
-    <h3>Report PDF incidente</h3>
-    <p>Dal dettaglio incidente è possibile generare un report PDF riepilogativo con dati principali, categorie, dati interessati, personale, raccomandazioni, azioni, documenti e allegati.</p>
-    <p>Le checkbox presenti nelle altre funzioni, ad esempio nelle anteprime o in alcune configurazioni, sono visualizzate in formato compatto per lasciare più spazio ai contenuti testuali.</p>
-    <h3>Statistiche</h3>
-    <p>La pagina Report → Statistiche consente di analizzare periodi configurabili e scaricare un PDF con riepiloghi, tabelle e grafici.</p>
-    <h3>Export CSV</h3>
-    <p>L’export CSV è utile per analisi tabellari degli incidenti. Contiene i campi principali e può essere aperto con fogli elettronici.</p>
-    <h3>Full export</h3>
-    <p>L’export completo produce un archivio con tutte le colonne reali del database, le tabelle di relazione, incidenti, utenti, configurazioni, notifiche, template, documenti, allegati, logo custom e template moduli PDF. I campi data inizio, ora inizio, data fine e ora fine sono esportati esplicitamente.</p>
-    <h3>Full import</h3>
-    <p>Il full import ripristina dati e file da un archivio completo. Usarlo con attenzione, preferibilmente dopo un backup dell’istanza corrente.</p>
-  </section>
-
-  <section id="cap-admin" class="doc-chapter" data-doc-title="Admin configurazioni utenti LDAP SSO OAuth2 OpenID Connect logo custom liste personale SMTP notifiche struttura titolare responsabile raccomandazioni">
-    <h2>11. Amministrazione e configurazioni</h2>
-    <p>Le funzioni amministrative sono riservate al ruolo admin. Da Admin si gestiscono liste configurabili, personale, utenti, LDAP, SSO, logo custom, dati titolare, struttura, responsabile e raccomandazioni.</p>
-    <h3>Liste configurabili</h3>
-    <p>Le liste determinano valori disponibili per gravità, categorie, dati interessati e label azioni. Modificarle con attenzione perché influenzano classificazione, report, notifiche e moduli. La pagina <strong>Admin → Liste configurabili</strong> mostra le sezioni in sequenza verticale, una sotto l’altra, per dare più spazio ai campi Nome, Descrizione, Tempo massimo (ore) ed Esportabile per default durante la modifica. Nella sezione <strong>Label azioni</strong>, il flag Esportabile per default determina il valore iniziale del campo exportable quando una nuova azione viene inserita in un incidente.</p>
-
-    <h3>SSO / OAuth2 / OpenID Connect</h3>
-    <p>La voce <strong>Admin → SSO</strong> consente agli amministratori di configurare più profili di login federato tramite provider OAuth2/OpenID Connect, anche attivi contemporaneamente. Per attivarlo:</p>
+  <section id="cap-esempi" class="doc-chapter" data-doc-title="esempi operativi apertura chiusura data breach comunicazioni">
+    <h2>13. Esempi operativi</h2>
+    <h3>Incidente tecnico senza dati personali</h3>
     <ol>
-      <li>Registrare l’applicazione sul provider SSO e copiare il redirect URI HTTPS mostrato nella pagina Admin → SSO.</li>
-      <li>Compilare authorization endpoint, token endpoint e userinfo endpoint.</li>
-      <li>Inserire client ID e client secret generati dal provider.</li>
-      <li>Lasciare gli scope <code>openid email profile</code> per provider OIDC standard, oppure adattarli alle policy del provider.</li>
-      <li>Configurare i claim usati per username, email, nome e soggetto univoco; i valori tipici sono <code>preferred_username</code>, <code>email</code>, <code>name</code> e <code>sub</code>.</li>
-      <li>Decidere se creare automaticamente gli utenti SSO e quale ruolo assegnare. Il ruolo consigliato per i nuovi utenti è <code>disabled</code>, così l’amministratore li abilita manualmente da Admin → Utenti.</li>
-      <li>Premere <strong>Controlla configurazione</strong> per verificare subito i valori inseriti nella form. Il controllo verifica parametri obbligatori, raggiungibilità degli endpoint, scope e claim principali senza creare utenti e senza modificare il database.</li>
-      <li>Se il controllo non mostra errori bloccanti, salvare la configurazione.</li>
-      <li>Usare <strong>Avvia test login interattivo</strong> per provare il flusso reale con redirect verso il provider e ritorno sulla callback applicativa.</li>
-      <li>Abilitare il login SSO e salvare. Nella login comparirà un pulsante “Accedi con …” per ciascun profilo SSO attivo.</li>
+      <li>Aprire l’incidente e descrivere il problema tecnico.</li>
+      <li>Associare personale e categorie rilevanti.</li>
+      <li>Registrare analisi, mitigazione e ripristino come azioni.</li>
+      <li>Allegare log o report tecnici.</li>
+      <li>Verificare l’assenza di avvisi e chiudere con azione di conclusione.</li>
     </ol>
-    <p>Il pulsante Controlla configurazione non richiede conferme di cancellazione e usa i valori correnti della form. Nel controllo SSO una risposta 401 o 403 dallo UserInfo endpoint può essere normale, perché la verifica tecnica non possiede un access token reale. Gli utenti SSO non usano password locali nell’applicazione; il cambio password resta disponibile solo per utenti locali.</p>
-
-    <h3>Logo custom e logo applicativo</h3>
-    <p>Il logo custom caricato dall’amministratore resta visualizzato nella barra superiore e nella login. Il nuovo logo pittorico dell’applicazione è un elemento separato: appare sempre nella pagina di login e nella barra del menu principale nelle viste desktop/non mobile; la variante decorativa in basso a destra resta disponibile nelle pagine interne desktop. Nella versione mobile il logo pittorico della barra e quello decorativo sono nascosti per preservare spazio operativo. Il logo custom non viene sostituito o modificato.</p>
-    <h3>SMTP e notifiche</h3>
-    <p>Le impostazioni SMTP definiscono host, porta, TLS/SSL, autenticazione, mittente predefinito e destinatari di sistema. I template di notifica definiscono testo, placeholder, tipo notifica e azione automatica associata.</p>
-  </section>
-
-  <section id="cap-esempi" class="doc-chapter" data-doc-title="Esempi passo passo phishing malware data breach notifica utente">
-    <h2>12. Esempi completi di gestione incidente</h2>
-    <h3>Esempio A: phishing con credenziali compromesse</h3>
+    <h3>Incidente con possibile data breach</h3>
     <ol>
-      <li>Creare incidente “Phishing credenziali utente”.</li>
-      <li>Impostare categoria “phishing”, dati interessati “credenziali” e gravità coerente.</li>
-      <li>Aggiungere azione “informazione iniziale” con data e ora della segnalazione.</li>
-      <li>Aggiungere azione “analisi header e link” con allegato screenshot o messaggio originale.</li>
-      <li>Aggiungere azione “reset password e revoca sessioni”, lasciando exportable attivo perché è una misura adottata.</li>
-      <li>Se la notifica all’utente è richiesta, inviarla tramite template o registrare l’azione corrispondente.</li>
-      <li>Verificare che non compaia più ⚠ nella pagina principale.</li>
-      <li>Generare report PDF e, se necessario, modulo PDF compilato.</li>
-    </ol>
-    <h3>Esempio B: data breach con comunicazione documentale</h3>
-    <ol>
-      <li>Creare l’incidente e indicare dati personali coinvolti.</li>
-      <li>Registrare informazione iniziale, analisi, contenimento e valutazione impatto.</li>
-      <li>Caricare documenti di supporto nella sezione Documenti.</li>
-      <li>Inviare notifiche configurate a CSIRT, DPO o altri destinatari.</li>
-      <li>Controllare gli avvisi procedurali e completare eventuali azioni mancanti.</li>
-      <li>Generare report e full export per conservazione completa.</li>
+      <li>Registrare immediatamente l’informazione iniziale.</li>
+      <li>Compilare dati personali, categorie, gravità e soggetti coinvolti.</li>
+      <li>Valutare gli avvisi procedurali, inclusa la notifica all’utente richiesta quando applicabile.</li>
+      <li>Generare i moduli PDF necessari e inviare le notifiche previste.</li>
+      <li>Produrre il report finale e chiudere solo dopo la risoluzione degli avvisi.</li>
     </ol>
   </section>
-
-  <section id="cap-mobile" class="doc-chapter" data-doc-title="Mobile accessibilità tastiera responsive logo nascosto">
-    <h2>13. Uso mobile, accessibilità e buone pratiche</h2>
-    <p>L’interfaccia è responsive: su dispositivi mobili il menu diventa compatto, le tabelle principali possono trasformarsi in schede e i controlli sono dimensionati per il tocco. Il titolo verticale dell’applicazione e i loghi pittorici delle pagine interne sono nascosti su mobile per non occupare spazio operativo.</p>
-    <h3>Accessibilità</h3>
-    <p>I menu sono navigabili da tastiera, la ricerca della guida usa aggiornamenti testuali leggibili dagli screen reader e i link principali mantengono etichette descrittive. Usare descrizioni chiare nelle azioni e nei documenti migliora anche la ricerca e la qualità dei report.</p>
-    <h3>Checklist finale per un incidente</h3>
-    <ul>
-      <li>La scheda principale è completa.</li>
-      <li>Esiste una prima azione di informazione iniziale.</li>
-      <li>Le misure operative sono marcate exportable se devono comparire nei moduli.</li>
-      <li>La notifica all’utente richiesta è presente come azione.</li>
-      <li>Non compaiono avvisi procedurali non risolti.</li>
-      <li>Report, moduli e full export sono generati se necessari.</li>
-    </ul>
-  </section>
-  <section id="cap-mfa" class="doc-chapter" data-doc-title="MFA TOTP autenticazione multi fattore token QR Code sicurezza login">
-    <h2>14. Multi-factor authentication personale</h2>
-    <p>Gli utenti locali e LDAP possono proteggere l'accesso con MFA basata su TOTP. La funzione è disattivata per default e deve essere abilitata dalla pagina <strong>Impostazioni → Multi-factor authentication</strong>.</p>
-    <ol>
-      <li>Aprire <strong>Impostazioni → Multi-factor authentication</strong>.</li>
-      <li>Creare un token inserendo un nome descrittivo, ad esempio “Telefono personale”.</li>
-      <li>Scansionare il QR Code con un'app compatibile TOTP oppure copiare la stringa segreta.</li>
-      <li>Inserire nella pagina il codice generato dall'app e premere <strong>Verifica e salva token</strong>.</li>
-      <li>Solo dopo la verifica positiva, selezionare <strong>MFA attiva per la mia utenza</strong> e salvare.</li>
-      <li>Al login successivo, dopo username/password o LDAP, inserire il codice generato dall'app.</li>
-      <li>In caso di sostituzione dispositivo, creare un nuovo token e cancellare quello precedente.</li>
-    </ol>
-    <p>La stringa segreta e il QR Code vengono mostrati durante la verifica iniziale. Il token viene salvato solo se il codice TOTP è corretto; se si elimina l’ultimo token verificato, la MFA viene disattivata automaticamente.</p>
-  </section>
-
-
-<section id="cap-full-export-completo" class="doc-chapter" data-doc-title="full export completo database documenti template loghi configurazioni backup ripristino">
-  <h2>Full export completo e verificabile</h2>
-  <p>Il full export crea un archivio completo dell'applicazione. Sono inclusi tutti i campi reali del database, tutte le configurazioni, utenti, ruoli, MFA, SSO, LDAP, notifiche, label, categorie, incidenti, azioni, raccomandazioni e relazioni.</p>
-  <p>L'archivio contiene anche tutti i documenti associati agli incidenti, gli allegati delle azioni, tutti i template PDF dei moduli, le copie binarie persistenti dei template, il logo custom e i loghi applicativi statici.</p>
-  <p>Nel file <code>export.json</code> sono presenti le sezioni <code>schema</code>, <code>tables</code>, <code>relations</code> e <code>files</code>. La sezione <code>schema._coverage</code> riepiloga le aree incluse nell'esportazione e consente un controllo rapido prima dell'archiviazione o del ripristino.</p>
-</section>
-
 </div>
-<section class="doc-chapter" data-doc-title="URL applicazione placeholder external_url report statistics notifiche task scadenza"><section class="doc-chapter" data-doc-title="mantenimento posizione pagina incidente salvataggio azione upload documenti generazione moduli">
-  <section class="doc-chapter" data-doc-title="time zone applicazione azioni data ora predefinita conclusione chiusura automatica">
-  <section class="doc-chapter" data-doc-title="validazione campi obbligatori moduli PDF generazione template mapping campi mancanti">
-  <section class="doc-chapter" data-doc-title="audit log errori contestuali menu moduli retention">
-  <section class="doc-chapter" data-doc-title="audit admin export import retention ricerca configurazioni">
-  <section class="doc-chapter" data-doc-title="retention audit mesi giorni ore minuti configurazioni">
-  <h2>Promemoria specifici per incidente</h2><p>Dal dettaglio incidente è possibile programmare promemoria con data e ora, messaggio personalizzato e CC opzionali. I destinatari principali sono il personale associato all’incidente.</p><p>Lo scheduler recupera dopo un riavvio tutti i promemoria specifici scaduti e non ancora inviati, registrando gli invii nella tabella audit.</p>
-
-
-
-
-
-
-
-
-
-
-
-<section class="doc-chapter card"><h2>Scheduler notifiche in scadenza</h2><p>Le notifiche periodiche dei task in scadenza sono eseguite da uno scheduler interno indipendente dal traffico web. L’intervallo funzionale resta quello configurato in <strong>Admin → Notifiche</strong>; ogni esecuzione effettiva viene registrata nel registro audit.</p></section>
-<section class="doc-chapter"><section class="doc-chapter" data-doc-title="menu admin sottogruppi chiusi default"><h2>Menu Admin compatto</h2><p>Il menu Admin è organizzato in sottogruppi collassabili e, a ogni caricamento della pagina, viene mostrato con tutti i sottogruppi chiusi per default.</p></section>
-
-
-
-
-<section class="doc-chapter card" data-doc-title="audit collasso record ripetuti note rilascio"><h2>Audit sintetico e note di rilascio</h2><p>Il registro audit collassa i record consecutivi identici: invece di creare molte righe uguali, incrementa il numero di occorrenze del record corrente. Ogni blocco viene comunque chiuso al raggiungimento di 100 occorrenze, poi il conteggio riparte su un nuovo record.</p><p>Le note di versione sono disponibili dal menu <strong>Aiuto → Note di rilascio</strong>, separate dalla documentazione operativa.</p></section>
-
-
-<section class="doc-chapter card" data-doc-title="audit csv purge amministrazione"><h2>Audit e salvataggio CSV</h2><p>Gli amministratori possono consultare l’audit con ricerca, paginazione, conteggi totali e intervallo visualizzato. La pagina Audit consente anche di salvare il registro corrente in CSV e di gestire purge automatico o manuale secondo ritenzione temporale e numero massimo di record.</p></section>
-<section class="doc-chapter card" data-doc-title="menu aiuto documentazione utente pdf note rilascio"><h2>Menu Aiuto e PDF</h2><p>Il menu <strong>Aiuto</strong> contiene <strong>Documentazione utente</strong>, <strong>Documentazione amministrativa</strong> e <strong>Note di rilascio</strong>. Le voci dirette per scaricare i PDF sono state rimosse dal menu; ogni PDF resta scaricabile dal pulsante presente nella pagina corrispondente.</p></section>
-<section class="doc-chapter card"><h2>Notifiche deadline senza duplicati</h2><p>Le notifiche dei task in scadenza non vengono reinviate più volte nello stesso intervallo tra due schedule successive: l’applicazione conserva l’ultimo invio riuscito per incidente e salta i poll ripetuti della stessa finestra.</p></section>
 {% endblock %}

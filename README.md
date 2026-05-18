@@ -540,3 +540,8 @@ Il container espone ora anche la porta 8443 per l'accesso HTTPS/SSL opzionale. L
 La configurazione può essere eseguita tramite variabili di ambiente in Docker Compose o Kubernetes: `SSL_ENABLED`, `SSL_PORT`, `SSL_DIR`, `SSL_CERT_FILE` e `SSL_KEY_FILE`. In alternativa, un amministratore può usare la nuova voce **Admin → HTTPS/SSL** per abilitare o disabilitare l'accesso HTTPS e caricare certificato host e chiave privata in formato PEM. Se HTTPS viene abilitato ma certificato o chiave privata non sono presenti, il listener HTTPS resta spento e l'accesso HTTP continua a funzionare.
 
 Il full export/import include anche i certificati SSL caricati dall'interfaccia, così da mantenere ripristinabile la configurazione applicativa completa.
+
+
+## Documentazione - 0.1.0-121
+
+La documentazione utente e amministrativa è stata riorganizzata in capitoli più chiari, con procedure, checklist, esempi e layout migliorato per evitare testi fuori dai riquadri nelle versioni online e PDF.

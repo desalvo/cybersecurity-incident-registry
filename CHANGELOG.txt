@@ -1,3 +1,9 @@
+
+0.1.0-121
+- Riorganizzata la documentazione utente e amministrativa in capitoli più completi, con procedure, checklist, esempi e troubleshooting.
+- Aggiornate le versioni bilingue online/PDF, mantenendo il download PDF dall’interno delle pagine.
+- Migliorato il layout grafico della documentazione per evitare overflow di titoli, testi, tabelle e riquadri, anche nella sezione del flusso operativo consigliato.
+
 0.1.0-120
 - Aggiunto supporto opzionale HTTPS/SSL su porta 8443 nel container.
 - HTTP su porta 8000 resta sempre disponibile e non è bloccato dalla mancanza di certificati.
