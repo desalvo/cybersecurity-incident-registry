@@ -60,9 +60,15 @@ Gli amministratori possono configurare l’accesso federato da **Admin → SSO**
 - scope OAuth2/OpenID Connect, di default `openid email profile`;
 - nomi dei claim da usare per username, email, nome e identificativo univoco;
 - creazione automatica degli utenti SSO e ruolo predefinito, di default `disabled`;
-- logo opzionale del provider, mostrato sul pulsante di login se presente.
+- logo opzionale del provider, mostrato sul pulsante di login se presente. I loghi condivisi caricati dalla UI sono salvati nella directory persistente configurata con `SSO_LOGO_DIR`, default `/data/sso_logos`, e non sotto l'area statica effimera del container.
 
 Il redirect URI da registrare sul provider viene mostrato nella pagina Admin → SSO. La stessa pagina include il pulsante **Controlla configurazione**, che usa i valori presenti nella form anche prima del salvataggio e verifica parametri obbligatori, endpoint di autorizzazione, token endpoint, UserInfo endpoint, scope e claim principali. Il controllo è non distruttivo: non crea utenti e non completa un login reale. Per la prova completa è disponibile anche **Avvia test login interattivo**, che usa il normale flusso OAuth2 con redirect verso il provider. Il login locale e LDAP restano disponibili. Gli utenti SSO creati automaticamente possono essere abilitati o promossi da **Admin → Utenti**.
+
+### Storage persistente loghi SSO
+
+I loghi condivisi dei profili SSO/OAuth2 caricati da **Admin → SSO** sono salvati fuori da `app/static`, nella directory indicata dalla variabile d’ambiente `SSO_LOGO_DIR`. Il default è `/data/sso_logos`. Nei container di produzione questa directory deve essere montata su volume persistente; il `docker-compose.yml` include il volume nominato `sso_logos` e i manifest Kubernetes includono la PVC `cir-sso-logos`.
+
+All’avvio l’applicazione copia nella directory persistente i loghi predefiniti inclusi nell’immagine, solo se non sono già presenti. L’export completo include i file presenti in `SSO_LOGO_DIR` e l’import completo li ripristina nella stessa area persistente.
 
 ## Kubernetes
 

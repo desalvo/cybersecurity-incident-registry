@@ -23,11 +23,12 @@ services:
       APP_VERSION: 0.2.0
       APP_BUILD: 2026051901
       FORM_TEMPLATE_DIR: /data/form_templates
+      SSO_LOGO_DIR: ${SSO_LOGO_DIR:-/data/sso_logos}
       SSL_DIR: /data/ssl
       SSL_PORT: 8443
       SSL_ENABLED: "0"
-    volumes: ["uploads:/data/uploads", "logo:/data/logo", "form_templates:/data/form_templates", "ssl:/data/ssl"]
+    volumes: ["uploads:/data/uploads", "logo:/data/logo", "form_templates:/data/form_templates", "sso_logos:/data/sso_logos", "ssl:/data/ssl"]
     depends_on:
       db:
         condition: service_healthy
-volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, ssl: {}}
+volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}}

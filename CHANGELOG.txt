@@ -1,3 +1,11 @@
+
+0.2.0-4
+- Spostato lo storage dei loghi condivisi SSO/OAuth2 caricati dalla UI in una directory persistente configurabile con SSO_LOGO_DIR, default /data/sso_logos.
+- Aggiunta rotta dedicata /sso-logos/<filename> per servire i loghi dallo storage persistente con validazione del nome file.
+- Aggiornati export/import completi per leggere e ripristinare i loghi SSO da SSO_LOGO_DIR.
+- Aggiornati docker-compose, .env.example e manifest Kubernetes con volume/PVC persistente per i loghi SSO.
+- Aggiornata la documentazione italiana e inglese.
+
 0.2.0-127
 - Hardened production baseline: CSRF protection for unsafe HTTP methods, automatic hidden token injection in POST forms, security headers and secure cookie defaults.
 - Added fail-fast production checks for weak SECRET_KEY, weak ADMIN_INITIAL_PASSWORD and SQLite usage when CIR_PRODUCTION=1.

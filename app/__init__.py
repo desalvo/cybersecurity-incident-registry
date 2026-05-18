@@ -14,6 +14,7 @@ def create_app():
     init_security(app)
     app.config['UPLOAD_DIR']=os.getenv('UPLOAD_DIR','/tmp/cir_uploads')
     app.config['LOGO_DIR']=os.getenv('LOGO_DIR','/tmp/cir_logo')
+    app.config['SSO_LOGO_DIR']=os.getenv('SSO_LOGO_DIR','/data/sso_logos')
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
@@ -22,7 +23,18 @@ def create_app():
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
-    os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True); os.makedirs(app.config['LOGO_DIR'], exist_ok=True); os.makedirs(app.config['FORM_TEMPLATE_DIR'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True); os.makedirs(app.config['LOGO_DIR'], exist_ok=True); os.makedirs(app.config['SSO_LOGO_DIR'], exist_ok=True); os.makedirs(app.config['FORM_TEMPLATE_DIR'], exist_ok=True)
+
+
+    # Copia i loghi SSO predefiniti nella directory persistente solo se non esistono.
+    packaged_sso_logos = os.path.join(app.static_folder or os.path.join(os.path.dirname(__file__), 'static'), 'sso')
+    if os.path.isdir(packaged_sso_logos):
+        for name in os.listdir(packaged_sso_logos):
+            if os.path.splitext(name)[1].lower() in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+                src = os.path.join(packaged_sso_logos, name)
+                dst = os.path.join(app.config['SSO_LOGO_DIR'], name)
+                if not os.path.exists(dst):
+                    shutil.copyfile(src, dst)
 
     # Copia i template PDF di esempio nella directory persistente solo se non esistono.
     packaged_templates = os.path.join(os.path.dirname(__file__), 'form_templates')
@@ -69,7 +81,7 @@ def create_app():
         except Exception:
             data['modules_menu_visible'] = False
         return data
-    from .routes import bp, start_deadline_notification_scheduler; app.register_blueprint(bp)
+    from .routes import bp, start_deadline_notification_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
     with app.app_context():
         wait_db(db)
         bootstrap(app)

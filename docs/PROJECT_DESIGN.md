@@ -23,7 +23,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - scheduler notifiche deadline con pianificazione cron o a intervalli, slot ancorati alla mezzanotte nel fuso applicativo, deduplica per finestra di schedule, audit degli slot utili e lock distribuito PostgreSQL per deployment multi-replica;
 - promemoria puntuali per incidente indirizzati al personale associato con CC opzionali e recupero post-riavvio;
 - report PDF incidenti con layout professionale, indice, numerazione pagine, loghi, orari con secondi interi e durata incidente quando disponibile;
-- profili SSO/OAuth2 multipli, callback HTTPS, pulsanti di login grigio chiaro, repository condiviso loghi SSO con Google/Facebook/Apple predefiniti, upload, selezione, rimozione ed export/import;
+- profili SSO/OAuth2 multipli, callback HTTPS, pulsanti di login grigio chiaro, repository condiviso loghi SSO persistente e configurabile via `SSO_LOGO_DIR`, con Google/Facebook/Apple predefiniti, upload, selezione, rimozione ed export/import;
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
@@ -242,6 +242,21 @@ Lo scheduler interno resta disabilitabile con `CIR_ENABLE_DEADLINE_SCHEDULER=0`,
 2. advisory lock PostgreSQL (`pg_try_advisory_lock`) con chiave applicativa costante, per evitare che più worker Gunicorn o più pod Kubernetes eseguano contemporaneamente notifiche deadline e promemoria specifici.
 
 In ambienti non PostgreSQL resta attivo solo il lock di processo. La deduplica funzionale per incidente/slot e i record `deadline_notification_state` continuano a proteggere dagli invii ripetuti; il lock distribuito riduce il rischio operativo e il rumore audit in produzione scalata.
+
+
+### 5.7 Storage persistente loghi SSO
+
+I loghi condivisi dei profili SSO/OAuth2 non vengono più salvati in `app/static/sso`, perché tale directory appartiene all’immagine applicativa e può essere effimera nei container. La funzione `sso_logo_storage_dir()` usa ora `current_app.config['SSO_LOGO_DIR']`, valorizzata dalla variabile d’ambiente `SSO_LOGO_DIR`, con default `/data/sso_logos`.
+
+La rotta `GET /sso-logos/<filename>` serve i loghi dallo storage persistente dopo validazione del nome file e dell’estensione. I profili continuano a memorizzare riferimenti logici nel formato `sso/<filename>` per mantenere compatibilità con configurazioni ed export esistenti; la UI converte tali riferimenti nell’URL servito dalla nuova rotta.
+
+All’avvio i loghi predefiniti presenti nel pacchetto in `app/static/sso` vengono copiati nella directory persistente solo se mancanti. Il full export legge i loghi da `SSO_LOGO_DIR`; il full import ripristina i file nella stessa directory, accettando solo path sicuri nel formato `sso/<filename>`.
+
+Configurazione produzione:
+
+- Docker Compose: volume nominato `sso_logos` montato su `/data/sso_logos` e variabile `SSO_LOGO_DIR`;
+- Kubernetes: PVC `cir-sso-logos` montata su `/data/sso_logos`;
+- `.env.example`: variabile `SSO_LOGO_DIR=/data/sso_logos`.
 
 ## 6. Interfaccia utente
 
@@ -1164,4 +1179,4 @@ La vista `Admin -> Audit` converte i timestamp audit, registrati internamente co
 
 ### Aggiornamento 0.1.0-124
 
-I profili SSO/OAuth2 supportano un logo opzionale per provider. Il profilo Google di esempio usa il logo Google statico incluso nel pacchetto. I loghi caricati sono salvati in `app/static/sso/`, referenziati nel JSON dei profili e inclusi nel full export/import.
+I profili SSO/OAuth2 supportano un logo opzionale per provider. Il profilo Google di esempio usa il logo Google incluso nel pacchetto e copiato nello storage persistente al primo avvio. I loghi caricati sono salvati nella directory configurata da `SSO_LOGO_DIR` (default `/data/sso_logos`), referenziati nel JSON dei profili nel formato logico `sso/<filename>` e inclusi nel full export/import.

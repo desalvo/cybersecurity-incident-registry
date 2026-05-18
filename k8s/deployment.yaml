@@ -22,18 +22,22 @@ spec:
         - {name: CIR_PRODUCTION, value: "1"}
         - {name: SESSION_COOKIE_SECURE, value: "1"}
         - {name: FORM_TEMPLATE_DIR, value: /data/form_templates}
+        - {name: SSO_LOGO_DIR, value: /data/sso_logos}
         - {name: SSL_DIR, value: /data/ssl}
         - {name: SSL_PORT, value: "8443"}
         - {name: SSL_ENABLED, value: "0"}
         volumeMounts:
         - {name: uploads, mountPath: /data/uploads}
         - {name: form-templates, mountPath: /data/form_templates}
+        - {name: sso-logos, mountPath: /data/sso_logos}
         - {name: ssl-certs, mountPath: /data/ssl}
       volumes:
       - name: uploads
         persistentVolumeClaim: {claimName: cir-uploads}
       - name: form-templates
         persistentVolumeClaim: {claimName: cir-form-templates}
+      - name: sso-logos
+        persistentVolumeClaim: {claimName: cir-sso-logos}
       - name: ssl-certs
         persistentVolumeClaim: {claimName: cir-ssl-certs}
 ---

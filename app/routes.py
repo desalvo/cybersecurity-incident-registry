@@ -3,7 +3,7 @@ from pathlib import Path
 from email.message import EmailMessage
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app, Response, abort, session, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_, and_, text
@@ -810,8 +810,13 @@ def google_sso_example_profile():
 
 
 def sso_logo_storage_dir():
-    """Directory unica dei loghi SSO, condivisa tra profili e full export."""
-    target_dir = Path(current_app.static_folder or 'app/static') / 'sso'
+    """Directory persistente dei loghi SSO, condivisa tra profili e full export.
+
+    La directory è configurabile tramite SSO_LOGO_DIR all'avvio del container
+    ed è pensata per essere montata su volume persistente, fuori dall'area
+    statica effimera dell'immagine applicativa.
+    """
+    target_dir = Path(current_app.config.get('SSO_LOGO_DIR') or os.getenv('SSO_LOGO_DIR') or '/data/sso_logos')
     target_dir.mkdir(parents=True, exist_ok=True)
     return target_dir
 
@@ -834,8 +839,9 @@ def list_sso_logo_assets():
 def save_sso_logo_upload(file_storage):
     """Aggiunge un logo allo storage SSO condiviso.
 
-    Il file viene salvato in app/static/sso e poi può essere associato a uno o
-    più profili dalla configurazione del profilo.
+    Il file viene salvato nella directory persistente configurata con
+    SSO_LOGO_DIR e poi può essere associato a uno o più profili dalla
+    configurazione del profilo.
     """
     if not file_storage or not getattr(file_storage, 'filename', ''):
         return ''
@@ -861,7 +867,7 @@ def save_sso_logo_upload(file_storage):
 def delete_sso_logo_asset(relative_path):
     """Rimuove un logo dallo storage condiviso e lo sgancia dai profili SSO.
 
-    La rimozione è limitata alla directory static/sso per evitare path traversal.
+    La rimozione è limitata alla directory SSO_LOGO_DIR per evitare path traversal.
     Restituisce il numero di profili aggiornati.
     """
     rel = str(relative_path or '').strip().replace('\\', '/')
@@ -1880,6 +1886,23 @@ def change_password():
         elif not verify_password(current_user.password_hash,request.form['old_password']): flash('Password attuale errata','error')
         else: current_user.password_hash=hash_password(request.form['new_password']); db.session.commit(); flash('Password aggiornata')
     return render_template('change_password.html')
+
+@bp.route('/sso-logos/<path:filename>')
+def sso_logo_asset(filename):
+    """Serve i loghi SSO dallo storage persistente configurabile."""
+    name = secure_filename(Path(filename).name)
+    if not name or name != filename or Path(name).suffix.lower() not in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+        abort(404)
+    return send_from_directory(sso_logo_storage_dir(), name)
+
+
+def sso_logo_url(relative_path):
+    """URL pubblico per un logo SSO salvato come relative_path sso/<file>."""
+    rel = str(relative_path or '').strip().replace('\\', '/')
+    if not rel.startswith('sso/') or '/' in rel[4:]:
+        return ''
+    return url_for('main.sso_logo_asset', filename=Path(rel).name)
+
 
 @bp.route('/admin/sso',methods=['GET','POST'])
 @login_required
@@ -4156,8 +4179,8 @@ def export_full():
 
 
     # Loghi SSO/OAuth2: il full export include tutto lo storage condiviso
-    # app/static/sso, compresi i loghi predefiniti e quelli caricati da GUI.
-    sso_dir = Path(current_app.static_folder or '') / 'sso'
+    # persistente SSO_LOGO_DIR, compresi i loghi predefiniti e quelli caricati da GUI.
+    sso_dir = sso_logo_storage_dir()
     if sso_dir.exists():
         for logo_file in sorted(sso_dir.iterdir(), key=lambda p: p.name.lower()):
             if logo_file.is_file() and logo_file.suffix.lower() in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
@@ -4211,7 +4234,10 @@ def export_full():
                 archive.add(src, arcname=ssl_item['archive_path'])
 
         for sso_logo in payload['files'].get('sso_logos', []):
-            src = Path(current_app.static_folder or '') / sso_logo.get('relative_path', '')
+            rel = str(sso_logo.get('relative_path', '')).replace('\\', '/')
+            if not rel.startswith('sso/') or '/' in rel[4:]:
+                continue
+            src = sso_logo_storage_dir() / Path(rel).name
             if src.exists() and src.is_file():
                 archive.add(src, arcname=sso_logo['archive_path'])
 
@@ -4467,7 +4493,10 @@ def import_full():
                     except KeyError:
                         current_app.logger.warning('Logo SSO indicato nel manifest ma non presente nell archivio: %s', arcname)
                         continue
-                    dst = Path(current_app.static_folder or '') / safe_rel
+                    if safe_rel.parts[0] != 'sso' or len(safe_rel.parts) != 2:
+                        current_app.logger.warning('Logo SSO ignorato per path non ammesso: %s', rel)
+                        continue
+                    dst = sso_logo_storage_dir() / safe_rel.name
                     dst.parent.mkdir(parents=True, exist_ok=True)
                     with open(dst, 'wb') as out:
                         shutil.copyfileobj(src, out)

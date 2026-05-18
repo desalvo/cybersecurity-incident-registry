@@ -61,9 +61,15 @@ Administrators can configure federated login from **Admin → SSO**. The configu
 - OAuth2/OpenID Connect scopes, default `openid email profile`;
 - claim names used for username, email, display name and unique identifier;
 - automatic creation of SSO users and default role, default `disabled`;
-- optional provider logo, displayed on the login button when present.
+- optional provider logo, displayed on the login button when present. Shared logos uploaded from the UI are stored in the persistent directory configured by `SSO_LOGO_DIR`, default `/data/sso_logos`, not in the container's ephemeral static area.
 
 The redirect URI to register on the provider is shown in **Admin → SSO**. The same page includes **Check configuration**, which validates the values currently present in the form even before saving and checks mandatory parameters, authorization endpoint, token endpoint, UserInfo endpoint, scopes and main claims. The check is non-destructive: it does not create users and does not complete a real login. A full test is available through **Start interactive login test**, which uses the standard OAuth2 redirect flow. Local and LDAP login remain available. Automatically created SSO users can be enabled or promoted from **Admin → Users**.
+
+### Persistent SSO logo storage
+
+Shared SSO/OAuth2 profile logos uploaded from **Admin → SSO** are stored outside `app/static`, in the directory configured through the `SSO_LOGO_DIR` environment variable. The default is `/data/sso_logos`. In production containers this path must be mounted on persistent storage; `docker-compose.yml` defines the `sso_logos` named volume and the Kubernetes manifests define the `cir-sso-logos` PVC.
+
+On startup the application copies the default provider logos shipped with the image into the persistent directory only when they are missing. Full export includes the files stored in `SSO_LOGO_DIR` and full import restores them to the same persistent area.
 
 ## Kubernetes
 

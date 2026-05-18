@@ -16,6 +16,14 @@ spec:
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
+metadata: {name: cir-sso-logos}
+spec:
+  accessModes: [ReadWriteMany]
+  resources: {requests: {storage: 100Mi}}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata: {name: cir-ssl-certs}
 spec:
   accessModes: [ReadWriteOnce]

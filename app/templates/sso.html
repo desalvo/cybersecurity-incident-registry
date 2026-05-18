@@ -15,7 +15,7 @@
       <tr>
         <td><code>{{ p.id }}</code></td>
         <td>{{ p.sso_provider_name }}</td>
-        <td>{% if p.sso_logo_path %}<img class="sso-provider-logo" src="{{ url_for('static', filename=p.sso_logo_path) }}" alt="Logo {{ p.sso_provider_name }}" onerror="this.style.display='none'">{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{% if p.sso_logo_path %}<img class="sso-provider-logo" src="{{ sso_logo_url(p.sso_logo_path) }}" alt="Logo {{ p.sso_provider_name }}" onerror="this.style.display='none'">{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{% if p.sso_enabled == '1' %}Attivo{% else %}Disattivo{% endif %}</td>
         <td>{{ p.sso_client_id }}</td>
         <td><a class="button secondary" href="{{ url_for('main.sso_settings_admin', profile=p.id) }}">Modifica</a></td>
@@ -81,7 +81,7 @@
     <div class="wide">
       <label>Logo profilo SSO (opzionale)</label>
       {% if settings.sso_logo_path %}
-        <div class="sso-logo-preview"><img src="{{ url_for('static', filename=settings.sso_logo_path) }}" alt="Logo {{ settings.sso_provider_name or 'SSO' }}" onerror="this.style.display='none'"><span class="muted">Logo corrente: <code>{{ settings.sso_logo_path }}</code></span></div>
+        <div class="sso-logo-preview"><img src="{{ sso_logo_url(settings.sso_logo_path) }}" alt="Logo {{ settings.sso_provider_name or 'SSO' }}" onerror="this.style.display='none'"><span class="muted">Logo corrente: <code>{{ settings.sso_logo_path }}</code></span></div>
         <label class="inline-check"><input type="checkbox" name="remove_sso_logo" value="1"> Rimuovi logo corrente</label>
       {% else %}
         <p class="muted">Nessun logo associato. Il pulsante di login mostrerà solo il nome del provider.</p>
