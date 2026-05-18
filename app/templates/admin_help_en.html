@@ -30,7 +30,7 @@
 <section class="doc-chapter card" data-doc-title="Update 0.1.0-108 cron notification scheduler"><h2>Update 0.1.0-108 - Cron notification scheduler</h2><p>In <strong>Admin → Notifications</strong>, deadline task notifications now support both regular intervals and specific daily times in <code>HH:MM</code> format. Administrators can use cron mode to define exact sending times while keeping interval slots. The schedule is anchored to midnight in the application timezone, not to the application startup time, and automatic deliveries record slot, outcome and SMTP errors in audit.</p></section>
 
 <section class="doc-chapter card" data-doc-title="Update 0.1.0-110 deadline notification scheduler"><h2>Update 0.1.0-110 - Deadline notification scheduler</h2><p>Periodic deadline notifications are now deduplicated at incident and cron/interval slot level. The <code>scheduler:deadline_notification_check</code> record remains diagnostic, while every successful send creates <code>scheduler:deadline_notification_sent</code>. Pending tasks are detected even when recipients are missing; in that case the scheduler records a readable skipped result.</p></section>
-{% endblock %}
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-111 deadline notification scheduler audit"><h2>Update 0.1.0-111 - Deadline notification scheduler audit</h2><p>The diagnostic <code>scheduler:deadline_notification_check</code> record is stored only for actual sends, manual checks, or once per planned cron/interval slot with no notifications to send. This reduces audit noise from repeated technical polls.</p></section>
 <section class="doc-chapter card" data-doc-title="Update 0.110-97 PDF reports documents upload timestamp integer seconds">
   <h2>Update 0.110-97 - PDF reports and attached documents</h2>
   <p>Incident PDF report generation uses explicit column widths for the Documents table: the document name is prioritised over the upload date/time column. Timestamps are normalised without microseconds and with seconds always shown as integer values.</p>
@@ -45,3 +45,7 @@
 <section class="doc-chapter"><h2>Update 0.1.0-107</h2><p>The Audit view displays concise and readable operational details. The incident-specific reminders section uses a responsive layout suitable for smartphones.</p></section>
 
 <section class="doc-chapter" data-doc-title="collapsible admin menu closed by default"><h2>Collapsible Admin menu</h2><p>Admin entries are grouped into collapsible subsections. No subsection is automatically opened when the page is reloaded.</p></section>
+
+<section class="doc-chapter card" data-doc-title="Update 0.1.0-112 administrator documentation formatting"><h2>Update 0.1.0-112 - Administrator documentation formatting</h2><p>The online and PDF administrator documentation has been revised to improve readability of cards, the recommended workflow and figures. Titles and text use stronger wrapping and images are scaled while preserving their original aspect ratio.</p></section>
+
+{% endblock %}

@@ -2394,6 +2394,25 @@ def _deadline_notification_already_sent_for_slot(incident_id, schedule_slot):
     ).first() is not None
 
 
+
+
+def _deadline_notification_check_already_audited_for_slot(schedule_slot):
+    """Evita record audit diagnostici ripetuti per lo stesso slot pianificato.
+
+    Il thread di background effettua poll frequenti: il record
+    scheduler:deadline_notification_check deve essere scritto una sola volta
+    per slot quando non ci sono invii, oppure in occasione di un invio reale.
+    """
+    if not schedule_slot:
+        return False
+    slot_label = _deadline_slot_label(schedule_slot)
+    marker_json = f'"schedule_slot": "{slot_label}"'
+    marker_text = f'slot {slot_label}'
+    return AuditLog.query.filter(
+        AuditLog.operation_type == 'scheduler:deadline_notification_check',
+        db.or_(AuditLog.details.contains(marker_json), AuditLog.details.contains(marker_text)),
+    ).first() is not None
+
 def send_deadline_summary_email(inc, pending_rows):
     recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()})
     if not recipients:
@@ -2525,22 +2544,29 @@ def run_deadline_notification_check(force=False, source='request'):
     """Controlla e invia le notifiche periodiche dei task in scadenza.
 
     La pianificazione cron/intervallo decide quando eseguire il controllo, ma
-    la deduplica dell'invio è per incidente e slot. Questo evita il problema
-    per cui un controllo automatico partito troppo presto nello stesso slot
-    marcava lo slot come eseguito e impediva notifiche successive, anche se nel
-    frattempo erano presenti task pendenti.
+    la deduplica dell'invio è per incidente e slot. Il record audit globale
+    viene scritto solo quando lo slot pianificato è effettivamente dovuto
+    oppure quando vengono inviate notifiche, evitando rumore dai poll tecnici.
     """
+    now = application_now()
+    schedule_slot = current_deadline_schedule_slot(now)
+
     if setting_value('notification_deadline_enabled', '0') != '1' and not force:
         return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'disabled'}
     if setting_value('notification_deadline_email_enabled', '1') != '1':
-        result = {'sent': 0, 'skipped': 0, 'errors': ['Invio email per task in scadenza disabilitato nelle impostazioni notifiche'], 'executed': True}
-        audit_log('scheduler:deadline_notification_check', json.dumps({**result, 'source': source}, ensure_ascii=False), actor_type='scheduler')
-        purge_audit_logs()
-        db.session.commit()
+        result = {
+            'sent': 0, 'skipped': 0,
+            'errors': ['Invio email per task in scadenza disabilitato nelle impostazioni notifiche'],
+            'executed': True, 'source': source,
+            'schedule_slot': schedule_slot.isoformat(timespec='minutes'),
+            'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
+        }
+        if force or not _deadline_notification_check_already_audited_for_slot(schedule_slot):
+            audit_log('scheduler:deadline_notification_check', json.dumps(result, ensure_ascii=False), actor_type='scheduler')
+            purge_audit_logs()
+            db.session.commit()
         return result
 
-    now = application_now()
-    schedule_slot = current_deadline_schedule_slot(now)
     # Se la modalità cron prevede solo slot futuri nella giornata corrente,
     # current_deadline_schedule_slot restituisce l'ultimo slot del giorno
     # precedente. In quel caso il controllo automatico deve attendere il primo
@@ -2608,9 +2634,13 @@ def run_deadline_notification_check(force=False, source='request'):
         'incidents_already_sent': incidents_already_sent,
         'incidents_without_recipients': incidents_without_recipients,
     }
-    audit_log('scheduler:deadline_notification_check', json.dumps({**result, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
-    purge_audit_logs()
-    db.session.commit()
+    should_audit_check = force or sent > 0 or not _deadline_notification_check_already_audited_for_slot(schedule_slot)
+    if should_audit_check:
+        audit_log('scheduler:deadline_notification_check', json.dumps({**result, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
+        purge_audit_logs()
+        db.session.commit()
+    else:
+        db.session.commit()
     return result
 
 
@@ -3029,6 +3059,7 @@ def admin_help_pdf():
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle, KeepTogether
+    from reportlab.lib.utils import ImageReader
     from reportlab.lib.units import cm
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from reportlab.lib import colors
@@ -3073,6 +3104,16 @@ def admin_help_pdf():
     caption = ParagraphStyle('admin_caption', parent=normal, fontSize=8.3, leading=10.5, textColor=colors.HexColor('#64748b'), alignment=TA_CENTER)
     callout = ParagraphStyle('admin_callout', parent=normal, backColor=colors.HexColor('#eef4ff'), borderColor=colors.HexColor('#bfdbfe'), borderWidth=0.7, borderPadding=7, spaceBefore=4, spaceAfter=8)
 
+    def fitted_doc_image(path, max_width=16.3*cm, max_height=7.6*cm):
+        try:
+            iw, ih = ImageReader(str(path)).getSize()
+            ratio = min(max_width / iw, max_height / ih)
+            img = Image(str(path), width=iw * ratio, height=ih * ratio)
+        except Exception:
+            img = Image(str(path), width=max_width, height=max_height)
+        img.hAlign = 'CENTER'
+        return img
+
     info = current_app.config.get('APP_INFO', {})
     story = []
     if logo_path.exists():
@@ -3110,8 +3151,7 @@ def admin_help_pdf():
             if not visual_inserted:
                 for label, path in visual_paths:
                     if path.exists():
-                        img = Image(str(path), width=16.3*cm, height=16.3*cm * 0.46)
-                        img.hAlign = 'CENTER'
+                        img = fitted_doc_image(path)
                         story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
                 visual_inserted = True
             continue
@@ -3146,6 +3186,7 @@ def help_pdf():
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle, KeepTogether
+    from reportlab.lib.utils import ImageReader
     from reportlab.lib.units import cm
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from reportlab.lib import colors
@@ -3191,6 +3232,16 @@ def help_pdf():
     caption = ParagraphStyle('caption', parent=normal, fontSize=8.3, leading=10.5, textColor=colors.HexColor('#64748b'), alignment=TA_CENTER)
     callout = ParagraphStyle('callout', parent=normal, backColor=colors.HexColor('#eef4ff'), borderColor=colors.HexColor('#bfdbfe'), borderWidth=0.7, borderPadding=7, spaceBefore=4, spaceAfter=8)
 
+    def fitted_doc_image(path, max_width=16.3*cm, max_height=7.6*cm):
+        try:
+            iw, ih = ImageReader(str(path)).getSize()
+            ratio = min(max_width / iw, max_height / ih)
+            img = Image(str(path), width=iw * ratio, height=ih * ratio)
+        except Exception:
+            img = Image(str(path), width=max_width, height=max_height)
+        img.hAlign = 'CENTER'
+        return img
+
     story = []
     if logo_path.exists():
         story.append(Image(str(logo_path), width=3.0*cm, height=3.0*cm))
@@ -3219,8 +3270,7 @@ def help_pdf():
             if not visual_inserted:
                 for label, path in visual_paths:
                     if path.exists():
-                        img = Image(str(path), width=16.3*cm, height=16.3*cm * 0.46)
-                        img.hAlign = 'CENTER'
+                        img = fitted_doc_image(path)
                         story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
                 visual_inserted = True
             continue

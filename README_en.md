@@ -285,3 +285,10 @@ The sending logic has been reviewed: the internal scheduler keeps running indepe
 ### Update 0.1.0-110
 
 Fixed the deadline-task notification scheduler. The automatic check no longer treats a cron/interval slot as permanently completed just because the first poll found no pending tasks: deduplication is now performed per incident and per scheduled slot. If the scheduler starts before pending tasks become detectable, later polls in the same slot can still send the notifications. Pending-task detection is separated from recipient validation: incidents without assigned staff or e-mail addresses are counted and logged as skipped instead of being reported as no pending task. Successful sends also create a `scheduler:deadline_notification_sent` audit entry with incident, slot and recipients.
+
+### Update 0.1.0-111 - Deadline notification scheduler audit
+
+The automatic deadline notification check still uses a frequent technical poll, but global `scheduler:deadline_notification_check` audit records are now written only in two cases: when notifications are actually sent, or once for the scheduled cron/interval slot when notifications would have been sent, even if no due tasks were found. Intermediate polls within the same slot no longer create repeated audit records. Successful deliveries continue to write the incident-and-slot-specific `scheduler:deadline_notification_sent` record.
+
+### Update 0.1.0-112 - Documentation formatting
+User and administrator documentation, both online and PDF, has been revised to prevent titles or text from overflowing cards. The illustrative images for the recommended workflow, main page, incident detail and module configuration have been regenerated with text wrapping and wider spacing. The main-page screenshot no longer has the “New incident” button overlapping the title. Documentation CSS includes stronger responsive and wrapping rules for desktop and mobile layouts.

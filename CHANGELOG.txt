@@ -503,3 +503,16 @@ Notification menu and SMTP sender fix
 - Documentazione IT/EN aggiornata.
 - Fixed deadline notification scheduler deduplication per incident and slot.
 - Pending task detection is now independent from recipient availability; missing recipients are logged as skipped.
+
+0.1.0-111
+- Audit scheduler notifiche task: il record globale scheduler:deadline_notification_check viene scritto solo quando vengono inviate notifiche o una sola volta per lo slot cron/intervallo pianificato, anche se non ci sono task da notificare.
+- Eliminato il rumore audit prodotto dai poll tecnici ripetuti nello stesso slot.
+- Documentazione IT/EN aggiornata.
+- Deadline notification scheduler audit now writes the global check record only when notifications are sent or once for the scheduled cron/interval slot.
+
+0.1.0-112
+- Migliorata la formattazione della documentazione utente e amministrativa online/PDF.
+- Rigenerate le immagini illustrative con testi completamente leggibili e senza sovrapposizioni.
+- Corretto lo screenshot della pagina principale: il pulsante Nuovo incidente non oscura più il titolo.
+- Aggiunte regole CSS robuste per wrapping, card responsive e contenimento del testo nei riquadri.
+- Improved online/PDF user and administrator documentation formatting, regenerated readable figures and strengthened responsive wrapping rules.

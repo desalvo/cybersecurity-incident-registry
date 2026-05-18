@@ -380,10 +380,7 @@
 <section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-108 scheduler cron notifiche"><h2>Aggiornamento 0.1.0-108 - Scheduler cron notifiche task</h2><p>In <strong>Admin → Notifiche</strong> la pianificazione delle notifiche dei task in scadenza supporta ora sia intervalli regolari sia orari specifici giornalieri in formato <code>HH:MM</code>. Gli amministratori possono usare la modalità cron per definire invii a orari precisi, mantenendo eventuali slot di intervallo. La pianificazione è ancorata alla mezzanotte del fuso applicativo, non all’avvio dell’applicazione, e gli invii automatici registrano in audit slot, esito ed eventuali errori SMTP.</p></section>
 
 <section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-110 scheduler notifiche task"><h2>Aggiornamento 0.1.0-110 - Scheduler notifiche task</h2><p>La deduplica delle notifiche periodiche dei task in scadenza è stata spostata a livello di incidente e slot cron/intervallo. Il record <code>scheduler:deadline_notification_check</code> resta diagnostico, mentre ogni invio riuscito genera <code>scheduler:deadline_notification_sent</code>. I task pendenti vengono rilevati anche se mancano destinatari; in quel caso lo scheduler registra uno skip con errore leggibile.</p></section>
-{% endblock %}
-
-
-
+<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-111 audit scheduler notifiche task"><h2>Aggiornamento 0.1.0-111 - Audit scheduler notifiche task</h2><p>Il record diagnostico <code>scheduler:deadline_notification_check</code> viene registrato solo per invii effettivi, controlli manuali o una sola volta per lo slot pianificato cron/intervallo senza notifiche da inviare. Questo riduce il rumore del registro audit causato dai poll tecnici ripetuti.</p></section>
 <section class="doc-chapter" data-doc-title="Aggiornamento 0.110-97 report PDF documenti data ora caricamento secondi interi">
   <h2>Aggiornamento 0.110-97 - report PDF e documenti allegati</h2>
   <p>La generazione dei report PDF degli incidenti usa una larghezza esplicita per la tabella Documenti: il nome del documento è privilegiato rispetto alla colonna data/ora di caricamento. I timestamp sono normalizzati senza microsecondi e con secondi sempre interi.</p>
@@ -398,3 +395,7 @@
 <section class="doc-chapter"><h2>Aggiornamento 0.1.0-107</h2><p>La consultazione Audit mostra dettagli operativi sintetici e leggibili. La sezione promemoria specifici nei dettagli incidente usa un layout responsive adatto anche a smartphone.</p></section>
 
 <section class="doc-chapter" data-doc-title="menu admin sottogruppi collassabili chiusi default"><h2>Menu Admin collassabile</h2><p>Le voci Admin sono raggruppate in sottosezioni collassabili. Nessuna sottosezione viene aperta automaticamente al ricaricamento della pagina.</p></section>
+
+<section class="doc-chapter card" data-doc-title="Aggiornamento 0.1.0-112 formattazione documentazione amministrativa"><h2>Aggiornamento 0.1.0-112 - Formattazione documentazione amministrativa</h2><p>La documentazione amministrativa online e PDF è stata rivista per migliorare la leggibilità dei riquadri, del flusso operativo consigliato e delle figure. Titoli e testi usano wrapping più robusto e le immagini sono ridimensionate mantenendo il rapporto originale.</p></section>
+
+{% endblock %}
