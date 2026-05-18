@@ -1029,3 +1029,10 @@ Tutte le notifiche relative a incidenti includono sempre un link diretto alla pa
 - EN: the incident-specific reminder UI has been converted to a responsive card layout, using a desktop grid and a vertical mobile layout to prevent horizontal overflow.
 - IT: la funzione centrale di audit normalizza ora i dettagli tramite una sintesi applicativa, conservando soltanto campi identificativi, contatori, esiti e descrizioni brevi.
 - EN: the central audit function now normalizes details through an application-level summary, retaining only identifiers, counters, outcomes and short descriptions.
+
+
+### 7.8 Pianificazione cron delle notifiche task
+
+Dalla versione 0.1.0-108 le notifiche dei task con scadenza usano una pianificazione unificata gestita dalle impostazioni `notification_deadline_schedule_mode`, `notification_deadline_cron_times`, `notification_deadline_interval_hours` e `notification_deadline_interval_minutes`. La modalità `interval` produce slot regolari calcolati dalla mezzanotte applicativa; la modalità `cron` aggiunge orari giornalieri espliciti nel formato `HH:MM` agli slot di intervallo. La funzione `current_deadline_schedule_slot()` determina l’ultimo slot dovuto rispetto alla mezzanotte nel fuso configurato, mentre `next_deadline_notification_at()` calcola il prossimo slot. Il timestamp tecnico `notification_deadline_last_run_at` memorizza lo slot eseguito, non l’ora di avvio del processo.
+
+La funzione `run_deadline_notification_check()` è condivisa da pulsante manuale, scheduler di background e hook opportunistico. In esecuzione automatica esegue solo l’ultimo slot periodico dovuto, così un riavvio dopo più slot saltati non genera invii duplicati. Il record audit `scheduler:deadline_notification_check` contiene modalità, orari cron, slot, prossimo invio, incidenti controllati, incidenti con task pendenti, invii, salti ed errori SMTP sintetizzati.

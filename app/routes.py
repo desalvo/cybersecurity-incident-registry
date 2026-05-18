@@ -2035,13 +2035,53 @@ def parse_positive_int(value, default=0):
         return default
 
 
-def deadline_interval_minutes():
+def raw_deadline_interval_minutes():
     hours = parse_positive_int(setting_value('notification_deadline_interval_hours', '24'))
     minutes = parse_positive_int(setting_value('notification_deadline_interval_minutes', '0'))
-    total = hours * 60 + minutes
+    return hours * 60 + minutes
+
+
+def deadline_interval_minutes():
+    total = raw_deadline_interval_minutes()
     return total if total > 0 else 24 * 60
 
 
+def deadline_schedule_mode():
+    """Modalità di pianificazione delle notifiche task in scadenza.
+
+    Valori supportati:
+    - interval: intervallo regolare calcolato dalla mezzanotte locale;
+    - cron: elenco di orari giornalieri specifici più eventuale intervallo.
+    """
+    value = (setting_value('notification_deadline_schedule_mode', 'interval') or 'interval').strip().lower()
+    return value if value in {'interval', 'cron'} else 'interval'
+
+
+def parse_deadline_cron_times(value=None):
+    """Restituisce gli orari giornalieri configurati in minuti da mezzanotte.
+
+    Accetta valori separati da virgola, punto e virgola, spazio o nuova riga,
+    nel formato HH:MM. Gli orari non validi sono ignorati per rendere la
+    configurazione tollerante e non bloccare lo scheduler.
+    """
+    raw = setting_value('notification_deadline_cron_times', '') if value is None else (value or '')
+    out = set()
+    for token in re.split(r'[,;\s]+', raw):
+        token = token.strip()
+        if not token:
+            continue
+        m = re.fullmatch(r'(\d{1,2}):(\d{2})', token)
+        if not m:
+            continue
+        hour, minute = int(m.group(1)), int(m.group(2))
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            out.add(hour * 60 + minute)
+    return sorted(out)
+
+
+def format_minutes_as_hhmm(total_minutes):
+    total_minutes = int(total_minutes) % (24 * 60)
+    return f'{total_minutes // 60:02d}:{total_minutes % 60:02d}'
 
 
 def deadline_schedule_reference_midnight(now=None):
@@ -2049,27 +2089,57 @@ def deadline_schedule_reference_midnight(now=None):
     now = now or application_now()
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
+
+def deadline_schedule_slots_for_day(now=None):
+    """Slot schedulati del giorno corrente, in minuti dalla mezzanotte.
+
+    In modalità cron possono coesistere orari specifici e intervalli. Gli
+    intervalli restano sempre ancorati alla mezzanotte locale, quindi un
+    intervallo di 4 ore produce 00:00, 04:00, 08:00, 12:00, ...
+    """
+    mode = deadline_schedule_mode()
+    interval = raw_deadline_interval_minutes()
+    if interval <= 0 and mode == 'interval':
+        interval = 24 * 60
+    slots = set(range(0, 24 * 60, interval)) if interval > 0 else set()
+    if mode == 'cron':
+        slots.update(parse_deadline_cron_times())
+    if not slots:
+        slots.add(0)
+    return sorted(slots)
+
+
 def current_deadline_schedule_slot(now=None):
-    """Ultimo slot schedulato calcolato dalla mezzanotte locale applicativa."""
+    """Ultimo slot schedulato calcolato dalla pianificazione cron/intervallo."""
     now = now or application_now()
-    interval = deadline_interval_minutes()
     midnight = deadline_schedule_reference_midnight(now)
     elapsed_minutes = max(0, int((now - midnight).total_seconds() // 60))
-    slot_minutes = (elapsed_minutes // interval) * interval
+    slots = [m for m in deadline_schedule_slots_for_day(now) if m <= elapsed_minutes]
+    slot_minutes = slots[-1] if slots else deadline_schedule_slots_for_day(now)[-1] - 24 * 60
     return midnight + timedelta(minutes=slot_minutes)
 
-def next_deadline_notification_at(now=None):
-    """Prossimo invio stimato, sempre basato su multipli dalla mezzanotte.
 
-    Esempio: intervallo 4 ore => 00:00, 04:00, 08:00, 12:00...
-    Il calcolo non dipende dall'ora di avvio del processo applicativo.
+def next_deadline_notification_at(now=None):
+    """Prossimo invio stimato secondo la pianificazione cron/intervallo.
+
+    Il calcolo non dipende dall'ora di avvio del processo applicativo. In
+    modalità cron considera gli orari specifici configurati e gli eventuali
+    intervalli regolari, sempre ancorati alla mezzanotte locale.
     """
     now = now or application_now()
-    interval = deadline_interval_minutes()
     midnight = deadline_schedule_reference_midnight(now)
     elapsed_minutes = max(0, int((now - midnight).total_seconds() // 60))
-    next_minutes = ((elapsed_minutes // interval) + 1) * interval
-    return midnight + timedelta(minutes=next_minutes)
+    for slot in deadline_schedule_slots_for_day(now):
+        if slot > elapsed_minutes:
+            return midnight + timedelta(minutes=slot)
+    return midnight + timedelta(days=1, minutes=deadline_schedule_slots_for_day(now)[0])
+
+
+def _deadline_slot_label(value):
+    if isinstance(value, datetime):
+        return value.isoformat(timespec='minutes')
+    return str(value or '')
+
 
 def format_deadline_schedule_info():
     next_at = next_deadline_notification_at()
@@ -2081,10 +2151,16 @@ def format_deadline_schedule_info():
             last_label = format_application_datetime(datetime.fromisoformat(last_raw), include_timezone=True)
         except ValueError:
             last_label = last_raw
+    mode = deadline_schedule_mode()
+    slots = deadline_schedule_slots_for_day()
     return {
         'enabled': setting_value('notification_deadline_enabled', '0') == '1',
         'email_enabled': setting_value('notification_deadline_email_enabled', '1') == '1',
-        'interval_minutes': deadline_interval_minutes(),
+        'schedule_mode': mode,
+        'schedule_mode_label': 'cron / orari specifici' if mode == 'cron' else 'intervallo regolare',
+        'cron_times': ', '.join(format_minutes_as_hhmm(m) for m in parse_deadline_cron_times()) or '-',
+        'interval_minutes': raw_deadline_interval_minutes() if deadline_schedule_mode() == 'cron' else deadline_interval_minutes(),
+        'configured_slots': ', '.join(format_minutes_as_hhmm(m) for m in slots[:24]) + ('…' if len(slots) > 24 else ''),
         'timezone': application_timezone_name(),
         'reference_midnight': format_application_datetime(deadline_schedule_reference_midnight(), include_timezone=True),
         'current_slot': format_application_datetime(current_slot, include_timezone=True),
@@ -2464,7 +2540,7 @@ def run_deadline_notification_check(force=False, source='request'):
             return {
                 'sent': 0, 'skipped': 0, 'errors': [], 'executed': False,
                 'reason': 'schedule_slot_already_executed',
-                'next_run_at': next_deadline_notification_at(now).isoformat(timespec='seconds'),
+                'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
             }
     sent = skipped = 0
     errors = []
@@ -2490,16 +2566,18 @@ def run_deadline_notification_check(force=False, source='request'):
     if not force:
         # Memorizza lo slot pianificato, non l'ora di avvio/esecuzione: in questo modo
         # gli intervalli restano ancorati alla mezzanotte del giorno corrente.
-        set_setting_value('notification_deadline_last_run_at', schedule_slot.isoformat(timespec='seconds'))
+        set_setting_value('notification_deadline_last_run_at', schedule_slot.isoformat(timespec='minutes'))
     result = {
         'sent': sent,
         'skipped': skipped,
         'errors': errors,
         'executed': True,
         'source': source,
-        'interval_minutes': deadline_interval_minutes(),
-        'schedule_slot': schedule_slot.isoformat(timespec='seconds'),
-        'next_run_at': next_deadline_notification_at(now).isoformat(timespec='seconds'),
+        'interval_minutes': raw_deadline_interval_minutes() if deadline_schedule_mode() == 'cron' else deadline_interval_minutes(),
+        'schedule_mode': deadline_schedule_mode(),
+        'cron_times': ','.join(format_minutes_as_hhmm(m) for m in parse_deadline_cron_times()),
+        'schedule_slot': schedule_slot.isoformat(timespec='minutes'),
+        'next_run_at': next_deadline_notification_at(now).isoformat(timespec='minutes'),
         'incidents_checked': incidents_checked,
         'incidents_with_pending': incidents_with_pending,
     }
@@ -2647,7 +2725,7 @@ def notification_types():
 @login_required
 def notification_settings():
     if not can_admin(): return redirect(url_for('main.index'))
-    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_subject_template','notification_deadline_body_template']
+    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_subject_template','notification_deadline_body_template']
     checkbox_keys = {'smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','notification_deadline_enabled','notification_deadline_email_enabled'}
     if request.method == 'POST':
         action = request.form.get('action', 'save')
@@ -2697,7 +2775,7 @@ def notification_settings():
     defaults = {
         'smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0',
         'notification_deadline_enabled':'0','notification_deadline_email_enabled':'1',
-        'notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0',
+        'notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0',
         'notification_deadline_subject_template': default_deadline_subject_template(),
         'notification_deadline_body_template': default_deadline_body_template(),
     }

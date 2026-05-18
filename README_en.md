@@ -272,3 +272,9 @@ All incident-related notifications always include a direct link to the specific 
 
 - The **Specific reminders** section in the incident detail page now uses a responsive card layout: on smartphones, date/time, message, CC, status and actions remain visible and editable without horizontal overflow.
 - **Audit** records now store and display concise, readable details limited to the essential operational information, avoiding long or unclear payloads.
+
+### Update 0.1.0-108 - Cron-style deadline task notifications
+
+Automatic deadline task notifications now use a cron-style schedule in addition to regular intervals. In **Admin → Notifications**, administrators can choose **Regular interval** or **Cron / specific times**. In cron mode, daily times can be entered as `HH:MM`, separated by commas, spaces, or new lines; interval-based slots remain available and are always calculated from midnight in the application timezone. The scheduler does not use the application start time as the reference. If the application restarts after one or more missed slots, only the latest due periodic slot is executed and the outcome is recorded in the audit table. The page also shows configured slots, current slot, estimated next run and last automatic execution.
+
+The sending logic has been reviewed: the internal scheduler keeps running independently from web traffic, uses the same execution path as the manual button, records SMTP errors and delivery summaries in audit, and always keeps the direct incident link in the notification body even when a custom template does not include the `%incident_url%` placeholder.

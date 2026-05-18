@@ -43,18 +43,29 @@
       <div class="form-grid">
         <div class="wide"><label><input type="checkbox" name="notification_deadline_enabled" value="1" {% if settings.get('notification_deadline_enabled','0')=='1' %}checked{% endif %}> Abilita controllo automatico delle scadenze per le azioni</label></div>
         <div class="wide"><label><input type="checkbox" name="notification_deadline_email_enabled" value="1" {% if settings.get('notification_deadline_email_enabled','1')=='1' %}checked{% endif %}> Abilita invio email per task in scadenza</label></div>
+        <div>
+          <label>Modalità pianificazione</label>
+          <select name="notification_deadline_schedule_mode">
+            <option value="interval" {% if settings.get('notification_deadline_schedule_mode','interval')=='interval' %}selected{% endif %}>Intervallo regolare</option>
+            <option value="cron" {% if settings.get('notification_deadline_schedule_mode','interval')=='cron' %}selected{% endif %}>Cron / orari specifici</option>
+          </select>
+        </div>
+        <div class="wide"><label>Orari specifici cron</label><input name="notification_deadline_cron_times" value="{{ settings.get('notification_deadline_cron_times','') }}" placeholder="es. 08:00, 12:30, 18:00"><p class="muted">Usare formato HH:MM, separando più orari con virgole, spazi o righe. Gli orari sono nel fuso applicativo. In modalità cron, impostando intervallo ore/minuti a 0 si usano solo gli orari specifici.</p></div>
         <div><label>Intervallo ore</label><input type="number" min="0" name="notification_deadline_interval_hours" value="{{ settings.get('notification_deadline_interval_hours','24') }}"></div>
         <div><label>Intervallo minuti</label><input type="number" min="0" max="59" name="notification_deadline_interval_minutes" value="{{ settings.get('notification_deadline_interval_minutes','0') }}"></div>
       </div>
-      <p class="muted">Il controllo prende in esame gli incidenti aperti. Per ogni label azione con Tempo massimo (ore) numerico maggiore di zero, se l’azione non è ancora presente nell’incidente e l’incidente non ha le notifiche di scadenza silenziate, viene inviata una mail solo se l’invio email è abilitato e se l’incidente ha almeno una unità di personale associata; i destinatari sono le unità di personale coinvolte con indirizzo email valorizzato, calcolando il tempo dalla prima informazione iniziale. Le date e ore riportate nelle notifiche sono formattate nel fuso orario applicativo configurato in Admin → Altre configurazioni. Il valore 0 significa nessun tempo massimo definito.</p>
+      <p class="muted">La pianificazione può essere a intervallo regolare oppure in stile cron con orari specifici giornalieri; intervalli e orari sono sempre calcolati dalla mezzanotte del fuso applicativo e non dall’avvio dell’applicazione. Il controllo prende in esame gli incidenti aperti. Per ogni label azione con Tempo massimo (ore) numerico maggiore di zero, se l’azione non è ancora presente nell’incidente e l’incidente non ha le notifiche di scadenza silenziate, viene inviata una mail solo se l’invio email è abilitato e se l’incidente ha almeno una unità di personale associata; i destinatari sono le unità di personale coinvolte con indirizzo email valorizzato, calcolando il tempo dalla prima informazione iniziale. Le date e ore riportate nelle notifiche sono formattate nel fuso orario applicativo configurato in Admin → Altre configurazioni. Il valore 0 significa nessun tempo massimo definito.</p>
       <div class="notice">
         <h3>Prossimo invio stimato</h3>
         <p><strong>{{ schedule_info.next_at }}</strong></p>
-        <p class="muted">Il calcolo usa l’intervallo configurato a partire dalla mezzanotte del giorno corrente nel fuso {{ schedule_info.timezone }}; non dipende dall’ora di avvio dell’applicazione.</p>
+        <p class="muted">Il calcolo usa la pianificazione configurata a partire dalla mezzanotte del giorno corrente nel fuso {{ schedule_info.timezone }}; non dipende dall’ora di avvio dell’applicazione.</p>
         <dl class="meta-list">
           <dt>Stato controllo automatico</dt><dd>{{ 'abilitato' if schedule_info.enabled else 'disabilitato' }}</dd>
           <dt>Invio email</dt><dd>{{ 'abilitato' if schedule_info.email_enabled else 'disabilitato' }}</dd>
+          <dt>Modalità pianificazione</dt><dd>{{ schedule_info.schedule_mode_label }}</dd>
+          <dt>Orari specifici cron</dt><dd>{{ schedule_info.cron_times }}</dd>
           <dt>Intervallo effettivo</dt><dd>{{ schedule_info.interval_minutes }} minuti</dd>
+          <dt>Slot giornalieri configurati</dt><dd>{{ schedule_info.configured_slots }}</dd>
           <dt>Mezzanotte di riferimento</dt><dd>{{ schedule_info.reference_midnight }}</dd>
           <dt>Slot corrente</dt><dd>{{ schedule_info.current_slot }}</dd>
           <dt>Ultima esecuzione automatica registrata</dt><dd>{{ schedule_info.last_run_at }}</dd>

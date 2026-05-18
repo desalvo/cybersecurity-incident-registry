@@ -484,3 +484,9 @@ Notification menu and SMTP sender fix
 - Migliorata la sezione Promemoria specifici nella pagina dettaglio incidente con layout responsive a schede, utilizzabile anche da dispositivi mobili senza uscire dallo schermo.
 - I dettagli dei record di audit sono ora sintetizzati in messaggi leggibili, con solo le informazioni operative importanti e senza payload estesi.
 - Aggiornata la documentazione bilingue utente/amministratore/progettuale.
+
+0.1.0-108
+- Pianificazione cron/intervalli per notifiche task in scadenza.
+- Scheduler ancorato alla mezzanotte del fuso applicativo, non all’avvio app.
+- Logica di invio ricontrollata con audit degli esiti/errori SMTP.
+- Documentazione online/PDF bilingue aggiornata.

@@ -476,3 +476,9 @@ Tutte le notifiche relative a incidenti includono sempre un link diretto alla pa
 
 - La sezione **Promemoria specifici** nella pagina del singolo incidente usa un layout responsive a schede: su smartphone data/ora, messaggio, CC, stato e azioni restano visibili e modificabili senza scorrimento orizzontale.
 - I record di **Audit** registrano e mostrano dettagli sintetici, leggibili e limitati alle informazioni essenziali dell’operazione, evitando di salvare payload lunghi o poco comprensibili.
+
+### Aggiornamento 0.1.0-108 - Pianificazione cron notifiche task
+
+Le notifiche automatiche dei task con scadenza passano da una sola pianificazione a intervallo regolare a una pianificazione in stile cron configurabile da **Admin → Notifiche**. È possibile scegliere tra modalità **Intervallo regolare** e **Cron / orari specifici**. In modalità cron si possono indicare orari giornalieri nel formato `HH:MM`, separati da virgole, spazi o righe; gli eventuali intervalli restano disponibili e sono sempre calcolati dalla mezzanotte del fuso applicativo. Lo scheduler non usa l’orario di avvio dell’applicazione come riferimento: se l’applicazione riparte dopo uno o più slot saltati, esegue solo l’ultimo slot periodico dovuto e registra l’esito nella tabella audit. La pagina mostra anche gli slot configurati, lo slot corrente, il prossimo invio stimato e l’ultima esecuzione automatica.
+
+La logica di invio è stata ricontrollata: lo scheduler interno continua a funzionare indipendentemente dal traffico web, usa la stessa funzione del pulsante manuale, registra errori SMTP e riepilogo invii in audit, e mantiene il link diretto all’incidente nel corpo della notifica anche quando il template personalizzato non contiene il placeholder `%incident_url%`.
