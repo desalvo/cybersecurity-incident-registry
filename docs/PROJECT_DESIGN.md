@@ -9,10 +9,25 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.1.0
-- Build: 20260516-01
+- Versione: 0.2.0
+- Build: 2026051801
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
+## Baseline progettuale 0.2.0 - build 2026051801
+
+La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per incidenti informatici. Include:
+
+- interfaccia e documentazione in italiano e inglese con selezione automatica da locale browser e override amministrativo;
+- menu Aiuto riorganizzato in Documentazione utente, Documentazione amministrativa e Note di rilascio, con PDF scaricabili dalle pagine relative;
+- gestione completa dell'audit con dettagli sintetici, anti-flooding, conteggio occorrenze, retention temporale, limite massimo record, purge manuale/automatico ed export CSV;
+- scheduler notifiche deadline con pianificazione cron o a intervalli, slot ancorati alla mezzanotte nel fuso applicativo, deduplica per finestra di schedule e audit degli slot utili;
+- promemoria puntuali per incidente indirizzati al personale associato con CC opzionali e recupero post-riavvio;
+- report PDF incidenti con layout professionale, indice, numerazione pagine, loghi, orari con secondi interi e durata incidente quando disponibile;
+- profili SSO/OAuth2 multipli, callback HTTPS, pulsanti di login grigio chiaro, repository condiviso loghi SSO con Google/Facebook/Apple predefiniti, upload, selezione, rimozione ed export/import;
+- HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin;
+- miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
+
+La versione applicativa riportata nei metadati runtime è 0.2.0, build 2026051801.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -504,7 +519,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.1.0, build 20260516-01, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.0, build 2026051801, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 

@@ -1,3 +1,8 @@
+## 0.2.0 - build 2026051801
+- Aggiornata la versione applicativa a 0.2.0 e il build a 2026051801.
+- Consolidati nella documentazione utente e amministrativa bilingue gli sviluppi recenti: audit, notifiche, promemoria, SSO, HTTPS/SSL, report PDF, menu Aiuto e loghi SSO.
+- Aggiornata la documentazione progettuale con la baseline funzionale 0.2.0.
+
 
 ## 0.1.0-125
 - Pulsanti SSO nella pagina di login aggiornati a grigio chiaro.

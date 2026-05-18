@@ -2,6 +2,11 @@
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
 
+## Version 0.2.0 - Platform consolidation and bilingual documentation
+
+Version 0.2.0, build 2026051801, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
+
+Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
 ## Local startup
 
 ```bash
@@ -54,8 +59,8 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.1.0
-- Build: 20260516-01
+- Version: 0.2.0
+- Build: 2026051801
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 The information is visible from **Info → Application** and can be configured through the environment variables `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.

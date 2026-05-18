@@ -18,6 +18,8 @@ services:
       DATABASE_URL: postgresql+psycopg2://incidents:incidents@db:5432/incidents
       SECRET_KEY: change-me
       ADMIN_INITIAL_PASSWORD: adminpass
+      APP_VERSION: 0.2.0
+      APP_BUILD: 2026051801
       FORM_TEMPLATE_DIR: /data/form_templates
       SSL_DIR: /data/ssl
       SSL_PORT: 8443
