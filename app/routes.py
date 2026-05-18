@@ -3148,6 +3148,35 @@ def maybe_run_deadline_notification_check():
 
 _deadline_scheduler_started = False
 _deadline_scheduler_lock = threading.Lock()
+_CIR_SCHEDULER_LOCK_ID = 47110021
+
+def _try_database_scheduler_lock():
+    """Acquire a PostgreSQL advisory lock for multi-replica deployments.
+
+    Gunicorn workers and Kubernetes replicas can all start the in-process
+    scheduler. The existing Python lock protects only a single process; this
+    advisory lock makes every poll mutually exclusive across all processes that
+    share the same PostgreSQL database. Non-PostgreSQL deployments keep using
+    the local lock only.
+    """
+    if not str(db.engine.url).startswith('postgresql'):
+        return True
+    try:
+        return bool(db.session.execute(text('SELECT pg_try_advisory_lock(:lock_id)'), {'lock_id': _CIR_SCHEDULER_LOCK_ID}).scalar())
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Impossibile acquisire il lock PostgreSQL dello scheduler')
+        return False
+
+def _release_database_scheduler_lock():
+    if not str(db.engine.url).startswith('postgresql'):
+        return
+    try:
+        db.session.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': _CIR_SCHEDULER_LOCK_ID})
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Impossibile rilasciare il lock PostgreSQL dello scheduler')
 
 def start_deadline_notification_scheduler(app):
     """Avvia il controllo periodico automatico delle notifiche in scadenza.
@@ -3176,8 +3205,12 @@ def start_deadline_notification_scheduler(app):
             if not _deadline_scheduler_lock.acquire(blocking=False):
                 time.sleep(poll_seconds)
                 continue
+            db_lock_acquired = False
             try:
                 with app.app_context():
+                    db_lock_acquired = _try_database_scheduler_lock()
+                    if not db_lock_acquired:
+                        continue
                     run_deadline_notification_check(force=False, source='background_scheduler')
                     process_due_incident_reminders(source='background_scheduler')
             except Exception:
@@ -3188,6 +3221,12 @@ def start_deadline_notification_scheduler(app):
                 except Exception:
                     app.logger.exception('Scheduler notifiche task in scadenza non completato')
             finally:
+                if db_lock_acquired:
+                    try:
+                        with app.app_context():
+                            _release_database_scheduler_lock()
+                    except Exception:
+                        app.logger.exception('Rilascio lock scheduler non completato')
                 _deadline_scheduler_lock.release()
             time.sleep(poll_seconds)
 

@@ -4,9 +4,30 @@ Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
 ## Versione 0.2.0 - Consolidamento piattaforma e documentazione bilingue
 
-La versione 0.2.0, build 2026051801, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
+La versione 0.2.0, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
 
 Le guide operative sono mantenute in entrambe le lingue. Le note di rilascio sono separate dalla documentazione operativa e consultabili dal menu Aiuto.
+
+## Hardening produzione build 2026051901
+
+Questa build introduce una baseline di sicurezza applicativa per l'uso in produzione:
+
+- protezione CSRF automatica su tutte le form `POST`, `PUT`, `PATCH` e `DELETE`, con inserimento server-side del campo nascosto nei template HTML;
+- header HTTP di sicurezza: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e HSTS quando HTTPS è attivo o `CIR_FORCE_HSTS=1`;
+- cookie di sessione `HttpOnly`, `SameSite=Lax` e `Secure` quando `CIR_PRODUCTION=1` o `SESSION_COOKIE_SECURE=1`;
+- limite dimensione upload configurabile con `MAX_CONTENT_LENGTH`, default 25 MiB;
+- controllo fail-fast in produzione: con `CIR_PRODUCTION=1` l'applicazione rifiuta `SECRET_KEY` deboli, password bootstrap admin deboli e database SQLite;
+- scheduler notifiche/promemoria protetto da lock PostgreSQL advisory, quindi sicuro anche con più worker o repliche Kubernetes;
+- `docker-compose.yml` non contiene più segreti hardcoded e richiede un file `.env` derivato da `.env.example`.
+
+Per preparare un avvio sicuro:
+
+```bash
+cp .env.example .env
+# modificare POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY e ADMIN_INITIAL_PASSWORD
+docker compose up --build
+```
+
 ## Avvio locale
 
 ```bash
@@ -21,6 +42,7 @@ Aprire `http://localhost:8000`. L'utente locale iniziale è `admin`; la password
 - Login locale, LDAP configurabile con filtro utenti e login SSO/OAuth2/OpenID Connect configurabile da interfaccia Admin.
 - Ruoli: admin, operator, reader, writer, disabled.
 - Drag & drop per categorie, dati interessati, personale e raccomandazioni, con destinazioni adiacenti alle palette.
+- Help online contestuale nella scheda del singolo incidente per i campi principali e per le informazioni procedurali più delicate.
 - Upload/download documenti.
 - Export CSV, export completo compresso con tutti i campi reali del database, report PDF professionale con tabelle wrappate e grafico azioni nel tempo.
 - Seed idempotente con lock PostgreSQL per evitare duplicate key e WORKER_BOOT_ERROR.
@@ -95,7 +117,7 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
 - Versione: 0.2.0
-- Build: 2026051801
+- Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 Le informazioni sono visibili da **Info → Applicazione** e configurabili via variabili d’ambiente `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.

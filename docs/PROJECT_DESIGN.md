@@ -10,24 +10,24 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 
 - Nome applicazione: Cybersecurity Incident Registry
 - Versione: 0.2.0
-- Build: 2026051801
+- Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
-## Baseline progettuale 0.2.0 - build 2026051801
+## Baseline progettuale 0.2.0 - build 2026051901
 
 La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per incidenti informatici. Include:
 
 - interfaccia e documentazione in italiano e inglese con selezione automatica da locale browser e override amministrativo;
 - menu Aiuto riorganizzato in Documentazione utente, Documentazione amministrativa e Note di rilascio, con PDF scaricabili dalle pagine relative;
 - gestione completa dell'audit con dettagli sintetici, anti-flooding, conteggio occorrenze, retention temporale, limite massimo record, purge manuale/automatico ed export CSV;
-- scheduler notifiche deadline con pianificazione cron o a intervalli, slot ancorati alla mezzanotte nel fuso applicativo, deduplica per finestra di schedule e audit degli slot utili;
+- scheduler notifiche deadline con pianificazione cron o a intervalli, slot ancorati alla mezzanotte nel fuso applicativo, deduplica per finestra di schedule, audit degli slot utili e lock distribuito PostgreSQL per deployment multi-replica;
 - promemoria puntuali per incidente indirizzati al personale associato con CC opzionali e recupero post-riavvio;
 - report PDF incidenti con layout professionale, indice, numerazione pagine, loghi, orari con secondi interi e durata incidente quando disponibile;
 - profili SSO/OAuth2 multipli, callback HTTPS, pulsanti di login grigio chiaro, repository condiviso loghi SSO con Google/Facebook/Apple predefiniti, upload, selezione, rimozione ed export/import;
-- HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin;
+- HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.0, build 2026051801.
+La versione applicativa riportata nei metadati runtime è 0.2.0, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -73,6 +73,12 @@ Ruoli previsti:
 L'utente locale `admin` viene creato automaticamente solo se assente. La password iniziale è configurabile con variabile d'ambiente; dopo il primo avvio non deve essere reimpostata automaticamente ai riavvii.
 
 ### 4.2 Incidenti
+
+### Help contestuale nella scheda incidente
+
+La pagina di modifica/visualizzazione del singolo incidente mostra icone informative accanto ai campi principali della scheda. I tooltip sono disponibili anche da tastiera tramite focus e chiariscono il significato operativo di nome, riferimento, destinatario, descrizione, gravità, stato, data/ora inizio, data/ora fine, dati personali, silenziamento notifiche deadline, numero interessati e volume dati.
+
+Questi testi sono parte della documentazione procedurale perché distinguono esplicitamente il periodo della violazione dalla data/ora di venuta a conoscenza, gestita tramite l’azione di informazione iniziale, e dalla conclusione amministrativa dell’incidente.
 
 Ogni incidente registra:
 
@@ -213,6 +219,29 @@ Le route devono proteggere le funzioni lato server, non solo nascondere i pulsan
 - `disabled` viene disconnesso o rediretto con messaggio di errore.
 
 Per ogni oggetto cancellabile, la UI deve chiedere conferma prima di procedere.
+
+### 5.5 Baseline di sicurezza produzione
+
+La build 2026051901 aggiunge il modulo `app/security.py`, inizializzato da `create_app()` prima della registrazione delle blueprint. Il modulo applica una baseline production-ready senza introdurre dipendenze esterne obbligatorie:
+
+- validazione CSRF per tutti i metodi mutativi (`POST`, `PUT`, `PATCH`, `DELETE`), con token per sessione e confronto costante tramite `secrets.compare_digest`;
+- inserimento automatico server-side del campo nascosto `_csrf_token` in tutte le form HTML con `method=post`, così i template esistenti restano protetti senza affidarsi a JavaScript;
+- supporto del token anche via header `X-CSRFToken`/`X-CSRF-Token` per eventuali chiamate AJAX future;
+- header di sicurezza `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e HSTS quando la richiesta è HTTPS o `CIR_FORCE_HSTS=1`;
+- cookie di sessione e remember-cookie `HttpOnly`, `SameSite=Lax` e `Secure` quando `CIR_PRODUCTION=1` o `SESSION_COOKIE_SECURE=1`;
+- limite upload globale tramite `MAX_CONTENT_LENGTH`, default 25 MiB;
+- controllo fail-fast in produzione: con `CIR_PRODUCTION=1` vengono rifiutati `SECRET_KEY` deboli o troppo corti, `ADMIN_INITIAL_PASSWORD` deboli e database SQLite.
+
+Il `docker-compose.yml` non contiene più segreti hardcoded. L'operatore deve copiare `.env.example` in `.env` e valorizzare password database, `DATABASE_URL`, `SECRET_KEY` e `ADMIN_INITIAL_PASSWORD`. I manifest Kubernetes continuano a leggere i segreti da `cir-secrets` e impostano `CIR_PRODUCTION=1` e `SESSION_COOKIE_SECURE=1`.
+
+### 5.6 Scheduler in deployment multi-replica
+
+Lo scheduler interno resta disabilitabile con `CIR_ENABLE_DEADLINE_SCHEDULER=0`, ma ora ogni ciclo automatico usa due livelli di lock:
+
+1. lock di processo Python, per evitare sovrapposizioni nello stesso worker;
+2. advisory lock PostgreSQL (`pg_try_advisory_lock`) con chiave applicativa costante, per evitare che più worker Gunicorn o più pod Kubernetes eseguano contemporaneamente notifiche deadline e promemoria specifici.
+
+In ambienti non PostgreSQL resta attivo solo il lock di processo. La deduplica funzionale per incidente/slot e i record `deadline_notification_state` continuano a proteggere dagli invii ripetuti; il lock distribuito riduce il rischio operativo e il rumore audit in produzione scalata.
 
 ## 6. Interfaccia utente
 
@@ -519,11 +548,11 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.0, build 2026051801, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.0, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
-Implementa autenticazione locale e LDAP. L'utente locale admin deve essere creato solo se assente, chiamarsi admin e avere password iniziale adminpass configurabile via variabile d'ambiente. Non resettare mai la password admin ai riavvii. Usa hashing password senza limite bcrypt a 72 byte, per esempio PBKDF2-SHA256, con eventuale compatibilità legacy sicura. Gli utenti LDAP appena visti al login devono essere creati con ruolo disabled. Ruoli: admin, writer, reader, operator, disabled. Admin accede a tutto, writer legge/scrive, reader legge tutto, operator legge solo i propri incidenti, disabled non accede.
+Implementa autenticazione locale e LDAP. L'utente locale admin deve essere creato solo se assente, chiamarsi admin e avere password iniziale configurabile via variabile d'ambiente `ADMIN_INITIAL_PASSWORD`; in produzione non deve essere un valore debole o predefinito. Non resettare mai la password admin ai riavvii. Usa hashing password senza limite bcrypt a 72 byte, per esempio PBKDF2-SHA256, con eventuale compatibilità legacy sicura. Gli utenti LDAP appena visti al login devono essere creati con ruolo disabled. Ruoli: admin, writer, reader, operator, disabled. Admin accede a tutto, writer legge/scrive, reader legge tutto, operator legge solo i propri incidenti, disabled non accede.
 
 Crea un modello Incident con: creatore nome/email presi dall'utente loggato e non modificabili; nome; riferimento opzionale; descrizione; gravità configurabile; tipi di dati interessati multipli configurabili; flag dati personali; data/ora inizio; data/ora fine opzionale; categorie multiple configurabili; personale coinvolto multiplo; stato aperto/in lavorazione/chiuso; documenti allegati multipli; azioni multiple. La lista incidenti deve mostrare nome, intervallo inizio/fine, compilatore, personale, stato, durata tra prima azione registrata e conclusione dell'incidente; tutte le colonne ordinabili; conteggio totale filtrato o totale visibile. Supporta ricerca per data, parola chiave e label. Supporta clonazione incidente da lista e dettaglio. Supporta cancellazione incidenti con conferma e solo per utenti con permesso di scrittura/admin.
 
@@ -555,7 +584,7 @@ Bootstrap: attesa DB con retry, create_all per tabelle mancanti, migrazioni legg
 ## 14. Checklist funzionale di verifica
 
 - Login admin funziona con password iniziale al primo avvio.
-- Dopo cambio password admin, il riavvio non ripristina `adminpass`.
+- Dopo cambio password admin, il riavvio non ripristina la password iniziale configurata.
 - Avvio Gunicorn non produce WORKER_BOOT_ERROR.
 - Riavvii ripetuti non generano duplicate key.
 - Creazione azione manuale non genera duplicate key.

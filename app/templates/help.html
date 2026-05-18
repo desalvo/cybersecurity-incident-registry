@@ -116,6 +116,20 @@
     <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-incident-detail.png') }}" alt="Schermata illustrativa del dettaglio incidente"><figcaption>Figura 3 - Dettaglio incidente con avvisi, azioni, promemoria e documenti collegati.</figcaption></figure>
     <p>La pagina dello specifico incidente è il punto di lavoro principale. In alto sono mostrati riepilogo e avvisi procedurali. La scheda principale riepiloga gravità, categorie, dati interessati, personale e informazioni necessarie per procedere. Seguono le sezioni operative per azioni, promemoria, documenti, allegati, moduli PDF e report.</p>
     <p>Gli errori relativi a un’operazione vengono mostrati nella sezione in cui l’operazione è stata richiesta. Questo aiuta a capire immediatamente quale azione correggere, senza cercare messaggi generici in cima alla pagina.</p>
+    <div class="card-lite doc-note">
+      <h3>Help contestuale della scheda principale</h3>
+      <p>Nella form di modifica/visualizzazione, i campi principali mostrano un simbolo informativo accanto all’etichetta. Passando il mouse sul simbolo, o portandovi il focus da tastiera, viene visualizzato l’help online del campo.</p>
+      <ul>
+        <li><strong>Nome</strong>: nome dell’incidente, obbligatorio.</li>
+        <li><strong>Riferimento</strong>: riferimento dell’incidente, normalmente collegato all’utente che ha subito le conseguenze.</li>
+        <li><strong>Destinatario</strong>: destinatario delle comunicazioni; se vuoto viene usato il riferimento.</li>
+        <li><strong>Descrizione</strong>: descrizione sintetica opzionale.</li>
+        <li><strong>Gravità e Stato</strong>: livello di gravità e stato operativo, con chiusura automatica possibile solo se non restano avvisi procedurali attivi.</li>
+        <li><strong>Data/Ora inizio e fine</strong>: periodo della violazione, distinto dalla data/ora di venuta a conoscenza e dalla conclusione amministrativa dell’incidente.</li>
+        <li><strong>Dati personali, Numero interessati e Volume dati</strong>: informazioni utili alla valutazione procedurale e alla produzione di comunicazioni e documenti.</li>
+        <li><strong>Silenzia notifiche deadline</strong>: impedisce le notifiche e-mail automatiche dei task in scadenza per lo specifico incidente.</li>
+      </ul>
+    </div>
   </section>
 
   <section id="cap-azioni" class="doc-chapter" data-doc-title="azioni incidente exportable conclusione chiusura allegati timeline">

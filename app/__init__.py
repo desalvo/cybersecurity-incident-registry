@@ -4,19 +4,21 @@ from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError
 from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder
 from .auth import login_manager, hash_password
+from .security import init_security
 
 def create_app():
     app=Flask(__name__)
     app.config['SECRET_KEY']=os.getenv('SECRET_KEY','dev-change-me')
     app.config['SQLALCHEMY_DATABASE_URI']=os.getenv('DATABASE_URL','sqlite:////tmp/cir.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
+    init_security(app)
     app.config['UPLOAD_DIR']=os.getenv('UPLOAD_DIR','/tmp/cir_uploads')
     app.config['LOGO_DIR']=os.getenv('LOGO_DIR','/tmp/cir_logo')
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
         'version': os.getenv('APP_VERSION','0.2.0'),
-        'build': os.getenv('APP_BUILD','2026051801'),
+        'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }

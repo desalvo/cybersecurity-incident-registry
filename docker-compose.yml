@@ -2,12 +2,12 @@ services:
   db:
     image: postgres:18.4
     environment:
-      POSTGRES_DB: incidents
-      POSTGRES_USER: incidents
-      POSTGRES_PASSWORD: incidents
+      POSTGRES_DB: ${POSTGRES_DB:-incidents}
+      POSTGRES_USER: ${POSTGRES_USER:-incidents}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env before starting the stack}
     volumes: ["pgdata:/var/lib/postgresql"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U incidents -d incidents"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-incidents} -d $${POSTGRES_DB:-incidents}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -15,11 +15,13 @@ services:
     build: .
     ports: ["8000:8000", "8443:8443"]
     environment:
-      DATABASE_URL: postgresql+psycopg2://incidents:incidents@db:5432/incidents
-      SECRET_KEY: change-me
-      ADMIN_INITIAL_PASSWORD: adminpass
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env, for example postgresql+psycopg2://incidents:<password>@db:5432/incidents}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env with a random value of at least 32 characters}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env with a strong one-time bootstrap password}
+      CIR_PRODUCTION: ${CIR_PRODUCTION:-0}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
       APP_VERSION: 0.2.0
-      APP_BUILD: 2026051801
+      APP_BUILD: 2026051901
       FORM_TEMPLATE_DIR: /data/form_templates
       SSL_DIR: /data/ssl
       SSL_PORT: 8443

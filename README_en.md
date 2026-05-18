@@ -4,9 +4,30 @@ Flask/Gunicorn application for a cybersecurity incident registry backed by Postg
 
 ## Version 0.2.0 - Platform consolidation and bilingual documentation
 
-Version 0.2.0, build 2026051801, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
+Version 0.2.0, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
 
 Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
+
+## Production hardening build 2026051901
+
+This build introduces an application security baseline for production use:
+
+- automatic CSRF protection for all `POST`, `PUT`, `PATCH` and `DELETE` forms, with server-side hidden-field injection in rendered HTML templates;
+- browser security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and HSTS when HTTPS is active or `CIR_FORCE_HSTS=1`;
+- session cookies are `HttpOnly`, `SameSite=Lax` and `Secure` when `CIR_PRODUCTION=1` or `SESSION_COOKIE_SECURE=1`;
+- upload size limit controlled by `MAX_CONTENT_LENGTH`, default 25 MiB;
+- fail-fast production validation: with `CIR_PRODUCTION=1` the application rejects weak `SECRET_KEY` values, weak bootstrap admin passwords and SQLite databases;
+- the notification/reminder scheduler uses a PostgreSQL advisory lock, so it is safe with multiple Gunicorn workers or Kubernetes replicas;
+- `docker-compose.yml` no longer contains hardcoded secrets and requires a `.env` file derived from `.env.example`.
+
+Secure startup preparation:
+
+```bash
+cp .env.example .env
+# change POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY and ADMIN_INITIAL_PASSWORD
+docker compose up --build
+```
+
 ## Local startup
 
 ```bash
@@ -23,6 +44,7 @@ Open `http://localhost:8000`. The initial local user is `admin`; the initial pas
 - Local login, configurable LDAP authentication with user filter, and configurable SSO/OAuth2/OpenID Connect login from the Admin interface.
 - Roles: admin, operator, reader, writer, disabled.
 - Drag-and-drop management of categories, affected data, personnel and recommendations, with drop targets next to the palettes.
+- Contextual online help on the incident detail page for the main fields and sensitive procedural information.
 - Document upload and download.
 - CSV export, full compressed export with all real database fields, professional PDF incident reports with wrapped tables and an action-over-time chart.
 - Idempotent seed with PostgreSQL lock to avoid duplicate keys and `WORKER_BOOT_ERROR`.
@@ -60,7 +82,7 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 
 - Name: Cybersecurity Incident Registry
 - Version: 0.2.0
-- Build: 2026051801
+- Build: 2026051901
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 The information is visible from **Info → Application** and can be configured through the environment variables `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.

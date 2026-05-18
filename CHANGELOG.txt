@@ -1,5 +1,19 @@
-## 0.2.0 - build 2026051801
-- Aggiornata la versione applicativa a 0.2.0 e il build a 2026051801.
+0.2.0-127
+- Hardened production baseline: CSRF protection for unsafe HTTP methods, automatic hidden token injection in POST forms, security headers and secure cookie defaults.
+- Added fail-fast production checks for weak SECRET_KEY, weak ADMIN_INITIAL_PASSWORD and SQLite usage when CIR_PRODUCTION=1.
+- Removed hardcoded secrets from docker-compose.yml and added .env.example for safe bootstrap.
+- Made the background notification/reminder scheduler safe across multiple workers or Kubernetes replicas through a PostgreSQL advisory lock.
+- Added security smoke tests and requirements-dev.txt.
+- Aggiornata documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
+
+0.2.0-126
+- Aggiunte icone informative con help online nei campi principali della pagina dettaglio incidente.
+- I tooltip spiegano nome, riferimento, destinatario, descrizione, gravità, stato, date/ore della violazione, dati personali, silenziamento notifiche deadline, numero interessati e volume dati.
+- Aggiornate documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
+- Added contextual online help icons to the main fields of the incident detail page and updated bilingual documentation.
+
+## 0.2.0 - build 2026051901
+- Aggiornata la versione applicativa a 0.2.0 e il build a 2026051901.
 - Consolidati nella documentazione utente e amministrativa bilingue gli sviluppi recenti: audit, notifiche, promemoria, SSO, HTTPS/SSL, report PDF, menu Aiuto e loghi SSO.
 - Aggiornata la documentazione progettuale con la baseline funzionale 0.2.0.
 
