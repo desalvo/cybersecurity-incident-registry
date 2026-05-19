@@ -1,3 +1,12 @@
+### 0.2.1-32 - Condizioni workflow estese
+Gli step dei flussi operativi possono avere condizioni multiple assegnate tramite drag & drop: dati personali, gravità dell’incidente e dati interessati. Lo step viene considerato solo se non ha condizioni oppure se tutte quelle configurate risultano verificate nell’incidente.
+
+### 0.2.1-31 - Controllo globale sui task
+Le label azione possono ora includere l’operazione automatica **Controllo globale**. Quando è assegnata a una label, l’applicazione impedisce l’inserimento del task nell’incidente se gli step procedurali precedenti nel workflow applicabile non sono stati completati.
+
+### 0.2.1-30 - Label azioni più leggibili
+La pagina Admin → Liste configurabili mostra ora la sezione Label azioni con una vista a schede più leggibile: nome, descrizione, tempo massimo, esportazione predefinita e operazioni automatiche sono separati e modificabili senza scorrere una tabella larga.
+
 
 ### 0.2.1-29 - Operazioni automatiche sulle label azione
 Le label azioni supportano ora tag configurabili tramite drag & drop per eseguire operazioni automatiche quando il task viene inserito: chiusura in assenza di avvisi procedurali e impostazione della fine violazione.

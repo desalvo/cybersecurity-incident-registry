@@ -280,3 +280,12 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .compact-dnd { grid-template-columns: minmax(160px,1fr) minmax(160px,1fr); gap: .5rem; }
 .compact-dnd .palette,.compact-dnd .dropzone { min-height: 54px; padding: .5rem; }
 .automatic-operations-editor { min-width: 320px; }
+
+/* Liste configurabili: label azioni in schede leggibili */
+.action-labels-admin-card{border-left:6px solid #1d4ed8}
+.action-label-add-card{display:grid;grid-template-columns:minmax(220px,1fr) minmax(320px,2fr);gap:1rem;align-items:start;border:1px solid #c8d7f5;background:#f8fbff;border-radius:14px;padding:1rem;margin:1rem 0}
+.action-label-add-card textarea{min-height:6rem;resize:vertical}
+.action-label-options-row{display:grid;grid-template-columns:minmax(160px,220px) minmax(180px,1fr);gap:.75rem;align-items:center}
+.action-label-checkbox{display:flex;gap:.5rem;align-items:center;margin-top:1.4rem;border:1px solid #d7dee8;border-radius:10px;background:#fff;padding:.65rem .75rem}
+.action-label-checkbox input{width:auto;min-height:auto}.action-label-submit-row{display:flex;align-items:end;justify-content:flex-end}.action-label-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:1rem;margin-top:1rem}.action-label-edit-card{border:1px solid #d7dee8;border-radius:16px;background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.06);padding:1rem}.action-label-card-header{display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;border-bottom:1px solid #e5edf8;padding-bottom:.75rem;margin-bottom:.9rem}.action-label-card-header h4{margin:.1rem 0 .2rem;font-size:1.08rem}.action-label-card-header p{margin:0}.action-label-fields{display:grid;gap:.85rem}.action-label-fields textarea{min-height:6rem;resize:vertical}.action-operation-dnd{grid-template-columns:1fr;gap:.65rem}.action-operation-dnd .palette,.action-operation-dnd .dropzone{min-height:72px}.action-label-card-actions{display:flex;justify-content:flex-end;margin-top:1rem}.empty-card{border:1px dashed #94a3b8;border-radius:14px;padding:1rem;background:#f8fafc}.automatic-operations-editor label{margin-bottom:.25rem}.automatic-operations-editor .group-title{margin:0 0 .35rem}
+@media(max-width:820px){.action-label-add-card,.action-label-card-grid{grid-template-columns:1fr}.action-label-options-row{grid-template-columns:1fr}.action-label-checkbox{margin-top:0}.action-label-card-header{display:grid}.action-label-card-header form,.action-label-card-header button,.action-label-card-actions button{width:100%}}

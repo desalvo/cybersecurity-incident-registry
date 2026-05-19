@@ -499,6 +499,7 @@ def format_audit_datetime(value, include_timezone=True):
 AUTOMATIC_ACTION_OPERATIONS = {
     'close_without_warnings': 'Chiusura del task in assenza di avvisi procedurali',
     'end_breach': 'Fine violazione',
+    'global_check': 'Controllo globale',
 }
 
 
@@ -765,7 +766,65 @@ def workflow_step_key(step):
         bool(getattr(step, 'personal_data_only', False)),
         bool(getattr(step, 'requires_notification', False)),
         (getattr(step, 'required_notification_type', None) or '').strip(),
+        tuple(step.condition_tokens() if hasattr(step, 'condition_tokens') else []),
     )
+
+
+def workflow_condition_token_label(token):
+    token=(token or '').strip()
+    if token == 'personal_data':
+        return 'Dati personali'
+    if token.startswith('severity:'):
+        try:
+            lab=ConfigLabel.query.get(int(token.split(':',1)[1]))
+            return f"Gravità: {lab.value}" if lab else f"Gravità #{token.split(':',1)[1]}"
+        except Exception:
+            return 'Gravità non valida'
+    if token.startswith('data_type:'):
+        try:
+            lab=ConfigLabel.query.get(int(token.split(':',1)[1]))
+            return f"Dati interessati: {lab.value}" if lab else f"Dato interessato #{token.split(':',1)[1]}"
+        except Exception:
+            return 'Dato interessato non valido'
+    return token
+
+def workflow_condition_tokens_from_form(prefix='conditions'):
+    allowed={'personal_data'}
+    allowed.update(f'severity:{x.id}' for x in labels('severity'))
+    allowed.update(f'data_type:{x.id}' for x in labels('data_type'))
+    out=[]
+    for token in request.form.getlist(prefix):
+        token=(token or '').strip()
+        if token in allowed and token not in out:
+            out.append(token)
+    return out
+
+def workflow_step_condition_status(step, inc):
+    tokens = step.condition_tokens() if hasattr(step, 'condition_tokens') else []
+    if not tokens:
+        return True, []
+    incident_data_type_ids={int(x.id) for x in (inc.data_types or [])}
+    details=[]
+    ok=True
+    for token in tokens:
+        passed=False
+        if token == 'personal_data':
+            passed=bool(getattr(inc, 'personal_data', False))
+        elif token.startswith('severity:'):
+            try:
+                passed=int(token.split(':',1)[1]) == int(inc.severity_id or 0)
+            except Exception:
+                passed=False
+        elif token.startswith('data_type:'):
+            try:
+                passed=int(token.split(':',1)[1]) in incident_data_type_ids
+            except Exception:
+                passed=False
+        else:
+            passed=False
+        ok = ok and passed
+        details.append({'token': token, 'label': workflow_condition_token_label(token), 'passed': passed})
+    return ok, details
 
 def notification_action_label_ids(kind):
     """Return action label IDs that prove a manual notification of this type was sent."""
@@ -828,7 +887,8 @@ def workflow_steps_for_incident(inc):
     seen = set()
     deduped = []
     for row in rows:
-        if getattr(row, 'personal_data_only', False) and not getattr(inc, 'personal_data', False):
+        conditions_ok, _condition_details = workflow_step_condition_status(row, inc)
+        if not conditions_ok:
             continue
         key = workflow_step_key(row)
         if key in seen:
@@ -881,6 +941,7 @@ def incident_workflow_status(inc):
             'task_name': label.value if label else '',
             'description': step.description or '',
             'personal_data_only': bool(getattr(step, 'personal_data_only', False)),
+            'conditions': [workflow_condition_token_label(t) for t in (step.condition_tokens() if hasattr(step, 'condition_tokens') else [])],
             'required': bool(getattr(step, 'required', True)),
             'warning_text': (step.description or ((label.description or label.value) if label else '')),
             'requires_notification': requires_notification,
@@ -1853,6 +1914,53 @@ def workflow_notification_blocking_message(inc, label_id):
             return f'Impossibile inserire questa azione: lo step richiede prima l’invio della notifica "{label}". Cliccare lo step nelle Operazioni previste per aprire il percorso guidato.'
     return ''
 
+def workflow_global_check_blocking_message(inc, label_id):
+    """Blocca un task con operazione automatica controllo globale.
+
+    Il controllo è attivo solo se la label selezionata contiene il tag
+    ``global_check``. In quel caso viene individuato il prossimo step del
+    workflow applicabile associato alla stessa label e si verifica che tutti
+    gli step procedurali precedenti risultino completati. Questo impedisce di
+    saltare fasi obbligate del workflow dopo Full import/restore o con flussi
+    personalizzati, lasciando comunque modificabile la definizione del flusso.
+    """
+    if not inc or not label_id:
+        return ''
+    try:
+        selected_label_id = int(label_id)
+    except Exception:
+        return ''
+    label = ConfigLabel.query.get(selected_label_id)
+    if not action_has_automatic_operation(label, 'global_check'):
+        return ''
+    workflow = incident_workflow_status(inc)
+    steps = workflow.get('steps', [])
+    target_index = None
+    for idx, step in enumerate(steps):
+        if int(step.get('action_label_id') or 0) == selected_label_id and not step.get('done'):
+            target_index = idx
+            break
+    if target_index is None:
+        for idx, step in enumerate(steps):
+            if int(step.get('action_label_id') or 0) == selected_label_id:
+                target_index = idx
+                break
+    if target_index is None:
+        return ''
+    missing_previous = [
+        step for step in steps[:target_index]
+        if not step.get('done')
+    ]
+    if not missing_previous:
+        return ''
+    missing_text = ', '.join(
+        (step.get('description') or step.get('label') or step.get('task_name') or 'step precedente')
+        for step in missing_previous[:5]
+    )
+    if len(missing_previous) > 5:
+        missing_text += ', ...'
+    return 'Impossibile inserire questa azione: la label richiede il controllo globale e gli step procedurali precedenti non sono ancora stati completati: ' + missing_text + '.'
+
 def create_manual_action_safely(iid):
     """Crea una nuova azione manuale senza assegnare ID espliciti.
 
@@ -1866,6 +1974,8 @@ def create_manual_action_safely(iid):
     label = ConfigLabel.query.get(label_id) if label_id else None
     inc = Incident.query.get(iid)
     blocking = workflow_notification_blocking_message(inc, label_id) if inc else ''
+    if not blocking and inc:
+        blocking = workflow_global_check_blocking_message(inc, label_id)
     if blocking:
         raise ValueError(blocking)
     description = request.form.get('description') or None
@@ -2034,7 +2144,8 @@ def admin_incident_workflows():
             category_id = request.form.get('category_id', type=int) if scope == 'category' else None
             action_label_id = request.form.get('action_label_id', type=int)
             description = (request.form.get('description') or '').strip()
-            personal_data_only = bool(request.form.get('personal_data_only'))
+            condition_tokens = workflow_condition_tokens_from_form('conditions')
+            personal_data_only = ('personal_data' in condition_tokens)
             required = bool(request.form.get('required'))
             requires_notification = bool(request.form.get('requires_notification'))
             required_notification_type = (request.form.get('required_notification_type') or '').strip() or None
@@ -2053,7 +2164,7 @@ def admin_incident_workflows():
                 # collisione concorrente, ricostruiamo l'oggetto dopo rollback e
                 # ritentiamo con sequence riallineata.
                 align_table_sequence('incident_workflow_step')
-                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
+                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
                 db.session.add(step)
                 try:
                     db.session.commit()
@@ -2063,7 +2174,7 @@ def admin_incident_workflows():
                         raise
                     current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
                     align_table_sequence('incident_workflow_step')
-                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
+                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
                     db.session.add(step)
                     db.session.commit()
                 flash('Passo del flusso aggiunto','success')
@@ -2074,7 +2185,8 @@ def admin_incident_workflows():
                 if not step: continue
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()
-                step.personal_data_only = bool(request.form.get(f'personal_data_only_{sid}'))
+                condition_tokens = workflow_condition_tokens_from_form(f'conditions_{sid}')
+                step.set_condition_tokens(condition_tokens)
                 step.required = bool(request.form.get(f'required_{sid}'))
                 step.requires_notification = bool(request.form.get(f'requires_notification_{sid}'))
                 step.required_notification_type = (request.form.get(f'required_notification_type_{sid}') or '').strip() or None
@@ -2086,7 +2198,7 @@ def admin_incident_workflows():
     grouped = {}
     for step in steps:
         grouped.setdefault(step.category_id or 0, []).append(step)
-    return render_template('admin_incident_workflows.html', categories=labels('category'), action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), grouped=grouped)
+    return render_template('admin_incident_workflows.html', categories=labels('category'), action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), severities=labels('severity'), data_types=labels('data_type'), grouped=grouped)
 
 @bp.route('/admin/incident-workflows/<int:sid>/delete',methods=['POST'])
 @login_required

@@ -65,9 +65,32 @@ class IncidentWorkflowStep(db.Model):
     required=db.Column(db.Boolean,default=True,nullable=False)
     requires_notification=db.Column(db.Boolean,default=False,nullable=False)
     required_notification_type=db.Column(db.String(40),nullable=True,index=True)
+    conditions=db.Column(db.Text,default='')
     created_at=db.Column(db.DateTime,default=datetime.utcnow)
     category=db.relationship('ConfigLabel',foreign_keys=[category_id])
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
+
+    def condition_tokens(self):
+        values=[]
+        for item in (self.conditions or '').split(','):
+            item=(item or '').strip()
+            if item and item not in values:
+                values.append(item)
+        # Compatibilita' con il vecchio flag: gli step gia' marcati
+        # "solo dati personali" continuano a comportarsi come prima.
+        if getattr(self, 'personal_data_only', False) and 'personal_data' not in values:
+            values.insert(0, 'personal_data')
+        return values
+
+    def set_condition_tokens(self, tokens):
+        cleaned=[]
+        for item in tokens or []:
+            item=(item or '').strip()
+            if item and item not in cleaned:
+                cleaned.append(item)
+        self.conditions=','.join(cleaned)
+        self.personal_data_only=('personal_data' in cleaned)
+
 
 class Person(db.Model):
     id=db.Column(db.Integer,primary_key=True); name=db.Column(db.String(160),unique=True,nullable=False); email=db.Column(db.String(255)); group=db.Column(db.String(80),default='personale')
@@ -289,6 +312,7 @@ class NotificationTemplate(db.Model):
     linked_form_template_name=db.Column(db.String(255),nullable=True,index=True)
     action_label_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True)
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
+
     is_default=db.Column(db.Boolean,default=False)
     created_at=db.Column(db.DateTime,default=datetime.utcnow)
     __table_args__=(db.UniqueConstraint('kind','name',name='uq_notification_template_kind_name'),)

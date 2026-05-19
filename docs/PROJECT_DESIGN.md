@@ -1404,7 +1404,29 @@ La funzione `incident_procedural_status()` calcola ora gli avvisi procedurali a 
 
 
 ## Versione 0.2.1-29 - Operazioni automatiche sulle label azione
-Il modello `ConfigLabel` include il campo `automatic_operations`, usato per le label di tipo `action_label`. L'amministratore configura i tag tramite drag & drop in `admin_labels.html`; le operazioni supportate sono `close_without_warnings` e `end_breach`. La funzione `apply_action_automatic_operations()` applica gli effetti al momento dell'inserimento dell'azione, usando la timezone applicativa e bloccando la chiusura se restano avvisi procedurali attivi.
+Il modello `ConfigLabel` include il campo `automatic_operations`, usato per le label di tipo `action_label`. L'amministratore configura i tag tramite drag & drop in `admin_labels.html`; le operazioni supportate sono `close_without_warnings`, `end_breach` e `global_check`. La funzione `apply_action_automatic_operations()` applica gli effetti al momento dell'inserimento dell'azione, usando la timezone applicativa e bloccando la chiusura se restano avvisi procedurali attivi.
 
 ## Version 0.2.1-29 - Automatic operations on action labels
-The `ConfigLabel` model includes the `automatic_operations` field for `action_label` rows. Administrators configure tags by drag and drop in `admin_labels.html`; supported operations are `close_without_warnings` and `end_breach`. `apply_action_automatic_operations()` applies the effects when an action is added, using the application timezone and blocking closure while procedural warnings remain active.
+The `ConfigLabel` model includes the `automatic_operations` field for `action_label` rows. Administrators configure tags by drag and drop in `admin_labels.html`; supported operations are `close_without_warnings`, `end_breach` and `global_check`. `apply_action_automatic_operations()` applies the effects when an action is added, using the application timezone and blocking closure while procedural warnings remain active.
+
+
+## Versione 0.2.1-30 - Leggibilità label azioni
+La sezione delle label azioni in Admin → Liste configurabili è stata trasformata da tabella larga a vista a schede. Ogni label azione espone in modo separato nome, descrizione, tempo massimo, flag di esportazione e operazioni automatiche configurabili con drag & drop. La modifica è puramente di interfaccia e non altera il modello dati né la semantica delle operazioni automatiche.
+
+## Version 0.2.1-30 - Action-label readability
+The action-label section in Admin → Configurable lists has been changed from a wide table to a card layout. Each action label exposes name, description, maximum time, export flag and drag-and-drop automatic operations separately. The change is UI-only and does not alter the data model or automatic-operation semantics.
+
+
+## Versione 0.2.1-31 - Controllo globale sui task
+Le label azione supportano l'operazione automatica `global_check`, configurabile tramite drag & drop da Admin → Liste configurabili → Label azioni. Quando l'utente tenta di inserire un'azione con una label che contiene questo tag, `create_manual_action_safely()` invoca `workflow_global_check_blocking_message()`: il sistema individua lo step workflow applicabile associato alla label e impedisce l'inserimento se uno degli step precedenti non è ancora completato. Il controllo è lato server e quindi resta valido anche in caso di richieste manuali o interfacce personalizzate.
+
+## Version 0.2.1-31 - Global task check
+Action labels support the `global_check` automatic operation, configured by drag and drop under Admin → Configurable lists → Action labels. When a user tries to add an action whose label includes this tag, `create_manual_action_safely()` calls `workflow_global_check_blocking_message()`: the system finds the applicable workflow step associated with that label and blocks insertion if any previous step is still incomplete. The check is enforced server-side, so it also applies to manual requests or customized interfaces.
+
+
+
+## Versione 0.2.1-32 - Condizioni workflow estese
+Gli step dei flussi operativi supportano ora condizioni multiple memorizzate nel campo `IncidentWorkflowStep.conditions`. Le condizioni disponibili sono `personal_data`, `severity:<id>` e `data_type:<id>`. La valutazione è con logica AND: lo step è incluso nelle operazioni previste solo se non ha condizioni oppure tutte le condizioni sono soddisfatte dall’incidente. La UI amministrativa usa un selettore drag & drop compatto per ridurre lo spazio occupato.
+
+## Version 0.2.1-32 - Extended workflow conditions
+Operational workflow steps now support multiple conditions stored in `IncidentWorkflowStep.conditions`. Available conditions are `personal_data`, `severity:<id>` and `data_type:<id>`. Evaluation uses AND logic: a step is included in expected operations only when it has no conditions or all conditions are satisfied by the incident. The administrative UI uses a compact drag-and-drop selector to reduce page space.

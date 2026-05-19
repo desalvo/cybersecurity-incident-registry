@@ -1,3 +1,12 @@
+### 0.2.1-32 - Extended workflow conditions
+Operational workflow steps can now have multiple drag-and-drop conditions: personal data, incident severity and affected data types. A step is considered only when it has no conditions or when all configured conditions match the incident.
+
+### 0.2.1-31 - Global task check
+Action labels can now include the **Global check** automatic operation. When assigned to a label, the application prevents adding that task to an incident if previous procedural workflow steps have not been completed.
+
+### 0.2.1-30 - More readable action labels
+The Admin → Configurable lists page now displays Action labels as readable cards: name, description, maximum time, default export flag and automatic operations are separated and can be edited without scrolling a wide table.
+
 
 ### 0.2.1-29 - Automatic operations on action labels
 Action labels now support drag-and-drop configurable tags to run automatic operations when the task is added: close when no procedural warnings are active and set the breach end time.

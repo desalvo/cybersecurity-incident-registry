@@ -336,6 +336,16 @@ def run_schema_migrations(app):
             else:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE incident_workflow_step SET required = TRUE WHERE required IS NULL'))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'conditions' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN conditions TEXT"))
+                    conn.execute(text("UPDATE incident_workflow_step SET conditions = CASE WHEN personal_data_only THEN 'personal_data' ELSE '' END WHERE conditions IS NULL"))
+                app.logger.info('Schema migration applied: incident_workflow_step.conditions added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE incident_workflow_step SET conditions = 'personal_data' WHERE personal_data_only = TRUE AND (conditions IS NULL OR conditions = '')"))
+                    conn.execute(text("UPDATE incident_workflow_step SET conditions = '' WHERE conditions IS NULL"))
 
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}

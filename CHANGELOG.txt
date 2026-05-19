@@ -1,3 +1,17 @@
+0.2.1-32
+- Estese le condizioni degli step workflow: dati personali, gravità e dati interessati.
+- Associazione condizioni tramite drag & drop compatto nella gestione workflow.
+- Valutazione step solo quando tutte le condizioni configurate sono soddisfatte.
+
+0.2.1-31
+- Added the global-check automatic operation for action labels.
+- Task insertion is blocked when previous applicable workflow steps are still missing.
+- Updated Italian and English documentation.
+
+0.2.1-30
+- Migliorata la leggibilità della sezione Label azioni in Admin -> Liste configurabili con vista a schede e campi separati.
+- Documentazione aggiornata.
+
 0.2.1-29
 - Operazioni automatiche configurabili sulle label azione tramite drag & drop.
 - Chiusura incidente e fine violazione non sono più hard-coded sul nome del task.
