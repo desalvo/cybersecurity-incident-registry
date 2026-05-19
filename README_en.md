@@ -6,15 +6,9 @@
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
 
-## Version 0.2.1 - Default workflow with authority and user communications
+## Application state
 
-Version 0.2.1, build 2026051901, updates the default operational workflow by adding "Privacy Authority communication" and "User communication" between DPO notification and Closure. The authority step applies only when the incident involves personal data; all steps remain editable by administrators.
-
-## Version 0.2.1 - Workflow-step insert fix
-
-Version 0.2.1, build 2026051901, fixes workflow-step insertion after Full import or restore, preventing duplicate-key collisions on the workflow-step table. It also keeps workflow steps conditional on personal data being involved and notifies the admin when LDAP/SSO automatically creates disabled users. It also keeps the incident Reference field mandatory and consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
-
-Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
+The operational documentation describes the current state of platform 0.2.1, build 2026051901. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
 
 ## Production hardening build 2026051901
 

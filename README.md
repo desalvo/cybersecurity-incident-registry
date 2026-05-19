@@ -6,15 +6,9 @@
 
 Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
-## Versione 0.2.1 - Workflow default con comunicazioni Garante e utente
+## Stato applicativo
 
-La versione 0.2.1, build 2026051901, aggiorna il workflow operativo di default inserendo, tra la comunicazione al DPO e la conclusione, gli step "Comunicazione al Garante" e "Comunicazione all’utente". Lo step verso il Garante è marcato come applicabile solo quando l’incidente coinvolge dati personali; tutti gli step restano modificabili dall’amministratore.
-
-## Versione 0.2.1 - Correzione inserimento step workflow
-
-La versione 0.2.1, build 2026051901, corregge l’inserimento degli step nei flussi operativi dopo Full import o restore, evitando collisioni duplicate-key sulla tabella degli step workflow. Mantiene inoltre gli step workflow condizionati alla presenza di dati personali nell’incidente e la notifica all’admin quando LDAP/SSO crea automaticamente utenti disabled. Mantiene inoltre obbligatorio il campo Riferimento in ogni incidente e consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
-
-Le guide operative sono mantenute in entrambe le lingue. Le note di rilascio sono separate dalla documentazione operativa e consultabili dal menu Aiuto.
+La documentazione operativa descrive lo stato corrente della piattaforma 0.2.1, build 2026051901. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
 ## Hardening produzione build 2026051901
 

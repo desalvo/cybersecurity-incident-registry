@@ -1,3 +1,7 @@
+0.2.1-34
+- Riallineata documentazione utente/amministrativa alla versione 0.2.1.
+- Rimossi capitoli changelog dalle guide operative e integrate sezioni fuori corpo.
+
 0.2.1-33
 - Corrette le occorrenze residue della versione applicativa nelle pagine Info, documentazione utente e amministrativa.
 - Separati i contenuti di changelog dalle guide operative: le guide descrivono lo stato corrente, mentre le variazioni restano nelle Note di rilascio.

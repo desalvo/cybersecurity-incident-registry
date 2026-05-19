@@ -1,12 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="doc-section"><h2>0.2.1 - Operazioni previste condizionali</h2><p>Gli step delle operazioni previste configurati come validi solo per dati personali compaiono nella pagina incidente esclusivamente quando il flag <strong>Dati personali</strong> è attivo.</p></section>
-<section id="workflow-current-summary" class="doc-chapter" data-doc-title="workflow avvisi procedurali condizioni notifiche task">
-  <h2>Operazioni previste, avvisi e task</h2>
-  <p>Nella pagina del singolo incidente la sezione <strong>Operazioni previste</strong> mostra gli step del workflow applicabile all’incidente. Gli step possono dipendere da condizioni configurate dall’amministratore, come presenza di dati personali, gravità e dati interessati. Gli step completati e mancanti sono evidenziati in modo diverso; gli step scaduti sono marcati come critici.</p>
-  <p>Gli step richiesti non ancora completati sono riportati negli <strong>Avvisi procedurali</strong>. In assenza di avvisi attivi, l’inserimento di un task configurato per la chiusura può portare automaticamente l’incidente allo stato chiuso. Alcuni task possono richiedere notifiche o documenti: cliccando lo step, l’applicazione guida verso invio notifica, generazione documento o tagging degli allegati.</p>
-</section>
-
 <div class="card help-content documentation" aria-labelledby="doc-title">
   <div class="page-header">
     <div>
@@ -24,12 +17,9 @@
     <div>
       <h2>Guida pratica per registrare, seguire e chiudere gli incidenti</h2>
       <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
-      <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p><p>Gli utenti non amministratori con ruolo writer trovano in <strong>Impostazioni → Destinatari esterni</strong> la gestione completa, inclusa la ricerca, della rubrica usata per le notifiche manuali con destinatari liberi.</p><p><strong>Versione applicazione:</strong> {{ app_info.version }} · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
+      <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p><p class="muted">Questa guida descrive lo stato operativo corrente dell’applicazione. Le variazioni cronologiche e i changelog sono mantenuti nelle Note di rilascio.</p><p>Gli utenti non amministratori con ruolo writer trovano in <strong>Impostazioni → Destinatari esterni</strong> la gestione completa, inclusa la ricerca, della rubrica usata per le notifiche manuali con destinatari liberi.</p><p><strong>Versione applicativa: 0.2.1</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p><p class="muted">Versione 0.2.1 della guida utente, allineata al build {{ app_info.build }}.</p>
     </div>
   <p>I tooltip di aiuto dei campi incidente sono disponibili sia nella pagina di modifica/dettaglio sia nella pagina di creazione di un nuovo incidente.</p></section>
-
-
-  <section class="doc-section"><h2>0.2.1 - Riferimento obbligatorio</h2><p>In creazione e modifica incidente il campo <strong>Riferimento</strong> deve essere sempre compilato. Il destinatario delle comunicazioni resta opzionale e, se vuoto, continua a usare il riferimento.</p></section>
 
   <figure class="doc-figure">
     <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma del ciclo di vita di un incidente">
@@ -59,6 +49,9 @@
       <li><a href="#cap-export">Export, import e audit visibile all’utente</a></li>
       <li><a href="#cap-mobile">Uso mobile, accessibilità e buone pratiche</a></li>
       <li><a href="#cap-esempi">Esempi operativi</a></li>
+      <li><a href="#cap-workflow-incidenti">Operazioni previste dell’incidente</a></li>
+      <li><a href="#user-incident-templates">Creazione incidente da modello e azioni rapide</a></li>
+      <li><a href="#user-full-import-note">Nota sul Full import</a></li>
     </ol>
   </nav>
 
@@ -218,11 +211,11 @@
     <p>Il flusso deriva dalle categorie associate all’incidente; con più categorie i flussi vengono sommati e i duplicati rimossi. Se nessuna categoria ha un flusso dedicato viene usato il flusso di default configurato dall’amministratore: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Comunicazione al Garante, Comunicazione all’utente e Conclusione. Anche il flusso di default è modificabile dall’amministratore.</p>
   </section>
 
-</div>
 
 <section id="user-incident-templates" class="doc-chapter" data-doc-title="nuovo incidente modello profilo azioni data ora"><h2>Creazione incidente da modello e azioni</h2><p>Nella pagina <strong>Nuovo incidente</strong> è possibile scegliere un modello predefinito, se configurato dall’amministratore. Il modello compila i dati iniziali dell’incidente, mentre data e ora di inizio sono impostate al momento corrente.</p><p>Nella pagina del singolo incidente, sezione <strong>Azioni</strong>, il pulsante <strong>↻</strong> accanto a data e ora aggiorna il campo al momento corrente prima dell’inserimento dell’azione.</p></section>
 
 <section id="user-full-import-note" class="doc-chapter" data-doc-title="full import ripristino distruttivo backup"><h2>Nota sul Full import</h2><p>Il Full import è una funzione amministrativa di ripristino totale. Quando viene eseguito, il database viene ricreato completamente e sostituito con i dati dell'archivio importato. Gli utenti operativi devono richiederlo solo come procedura controllata di ripristino o migrazione.</p></section>
-{% endblock %}
 
-<section class="doc-section"><h2>Conferma destinatario notifiche manuali</h2><p>Per le notifiche con campi destinatario modificabili, non già fissati dalle impostazioni applicative, l’anteprima di invio mostra la rubrica dei destinatari esterni con nome ed e-mail: un contatto può essere usato come destinatario principale o aggiunto in CC. Il campo resta libero e accetta nuovi indirizzi; quando viene usata una nuova email, l’applicazione salva automaticamente il contatto nella rubrica condivisa usando il campo Riferimento dell’incidente come nome del destinatario. Prima dell’invio viene sempre richiesta una conferma esplicita del destinatario e degli eventuali CC, così l’operatore può verificare l’indirizzo finale prima della spedizione.</p></section>
+
+</div>
+{% endblock %}

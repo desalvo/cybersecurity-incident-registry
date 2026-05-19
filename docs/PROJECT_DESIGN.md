@@ -1445,3 +1445,11 @@ La versione applicativa esposta da `APP_VERSION`, dalla pagina Info e dalle guid
 ## Version 0.2.1-33 - Version and documentation cleanup
 
 The application version exposed by `APP_VERSION`, the Info page and the guides is normalized to `0.2.1`, with build `2026051901`. User and administrator guides are maintained as operational documentation of the current state and must not contain changelog blocks. Chronological changes are centralized in `CHANGELOG.txt` and in `release_notes.html` / `release_notes_en.html`.
+
+## Versione 0.2.1-34 - Riallineamento guide operative
+
+Le guide utente e amministrativa sono state ricontrollate per esporre esplicitamente `Versione applicativa: 0.2.1` / `Versione 0.2.1`, senza capitoli di changelog nel corpo operativo. Le sezioni che erano fuori dal contenitore principale della documentazione online sono state integrate come capitoli regolari.
+
+## Version 0.2.1-34 - Operational guide alignment
+
+The user and administrator guides were reviewed to explicitly show `Application version: 0.2.1` / `Version 0.2.1`, without changelog chapters in the operational body. Sections that were outside the main online-documentation container were integrated as regular chapters.
