@@ -1,27 +1,31 @@
-## 0.2.1-17
+## 0.2.1
+- Corretto inserimento step workflow dopo import/restore con riallineamento sequence incident_workflow_step e retry su duplicate-key.
+- Documentazione aggiornata.
+
+## 0.2.1
 - Aggiunto flag personal_data_only sugli step dei flussi operativi.
 - Gli step condizionali sono considerati solo per incidenti con dati personali.
 - Aggiunta notifica email best-effort all admin quando LDAP/SSO crea utenti disabled.
 - Aggiornata documentazione italiana e inglese.
 
-## 0.2.1-16
+## 0.2.1
 - Riferimento incidente obbligatorio in creazione e modifica.
 - Normalizzazione import/migrazioni per incidenti storici senza riferimento.
 - Documentazione aggiornata.
 
-## 0.2.1-16
+## 0.2.1
 - Riallineamento generalizzato delle sequence PostgreSQL per tutte le tabelle applicative con chiave primaria intera.
 - Copertura post full import/restore estesa a workflow, stati scheduler, template binari, backup e nuove tabelle dai metadati SQLAlchemy.
 - Documentazione aggiornata sulle protezioni contro duplicate key.
 
-## 0.2.1-16
+## 0.2.1
 
 - Corretto errore PostgreSQL `audit_log_pkey` durante aggiunta, modifica e cancellazione utenti dopo import/restore.
 - Riallineamento sequence audit persistente fuori dalla transazione web.
 - Retry automatico dell’inserimento audit in caso di collisione sulla chiave primaria.
 - Documentazione IT/EN aggiornata.
 
-## 0.2.1-16
+## 0.2.1
 - Corretto il riallineamento della sequenza audit per evitare errori duplicate key durante la cancellazione utenti su database importati o con sequence PostgreSQL non allineate.
 - Aggiunta ricerca nella pagina Admin → Utenti.
 - Aggiunto pulsante di aggiornamento rapido data/ora nella sezione Azioni del singolo incidente.
@@ -29,33 +33,33 @@
 - Documentazione italiana, inglese e progettuale aggiornata.
 
 
-## 0.2.1-16
+## 0.2.1
 - Aggiunti tooltip dei campi anche nella pagina nuovo incidente.
 - Aggiunta gestione Admin → Backup con categorie selezionabili, backup on-demand, schedulazione cron-like, destinazioni POSIX/S3/download e verifica restore.
 - Updated documentation in Italian and English.
 
-0.2.1-16
+0.2.1
 - Spostati gli avvisi procedurali subito sotto le operazioni previste nella pagina incidente.
 - Resi cliccabili e accessibili da tastiera gli step workflow.
 - Clic su uno step: scroll alla sezione Azioni e preselezione della label associata.
 - Documentazione italiana, inglese e progettuale aggiornata.
 
-0.2.1-3 - Container environment documentation
+0.2.1 - Container environment documentation
 - Added docs/CONTAINER_ENVIRONMENT.md and docs/CONTAINER_ENVIRONMENT_en.md with all container environment variables, persistent volumes, Docker Compose/Kubernetes operations, HTTPS, Gunicorn tuning, scheduler, backup and upgrade guidance.
 - Expanded .env.example with all operational variables and links to the new guide.
 - docker-compose.yml now exposes configurable persistent storage paths through UPLOAD_DIR, LOGO_DIR, FORM_TEMPLATE_DIR, SSO_LOGO_DIR and SSL_DIR.
 - Integrated the container environment guide into the Italian and English online administrator documentation.
 - Updated README and project design documentation.
 
-0.2.1-2 - External recipient picker for manual notifications
+0.2.1 - External recipient picker for manual notifications
 - Added explicit address-book selection in manual notification previews with free recipient fields.
 - Selected contacts can populate the main recipient or be appended to CC.
 - Updated Italian and English documentation.
 
-0.2.1-1 - Automatic notification tags on generated forms
+0.2.1 - Automatic notification tags on generated forms
 - Generated PDF form documents automatically receive notification tags derived from notification templates linked to the form template.
 - Attachment preselection keeps using document tags and linked templates while remaining manually editable.
-- Application version set to 0.2.1-1 and build to 2026051901.
+- Application version set to 0.2.1 and build to 2026051901.
 - Documentation updated in Italian and English.
 
 0.2.0-12-notification-doc-association-recipients
@@ -725,13 +729,13 @@ Notification menu and SMTP sender fix
 - Manual notification preview now preselects documents tagged for the selected notification type, while keeping the final attachment selection editable.
 - Updated Italian/English user, admin and design documentation.
 
-## 0.2.1-5
+## 0.2.1
 - Added incident operational workflow steps configurable by administrators.
 - Added default workflow fallback and category-specific workflows based on action labels.
 - Added top-of-page incident workflow progress with completed/missing visual states.
 - Updated Italian and English user, administrator and project documentation.
 
-0.2.1-16
+0.2.1
 - Workflow incidenti: didascalia da descrizione task, fallback al nome task.
 - Aggiunta descrizione operativa ulteriore per ogni step di workflow.
 - Visualizzazione tempo limite, scadenza e tempo rimanente per step con tempo massimo.

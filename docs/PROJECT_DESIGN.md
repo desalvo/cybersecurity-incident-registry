@@ -9,7 +9,7 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.2.1-16
+- Versione: 0.2.1
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
@@ -27,7 +27,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.1-16, build 2026051901.
+La versione applicativa riportata nei metadati runtime è 0.2.1, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -597,7 +597,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-16, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1253,19 +1253,19 @@ Il modello `Document` contiene il campo `notification_tags`, una lista compatta 
 In anteprima invio notifica, `auto_selected_notification_documents()` combina due criteri di preselezione: documenti taggati con il tipo notifica corrente e documenti generati dal template modulo eventualmente collegato al template di notifica. I duplicati vengono rimossi. La lista rimane modificabile dall’utente prima dell’invio, quindi il tagging è un suggerimento operativo e non un vincolo di allegazione. Il full export/import include il campo perché deriva dallo schema SQLAlchemy.
 
 
-## Aggiornamento 0.2.1-2 - Picker rubrica destinatari esterni
+## Aggiornamento 0.2.1 - Picker rubrica destinatari esterni
 
 La pagina di anteprima delle notifiche manuali con destinatario libero riceve la lista `ExternalRecipient` solo quando il tipo di notifica non usa destinatari bloccati da configurazione. Il template `notification_preview.html` espone un selettore con nome ed e-mail dei destinatari esterni e pulsanti client-side per valorizzare il campo destinatario principale o aggiungere l’indirizzo al campo CC, mantenendo invariata la validazione server-side e l’acquisizione dei nuovi indirizzi tramite `ensure_external_recipients_from_addresses()`.
 
-## Aggiornamento 0.2.1-1 - Tag automatici dei documenti generati
+## Aggiornamento 0.2.1 - Tag automatici dei documenti generati
 
 La conferma dei moduli PDF generati dall'incidente ora determina i tag di notifica da applicare al documento partendo dai template di notifica manuali che hanno `linked_form_template_name` uguale al template modulo usato per la generazione. La funzione `notification_tags_for_generated_form_template()` restituisce i codici dei tipi di notifica abilitati, rimuove i duplicati e viene invocata durante `confirm_generated_forms()` prima del salvataggio del nuovo record `Document`.
 
 Il campo `Document.notification_tags`, già introdotto per il tagging multiplo degli allegati, viene quindi valorizzato automaticamente anche per i documenti generati. La preselezione in invio notifica continua a usare `auto_selected_notification_documents()`, che combina tag del documento e template modulo collegato, lasciando invariata la possibilità per l'utente di modificare manualmente gli allegati.
 
-Metadati runtime aggiornati: versione `0.2.1-1`, build `2026051901`.
+Metadati runtime aggiornati: versione `0.2.1`, build `2026051901`.
 
-## Aggiornamento 0.2.1-4 - Gestione rubrica destinatari esterni per utenti writer
+## Aggiornamento 0.2.1 - Gestione rubrica destinatari esterni per utenti writer
 
 La rubrica `ExternalRecipient` resta una risorsa applicativa condivisa. La rotta amministrativa `admin_external_recipients()` continua a essere disponibile solo agli utenti con ruolo `admin`, mentre la nuova rotta `settings_external_recipients()` espone la stessa gestione CRUD dal menu **Impostazioni** agli utenti non amministratori con ruolo `writer`. La funzione di autorizzazione dedicata `can_manage_external_recipients_from_settings()` evita di aprire il menu amministrativo e limita l’accesso agli utenti con privilegi di scrittura/modifica sugli incidenti. Le due route condividono la funzione interna `_external_recipients_page()`, così validazione, controllo duplicati, audit, template HTML e comportamento operativo rimangono coerenti.
 
@@ -1295,7 +1295,7 @@ On fresh installations the bootstrap creates an editable default workflow with f
 
 For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values only while the workflow step is still missing. Completed steps do not show deadline/remaining-time details anymore. A missing step is marked as critical when the remaining time is less than or equal to zero; the status remains informational and does not block manual completion or attachment/notification choices.
 
-### Aggiornamento 0.2.1-16 - Workflow interattivo nella pagina incidente
+### Aggiornamento 0.2.1 - Workflow interattivo nella pagina incidente
 
 La sezione degli avvisi procedurali è stata ricollocata subito sotto la sezione delle operazioni previste, in modo da mostrare all’operatore lo stato del workflow e i vincoli procedurali prima della scheda principale. Gli elementi del workflow esposti nella pagina incidente includono l'identificativo della label azione associata e sono resi attivabili da mouse e tastiera. L'attivazione scorre alla sezione Azioni e preseleziona la label dell'azione corrispondente, senza salvare automaticamente alcun dato: l'utente conserva il controllo su data, persona, descrizione, conseguenze e allegati.
 
@@ -1306,28 +1306,28 @@ La versione corrente introduce un sottosistema di backup configurabile da **Admi
 ## Application backups
 The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.
 
-## Aggiornamento 0.2.1-16 - Ricerca nella rubrica destinatari esterni
+## Aggiornamento 0.2.1 - Ricerca nella rubrica destinatari esterni
 
 La gestione della rubrica `ExternalRecipient`, sia dal menu Admin sia dal menu Impostazioni per utenti `writer`, espone un filtro testuale `q`. Il filtro viene applicato ai campi `name`, `email` e `notes` con matching case-insensitive e il template `admin_external_recipients.html` mantiene il parametro nelle azioni di modifica, salvataggio e cancellazione. La modifica non introduce nuove tabelle né migrazioni: utilizza il modello esistente e mantiene invariati audit, export/import e controlli di unicità sull'e-mail.
 
-## Aggiornamento 0.2.1-16 - Modelli incidente e gestione utenti
+## Aggiornamento 0.2.1 - Modelli incidente e gestione utenti
 
 La release introduce la tabella `incident_template`, usata per memorizzare profili di bootstrap degli incidenti. I modelli contengono solo dati iniziali e associazioni anagrafiche, non azioni né documenti. La pagina `Admin → Modelli incidente` permette CRUD completo e creazione da incidente esistente. La form di nuovo incidente può caricare un modello e imposta comunque `start_date` e `start_time` al momento corrente.
 
 La cancellazione utenti è stata resa più robusta riallineando la sequence PostgreSQL della tabella `audit_log` prima dell’inserimento dell’evento di audit. La pagina `Admin → Utenti` supporta ora filtro testuale su username, nome, email, backend e ruolo.
 
-## Aggiornamento 0.2.1-16 - Correzione sequence audit nelle operazioni utenti
+## Aggiornamento 0.2.1 - Correzione sequence audit nelle operazioni utenti
 
 Le operazioni di aggiunta, modifica e cancellazione utenti registrano eventi nella tabella `audit_log`. In installazioni PostgreSQL ripristinate da full import, restore o migrazioni con ID espliciti, la sequence della tabella `audit_log` poteva restare disallineata e provocare l'errore `duplicate key value violates unique constraint "audit_log_pkey"` durante le operazioni sugli utenti. La gestione audit ora riallinea la sequence con una connessione separata e persistente prima degli inserimenti critici e riprova l'inserimento audit se viene rilevata una collisione sulla chiave primaria. La correzione si applica anche alle altre funzioni che usano il registro audit.
 
-## Aggiornamento 0.2.1-16 - Full import con ricostruzione dello schema database
+## Aggiornamento 0.2.1 - Full import con ricostruzione dello schema database
 
 La funzione `import_full()` valida prima l'archivio di export completo e poi richiama `rebuild_database_for_full_import()`, che esegue rollback della sessione corrente, rimozione della sessione scoped, `db.drop_all()`, `db.create_all()` e commit dello schema vuoto. Solo dopo questa ricostruzione vengono importate le righe con ID espliciti e le relazioni molti-a-molti. La scelta rende il Full import coerente con una semantica di ripristino totale: non rimangono dati applicativi precedenti, vincoli o sequence PostgreSQL disallineate. I file contenuti nell'export continuano a essere ripristinati nelle directory persistenti configurate; la manutenzione di file orfani non referenziati resta responsabilità delle procedure operative di storage.
-### Correzione sequence utenti 0.2.1-16
+### Correzione sequence utenti 0.2.1
 
 Gli inserimenti nella tabella utenti eseguono un riallineamento preventivo della sequence PostgreSQL `user.id` prima delle creazioni critiche. La creazione manuale da `Admin → Utenti` gestisce inoltre una collisione `user_pkey` con rollback, riallineamento persistente e reinserimento del record. Questo rende sicuri gli inserimenti dopo full import distruttivi, restore o import con chiavi primarie esplicite.
 
-## Aggiornamento 0.2.1-16 - Riallineamento sequence PostgreSQL generalizzato
+## Aggiornamento 0.2.1 - Riallineamento sequence PostgreSQL generalizzato
 
 La protezione contro collisioni di chiave primaria PostgreSQL non è più limitata a singole tabelle. Il progetto introduce una funzione di introspezione dei metadati SQLAlchemy che individua tutte le tabelle applicative con colonna `id` intera e riallinea la sequence associata tramite `pg_get_serial_sequence` e `setval`. La procedura viene usata dopo Full import/restore e come recupero generalizzato in caso di `duplicate key value violates unique constraint`.
 
@@ -1335,13 +1335,27 @@ Questa scelta riduce il rischio di regressioni quando vengono aggiunte nuove ent
 
 
 
-## Aggiornamento 0.2.1-16 - Riferimento incidente obbligatorio
+## Aggiornamento 0.2.1 - Riferimento incidente obbligatorio
 
 Il modello applicativo considera il campo `Incident.reference` obbligatorio. La validazione viene eseguita nella creazione e nella modifica degli incidenti, con attributo HTML `required` e controllo server-side. Le migrazioni leggere e il Full import normalizzano eventuali record storici con riferimento nullo o vuoto usando un valore tecnico `Incidente #<id>`, evitando dati incompleti dopo import di archivi precedenti.
 
 
-## Versione 0.2.1-17 - Workflow condizionali e provisioning utenti
+## Versione 0.2.1 - Workflow condizionali e provisioning utenti
 
 La tabella `incident_workflow_step` include il flag booleano `personal_data_only`. Quando il flag è attivo, `workflow_steps_for_incident()` mantiene lo step nel flusso amministrativo ma lo esclude dalle operazioni previste se `Incident.personal_data` è falso. La chiave di deduplica include anche questo flag per evitare collisioni tra step ordinari e step condizionali.
 
 Il provisioning automatico LDAP/SSO crea gli utenti con ruolo predefinito `disabled` quando previsto dalla configurazione. Dopo il commit del nuovo utente, `notify_admin_disabled_user_created()` tenta un invio SMTP best-effort all’indirizzo dell’utente locale `admin` o, in fallback, al primo utente con ruolo admin. La mail contiene dati identificativi dell’utente creato e il link diretto `/admin/users`, costruito a partire da `application_external_url`. Errori SMTP vengono loggati ma non interrompono il flusso di login/provisioning.
+
+## Versione 0.2.1 - Hardening sequence step workflow
+
+L’inserimento degli step nei flussi operativi usa un riallineamento preventivo della sequence PostgreSQL `incident_workflow_step.id`. Il percorso di salvataggio intercetta inoltre eventuali collisioni duplicate-key residue, ricostruisce l’oggetto dopo rollback e ritenta l’inserimento con sequence riallineata. Questo completa la protezione post Full import/restore per la gestione dei workflow.
+
+## Versione 0.2.1 - Estensione workflow di default
+
+Il bootstrap del workflow di default usa ora la sequenza: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Comunicazione al Garante, Comunicazione all’utente, Conclusione. Lo step Comunicazione al Garante viene creato con `personal_data_only=True`, quindi resta configurabile nel workflow ma viene considerato tra le operazioni previste solo per incidenti in cui è indicato il coinvolgimento di dati personali.
+
+Per installazioni già esistenti, `ensure_default_workflow_required_steps()` aggiunge in modo conservativo i due step mancanti al flusso di default senza cancellare o riscrivere personalizzazioni amministrative; se uno step verso il Garante è già presente, il flag `personal_data_only` viene riallineato a vero.
+
+## Aggiornamento 0.2.1 - Frecce negli step workflow e versione applicativa
+
+La pagina del singolo incidente visualizza gli step delle operazioni previste con una freccia di sequenza quando il workflow è ordinato tramite il campo `position`. Il template `incident_detail.html` aggiunge l'indicatore tra due step consecutivi e `style.css` ne definisce il layout responsive. I metadati runtime dell'applicazione usano la versione normalizzata `0.2.1` e il build `2026051901`, visibili in Info → Applicazione e configurabili tramite `APP_VERSION` e `APP_BUILD`.

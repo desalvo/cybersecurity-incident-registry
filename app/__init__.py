@@ -19,7 +19,7 @@ def create_app():
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.2.1-17'),
+        'version': os.getenv('APP_VERSION','0.2.1'),
         'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
@@ -368,13 +368,15 @@ def ensure_default_incident_workflow():
     if IncidentWorkflowStep.query.filter_by(category_id=None).first():
         return
     desired = [
-        ('Informazione iniziale', 'informazione iniziale'),
-        ('Analisi', 'analisi'),
-        ('Notifica allo CSIRT', 'csirt'),
-        ('Notifica al DPO', 'dpo'),
-        ('Conclusione', 'conclusione'),
+        ('Informazione iniziale', 'informazione iniziale', False),
+        ('Analisi', 'analisi', False),
+        ('Notifica allo CSIRT', 'csirt', False),
+        ('Notifica al DPO', 'dpo', False),
+        ('Comunicazione al Garante', 'garante', True),
+        ('Comunicazione all’utente', 'utente', False),
+        ('Conclusione', 'conclusione', False),
     ]
-    for idx, (caption, needle) in enumerate(desired, start=1):
+    for idx, (caption, needle, personal_data_only) in enumerate(desired, start=1):
         label = ConfigLabel.query.filter(
             ConfigLabel.kind == 'action_label',
             ConfigLabel.value.ilike(f'%{needle}%')
@@ -388,8 +390,51 @@ def ensure_default_incident_workflow():
             action_label_id=label.id,
             position=idx * 10,
             description='',
-            personal_data_only=False
+            personal_data_only=personal_data_only
         ))
+
+def ensure_default_workflow_required_steps():
+    """Keep the editable default workflow aligned with mandatory baseline steps.
+
+    Existing administrator customisations are preserved: the function only adds
+    the two baseline steps introduced after DPO notification when they are
+    missing from the default workflow.
+    """
+    default_steps = IncidentWorkflowStep.query.filter_by(category_id=None).all()
+    if not default_steps:
+        return
+    existing_values = {((step.action_label.value or '').lower()) for step in default_steps if step.action_label}
+    additions = [
+        ('Comunicazione al Garante', 'garante', True),
+        ('Comunicazione all’utente', 'utente', False),
+    ]
+    for step in default_steps:
+        if step.action_label and 'garante' in (step.action_label.value or '').lower():
+            step.personal_data_only = True
+    conclusion = next((s for s in default_steps if s.action_label and 'conclusione' in s.action_label.value.lower()), None)
+    base_pos = (conclusion.position if conclusion else max((s.position for s in default_steps), default=40) + 30)
+    inserted = 0
+    for caption, needle, personal_data_only in additions:
+        if any(needle in value for value in existing_values):
+            continue
+        label = ConfigLabel.query.filter(
+            ConfigLabel.kind == 'action_label',
+            ConfigLabel.value.ilike(f'%{needle}%')
+        ).order_by(ConfigLabel.value).first()
+        if not label:
+            label = ConfigLabel(kind='action_label', value=caption, group='azioni', description=caption, default_exportable=False)
+            db.session.add(label)
+            db.session.flush()
+        db.session.add(IncidentWorkflowStep(
+            category_id=None,
+            action_label_id=label.id,
+            position=base_pos - 20 + inserted * 10,
+            description='',
+            personal_data_only=personal_data_only
+        ))
+        inserted += 1
+    if inserted and conclusion:
+        conclusion.position = max(conclusion.position, base_pos + 10)
 
 def repair_postgres_sequences(app):
     """Riallinea le sequenze PostgreSQL dopo import o migrazioni.
@@ -491,6 +536,7 @@ def bootstrap(app):
         for v in ['furto di credenziali','phishing','SPAM','altro']: ensure_label('category',v,'categorie')
         for v in ['01-informazione iniziale','02-analisi','03-blocco','04-comunicazione allo CSIRT','05-comunicazione al DPO','06-comunicazione al Garante della Privacy','07-notifica all’utente','08-conclusione']: ensure_label('action_label',v,'azioni')
         ensure_default_incident_workflow()
+        ensure_default_workflow_required_steps()
         ensure_notification_type('user','Notifica utente','Notifica generica a un destinatario specificato in fase di invio','manual','','')
         ensure_notification_type('csirt','Notifica CSIRT','Notifica allo CSIRT usando il destinatario configurato nelle impostazioni','settings','csirt_email','csirt_cc')
         ensure_notification_type('dpo','Notifica DPO','Notifica al DPO usando il destinatario configurato nelle impostazioni','settings','dpo_email','dpo_cc')

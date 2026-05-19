@@ -256,6 +256,10 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 
 .workflow-card { border-left: 6px solid #2f6f9f; }
 .workflow-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .75rem; margin-top: .75rem; }
+.workflow-steps-ordered { display: flex; flex-wrap: wrap; align-items: stretch; gap: .5rem; }
+.workflow-steps-ordered .workflow-step { flex: 1 1 220px; min-width: 220px; }
+.workflow-step-arrow { align-self: center; font-size: 1.7rem; font-weight: 700; color: #64748b; padding: 0 .15rem; }
+@media (max-width: 720px) { .workflow-step-arrow { transform: rotate(90deg); width: 100%; text-align: center; line-height: 1; } }
 .workflow-step { display: flex; gap: .65rem; align-items: flex-start; border: 1px solid #d7dee8; border-radius: 10px; padding: .75rem; background: #fff; }
 .workflow-step.done { border-color: #6fa878; background: #eef8f0; }
 .workflow-step.missing { border-color: #d39a4a; background: #fff7e8; }

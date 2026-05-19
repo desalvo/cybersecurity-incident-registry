@@ -810,7 +810,7 @@ def incident_workflow_status(inc):
             'remaining_text': remaining_text,
             'expired': expired,
         })
-    return {'steps': items, 'completed': sum(1 for x in items if x['done']), 'total': len(items), 'all_done': bool(items) and all(x['done'] for x in items)}
+    return {'steps': items, 'completed': sum(1 for x in items if x['done']), 'total': len(items), 'all_done': bool(items) and all(x['done'] for x in items), 'ordered': len(items) > 1 and any((x.get('position') or 0) != 0 for x in items)}
 def can_write(): return current_user.role in ['admin','writer']
 def can_admin(): return current_user.role=='admin'
 def can_manage_external_recipients_from_settings(): return current_user.is_authenticated and current_user.role == 'writer'
@@ -1904,8 +1904,27 @@ def admin_incident_workflows():
                     q = IncidentWorkflowStep.query.filter_by(category_id=category_id)
                     last = q.order_by(IncidentWorkflowStep.position.desc()).first()
                     position = (last.position + 10) if last else 10
-                db.session.add(IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, position=position))
-                db.session.commit(); flash('Passo del flusso aggiunto','success')
+                # Dopo Full import/restore con ID espliciti la sequence PostgreSQL
+                # della tabella incident_workflow_step può restare indietro e
+                # generare duplicate-key sul successivo inserimento. Riallineiamo
+                # prima dell'INSERT e, se il database segnala comunque una
+                # collisione concorrente, ricostruiamo l'oggetto dopo rollback e
+                # ritentiamo con sequence riallineata.
+                align_table_sequence('incident_workflow_step')
+                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, position=position)
+                db.session.add(step)
+                try:
+                    db.session.commit()
+                except IntegrityError as exc:
+                    db.session.rollback()
+                    if not is_duplicate_key_integrity_error(exc):
+                        raise
+                    current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
+                    align_table_sequence('incident_workflow_step')
+                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, position=position)
+                    db.session.add(step)
+                    db.session.commit()
+                flash('Passo del flusso aggiunto','success')
         elif action == 'save':
             ids = request.form.getlist('step_id')
             for sid in ids:

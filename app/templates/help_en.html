@@ -1,14 +1,17 @@
+<section class="doc-section"><h2>0.2.1 - Ordered workflow</h2><p>On the incident detail page, when expected-operation steps are ordered, an arrow indicates the sequence from one step to the next. The Application info page shows the normalized <strong>0.2.1</strong> version and the current build.</p></section>
+<section class="doc-section"><h2>0.2.1 - Extended default workflow</h2><p>The default flow now includes Privacy Authority communication, applicable only when personal data is involved, and User communication before Closure.</p></section>
+<section class="doc-section"><h2>0.2.1 - Operational workflows</h2><p>Adding tasks to operational workflows is now robust after Full import or database restore.</p></section>
 {% extends 'base.html' %}
 {% block content %}
-<section class="doc-section"><h2>0.2.1-17 - Conditional expected operations</h2><p>Expected-operation steps configured as personal-data only appear on the incident page only when the <strong>Personal data</strong> flag is enabled.</p></section>
+<section class="doc-section"><h2>0.2.1 - Conditional expected operations</h2><p>Expected-operation steps configured as personal-data only appear on the incident page only when the <strong>Personal data</strong> flag is enabled.</p></section>
 <div class="card help-content documentation" aria-labelledby="doc-title">
   <div class="page-header"><div><h1 id="doc-title">User documentation</h1><p class="muted">Cybersecurity Incident Registry · complete operational guide, available online and as PDF.</p></div><div class="button-row"><a class="button secondary" href="#indice">Go to index</a><a class="button secondary" href="{{ url_for('main.help_pdf') }}">Download PDF</a></div></div>
   <section class="doc-hero card-lite" aria-label="User guide summary"><img class="doc-app-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Cybersecurity Incident Registry application logo"><div><h2>Practical guide to record, track and close incidents</h2><p>This guide explains the daily operating workflow. Each chapter describes what to do, when to do it and which checks should be completed before moving on.</p><p>Advanced settings are described in the <a href="{{ url_for('main.admin_help_page') }}">Administrator documentation</a>. Version changes are available in <a href="{{ url_for('main.release_notes') }}">Release notes</a>.</p><p>Non-administrator users with the writer role can fully manage and search the address book used by manual notifications with free recipients from <strong>Settings → External recipients</strong>.</p><p><strong>Application version:</strong> {{ app_info.version }} · <strong>Build:</strong> {{ app_info.build }} · <strong>Author:</strong> {{ app_info.author }}.</p></div><p>Incident-field help tooltips are available both on the detail/edit page and on the new-incident creation page.</p></section>
 
-  <section class="doc-section"><h2>0.2.1-16 - Mandatory reference</h2><p>When creating or editing an incident, the <strong>Reference</strong> field must always be filled in. The communication recipient remains optional and, when empty, continues to fall back to the reference.</p></section>
-<section class="doc-section card-lite" aria-label="Recent developments in version 0.2.1-16">
-    <h2>Recent developments in version 0.2.1-16</h2>
-    <p>Version 0.2.1-16 consolidates the features introduced in recent updates: professionally formatted PDF reports, scheduled per-incident reminders, deadline notifications planned through cron times or intervals, anti-flooding audit with purge, multi-profile SSO with shared logos and optional HTTPS/SSL access.</p>
+  <section class="doc-section"><h2>0.2.1 - Mandatory reference</h2><p>When creating or editing an incident, the <strong>Reference</strong> field must always be filled in. The communication recipient remains optional and, when empty, continues to fall back to the reference.</p></section>
+<section class="doc-section card-lite" aria-label="Recent developments in version 0.2.1">
+    <h2>Recent developments in version 0.2.1</h2>
+    <p>Version 0.2.1 consolidates the features introduced in recent updates: professionally formatted PDF reports, scheduled per-incident reminders, deadline notifications planned through cron times or intervals, anti-flooding audit with purge, multi-profile SSO with shared logos and optional HTTPS/SSL access.</p>
     <p>Version information is available in this guide, in the release notes and from <strong>Info → Application</strong>.</p>
   </section>
 
@@ -33,7 +36,7 @@
     <p>At the top of the incident detail form the application shows the operations expected until closure. Completed operations are highlighted in green, while missing operations are highlighted in orange; expired deadline steps are made even more visible.</p>
     <p>Each step caption uses the task description configured in the action list when available, otherwise the task name. Administrators may also add an extra operational description on each workflow step, which is useful when the same action appears more than once with different meanings.</p>
     <p>When the expected action has a maximum completion time, the card shows the time limit, due time and remaining time only until the step is completed. If the remaining time is less than or equal to zero, the missing step is highlighted as critical. The calculation starts from the initial-information action, as already done for deadline notifications.</p>
-    <p>The workflow comes from the categories assigned to the incident; with multiple categories workflows are merged and duplicates removed. If no category has a dedicated workflow, the administrator-defined default workflow is used: Initial information, Analysis, CSIRT notification, DPO notification and Closure. The default workflow is editable too.</p>
+    <p>The workflow comes from the categories assigned to the incident; with multiple categories workflows are merged and duplicates removed. If no category has a dedicated workflow, the administrator-defined default workflow is used: Initial information, Analysis, CSIRT notification, DPO notification, Privacy Authority communication, user communication and Closure. The default workflow is editable too.</p>
   </section>
 
 </div>

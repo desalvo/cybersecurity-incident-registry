@@ -55,7 +55,7 @@ Queste tre variabili sono lette dal container `db`. L'applicazione `web` usa inv
 | Variabile | Default | Uso |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Nome visualizzato in **Info → Applicazione**. |
-| `APP_VERSION` | `0.2.1-16` | Versione applicativa visualizzata e propagata nei deploy. |
+| `APP_VERSION` | `0.2.1` | Versione applicativa visualizzata e propagata nei deploy. |
 | `APP_BUILD` | `2026051901` | Numero build visualizzato. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Autore visualizzato. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | E-mail autore visualizzata. |
