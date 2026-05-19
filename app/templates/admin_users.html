@@ -11,21 +11,33 @@
     <div><label><input type="checkbox" name="is_ldap"> LDAP</label></div>
     <button>Aggiungi</button>
   </form>
+  <p class="muted">La rimozione elimina l’account e i relativi token MFA. Incidenti, promemoria e audit vengono conservati svincolando il riferimento tecnico all’utente.</p>
 </div>
 <div class="card">
   <table class="table">
-    <tr><th>Username</th><th>Nome</th><th>Email</th><th>Tipo login</th><th>MFA</th><th>Ruolo</th><th></th></tr>
+    <tr><th>Username</th><th>Nome</th><th>Email</th><th>Tipo login</th><th>MFA</th><th>Ruolo</th><th>Salva</th><th>Rimuovi</th></tr>
     {% for u in users %}
     <tr>
-      <form method="post" action="{{url_for('main.user_role',uid=u.id)}}">
-        <td>{{u.username}}</td>
-        <td>{{u.name}}</td>
-        <td><input name="email" value="{{u.email or ''}}"></td>
-        <td>{{ u.auth_provider or ('ldap' if u.is_ldap else 'local') }}</td>
-        <td>{{ 'attiva' if u.mfa_enabled else 'disattivata' }} · <a href="{{ url_for('main.admin_user_mfa', uid=u.id) }}">gestisci</a></td>
-        <td><select name="role">{% for r in ['admin','operator','reader','writer','disabled'] %}<option {% if u.role==r %}selected{% endif %}>{{r}}</option>{% endfor %}</select></td>
-        <td><button>Salva</button></td>
-      </form>
+      <td>{{u.username}}</td>
+      <td>{{u.name}}</td>
+      <td>
+        <form method="post" action="{{url_for('main.user_role',uid=u.id)}}" id="user-update-{{u.id}}">
+          <input name="email" value="{{u.email or ''}}">
+        </form>
+      </td>
+      <td>{{ u.auth_provider or ('ldap' if u.is_ldap else 'local') }}</td>
+      <td>{{ 'attiva' if u.mfa_enabled else 'disattivata' }} · <a href="{{ url_for('main.admin_user_mfa', uid=u.id) }}">gestisci</a></td>
+      <td><select name="role" form="user-update-{{u.id}}">{% for r in ['admin','operator','reader','writer','disabled'] %}<option {% if u.role==r %}selected{% endif %}>{{r}}</option>{% endfor %}</select></td>
+      <td><button form="user-update-{{u.id}}">Salva</button></td>
+      <td>
+        {% if current_user.id != u.id %}
+        <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}}? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
+          <button class="danger" type="submit">Rimuovi</button>
+        </form>
+        {% else %}
+        <span class="muted">utente corrente</span>
+        {% endif %}
+      </td>
     </tr>
     {% endfor %}
   </table>

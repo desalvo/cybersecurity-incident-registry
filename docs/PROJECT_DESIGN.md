@@ -1185,3 +1185,10 @@ La vista `Admin -> Audit` converte i timestamp audit, registrati internamente co
 ### Aggiornamento 0.1.0-124
 
 I profili SSO/OAuth2 supportano un logo opzionale per provider. Il profilo Google di esempio usa il logo Google incluso nel pacchetto e copiato nello storage persistente al primo avvio. I loghi caricati sono salvati nella directory configurata da `SSO_LOGO_DIR` (default `/data/sso_logos`), referenziati nel JSON dei profili nel formato logico `sso/<filename>` e inclusi nel full export/import.
+
+
+### Rimozione utenti amministrata
+
+La gestione utenti consente agli amministratori di rimuovere account locali, LDAP o SSO non più necessari. La cancellazione è progettata per essere sicura in produzione: non è consentito eliminare l’account amministratore della sessione corrente e non è consentito eliminare l’ultimo account con ruolo `admin`. Prima della cancellazione vengono svincolati i riferimenti tecnici da incidenti, promemoria e audit (`creator_id`, `created_by_id`, `user_id`), preservando i record storici e le informazioni testuali già salvate, come nome compilatore, e-mail e dettagli audit. I token MFA dell’utente vengono eliminati tramite la relazione cascade del modello `User`.
+
+From the administrator perspective, user deletion is an access-control operation, not a data-retention purge. Removing a user blocks future access and removes MFA tokens, but does not remove incidents, reminders or audit history. This keeps operational traceability intact while allowing administrators to keep the active user list clean.

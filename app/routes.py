@@ -1870,12 +1870,45 @@ def admin_user_mfa(uid):
 def admin_users():
     if not can_admin(): return redirect(url_for('main.index'))
     if request.method=='POST':
-        is_ldap=bool(request.form.get('is_ldap')); u=User(username=request.form['username'],name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider='ldap' if is_ldap else 'local',password_hash=hash_password(request.form.get('password','changeme')) if not is_ldap else None); db.session.add(u); db.session.commit()
+        is_ldap=bool(request.form.get('is_ldap'))
+        u=User(username=request.form['username'].strip(),name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider='ldap' if is_ldap else 'local',password_hash=hash_password(request.form.get('password','changeme')) if not is_ldap else None)
+        db.session.add(u); db.session.commit()
+        audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
+        flash('Utente aggiunto.')
     return render_template('admin_users.html',users=User.query.order_by(User.username).all())
 @bp.route('/admin/user/<int:uid>/role',methods=['POST'])
 @login_required
 def user_role(uid):
-    if can_admin(): u=User.query.get_or_404(uid); u.role=request.form['role']; u.email=request.form.get('email',u.email); db.session.commit()
+    if can_admin():
+        u=User.query.get_or_404(uid)
+        u.role=request.form['role']; u.email=request.form.get('email',u.email)
+        db.session.commit()
+        audit_log('admin:user_update', {'user_id': u.id, 'username': u.username, 'role': u.role}, actor_type='user', commit=True)
+        flash('Utente aggiornato.')
+    return redirect(url_for('main.admin_users'))
+
+@bp.route('/admin/user/<int:uid>/delete',methods=['POST'])
+@login_required
+def admin_user_delete(uid):
+    if not can_admin(): return redirect(url_for('main.index'))
+    user=User.query.get_or_404(uid)
+    if user.id == current_user.id:
+        flash('Non è possibile rimuovere il proprio utente amministratore durante la sessione corrente.', 'error')
+        return redirect(url_for('main.admin_users'))
+    remaining_admins=User.query.filter(User.role=='admin', User.id!=user.id).count()
+    if user.role == 'admin' and remaining_admins < 1:
+        flash('Non è possibile rimuovere l’ultimo amministratore dell’applicazione.', 'error')
+        return redirect(url_for('main.admin_users'))
+    username=user.username
+    # Conserva la storia operativa: incidenti, promemoria e audit restano presenti,
+    # ma i riferimenti FK all’account rimosso vengono svincolati prima della delete.
+    Incident.query.filter_by(creator_id=user.id).update({'creator_id': None}, synchronize_session=False)
+    IncidentReminder.query.filter_by(created_by_id=user.id).update({'created_by_id': None}, synchronize_session=False)
+    AuditLog.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+    db.session.delete(user)
+    db.session.commit()
+    audit_log('admin:user_delete', {'deleted_user_id': uid, 'username': username}, actor_type='user', commit=True)
+    flash(f'Utente {username} rimosso. La cronologia degli incidenti e dell’audit è stata conservata.')
     return redirect(url_for('main.admin_users'))
 @bp.route('/settings/password',methods=['GET','POST'])
 @login_required

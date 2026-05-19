@@ -329,6 +329,8 @@ Ogni utente può gestire i propri token dal menu **Impostazioni → Multi-factor
 
 Gli amministratori possono gestire la MFA di tutti gli utenti da **Admin → Utenti → gestisci MFA**: possono attivare o disattivare la richiesta MFA solo in presenza di token verificati, revocare singoli token o rimuovere tutti i token di un utente. I dettagli segreti dei token altrui non sono visibili agli amministratori; restano visibili solo per i propri token nella pagina di gestione personale. Le cancellazioni usano un solo passaggio di conferma operativa, evitando doppie richieste di conferma.
 
+Da **Admin → Utenti** è inoltre possibile rimuovere un account non più necessario. La rimozione elimina l’utente e i token MFA associati, impedendo nuovi accessi locali, LDAP o SSO per quell’identità applicativa. Per preservare la tracciabilità, incidenti, promemoria e audit non vengono cancellati: i riferimenti tecnici all’account rimosso vengono svincolati, mentre nei record storici restano disponibili i nomi e le e-mail già salvati nei dati dell’incidente o dell’audit. L’interfaccia impedisce di rimuovere l’utente amministratore correntemente connesso e blocca la rimozione dell’ultimo amministratore rimasto.
+
 Per l'utilizzo sono richieste le dipendenze `pyotp` e `qrcode[pil]`, incluse nel file `requirements.txt`.
 
 ## Licenza

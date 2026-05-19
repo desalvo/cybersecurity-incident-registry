@@ -1,3 +1,8 @@
+0.2.0-7 - User removal
+- Added administrator-controlled user removal with safeguards for current and last admin accounts.
+- User deletion preserves incidents, reminders and audit history while removing MFA tokens.
+- Updated bilingual documentation.
+
 0.2.0-4.2
 - Corretto il rendering grafico dei loghi SSO caricati da interfaccia web nella sezione Admin → SSO/OAuth2 → Storage loghi SSO.
 - Le gallerie dei loghi usano ora la rotta persistente /sso-logos/<filename>, invece degli URL statici dell’immagine applicativa.
