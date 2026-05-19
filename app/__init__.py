@@ -107,13 +107,19 @@ def ensure_setting(key, value):
 def ensure_label(kind, value, group='default'):
     label = ConfigLabel.query.filter_by(kind=kind,value=value).first()
     default_exportable = True
+    automatic_operations = ''
     if kind == 'action_label':
         text = (value or '').lower().replace('’', "'")
         default_exportable = not any(k in text for k in ('notifica','comunicazione','informazione iniziale','analisi','conclusione'))
+        if 'conclusione' in text:
+            automatic_operations = 'close_without_warnings,end_breach'
     if not label:
-        db.session.add(ConfigLabel(kind=kind,value=value,group=group,default_exportable=default_exportable))
-    elif kind == 'action_label' and getattr(label, 'default_exportable', None) is None:
-        label.default_exportable = default_exportable
+        db.session.add(ConfigLabel(kind=kind,value=value,group=group,default_exportable=default_exportable,automatic_operations=automatic_operations))
+    elif kind == 'action_label':
+        if getattr(label, 'default_exportable', None) is None:
+            label.default_exportable = default_exportable
+        if automatic_operations and not (getattr(label, 'automatic_operations', '') or '').strip():
+            label.automatic_operations = automatic_operations
 
 
 
@@ -252,6 +258,17 @@ def run_schema_migrations(app):
             if 'default_exportable' in {c['name'] for c in inspector.get_columns('config_label')}:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE config_label SET default_exportable = TRUE WHERE default_exportable IS NULL'))
+            refreshed_config_label_cols = {c['name'] for c in inspector.get_columns('config_label')}
+            if 'automatic_operations' not in refreshed_config_label_cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE config_label ADD COLUMN automatic_operations TEXT'))
+                    conn.execute(text("UPDATE config_label SET automatic_operations = '' WHERE automatic_operations IS NULL"))
+                    conn.execute(text("UPDATE config_label SET automatic_operations = 'close_without_warnings,end_breach' WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%' AND (automatic_operations IS NULL OR TRIM(automatic_operations) = '')"))
+                app.logger.info('Schema migration applied: config_label.automatic_operations added')
+            if 'automatic_operations' in {c['name'] for c in inspector.get_columns('config_label')}:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE config_label SET automatic_operations = '' WHERE automatic_operations IS NULL"))
+                    conn.execute(text("UPDATE config_label SET automatic_operations = 'close_without_warnings,end_breach' WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%' AND (automatic_operations IS NULL OR TRIM(automatic_operations) = '')"))
 
         if 'audit_log' in tables:
             cols = {c['name'] for c in inspector.get_columns('audit_log')}

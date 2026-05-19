@@ -3,6 +3,7 @@
 <div class="card">
   <h2>Liste configurabili</h2>
   <p class="muted">Aggiungi o cancella label separatamente per ciascuna categoria. Per aggiungere una label basta inserire il nome nella categoria corretta.</p>
+  <p class="muted">Per le label azioni è possibile assegnare, tramite drag &amp; drop, operazioni automatiche eseguite quando il task viene inserito in un incidente.</p>
 </div>
 
 {% set sections = [
@@ -21,18 +22,44 @@
       <input type="hidden" name="group" value="{{ group_name }}">
       <input name="value" placeholder="Nome label da aggiungere" required>
       <input name="description" placeholder="Descrizione label (opzionale)">
-      {% if kind == 'action_label' %}<input type="number" min="0" name="max_completion_hours" value="0" placeholder="Tempo massimo (ore)"><label class="checkbox-inline"><input type="checkbox" name="default_exportable" value="1" checked> Esportabile per default</label><small class="muted">0 = nessun tempo massimo. Il flag esportabile imposta il default delle nuove azioni con questa label.</small>{% endif %}
+      {% if kind == 'action_label' %}
+        <input type="number" min="0" name="max_completion_hours" value="0" placeholder="Tempo massimo (ore)">
+        <label class="checkbox-inline"><input type="checkbox" name="default_exportable" value="1" checked> Esportabile per default</label>
+        <div class="wide automatic-operations-editor">
+          <small class="muted">Operazioni automatiche: trascinare una o più operazioni nella zona selezionata.</small>
+          <div class="dnd-layout compact-dnd">
+            <div class="palette">
+              {% for code, label in automatic_action_operations.items() %}<span class="chip" draggable="true" data-id="{{ code }}" data-text="{{ label }}" data-target="automatic_operations">{{ label }}</span>{% endfor %}
+            </div>
+            <div class="dropzone" data-target="automatic_operations"></div>
+          </div>
+        </div>
+        <small class="muted">0 = nessun tempo massimo. Il flag esportabile imposta il default delle nuove azioni con questa label.</small>
+      {% endif %}
       <button type="submit">Aggiungi</button>
     </form>
 
     <table class="table compact-table">
-      <thead><tr><th>Label</th><th>Descrizione</th>{% if kind == 'action_label' %}<th>Tempo massimo (ore)</th><th>Export default</th>{% endif %}<th class="actions-col">Azioni</th></tr></thead>
+      <thead><tr><th>Label</th><th>Descrizione</th>{% if kind == 'action_label' %}<th>Tempo massimo (ore)</th><th>Export default</th><th>Operazioni automatiche</th>{% endif %}<th class="actions-col">Azioni</th></tr></thead>
       <tbody>
       {% for l in items if l.kind == kind %}
         <tr>
           <td><form id="label-update-{{l.id}}" method="post" action="{{ url_for('main.admin_label_update', lid=l.id) }}"></form><input name="value" value="{{ l.value }}" required form="label-update-{{l.id}}"></td>
           <td><textarea name="description" form="label-update-{{l.id}}">{{ l.description or '' }}</textarea></td>
-          {% if kind == 'action_label' %}<td><input type="number" min="0" name="max_completion_hours" value="{{ l.max_completion_hours if l.max_completion_hours is not none else 0 }}" placeholder="ore" form="label-update-{{l.id}}"></td><td><label class="checkbox-inline"><input type="checkbox" name="default_exportable" value="1" {% if l.default_exportable %}checked{% endif %} form="label-update-{{l.id}}"> sì</label></td>{% endif %}
+          {% if kind == 'action_label' %}
+            <td><input type="number" min="0" name="max_completion_hours" value="{{ l.max_completion_hours if l.max_completion_hours is not none else 0 }}" placeholder="ore" form="label-update-{{l.id}}"></td>
+            <td><label class="checkbox-inline"><input type="checkbox" name="default_exportable" value="1" {% if l.default_exportable %}checked{% endif %} form="label-update-{{l.id}}"> sì</label></td>
+            <td>
+              <div class="dnd-layout compact-dnd">
+                <div class="palette">
+                  {% for code, label in automatic_action_operations.items() %}<span class="chip" draggable="true" data-id="{{ code }}" data-text="{{ label }}" data-target="automatic_operations">{{ label }}</span>{% endfor %}
+                </div>
+                <div class="dropzone" data-target="automatic_operations" data-form-id="label-update-{{l.id}}">
+                  {% for code in l.automatic_operation_list() %}{% if code in automatic_action_operations %}<span class="chip">{{ automatic_action_operations[code] }} ×<input type="hidden" name="automatic_operations" value="{{ code }}" form="label-update-{{l.id}}"></span>{% endif %}{% endfor %}
+                </div>
+              </div>
+            </td>
+          {% endif %}
           <td>
             <button type="submit" form="label-update-{{l.id}}" class="secondary">Salva</button>
             <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" onsubmit="return confirm('Cancellare questa label e rimuoverla dagli incidenti?')">
@@ -41,7 +68,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="{{ 5 if kind == 'action_label' else 3 }}" class="muted">Nessuna label configurata.</td></tr>
+        <tr><td colspan="{{ 6 if kind == 'action_label' else 3 }}" class="muted">Nessuna label configurata.</td></tr>
       {% endfor %}
       </tbody>
     </table>

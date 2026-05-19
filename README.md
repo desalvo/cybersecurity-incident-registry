@@ -1,3 +1,6 @@
+
+### 0.2.1-29 - Operazioni automatiche sulle label azione
+Le label azioni supportano ora tag configurabili tramite drag & drop per eseguire operazioni automatiche quando il task viene inserito: chiusura in assenza di avvisi procedurali e impostazione della fine violazione.
 Nelle notifiche manuali/non schedulate con destinatario libero, cioè non determinato automaticamente dalla configurazione applicativa, prima dell’invio viene richiesta una conferma esplicita del destinatario e degli eventuali CC. La conferma viene mostrata nella pagina di anteprima e verificata anche lato server, così un invio verso indirizzi digitati manualmente o selezionati dalla rubrica richiede sempre una validazione finale dell’operatore. I destinatari automatici configurati nell’app restano invariati e non richiedono questa conferma aggiuntiva.
 
 ## Aggiornamento 0.2.1 - Data/ora locale nei campi incidente e notifiche

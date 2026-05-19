@@ -1,3 +1,7 @@
+0.2.1-29
+- Operazioni automatiche configurabili sulle label azione tramite drag & drop.
+- Chiusura incidente e fine violazione non sono più hard-coded sul nome del task.
+
 0.2.1-28 - Avvisi procedurali da workflow richiesto
 - Gli avvisi procedurali derivano dagli step workflow marcati come richiesti e non completati.
 - La chiusura automatica tramite conclusione resta consentita solo senza avvisi attivi.

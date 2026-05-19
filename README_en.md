@@ -1,3 +1,6 @@
+
+### 0.2.1-29 - Automatic operations on action labels
+Action labels now support drag-and-drop configurable tags to run automatic operations when the task is added: close when no procedural warnings are active and set the breach end time.
 For manual/non-scheduled notifications with a free recipient, meaning not automatically taken from application settings, the application now requires an explicit confirmation of the recipient and any CC before sending. The confirmation is shown in the preview page and is also checked server-side, so sending to addresses typed manually or selected from the address book always requires a final operator validation. Automatically configured recipients are unchanged and do not require this additional confirmation.
 
 ## Update 0.2.1 - Local date/time for incident fields and notifications

@@ -1401,3 +1401,10 @@ La funzione `incident_procedural_status()` calcola ora gli avvisi procedurali a 
 ## Version 0.2.1-28 - Procedural warnings based on required workflow steps
 
 `incident_procedural_status()` now derives procedural warnings from `incident_workflow_status()`: only workflow steps applicable to the incident, marked with `IncidentWorkflowStep.required=True` and still missing, are considered. Each warning uses `step.description` when available, otherwise the action-label description or name. The dashboard still displays the warning icon for incidents with `has_procedural_warnings=True`. Automatic closure through a closure action still calls `incident_procedural_status()` and runs only when the warning list is empty.
+
+
+## Versione 0.2.1-29 - Operazioni automatiche sulle label azione
+Il modello `ConfigLabel` include il campo `automatic_operations`, usato per le label di tipo `action_label`. L'amministratore configura i tag tramite drag & drop in `admin_labels.html`; le operazioni supportate sono `close_without_warnings` e `end_breach`. La funzione `apply_action_automatic_operations()` applica gli effetti al momento dell'inserimento dell'azione, usando la timezone applicativa e bloccando la chiusura se restano avvisi procedurali attivi.
+
+## Version 0.2.1-29 - Automatic operations on action labels
+The `ConfigLabel` model includes the `automatic_operations` field for `action_label` rows. Administrators configure tags by drag and drop in `admin_labels.html`; supported operations are `close_without_warnings` and `end_breach`. `apply_action_automatic_operations()` applies the effects when an action is added, using the application timezone and blocking closure while procedural warnings remain active.

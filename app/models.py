@@ -42,7 +42,18 @@ class MfaTotpToken(db.Model):
     user=db.relationship('User',back_populates='mfa_tokens')
 
 class ConfigLabel(db.Model):
-    id=db.Column(db.Integer,primary_key=True); kind=db.Column(db.String(40),nullable=False,index=True); group=db.Column(db.String(80),default='default'); value=db.Column(db.String(255),nullable=False); description=db.Column(db.Text,default=''); max_completion_hours=db.Column(db.Integer,nullable=False,default=0); default_exportable=db.Column(db.Boolean,default=True,nullable=False); __table_args__=(db.UniqueConstraint('kind','value',name='uq_label_kind_value'),)
+    id=db.Column(db.Integer,primary_key=True); kind=db.Column(db.String(40),nullable=False,index=True); group=db.Column(db.String(80),default='default'); value=db.Column(db.String(255),nullable=False); description=db.Column(db.Text,default=''); max_completion_hours=db.Column(db.Integer,nullable=False,default=0); default_exportable=db.Column(db.Boolean,default=True,nullable=False); automatic_operations=db.Column(db.Text,default=''); __table_args__=(db.UniqueConstraint('kind','value',name='uq_label_kind_value'),)
+
+    def automatic_operation_list(self):
+        values=[]
+        for item in (self.automatic_operations or '').split(','):
+            item=(item or '').strip()
+            if item and item not in values:
+                values.append(item)
+        return values
+
+    def has_automatic_operation(self, code):
+        return (code or '').strip() in self.automatic_operation_list()
 
 class IncidentWorkflowStep(db.Model):
     id=db.Column(db.Integer,primary_key=True)

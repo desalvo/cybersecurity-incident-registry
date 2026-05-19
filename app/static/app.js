@@ -30,7 +30,7 @@ function makeDnd(){
       s.className='chip';
       s.textContent=d.text+' ×';
       let i=document.createElement('input');
-      i.type='hidden';i.name=zone.dataset.target;i.value=d.id;
+      i.type='hidden';i.name=zone.dataset.target;i.value=d.id;if(zone.dataset.formId)i.setAttribute('form',zone.dataset.formId);
       s.appendChild(i);zone.appendChild(s);makeSelectedRemovable();
     });
   });

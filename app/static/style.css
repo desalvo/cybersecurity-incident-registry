@@ -277,3 +277,6 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .workflow-step-action:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
 
 .date-time-now-field{display:flex;gap:.35rem;align-items:center}.date-time-now-field input{min-width:0;flex:1 1 auto}.date-time-now-field .small{padding:.35rem .55rem;font-size:.85rem;white-space:nowrap}
+.compact-dnd { grid-template-columns: minmax(160px,1fr) minmax(160px,1fr); gap: .5rem; }
+.compact-dnd .palette,.compact-dnd .dropzone { min-height: 54px; padding: .5rem; }
+.automatic-operations-editor { min-width: 320px; }

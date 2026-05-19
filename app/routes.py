@@ -496,42 +496,66 @@ def format_audit_datetime(value, include_timezone=True):
     return local_value.strftime('%Y-%m-%d %H:%M:%S') + suffix
 
 
-def is_conclusion_action(label=None, description=None):
-    """Individua le azioni di conclusione dalla label, descrizione label o testo libero."""
-    text = ' '.join([
-        getattr(label, 'value', '') or '',
-        getattr(label, 'description', '') or '',
-        description or '',
-    ]).lower().replace('’', "'")
-    return 'conclusione' in text
+AUTOMATIC_ACTION_OPERATIONS = {
+    'close_without_warnings': 'Chiusura del task in assenza di avvisi procedurali',
+    'end_breach': 'Fine violazione',
+}
 
 
-def close_incident_from_conclusion_action(incident_id, action):
-    """Chiude l'incidente quando viene registrata un'azione di conclusione.
+def action_automatic_operation_list(label=None):
+    if not label or getattr(label, 'kind', None) != 'action_label':
+        return []
+    if hasattr(label, 'automatic_operation_list'):
+        return label.automatic_operation_list()
+    values = []
+    for item in (getattr(label, 'automatic_operations', '') or '').split(','):
+        item = item.strip()
+        if item and item not in values:
+            values.append(item)
+    return values
 
-    La chiusura automatica deve mantenere coerenti sia lo stato sia i campi
-    separati di fine incidente usati da form, export, report e template PDF:
-    ``end_date`` ed ``end_time`` vengono sempre derivati dalla data/ora
-    dell'azione di conclusione. L'assegnazione esplicita evita regressioni su
-    database già migrati o su codice che legge direttamente i campi separati
-    senza passare dalla property ``end_at``.
+
+def action_has_automatic_operation(label=None, code=''):
+    return (code or '').strip() in action_automatic_operation_list(label)
+
+
+def apply_action_automatic_operations(incident_id, action):
+    """Applica le operazioni automatiche configurate sulla label azione.
+
+    Le operazioni non dipendono più dal nome testuale della label: sono tag
+    configurabili da Admin -> Liste configurabili -> Label azioni. Questo rende
+    estendibile il comportamento anche per task personalizzati.
     """
     label = getattr(action, 'label', None) or (ConfigLabel.query.get(action.label_id) if action.label_id else None)
-    if not is_conclusion_action(label, action.description):
+    operations = action_automatic_operation_list(label)
+    if not operations:
         return False
     inc = Incident.query.get(incident_id)
     if not inc:
         return False
-    if incident_procedural_status(inc)['has_warnings']:
-        setattr(inc, '_closure_blocked_by_procedural_warnings', True)
-        return False
-    inc.status = 'chiuso'
-    if action.when_at:
-        action_end = action.when_at.replace(second=0, microsecond=0)
-        inc.end_at = action_end
-        inc.end_date = action_end.date()
-        inc.end_time = action_end.time()
-    return True
+    now = application_now()
+    changed = False
+    if 'end_breach' in operations:
+        inc.end_at = now
+        inc.end_date = now.date()
+        inc.end_time = now.time().replace(second=0, microsecond=0)
+        changed = True
+    if 'close_without_warnings' in operations:
+        if incident_procedural_status(inc)['has_warnings']:
+            setattr(inc, '_closure_blocked_by_procedural_warnings', True)
+        else:
+            inc.status = 'chiuso'
+            inc.end_at = now
+            inc.end_date = now.date()
+            inc.end_time = now.time().replace(second=0, microsecond=0)
+            changed = True
+    return changed
+
+
+# Compatibilità con le chiamate storiche: il comportamento è ora guidato dai
+# tag automatici della label, non dal nome "Conclusione".
+def close_incident_from_conclusion_action(incident_id, action):
+    return apply_action_automatic_operations(incident_id, action)
 
 
 def incident_procedural_status(inc):
@@ -2087,20 +2111,22 @@ def admin_labels():
             existing=ConfigLabel.query.filter_by(kind=kind,value=value).first()
             max_hours=request.form.get('max_completion_hours', type=int)
             default_exportable = bool(request.form.get('default_exportable')) if kind == 'action_label' else True
+            automatic_operations = ','.join([op for op in request.form.getlist('automatic_operations') if op in AUTOMATIC_ACTION_OPERATIONS]) if kind == 'action_label' else ''
             if existing:
                 existing.group=group; existing.description=description
                 if kind == 'action_label':
                     existing.max_completion_hours = max_hours if max_hours is not None and max_hours >= 0 else 0
                     existing.default_exportable = default_exportable
+                    existing.automatic_operations = automatic_operations
                 flash('Label già presente: gruppo e descrizione aggiornati','info')
             else:
-                db.session.add(ConfigLabel(kind=kind,group=group,value=value,description=description,max_completion_hours=(max_hours if kind=='action_label' and max_hours is not None and max_hours >= 0 else 0),default_exportable=default_exportable))
+                db.session.add(ConfigLabel(kind=kind,group=group,value=value,description=description,max_completion_hours=(max_hours if kind=='action_label' and max_hours is not None and max_hours >= 0 else 0),default_exportable=default_exportable,automatic_operations=automatic_operations))
             try:
                 db.session.commit()
             except Exception as exc:
                 current_app.logger.exception('Errore durante il salvataggio della label')
                 db.session.rollback(); flash(f'Errore salvataggio label: {exc}','error')
-    return render_template('admin_labels.html',items=ConfigLabel.query.order_by(ConfigLabel.kind,ConfigLabel.group,ConfigLabel.value).all())
+    return render_template('admin_labels.html',items=ConfigLabel.query.order_by(ConfigLabel.kind,ConfigLabel.group,ConfigLabel.value).all(), automatic_action_operations=AUTOMATIC_ACTION_OPERATIONS)
 @bp.route('/admin/labels/<int:lid>/update',methods=['POST'])
 @login_required
 def admin_label_update(lid):
@@ -2118,6 +2144,7 @@ def admin_label_update(lid):
             mh = request.form.get('max_completion_hours', type=int)
             lab.max_completion_hours = mh if mh is not None and mh >= 0 else 0
             lab.default_exportable = bool(request.form.get('default_exportable'))
+            lab.automatic_operations = ','.join([op for op in request.form.getlist('automatic_operations') if op in AUTOMATIC_ACTION_OPERATIONS])
         try:
             db.session.commit(); flash('Label aggiornata','success')
         except Exception as exc:
