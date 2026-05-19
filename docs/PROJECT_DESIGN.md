@@ -51,7 +51,7 @@ Componenti principali:
 
 ### 4.1 Utenti
 
-Gli utenti possono essere locali, LDAP o SSO. Gli utenti SSO sono identificati tramite claim configurabili restituiti dal provider OAuth2/OpenID Connect.
+Gli utenti possono essere locali, LDAP o SSO. L’identità applicativa non è il solo `username`, ma la coppia `username + auth_provider`. Questo consente di avere account distinti con lo stesso username su backend diversi, ad esempio `local`, `ldap`, `sso:google` o `sso:ente`. Gli utenti SSO sono identificati tramite claim configurabili restituiti dal provider OAuth2/OpenID Connect e associati al backend tecnico del profilo SSO.
 
 Campi logici:
 
@@ -206,7 +206,7 @@ Parametri configurabili:
 
 La pagina mostra il redirect URI assoluto da registrare sul provider. Include inoltre un meccanismo di controllo configurazione accessibile con il pulsante `Controlla configurazione`. Il controllo usa i valori correnti della form, anche non ancora salvati, e richiama la funzione server-side `sso_test_configuration`: verifica parametri obbligatori, presenza di scope e claim principali, raggiungibilità dell'authorization endpoint, del token endpoint e dello UserInfo endpoint. Il controllo è non distruttivo, non crea utenti, non salva implicitamente i parametri e non richiede credenziali dell'utente finale. Per lo UserInfo endpoint considera accettabili anche risposte HTTP 401/403 perché, durante il test tecnico, non viene inviato un access token reale. La pagina mostra inoltre l'URL di autorizzazione generata e, quando la configurazione minima è abilitata, il link `Avvia test login interattivo`, che esegue il normale redirect OAuth2 verso il provider.
 
-Il flusso di login implementa Authorization Code: generazione dello `state`, redirect al provider, scambio del code sul token endpoint, chiamata allo UserInfo endpoint e creazione/aggiornamento dell’utente applicativo. Gli utenti SSO creati automaticamente vengono bloccati se il ruolo assegnato è `disabled`, finché un amministratore non li abilita da **Admin → Utenti**.
+Il flusso di login implementa Authorization Code: generazione dello `state`, redirect al provider, scambio del code sul token endpoint, chiamata allo UserInfo endpoint e creazione/aggiornamento dell’utente applicativo. Ogni profilo SSO usa un backend tecnico distinto nel formato `sso:<id profilo>`, quindi due provider diversi che restituiscono lo stesso username creano due utenti applicativi separati. Gli utenti SSO creati automaticamente vengono bloccati se il ruolo assegnato è `disabled`, finché un amministratore non li abilita da **Admin → Utenti**.
 
 ### 5.4 Autorizzazioni
 
@@ -1189,6 +1189,13 @@ I profili SSO/OAuth2 supportano un logo opzionale per provider. Il profilo Googl
 
 ### Rimozione utenti amministrata
 
-La gestione utenti consente agli amministratori di rimuovere account locali, LDAP o SSO non più necessari. La cancellazione è progettata per essere sicura in produzione: non è consentito eliminare l’account amministratore della sessione corrente e non è consentito eliminare l’ultimo account con ruolo `admin`. Prima della cancellazione vengono svincolati i riferimenti tecnici da incidenti, promemoria e audit (`creator_id`, `created_by_id`, `user_id`), preservando i record storici e le informazioni testuali già salvate, come nome compilatore, e-mail e dettagli audit. I token MFA dell’utente vengono eliminati tramite la relazione cascade del modello `User`.
+La gestione utenti consente agli amministratori di creare e rimuovere account locali, LDAP o SSO non più necessari. Lo stesso username può essere presente più volte se cambia il backend di autenticazione; la tabella utenti espone il valore `auth_provider` per distinguere le identità. La cancellazione è progettata per essere sicura in produzione: non è consentito eliminare l’account amministratore della sessione corrente e non è consentito eliminare l’ultimo account con ruolo `admin`. Prima della cancellazione vengono svincolati i riferimenti tecnici da incidenti, promemoria e audit (`creator_id`, `created_by_id`, `user_id`), preservando i record storici e le informazioni testuali già salvate, come nome compilatore, e-mail e dettagli audit. I token MFA dell’utente vengono eliminati tramite la relazione cascade del modello `User`.
 
 From the administrator perspective, user deletion is an access-control operation, not a data-retention purge. Removing a user blocks future access and removes MFA tokens, but does not remove incidents, reminders or audit history. This keeps operational traceability intact while allowing administrators to keep the active user list clean.
+
+
+## Aggiornamento 0.2.0-125 - Identità utente composta
+
+Il modello `User` usa ora il vincolo composto `username + auth_provider` (`uq_user_username_auth_provider`) invece dell’unicità sul solo `username`. I login locali cercano esclusivamente utenti con `auth_provider='local'`; il login LDAP cerca o crea utenti con `auth_provider='ldap'`; i profili SSO/OAuth2 cercano o creano utenti con `auth_provider='sso:<id profilo>'`. In questo modo lo stesso identificativo restituito dai diversi backend non causa fusioni accidentali di account, ruoli o token MFA.
+
+La migrazione idempotente all’avvio aggiorna gli utenti storici con backend mancante e, su PostgreSQL, rimuove il vincolo univoco precedente sul solo username prima di creare il vincolo composto. I nuovi database SQLite di sviluppo usano direttamente il modello aggiornato; per produzione il database supportato resta PostgreSQL.

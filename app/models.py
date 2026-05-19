@@ -22,8 +22,14 @@ class AuditLog(db.Model):
     user=db.relationship('User', foreign_keys=[user_id])
 
 class User(UserMixin,db.Model):
-    id=db.Column(db.Integer,primary_key=True); username=db.Column(db.String(80),unique=True,nullable=False); password_hash=db.Column(db.String(255)); name=db.Column(db.String(160)); email=db.Column(db.String(255)); role=db.Column(db.String(20),default='disabled'); is_ldap=db.Column(db.Boolean,default=False); auth_provider=db.Column(db.String(40),default='local'); external_id=db.Column(db.String(255),nullable=True,index=True); mfa_enabled=db.Column(db.Boolean,default=False,nullable=False)
+    id=db.Column(db.Integer,primary_key=True); username=db.Column(db.String(80),nullable=False,index=True); password_hash=db.Column(db.String(255)); name=db.Column(db.String(160)); email=db.Column(db.String(255)); role=db.Column(db.String(20),default='disabled'); is_ldap=db.Column(db.Boolean,default=False); auth_provider=db.Column(db.String(80),default='local',nullable=False,index=True); external_id=db.Column(db.String(255),nullable=True,index=True); mfa_enabled=db.Column(db.Boolean,default=False,nullable=False)
+    __table_args__=(db.UniqueConstraint('username','auth_provider',name='uq_user_username_auth_provider'),)
     mfa_tokens=db.relationship('MfaTotpToken',back_populates='user',cascade='all,delete-orphan')
+
+    @property
+    def backend_label(self):
+        provider = self.auth_provider or ('ldap' if self.is_ldap else 'local')
+        return provider
 
 class MfaTotpToken(db.Model):
     id=db.Column(db.Integer,primary_key=True)

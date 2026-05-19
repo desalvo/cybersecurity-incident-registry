@@ -972,21 +972,22 @@ def sso_user_from_claims(claims, cfg):
     if not username:
         raise ValueError('Il provider SSO non ha restituito un identificativo utente utilizzabile')
     profile_id = cfg.get('id') or 'sso'
+    provider_key = f"sso:{profile_id}"
     external_subject = f"{profile_id}:{subject}" if subject else None
     user = None
     if external_subject:
-        user = User.query.filter_by(auth_provider='sso', external_id=external_subject).first()
+        user = User.query.filter_by(auth_provider=provider_key, external_id=external_subject).first()
     if not user:
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username, auth_provider=provider_key).first()
     if not user:
         if not bool_setting(cfg, 'sso_auto_create_users', True):
             raise ValueError('Utente SSO non registrato e creazione automatica disabilitata')
-        user = User(username=username, name=name, email=email, role=cfg.get('sso_default_role') or 'disabled', is_ldap=False, auth_provider='sso', external_id=external_subject, password_hash=None)
+        user = User(username=username, name=name, email=email, role=cfg.get('sso_default_role') or 'disabled', is_ldap=False, auth_provider=provider_key, external_id=external_subject, password_hash=None)
         db.session.add(user)
     else:
         user.name = name or user.name
         user.email = email or user.email
-        user.auth_provider = 'sso'
+        user.auth_provider = provider_key
         if external_subject:
             user.external_id = external_subject
         user.is_ldap = False
@@ -1012,10 +1013,11 @@ def ldap_auth(username,password):
 @bp.route('/login',methods=['GET','POST'])
 def login():
     if request.method=='POST':
-        u=request.form['username']; p=request.form['password']; user=User.query.filter_by(username=u).first()
+        u=request.form['username'].strip(); p=request.form['password']; user=User.query.filter_by(username=u, auth_provider='local').first()
         if user and not user.is_ldap and verify_password(user.password_hash,p): return complete_login_or_mfa(user)
         info=ldap_auth(u,p)
         if info:
+            user=User.query.filter_by(username=u, auth_provider='ldap').first()
             if not user:
                 user=User(username=u,is_ldap=True,auth_provider='ldap',name=info['name'],email=info['email'],role='disabled'); db.session.add(user); db.session.commit()
             else:
@@ -1870,12 +1872,19 @@ def admin_user_mfa(uid):
 def admin_users():
     if not can_admin(): return redirect(url_for('main.index'))
     if request.method=='POST':
-        is_ldap=bool(request.form.get('is_ldap'))
-        u=User(username=request.form['username'].strip(),name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider='ldap' if is_ldap else 'local',password_hash=hash_password(request.form.get('password','changeme')) if not is_ldap else None)
+        backend=(request.form.get('auth_provider') or 'local').strip()
+        if backend not in {'local','ldap'}:
+            backend = 'local'
+        is_ldap = backend == 'ldap'
+        username = request.form['username'].strip()
+        if User.query.filter_by(username=username, auth_provider=backend).first():
+            flash('Esiste già un utente con la stessa combinazione username + backend.', 'error')
+            return redirect(url_for('main.admin_users'))
+        u=User(username=username,name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(request.form.get('password','changeme')) if backend == 'local' else None)
         db.session.add(u); db.session.commit()
         audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
         flash('Utente aggiunto.')
-    return render_template('admin_users.html',users=User.query.order_by(User.username).all())
+    return render_template('admin_users.html',users=User.query.order_by(User.username, User.auth_provider).all())
 @bp.route('/admin/user/<int:uid>/role',methods=['POST'])
 @login_required
 def user_role(uid):
@@ -1900,6 +1909,7 @@ def admin_user_delete(uid):
         flash('Non è possibile rimuovere l’ultimo amministratore dell’applicazione.', 'error')
         return redirect(url_for('main.admin_users'))
     username=user.username
+    auth_provider=user.auth_provider or ('ldap' if user.is_ldap else 'local')
     # Conserva la storia operativa: incidenti, promemoria e audit restano presenti,
     # ma i riferimenti FK all’account rimosso vengono svincolati prima della delete.
     Incident.query.filter_by(creator_id=user.id).update({'creator_id': None}, synchronize_session=False)
@@ -1908,7 +1918,7 @@ def admin_user_delete(uid):
     db.session.delete(user)
     db.session.commit()
     audit_log('admin:user_delete', {'deleted_user_id': uid, 'username': username}, actor_type='user', commit=True)
-    flash(f'Utente {username} rimosso. La cronologia degli incidenti e dell’audit è stata conservata.')
+    flash(f'Utente {username} ({auth_provider}) rimosso. La cronologia degli incidenti e dell’audit è stata conservata.')
     return redirect(url_for('main.admin_users'))
 @bp.route('/settings/password',methods=['GET','POST'])
 @login_required

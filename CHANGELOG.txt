@@ -627,3 +627,10 @@ Notification menu and SMTP sender fix
 - Aggiunta la voce Aiuto -> Note di rilascio, con pagina online e PDF dedicato.
 - Spostati i sommari di aggiornamento fuori dalla documentazione utente/amministrativa e nelle note di rilascio.
 - Documentazione IT/EN aggiornata.
+
+
+0.2.0-8-user-backend-identity
+- Identità utenti basata sulla coppia username + backend/auth_provider.
+- Login locale, LDAP e SSO isolati per backend; i profili SSO usano auth_provider nel formato sso:<id profilo>.
+- Gestione utenti aggiornata per mostrare e creare account locali/LDAP con username duplicati su backend diversi.
+- Documentazione italiana e inglese aggiornata.

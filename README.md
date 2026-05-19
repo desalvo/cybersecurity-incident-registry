@@ -62,7 +62,7 @@ Gli amministratori possono configurare l’accesso federato da **Admin → SSO**
 - creazione automatica degli utenti SSO e ruolo predefinito, di default `disabled`;
 - logo opzionale del provider, mostrato sul pulsante di login se presente. I loghi condivisi caricati dalla UI sono salvati nella directory persistente configurata con `SSO_LOGO_DIR`, default `/data/sso_logos`, e non sotto l'area statica effimera del container.
 
-Il redirect URI da registrare sul provider viene mostrato nella pagina Admin → SSO. La stessa pagina include il pulsante **Controlla configurazione**, che usa i valori presenti nella form anche prima del salvataggio e verifica parametri obbligatori, endpoint di autorizzazione, token endpoint, UserInfo endpoint, scope e claim principali. Il controllo è non distruttivo: non crea utenti e non completa un login reale. Per la prova completa è disponibile anche **Avvia test login interattivo**, che usa il normale flusso OAuth2 con redirect verso il provider. Il login locale e LDAP restano disponibili. Gli utenti SSO creati automaticamente possono essere abilitati o promossi da **Admin → Utenti**.
+Il redirect URI da registrare sul provider viene mostrato nella pagina Admin → SSO. La stessa pagina include il pulsante **Controlla configurazione**, che usa i valori presenti nella form anche prima del salvataggio e verifica parametri obbligatori, endpoint di autorizzazione, token endpoint, UserInfo endpoint, scope e claim principali. Il controllo è non distruttivo: non crea utenti e non completa un login reale. Per la prova completa è disponibile anche **Avvia test login interattivo**, che usa il normale flusso OAuth2 con redirect verso il provider. Il login locale e LDAP restano disponibili. Gli utenti SSO creati automaticamente possono essere abilitati o promossi da **Admin → Utenti**. L’identità dell’account applicativo è sempre la coppia **username + backend**: lo stesso username può quindi esistere contemporaneamente come account locale, LDAP e SSO/OAuth2, anche su profili SSO diversi, senza sovrascrivere ruoli, MFA o preferenze degli altri account.
 
 ### Storage persistente loghi SSO
 
@@ -329,7 +329,7 @@ Ogni utente può gestire i propri token dal menu **Impostazioni → Multi-factor
 
 Gli amministratori possono gestire la MFA di tutti gli utenti da **Admin → Utenti → gestisci MFA**: possono attivare o disattivare la richiesta MFA solo in presenza di token verificati, revocare singoli token o rimuovere tutti i token di un utente. I dettagli segreti dei token altrui non sono visibili agli amministratori; restano visibili solo per i propri token nella pagina di gestione personale. Le cancellazioni usano un solo passaggio di conferma operativa, evitando doppie richieste di conferma.
 
-Da **Admin → Utenti** è inoltre possibile rimuovere un account non più necessario. La rimozione elimina l’utente e i token MFA associati, impedendo nuovi accessi locali, LDAP o SSO per quell’identità applicativa. Per preservare la tracciabilità, incidenti, promemoria e audit non vengono cancellati: i riferimenti tecnici all’account rimosso vengono svincolati, mentre nei record storici restano disponibili i nomi e le e-mail già salvati nei dati dell’incidente o dell’audit. L’interfaccia impedisce di rimuovere l’utente amministratore correntemente connesso e blocca la rimozione dell’ultimo amministratore rimasto.
+Da **Admin → Utenti** è inoltre possibile creare account locali o LDAP anche quando lo stesso username esiste già su un altro backend. La tabella mostra il backend tecnico (`local`, `ldap`, `sso:<id profilo>`) accanto allo username, perché la combinazione **username + backend** identifica l’utente reale dell’applicazione. È inoltre possibile rimuovere un account non più necessario. La rimozione elimina l’utente e i token MFA associati, impedendo nuovi accessi locali, LDAP o SSO per quell’identità applicativa. Per preservare la tracciabilità, incidenti, promemoria e audit non vengono cancellati: i riferimenti tecnici all’account rimosso vengono svincolati, mentre nei record storici restano disponibili i nomi e le e-mail già salvati nei dati dell’incidente o dell’audit. L’interfaccia impedisce di rimuovere l’utente amministratore correntemente connesso e blocca la rimozione dell’ultimo amministratore rimasto.
 
 Per l'utilizzo sono richieste le dipendenze `pyotp` e `qrcode[pil]`, incluse nel file `requirements.txt`.
 
@@ -594,6 +594,11 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 
 La pagina **Admin → SSO/OAuth2**, nella sezione **Storage loghi SSO**, mostra ora l’anteprima grafica anche dei loghi caricati dagli amministratori tramite interfaccia web. Le anteprime non puntano più all’area statica del container, ma alla rotta applicativa `/sso-logos/<filename>`, che legge dalla directory persistente configurata con `SSO_LOGO_DIR`. In questo modo i loghi predefiniti copiati al primo avvio e i loghi caricati dall’utente sono visualizzati nello stesso modo nella lista, nella scelta del profilo e nella pagina di login.
 
+
+
+## Aggiornamento 0.2.0-125 - Identità utenti per username e backend
+
+La gestione utenti ora consente identità distinte con lo stesso username purché appartenenti a backend diversi. Un utente `mario.rossi` locale, un utente `mario.rossi` LDAP e un utente `mario.rossi` proveniente dal profilo SSO `ente` sono tre account applicativi separati, ciascuno con ruolo, MFA, audit e abilitazione indipendenti. I profili SSO usano backend tecnici nel formato `sso:<id profilo>`. La migrazione PostgreSQL rimuove il precedente vincolo univoco sul solo username e introduce il vincolo composto `username + auth_provider`.
 
 ## Aggiornamento 0.1.0-124 - Loghi profili SSO/OAuth2
 

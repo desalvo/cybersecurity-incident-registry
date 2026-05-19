@@ -191,6 +191,36 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE \"user\" ADD COLUMN external_id VARCHAR(255)"))
                 app.logger.info('Schema migration applied: user.external_id added')
+            # L'identità applicativa è la coppia username + backend di autenticazione.
+            # Le versioni precedenti avevano un vincolo univoco sul solo username:
+            # su PostgreSQL lo rimuoviamo e creiamo il vincolo composto. Su SQLite
+            # i nuovi database usano già il modello aggiornato; gli ambienti di
+            # produzione supportati usano PostgreSQL.
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE \"user\" SET auth_provider = CASE WHEN is_ldap THEN 'ldap' ELSE 'local' END WHERE auth_provider IS NULL OR auth_provider = ''"))
+            if str(db.engine.url).startswith('postgresql'):
+                try:
+                    with db.engine.begin() as conn:
+                        conn.execute(text('ALTER TABLE "user" ALTER COLUMN auth_provider TYPE VARCHAR(80)'))
+                except Exception:
+                    app.logger.exception('Unable to widen user.auth_provider to VARCHAR(80)')
+                try:
+                    unique_constraints = inspector.get_unique_constraints('user')
+                    with db.engine.begin() as conn:
+                        has_composite = False
+                        for constraint in unique_constraints:
+                            cols_for_constraint = constraint.get('column_names') or []
+                            name = constraint.get('name')
+                            if cols_for_constraint == ['username', 'auth_provider']:
+                                has_composite = True
+                            if name and cols_for_constraint == ['username']:
+                                safe_name = name.replace('\"', '')
+                                conn.execute(text(f'ALTER TABLE "user" DROP CONSTRAINT IF EXISTS "{safe_name}"'))
+                        if not has_composite:
+                            conn.execute(text('ALTER TABLE "user" ADD CONSTRAINT uq_user_username_auth_provider UNIQUE (username, auth_provider)'))
+                    app.logger.info('Schema migration applied: user identity changed to username + auth_provider')
+                except Exception:
+                    app.logger.exception('Unable to migrate user unique constraint to username + auth_provider')
         if 'config_label' in tables:
             cols = {c['name'] for c in inspector.get_columns('config_label')}
             if 'description' not in cols:
@@ -369,9 +399,9 @@ def bootstrap(app):
             restore_missing_template_files_from_db()
         except Exception:
             app.logger.exception('Unable to restore PDF form templates from database')
-        admin=User.query.filter_by(username='admin').first()
+        admin=User.query.filter_by(username='admin', auth_provider='local').first()
         if not admin:
-            admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='admin', is_ldap=False, password_hash=hash_password(os.getenv('ADMIN_INITIAL_PASSWORD','adminpass')))
+            admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='admin', is_ldap=False, auth_provider='local', password_hash=hash_password(os.getenv('ADMIN_INITIAL_PASSWORD','adminpass')))
             db.session.add(admin)
         else:
             admin.role='admin'; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
