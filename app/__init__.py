@@ -296,6 +296,20 @@ def run_schema_migrations(app):
             elif 'personal_data_only' in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE incident_workflow_step SET personal_data_only = FALSE WHERE personal_data_only IS NULL'))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'requires_notification' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN requires_notification BOOLEAN'))
+                    conn.execute(text('UPDATE incident_workflow_step SET requires_notification = FALSE WHERE requires_notification IS NULL'))
+                app.logger.info('Schema migration applied: incident_workflow_step.requires_notification added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text('UPDATE incident_workflow_step SET requires_notification = FALSE WHERE requires_notification IS NULL'))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'required_notification_type' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN required_notification_type VARCHAR(40)'))
+                app.logger.info('Schema migration applied: incident_workflow_step.required_notification_type added')
 
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}

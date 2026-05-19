@@ -199,6 +199,20 @@ function makeIncidentWorkflowStepsClickable(){
   if(!actionForm || !actionSelect)return;
   const description=actionForm.querySelector('textarea[name="description"]');
   const activate=(step)=>{
+    if(step.dataset.requiresNotification === '1'){
+      if(step.dataset.notificationDocsReady !== '1'){
+        const message = step.dataset.notificationDocsMessage || 'Prima dell’invio della notifica sono necessari documenti generati o taggati per questo tipo di notifica.';
+        window.alert(message);
+        const sectionId = step.dataset.notificationDocsSection || 'incident-forms';
+        const section = document.getElementById(sectionId);
+        if(section) section.scrollIntoView({behavior:'smooth', block:'start'});
+        return;
+      }
+      if(step.dataset.notificationUrl){
+        window.location.href = step.dataset.notificationUrl;
+        return;
+      }
+    }
     const labelId=step.dataset.actionLabelId || '';
     if(labelId){
       actionSelect.value=labelId;

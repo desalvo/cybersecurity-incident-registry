@@ -1,3 +1,9 @@
+## Aggiornamento 0.2.1 - Workflow con dipendenze da notifiche e percorso guidato
+
+`IncidentWorkflowStep` supporta i campi `requires_notification` e `required_notification_type`. Quando uno step è configurato come dipendente da una notifica, `incident_workflow_status()` calcola se una azione di notifica compatibile è già presente nell’incidente, usando le label azione associate ai template di notifica del tipo richiesto e la label fallback del tipo notifica.
+
+Nel dettaglio incidente gli step mancanti con dipendenza da notifica espongono al frontend l’URL della notifica, lo stato dei documenti richiesti e la sezione di destinazione. Il click sullo step non preseleziona più direttamente l’azione se la notifica manca: apre la preview della notifica specifica solo quando i documenti attesi sono disponibili; in caso contrario mostra un avviso e scorre alla generazione moduli o al tagging documenti. L’inserimento manuale dell’azione corrispondente resta bloccato lato server finché la notifica richiesta non risulta presente tra le azioni.
+
 # Cybersecurity Incident Registry — documentazione progettuale logica
 
 ## 1. Scopo del documento
@@ -1359,3 +1365,7 @@ Per installazioni già esistenti, `ensure_default_workflow_required_steps()` agg
 ## Aggiornamento 0.2.1 - Frecce negli step workflow e versione applicativa
 
 La pagina del singolo incidente visualizza gli step delle operazioni previste con una freccia di sequenza quando il workflow è ordinato tramite il campo `position`. Il template `incident_detail.html` aggiunge l'indicatore tra due step consecutivi e `style.css` ne definisce il layout responsive. I metadati runtime dell'applicazione usano la versione normalizzata `0.2.1` e il build `2026051901`, visibili in Info → Applicazione e configurabili tramite `APP_VERSION` e `APP_BUILD`.
+
+## Aggiornamento 0.2.1 - Cancellazione incidenti con stati deadline collegati
+
+La funzione `incident_delete()` non elimina più direttamente solo il record `Incident`: usa `delete_incident_with_related_state()`, che rimuove prima i record `DeadlineNotificationState` collegati tramite `incident_id` e poi elimina l'incidente. Il modello dichiara inoltre la relazione `Incident.deadline_notification_states` con cascade applicativa e il vincolo `ForeignKey('incident.id', ondelete='CASCADE')` per i nuovi schemi. La cancellazione esplicita resta necessaria per database esistenti nei quali il vincolo PostgreSQL è stato creato da versioni precedenti senza `ON DELETE CASCADE`.

@@ -1,3 +1,7 @@
+## Aggiornamento 0.2.1 - Workflow guidato verso notifiche e documenti
+
+Gli step delle operazioni previste che dipendono da una notifica guidano ora l’operatore: se la notifica richiesta non è ancora presente tra le azioni, il click sullo step apre direttamente la notifica specifica. Se la notifica richiede documenti generati o taggati non ancora disponibili, viene mostrato un avviso e la pagina porta alla generazione moduli o alla sezione documenti/tagging prima dell’invio.
+
 
 ## Aggiornamento 0.2.1 - Frecce nei workflow ordinati e versione normalizzata
 
@@ -732,3 +736,7 @@ La gestione dei flussi operativi riallinea ora esplicitamente la sequence Postgr
 ## Aggiornamento 0.2.1 - Workflow default esteso
 
 Il workflow di default include ora anche Comunicazione al Garante, valida solo per incidenti con dati personali, e Comunicazione all’utente prima della Conclusione. La configurazione resta modificabile da Admin → Flussi operativi incidenti.
+
+## Aggiornamento 0.2.1 - Cancellazione incidenti e stati notifiche deadline
+
+La cancellazione di un incidente rimuove ora esplicitamente anche gli stati interni delle notifiche a scadenza collegati all'incidente. Questo evita errori PostgreSQL del tipo `update or delete on table "incident" violates foreign key constraint "deadline_notification_state_incident_id_fkey"` su installazioni aggiornate da versioni precedenti o ripristinate tramite Full import. Le informazioni storiche non collegate all'incidente eliminato restano gestite dalle normali regole applicative.

@@ -1,4 +1,10 @@
 ## 0.2.1
+- Gli step workflow dipendenti da notifica guidano automaticamente verso la form della notifica richiesta.
+- Se la notifica richiede documenti generati o taggati non ancora disponibili, il click mostra un avviso e porta alla sezione moduli/documenti.
+- Bloccato l’inserimento manuale dell’azione di uno step che richiede una notifica non ancora registrata.
+- Documentazione IT/EN e progettuale aggiornata.
+
+## 0.2.1
 - Corretto inserimento step workflow dopo import/restore con riallineamento sequence incident_workflow_step e retry su duplicate-key.
 - Documentazione aggiornata.
 
@@ -741,3 +747,8 @@ Notification menu and SMTP sender fix
 - Visualizzazione tempo limite, scadenza e tempo rimanente per step con tempo massimo.
 - Inizializzazione del flusso default modificabile: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Conclusione.
 - Documentazione IT/EN e progettuale aggiornata.
+
+0.2.1-21
+- Corretta la cancellazione degli incidenti quando esistono stati deadline_notification_state collegati.
+- Aggiunta cancellazione esplicita degli stati notifiche deadline prima della rimozione incidente.
+- Aggiornata la documentazione italiana, inglese e progettuale.

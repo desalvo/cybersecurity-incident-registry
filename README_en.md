@@ -1,3 +1,7 @@
+## Update 0.2.1 - Guided workflow to notifications and documents
+
+Expected-operation steps that depend on a notification now guide the operator: if the required notification is not yet recorded among incident actions, clicking the step opens the specific notification flow directly. If that notification requires generated or tagged documents that are not available yet, a warning is shown and the page moves to form generation or document/tagging before sending.
+
 
 ## Update 0.2.1 - Ordered workflow arrows and normalized version
 
@@ -535,3 +539,7 @@ Incident workflow management now explicitly realigns the PostgreSQL sequence of 
 ## Update 0.2.1 - Extended default workflow
 
 The default workflow now also includes Privacy Authority communication, applicable only to incidents involving personal data, and User communication before Closure. The configuration remains editable from Admin → Incident operational workflows.
+
+## Update 0.2.1 - Incident deletion and deadline-notification states
+
+Deleting an incident now explicitly removes the related internal deadline-notification state records as well. This prevents PostgreSQL errors such as `update or delete on table "incident" violates foreign key constraint "deadline_notification_state_incident_id_fkey"` on installations upgraded from older versions or restored through Full import. Historical information not linked to the deleted incident continues to follow the normal application rules.

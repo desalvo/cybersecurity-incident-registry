@@ -51,6 +51,8 @@ class IncidentWorkflowStep(db.Model):
     position=db.Column(db.Integer,nullable=False,default=0,index=True)
     description=db.Column(db.Text,default='')
     personal_data_only=db.Column(db.Boolean,default=False,nullable=False)
+    requires_notification=db.Column(db.Boolean,default=False,nullable=False)
+    required_notification_type=db.Column(db.String(40),nullable=True,index=True)
     created_at=db.Column(db.DateTime,default=datetime.utcnow)
     category=db.relationship('ConfigLabel',foreign_keys=[category_id])
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
@@ -120,7 +122,7 @@ class Incident(db.Model):
         value = self.effective_duration
         return value.total_seconds() if value is not None else None
 
-    creator=db.relationship(User); severity=db.relationship(ConfigLabel,foreign_keys=[severity_id]); categories=db.relationship(ConfigLabel,secondary=incident_categories); data_types=db.relationship(ConfigLabel,secondary=incident_data_types); people=db.relationship(Person,secondary=incident_people); recommendations=db.relationship(Recommendation,secondary=incident_recommendations); actions=db.relationship('Action',cascade='all,delete-orphan',order_by='Action.when_at'); documents=db.relationship('Document',cascade='all,delete-orphan'); reminders=db.relationship('IncidentReminder',cascade='all,delete-orphan',order_by='IncidentReminder.scheduled_at',back_populates='incident')
+    creator=db.relationship(User); severity=db.relationship(ConfigLabel,foreign_keys=[severity_id]); categories=db.relationship(ConfigLabel,secondary=incident_categories); data_types=db.relationship(ConfigLabel,secondary=incident_data_types); people=db.relationship(Person,secondary=incident_people); recommendations=db.relationship(Recommendation,secondary=incident_recommendations); actions=db.relationship('Action',cascade='all,delete-orphan',order_by='Action.when_at'); documents=db.relationship('Document',cascade='all,delete-orphan'); reminders=db.relationship('IncidentReminder',cascade='all,delete-orphan',order_by='IncidentReminder.scheduled_at',back_populates='incident'); deadline_notification_states=db.relationship('DeadlineNotificationState',cascade='all,delete-orphan',back_populates='incident')
 
 
 
@@ -244,14 +246,14 @@ class DeadlineNotificationState(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     notification_key=db.Column(db.String(255),unique=True,nullable=False,index=True)
     notification_type=db.Column(db.String(80),nullable=False,default='deadline')
-    incident_id=db.Column(db.Integer,db.ForeignKey('incident.id'),nullable=True,index=True)
+    incident_id=db.Column(db.Integer,db.ForeignKey('incident.id', ondelete='CASCADE'),nullable=True,index=True)
     last_success_at=db.Column(db.DateTime,nullable=False,index=True)
     last_schedule_slot=db.Column(db.DateTime,nullable=True,index=True)
     last_recipients=db.Column(db.Text,default='')
     last_details=db.Column(db.Text,default='')
     send_count=db.Column(db.Integer,nullable=False,default=1)
     updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow,nullable=False)
-    incident=db.relationship('Incident',foreign_keys=[incident_id])
+    incident=db.relationship('Incident',foreign_keys=[incident_id],back_populates='deadline_notification_states')
 
 
 class NotificationType(db.Model):

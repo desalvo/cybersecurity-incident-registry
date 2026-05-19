@@ -741,7 +741,64 @@ def labels(kind): return ConfigLabel.query.filter_by(kind=kind).order_by(ConfigL
 
 
 def workflow_step_key(step):
-    return (int(step.action_label_id or 0), (step.description or '').strip().lower(), bool(getattr(step, 'personal_data_only', False)))
+    return (
+        int(step.action_label_id or 0),
+        (step.description or '').strip().lower(),
+        bool(getattr(step, 'personal_data_only', False)),
+        bool(getattr(step, 'requires_notification', False)),
+        (getattr(step, 'required_notification_type', None) or '').strip(),
+    )
+
+def notification_action_label_ids(kind):
+    """Return action label IDs that prove a manual notification of this type was sent."""
+    ids = set()
+    if not kind:
+        return ids
+    for tmpl in NotificationTemplate.query.filter_by(kind=kind).all():
+        if tmpl.action_label_id:
+            ids.add(int(tmpl.action_label_id))
+    fallback = ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
+    if fallback:
+        ids.add(int(fallback.id))
+    return ids
+
+def incident_has_notification_action(inc, kind):
+    ids = notification_action_label_ids(kind)
+    if not ids:
+        return False
+    return any((a.label_id in ids) for a in (inc.actions or []))
+
+def default_notification_template_for_kind(kind):
+    return get_notification_template(kind, None)
+
+def workflow_notification_document_status(inc, kind):
+    """Return whether the documents expected by the notification are already available.
+
+    A notification may be linked to a PDF form template. In that case, when no
+    generated/tagged document is available yet, the workflow click must guide the
+    operator to document generation/tagging before opening the send form.
+    """
+    if not kind:
+        return {'required': False, 'ready': True, 'section': 'incident-documents', 'message': ''}
+    tmpl = default_notification_template_for_kind(kind)
+    linked = getattr(tmpl, 'linked_form_template_name', None)
+    if linked:
+        docs = auto_selected_notification_documents(inc, tmpl, kind)
+        if not docs:
+            return {
+                'required': True,
+                'ready': False,
+                'section': 'incident-forms',
+                'message': f'La notifica richiede documenti generati dal template "{linked}" o documenti taggati per il tipo notifica. Generare o taggare i documenti prima dell’invio.',
+            }
+    if notification_needs_documents(kind, tmpl.id) and not inc.documents:
+        return {
+            'required': True,
+            'ready': False,
+            'section': 'incident-documents',
+            'message': 'La notifica richiede documenti allegati, ma l’incidente non contiene ancora documenti. Caricare o generare un documento prima dell’invio.',
+        }
+    return {'required': bool(linked or notification_needs_documents(kind, tmpl.id)), 'ready': True, 'section': 'incident-documents', 'message': ''}
 
 def workflow_steps_for_incident(inc):
     category_ids = [c.id for c in (inc.categories or [])]
@@ -794,6 +851,11 @@ def incident_workflow_status(inc):
             minutes = (total_seconds % 3600) // 60
             remaining_text = f'{sign}{hours}h {minutes:02d}m'
             expired = remaining.total_seconds() <= 0
+        requires_notification = bool(getattr(step, 'requires_notification', False))
+        required_notification_type = (getattr(step, 'required_notification_type', None) or '').strip()
+        notification_done = incident_has_notification_action(inc, required_notification_type) if requires_notification else True
+        doc_status = workflow_notification_document_status(inc, required_notification_type) if requires_notification and not notification_done else {'required': False, 'ready': True, 'section': 'incident-documents', 'message': ''}
+        ntype = get_notification_type(required_notification_type) if required_notification_type else None
         items.append({
             'id': step.id,
             'action_label_id': label_id,
@@ -801,6 +863,15 @@ def incident_workflow_status(inc):
             'task_name': label.value if label else '',
             'description': step.description or '',
             'personal_data_only': bool(getattr(step, 'personal_data_only', False)),
+            'requires_notification': requires_notification,
+            'required_notification_type': required_notification_type,
+            'required_notification_label': ntype.label if ntype else required_notification_type,
+            'notification_done': notification_done,
+            'notification_url': url_for('main.notify_preview', iid=inc.id, kind=required_notification_type) if required_notification_type else '',
+            'notification_docs_required': bool(doc_status.get('required')),
+            'notification_docs_ready': bool(doc_status.get('ready')),
+            'notification_docs_section': doc_status.get('section') or 'incident-documents',
+            'notification_docs_message': doc_status.get('message') or '',
             'position': step.position,
             'done': done,
             'missing': not done,
@@ -1710,10 +1781,28 @@ def delete_incident_reminder(rid):
     section_flash('Promemoria cancellato','incident-reminders','success')
     return incident_detail_redirect(iid, 'incident-reminders')
 
+def delete_incident_with_related_state(incident):
+    """Elimina un incidente includendo gli stati procedurali collegati non coperti dalle cascade storiche.
+
+    Alcuni database esistenti possono avere il vincolo FK di
+    deadline_notification_state.incident_id senza ON DELETE CASCADE, perché la
+    tabella è stata creata da versioni precedenti. La cancellazione esplicita
+    evita l'errore PostgreSQL `deadline_notification_state_incident_id_fkey`
+    anche dopo Full import/restore o aggiornamenti incrementali.
+    """
+    if incident is None:
+        return
+    DeadlineNotificationState.query.filter_by(incident_id=incident.id).delete(synchronize_session=False)
+    db.session.delete(incident)
+
 @bp.route('/incident/<int:iid>/delete',methods=['POST'])
 @login_required
 def incident_delete(iid):
-    if can_write(): db.session.delete(Incident.query.get_or_404(iid)); db.session.commit()
+    if can_write():
+        inc = Incident.query.get_or_404(iid)
+        delete_incident_with_related_state(inc)
+        db.session.commit()
+        flash('Incidente cancellato.', 'success')
     return redirect(url_for('main.index'))
 @bp.route('/incident/<int:iid>/clone')
 @login_required
@@ -1721,6 +1810,26 @@ def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
     src=Incident.query.get_or_404(iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=datetime.utcnow(),status='aperto')
     sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
+
+def workflow_notification_blocking_message(inc, label_id):
+    if not label_id:
+        return ''
+    try:
+        selected_label_id = int(label_id)
+    except Exception:
+        return ''
+    for step in workflow_steps_for_incident(inc):
+        if int(step.action_label_id or 0) != selected_label_id:
+            continue
+        if not getattr(step, 'requires_notification', False):
+            continue
+        kind = (getattr(step, 'required_notification_type', None) or '').strip()
+        if kind and not incident_has_notification_action(inc, kind):
+            ntype = get_notification_type(kind)
+            label = ntype.label if ntype else kind
+            return f'Impossibile inserire questa azione: lo step richiede prima l’invio della notifica "{label}". Cliccare lo step nelle Operazioni previste per aprire il percorso guidato.'
+    return ''
+
 def create_manual_action_safely(iid):
     """Crea una nuova azione manuale senza assegnare ID espliciti.
 
@@ -1732,6 +1841,10 @@ def create_manual_action_safely(iid):
     align_table_sequence('action')
     label_id = request.form.get('label_id') or None
     label = ConfigLabel.query.get(label_id) if label_id else None
+    inc = Incident.query.get(iid)
+    blocking = workflow_notification_blocking_message(inc, label_id) if inc else ''
+    if blocking:
+        raise ValueError(blocking)
     description = request.form.get('description') or None
     payload = dict(
         incident_id=iid,
@@ -1775,6 +1888,9 @@ def add_action(iid):
             db.session.rollback()
             current_app.logger.exception('Errore duplicate key durante inserimento azione manuale')
             section_flash('Errore durante l’inserimento dell’azione: chiave duplicata. Le sequenze del database sono state riallineate, riprovare.', 'incident-actions', 'danger')
+        except ValueError as exc:
+            db.session.rollback()
+            section_flash(str(exc), 'incident-actions', 'warning')
         except Exception:
             db.session.rollback()
             current_app.logger.exception('Errore durante inserimento azione manuale')
@@ -1896,6 +2012,8 @@ def admin_incident_workflows():
             action_label_id = request.form.get('action_label_id', type=int)
             description = (request.form.get('description') or '').strip()
             personal_data_only = bool(request.form.get('personal_data_only'))
+            requires_notification = bool(request.form.get('requires_notification'))
+            required_notification_type = (request.form.get('required_notification_type') or '').strip() or None
             position = request.form.get('position', type=int)
             if not action_label_id:
                 flash('Selezionare una azione del flusso','error')
@@ -1911,7 +2029,7 @@ def admin_incident_workflows():
                 # collisione concorrente, ricostruiamo l'oggetto dopo rollback e
                 # ritentiamo con sequence riallineata.
                 align_table_sequence('incident_workflow_step')
-                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, position=position)
+                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
                 db.session.add(step)
                 try:
                     db.session.commit()
@@ -1921,7 +2039,7 @@ def admin_incident_workflows():
                         raise
                     current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
                     align_table_sequence('incident_workflow_step')
-                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, position=position)
+                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
                     db.session.add(step)
                     db.session.commit()
                 flash('Passo del flusso aggiunto','success')
@@ -1933,6 +2051,8 @@ def admin_incident_workflows():
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()
                 step.personal_data_only = bool(request.form.get(f'personal_data_only_{sid}'))
+                step.requires_notification = bool(request.form.get(f'requires_notification_{sid}'))
+                step.required_notification_type = (request.form.get(f'required_notification_type_{sid}') or '').strip() or None
                 new_label = request.form.get(f'action_label_id_{sid}', type=int)
                 if new_label: step.action_label_id = new_label
             db.session.commit(); flash('Flussi aggiornati','success')
@@ -1941,7 +2061,7 @@ def admin_incident_workflows():
     grouped = {}
     for step in steps:
         grouped.setdefault(step.category_id or 0, []).append(step)
-    return render_template('admin_incident_workflows.html', categories=labels('category'), action_labels=labels('action_label'), grouped=grouped)
+    return render_template('admin_incident_workflows.html', categories=labels('category'), action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), grouped=grouped)
 
 @bp.route('/admin/incident-workflows/<int:sid>/delete',methods=['POST'])
 @login_required
