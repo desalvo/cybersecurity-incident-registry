@@ -78,6 +78,10 @@
   <section id="cap-accesso" class="doc-chapter" data-doc-title="accesso ruoli lingua login ldap sso">
     <h2>2. Accesso, ruoli e lingua</h2>
     <p>L’accesso può avvenire con utenti locali, LDAP o SSO/OAuth2/OpenID Connect, secondo quanto configurato dall’amministratore. Se sono presenti più profili SSO attivi, la pagina di login consente di scegliere il provider da utilizzare.</p>
+    <h3>Accesso SSO/OAuth2 dal punto di vista dell’utente</h3>
+    <p>Quando l’amministratore abilita uno o più profili SSO, nella pagina di login compaiono pulsanti dedicati ai provider disponibili. Ogni pulsante può mostrare il logo del provider, così l’utente riconosce rapidamente il metodo di accesso aziendale o istituzionale da usare.</p>
+    <p>Selezionando un provider SSO, l’utente viene reindirizzato al sistema di identità esterno. Dopo l’autenticazione e l’eventuale verifica a più fattori richiesta dal provider, l’applicazione riceve l’esito del login e apre la sessione con il ruolo assegnato dall’amministratore. L’utente non deve inserire la password locale dell’applicazione quando usa SSO.</p>
+    <p>In caso di errore di accesso SSO, verificare di aver scelto il provider corretto e di usare un account autorizzato. Se il login esterno va a buon fine ma l’applicazione non consente l’accesso, contattare un amministratore: può essere necessario abilitare l’utente, associare l’indirizzo e-mail corretto o completare la configurazione del profilo.</p>
     <table class="table doc-table">
       <thead><tr><th>Ruolo</th><th>Operazioni principali</th></tr></thead>
       <tbody>
@@ -204,6 +208,4 @@
     </ol>
   </section>
 </div>
-
-<section class="doc-section"><h2>Accesso SSO</h2><p>Quando sono presenti profili SSO attivi, nella pagina di login compaiono pulsanti grigio chiaro per scegliere il provider. Se il profilo ha un logo associato, il logo viene mostrato sul pulsante.</p></section>
 {% endblock %}

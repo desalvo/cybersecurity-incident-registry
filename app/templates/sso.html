@@ -45,7 +45,7 @@
   <div class="sso-logo-gallery">
     {% for logo in sso_logos %}
       <div class="sso-logo-tile">
-        <img src="{{ url_for('static', filename=logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'">
+        <img src="{{ sso_logo_url(logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'">
         <code>{{ logo.name }}</code>
         <form method="post" data-confirm-delete="Rimuovere questo logo dallo storage SSO? Il logo sarà rimosso anche dai profili associati.">
           <input type="hidden" name="profile" value="{{ settings.id }}">
@@ -92,11 +92,11 @@
           <option value="{{ logo.relative_path }}" {% if settings.sso_logo_path == logo.relative_path %}selected{% endif %}>{{ logo.name }}</option>
         {% endfor %}
       </select>
-      <small class="muted">I loghi sono condivisi tra tutti i profili SSO e salvati nello storage <code>static/sso</code>. Usare il pannello sopra per caricare o rimuovere i loghi e poi selezionarli qui.</small>
+      <small class="muted">I loghi sono condivisi tra tutti i profili SSO e salvati nello storage persistente configurato da <code>SSO_LOGO_DIR</code>. Usare il pannello sopra per caricare o rimuovere i loghi e poi selezionarli qui.</small>
       {% if sso_logos %}
       <div class="sso-logo-gallery">
         {% for logo in sso_logos %}
-          <div class="sso-logo-tile"><img src="{{ url_for('static', filename=logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'"><code>{{ logo.name }}</code></div>
+          <div class="sso-logo-tile"><img src="{{ sso_logo_url(logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'"><code>{{ logo.name }}</code></div>
         {% endfor %}
       </div>
       {% endif %}

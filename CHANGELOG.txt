@@ -1,3 +1,9 @@
+0.2.0-4.2
+- Corretto il rendering grafico dei loghi SSO caricati da interfaccia web nella sezione Admin → SSO/OAuth2 → Storage loghi SSO.
+- Le gallerie dei loghi usano ora la rotta persistente /sso-logos/<filename>, invece degli URL statici dell’immagine applicativa.
+- Aggiornata la documentazione italiana e inglese per chiarire anteprima, storage persistente e selezione dei loghi caricati.
+- Fixed graphical rendering of administrator-uploaded SSO logos in Admin → SSO/OAuth2 → SSO logo storage.
+- Logo galleries now use the persistent /sso-logos/<filename> route rather than static image URLs.
 
 0.2.0-4
 - Spostato lo storage dei loghi condivisi SSO/OAuth2 caricati dalla UI in una directory persistente configurabile con SSO_LOGO_DIR, default /data/sso_logos.

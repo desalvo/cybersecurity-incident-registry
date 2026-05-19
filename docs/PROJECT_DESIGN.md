@@ -252,6 +252,11 @@ La rotta `GET /sso-logos/<filename>` serve i loghi dallo storage persistente dop
 
 All’avvio i loghi predefiniti presenti nel pacchetto in `app/static/sso` vengono copiati nella directory persistente solo se mancanti. Il full export legge i loghi da `SSO_LOGO_DIR`; il full import ripristina i file nella stessa directory, accettando solo path sicuri nel formato `sso/<filename>`.
 
+### Anteprima dei loghi caricati
+
+Tutte le anteprime dei loghi SSO visualizzate in `Admin → SSO/OAuth2` devono usare la funzione `sso_logo_url(relative_path)`. Questa funzione genera URL sulla rotta `/sso-logos/<filename>`, servita da `sso_logo_asset()`, e non su `url_for('static', filename=...)`. La regola è necessaria perché i loghi caricati dagli amministratori sono salvati nello storage persistente `SSO_LOGO_DIR`, non nell’area statica dell’immagine applicativa. Le gallerie dello storage, la selezione del logo di profilo, la tabella dei profili e la pagina di login usano quindi lo stesso meccanismo di rendering per loghi predefiniti e loghi caricati da interfaccia.
+
+
 Configurazione produzione:
 
 - Docker Compose: volume nominato `sso_logos` montato su `/data/sso_logos` e variabile `SSO_LOGO_DIR`;

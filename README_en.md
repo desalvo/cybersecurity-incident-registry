@@ -36,6 +36,13 @@ docker compose up --build
 
 Open `http://localhost:8000`. The initial local user is `admin`; the initial password is taken from `ADMIN_INITIAL_PASSWORD` only when the user is created for the first time. It is not reset on later restarts.
 
+
+### SSO documentation and figure update
+
+The user documentation now integrates SSO/OAuth2 access into the access chapter, explaining the flow from the user perspective, provider selection, redirection to the external identity system and what to do in case of login errors. The incident-detail figure was updated so all main-card text remains inside its frame.
+
+The administrator documentation now integrates shared SSO/OAuth2 logo management into the SSO profile chapter, including persistent storage configured through `SSO_LOGO_DIR`, default logos, upload, per-profile selection, removal, export/import and the need to back up persistent storage.
+
 ## Main features
 
 - Configurable maximum number of recommendations selectable per incident in Admin → Recommendations, default 3.
@@ -384,6 +391,11 @@ User and administrator documentation has been reorganised into clearer chapters 
 - It clarifies that only actions marked as exportable are considered when generating documents and dynamic PDF form fields.
 - The administrator documentation was refined in the SSO and HTTPS/SSL chapters.
 - The Admin → Audit page displays, filters and exports date/time values in the application configured timezone.
+
+
+## Update 0.2.0-4.2 - Uploaded SSO logo preview
+
+The **Admin → SSO/OAuth2** page, in the **SSO logo storage** section, now displays a graphical preview for logos uploaded by administrators through the web interface. Previews no longer point to the container static area; they use the `/sso-logos/<filename>` application route, which reads from the persistent directory configured through `SSO_LOGO_DIR`. As a result, default logos copied on first startup and user-uploaded logos are rendered consistently in the storage list, profile selection area and login page.
 
 
 ## Update 0.1.0-124 - SSO/OAuth2 profile logos

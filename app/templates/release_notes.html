@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-section"><h2>0.2.0-4.2 - Anteprima loghi SSO caricati</h2><ul><li>Corretta la visualizzazione grafica dei loghi caricati da interfaccia web nella lista Storage loghi SSO.</li><li>Le anteprime dei loghi condivisi usano la rotta persistente configurabile, valida sia per loghi predefiniti sia per loghi caricati.</li><li>Documentazione utente, amministrativa e progettuale aggiornata in italiano e inglese.</li></ul></section>
 <section class="doc-section"><h2>0.2.0-127 - Hardening produzione</h2><ul><li>Protezione CSRF automatica su tutte le form mutative.</li><li>Header HTTP e cookie di sicurezza applicati a livello applicativo.</li><li>Controllo fail-fast dei segreti quando <code>CIR_PRODUCTION=1</code>.</li><li>Scheduler notifiche/promemoria protetto da lock PostgreSQL per più worker o repliche.</li><li>Docker Compose senza segreti hardcoded e nuovo file <code>.env.example</code>.</li></ul></section>
 <section class="doc-section"><h2>0.2.0 - Consolidamento piattaforma</h2><ul><li>Versione applicativa aggiornata a 0.2.0, build 2026051901.</li><li>Documentazione utente e amministrativa bilingue aggiornata con gli ultimi sviluppi.</li><li>Consolidati audit anti-flooding, purge ed export CSV, scheduler notifiche cron/intervalli, promemoria incidenti, report PDF professionali, SSO multiprofilo con loghi condivisi e HTTPS/SSL opzionale.</li></ul></section>
 <section class="doc-section"><h2>0.1.0-125</h2><ul><li>Pulsanti SSO grigio chiaro nella pagina di login.</li><li>Rimozione dei loghi dallo storage SSO condiviso.</li><li>La rimozione di un logo elimina automaticamente l’associazione dai profili SSO collegati.</li></ul></section>
@@ -22,4 +23,5 @@
 </div>
 
 <section class="doc-section"><h2>0.1.0-124</h2><ul><li>Pulsanti SSO grigio chiaro nella pagina di login.</li><li>Storage condiviso dei loghi SSO con upload centralizzato e selezione per profilo.</li><li>Loghi predefiniti Google, Facebook e Apple.</li><li>Full export/import esteso a tutti i loghi SSO.</li></ul></section>
+<section class="doc-section"><h2>0.2.0-4.1</h2><ul><li>Documentazione utente: sezione SSO integrata nel capitolo Accesso ed espansa dal punto di vista dell’utente.</li><li>Documentazione amministrativa: loghi SSO/OAuth2 condivisi integrati nel capitolo profili SSO ed espansi con indicazioni su storage persistente, export/import e rimozione.</li><li>Figura del dettaglio incidente aggiornata per evitare testo fuori dal riquadro della scheda principale.</li></ul></section>
 {% endblock %}

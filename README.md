@@ -588,6 +588,11 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 - La pagina Admin → Audit mostra, filtra ed esporta le date e ore nel fuso orario configurato nell’applicazione.
 
 
+## Aggiornamento 0.2.0-4.2 - Anteprima loghi SSO caricati
+
+La pagina **Admin → SSO/OAuth2**, nella sezione **Storage loghi SSO**, mostra ora l’anteprima grafica anche dei loghi caricati dagli amministratori tramite interfaccia web. Le anteprime non puntano più all’area statica del container, ma alla rotta applicativa `/sso-logos/<filename>`, che legge dalla directory persistente configurata con `SSO_LOGO_DIR`. In questo modo i loghi predefiniti copiati al primo avvio e i loghi caricati dall’utente sono visualizzati nello stesso modo nella lista, nella scelta del profilo e nella pagina di login.
+
+
 ## Aggiornamento 0.1.0-124 - Loghi profili SSO/OAuth2
 
 Ogni profilo SSO/OAuth2 configurabile da **Admin → SSO** può avere un logo opzionale scelto dallo storage condiviso dei loghi SSO. Il logo viene mostrato nella tabella dei profili configurati e, quando il profilo è attivo, nel pulsante SSO della pagina di login. Lo storage contiene per default i loghi Google, Facebook e Apple, consente il caricamento di nuovi loghi e permette la rimozione dei loghi non più necessari. La rimozione di un logo elimina automaticamente l’associazione dai profili SSO che lo utilizzavano. Tutti i loghi SSO sono inclusi nel full export/import insieme alla configurazione dei profili.
