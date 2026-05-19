@@ -19,7 +19,7 @@ def create_app():
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.2.1-10'),
+        'version': os.getenv('APP_VERSION','0.2.1-13'),
         'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
@@ -317,7 +317,7 @@ def run_schema_migrations(app):
                 app.logger.info('Schema migration applied: mfa_totp_token.verified_at added')
         # Le nuove tabelle vengono create da create_all(); questa sezione resta
         # intenzionalmente idempotente per database creati con versioni precedenti.
-        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables or 'incident_workflow_step' not in tables:
+        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables or 'incident_workflow_step' not in tables or 'incident_template' not in tables:
             db.create_all()
             app.logger.info('Schema migration applied: auxiliary tables ensured')
         if 'backup_job' not in tables:
@@ -402,17 +402,17 @@ def repair_postgres_sequences(app):
         ('incident_reminder', 'id'),
         ('external_recipient', 'id'),
         ('backup_job', 'id'),
+        ('incident_template', 'id'),
     ]
     try:
         with db.engine.begin() as conn:
             for table, column in sequence_map:
                 quoted_table = f'"{table}"'
-                seq_table_arg = quoted_table
                 conn.execute(text(
                     f"""
                     SELECT setval(
-                        pg_get_serial_sequence('{seq_table_arg}', '{column}'),
-                        COALESCE((SELECT MAX({column}) FROM {quoted_table}), 0) + 1,
+                        pg_get_serial_sequence('{table}', '{column}'),
+                        GREATEST(COALESCE((SELECT MAX({column}) FROM {quoted_table}), 0) + 1, 1),
                         false
                     )
                     """

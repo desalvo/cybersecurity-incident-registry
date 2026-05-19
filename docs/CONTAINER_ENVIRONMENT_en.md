@@ -55,7 +55,7 @@ These three variables are consumed by the `db` container. The `web` application 
 | Variable | Default | Purpose |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Name shown in **Info → Application**. |
-| `APP_VERSION` | `0.2.1-10` | Application version shown by the UI and deployment manifests. |
+| `APP_VERSION` | `0.2.1-13` | Application version shown by the UI and deployment manifests. |
 | `APP_BUILD` | `2026051901` | Build number shown by the UI. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Displayed author. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | Displayed author e-mail. |

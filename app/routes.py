@@ -234,6 +234,10 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
             return last
     except Exception:
         current_app.logger.exception('Collasso audit non completato; inserisco un nuovo record')
+    try:
+        align_table_sequence('audit_log')
+    except Exception:
+        current_app.logger.exception('Riallineamento sequenza audit non completato')
     log = AuditLog(
         occurred_at=now,
         operation_type=op,
@@ -245,7 +249,31 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
     )
     db.session.add(log)
     if commit:
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError as exc:
+            # Dopo full import/restore o cancellazioni massive, PostgreSQL può
+            # avere la sequence di audit_log disallineata e generare
+            # duplicate key value violates unique constraint "audit_log_pkey".
+            # In questo caso riallineiamo fuori transazione e riproviamo solo
+            # il record audit; l'operazione applicativa chiamante dovrà essere
+            # ripetuta dall'utente se era nella stessa transazione rollbackata.
+            db.session.rollback()
+            if 'audit_log_pkey' not in str(exc):
+                raise
+            current_app.logger.warning('Sequence audit_log disallineata; riallineo e reinserisco il record audit')
+            align_table_sequence('audit_log')
+            log = AuditLog(
+                occurred_at=now,
+                operation_type=op,
+                username=username,
+                user_id=user_id,
+                actor_type=resolved_actor_type,
+                details=summarized_details,
+                repeat_count=1,
+            )
+            db.session.add(log)
+            db.session.commit()
     return log
 
 def audit_operation_name():
@@ -270,17 +298,59 @@ def global_messages(messages):
     return [(category, message) for category, message in messages if not category.startswith('section:')]
 
 
+def rebuild_database_for_full_import():
+    """Distrugge e ricrea completamente lo schema DB per il Full import.
+
+    Il full import deve sostituire lo stato persistente del database, non solo
+    svuotare le tabelle applicative.  Ricreare lo schema elimina anche vincoli,
+    sequenze e tabelle di relazione nello stato corrente, evitando residui di
+    versioni precedenti o sequence PostgreSQL disallineate dopo import con ID
+    espliciti.
+    """
+    current_app.logger.warning('Full import: distruzione e ricreazione completa del database applicativo')
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    try:
+        db.session.remove()
+    except Exception:
+        pass
+    db.drop_all()
+    db.create_all()
+    db.session.commit()
+
+
 def align_table_sequence(table_name):
     """Riallinea una sequenza PostgreSQL prima di un INSERT critico.
 
-    Protegge il flusso di notifica quando il DB contiene dati importati con ID
-    espliciti e la sequenza è rimasta indietro. Su SQLite o altri DB non fa nulla.
+    Protegge i flussi che inseriscono record dopo import/restore con ID espliciti.
+    La chiamata usa una connessione autocommittata separata per evitare che il
+    riallineamento venga annullato da un eventuale rollback della sessione web.
+    Su SQLite o altri DB non fa nulla.
     """
     if not str(db.engine.url).startswith('postgresql'):
         return
-    db.session.execute(text(
-        f"SELECT setval(pg_get_serial_sequence('\"{table_name}\"','id'), COALESCE((SELECT MAX(id) FROM \"{table_name}\"), 0) + 1, false)"
-    ))
+    safe_table = re.sub(r'[^a-zA-Z0-9_]', '', table_name or '')
+    if not safe_table:
+        return
+    quoted_table = f'"{safe_table}"'
+    with db.engine.begin() as conn:
+        seq_name = conn.execute(text(
+            "SELECT pg_get_serial_sequence(:table_name, 'id')"
+        ), {'table_name': safe_table}).scalar()
+        if not seq_name:
+            return
+        safe_seq = str(seq_name).replace("'", "''")
+        conn.execute(text(
+            f"""
+            SELECT setval(
+                '{safe_seq}'::regclass,
+                GREATEST(COALESCE((SELECT MAX(id) FROM {quoted_table}), 0) + 1, 1),
+                false
+            )
+            """
+        ))
 
 
 
@@ -1294,10 +1364,132 @@ def incident_absolute_url(inc_or_id):
     base = (setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000').rstrip('/')
     return f'{base}{url_for("main.incident_detail", iid=incident_id)}'
 
+
+def _csv_ids_from_objects(objects):
+    return ','.join(str(x.id) for x in (objects or []) if getattr(x, 'id', None))
+
+def _csv_ids_from_form(field_name):
+    seen=[]
+    for raw in request.form.getlist(field_name):
+        try:
+            value=int(raw)
+        except (TypeError, ValueError):
+            continue
+        if value not in seen:
+            seen.append(value)
+    return ','.join(str(x) for x in seen)
+
+def _objects_by_ids(model, ids):
+    clean=[]
+    for x in ids or []:
+        try:
+            clean.append(int(x))
+        except (TypeError, ValueError):
+            pass
+    return model.query.filter(model.id.in_(clean)).all() if clean else []
+
+def incident_template_form_payload():
+    return dict(
+        name=(request.form.get('template_name') or request.form.get('name') or '').strip(),
+        description=request.form.get('template_description') or '',
+        incident_name=request.form.get('incident_name') or request.form.get('source_incident_name') or '',
+        reference=request.form.get('reference') or None,
+        recipient=request.form.get('recipient') or None,
+        incident_description=request.form.get('incident_description') or request.form.get('description') or '',
+        severity_id=request.form.get('severity_id') or None,
+        personal_data=bool(request.form.get('personal_data')),
+        data_subjects_count=request.form.get('data_subjects_count') or None,
+        data_volume=request.form.get('data_volume') or None,
+        status=request.form.get('status') or 'aperto',
+        category_ids=_csv_ids_from_form('categories'),
+        data_type_ids=_csv_ids_from_form('data_types'),
+        people_ids=_csv_ids_from_form('people'),
+        recommendation_ids=_csv_ids_from_form('recommendations'),
+    )
+
+def incident_template_from_incident(inc, name=None, description=''):
+    return IncidentTemplate(
+        name=name or f'Modello da {inc.name}',
+        description=description or '',
+        incident_name=inc.name or '',
+        reference=inc.reference,
+        recipient=inc.recipient,
+        incident_description=inc.description or '',
+        severity_id=inc.severity_id,
+        personal_data=bool(inc.personal_data),
+        data_subjects_count=inc.data_subjects_count,
+        data_volume=inc.data_volume,
+        status=inc.status or 'aperto',
+        category_ids=_csv_ids_from_objects(inc.categories),
+        data_type_ids=_csv_ids_from_objects(inc.data_types),
+        people_ids=_csv_ids_from_objects(inc.people),
+        recommendation_ids=_csv_ids_from_objects(inc.recommendations),
+    )
+
+def incident_template_context(template=None):
+    return dict(
+        template=template,
+        selected_template=template,
+        severities=labels('severity'),
+        categories=labels('category'),
+        data_types=labels('data_type'),
+        people=Person.query.order_by(Person.name).all(),
+        recommendations=Recommendation.query.order_by(Recommendation.text).all(),
+        recommendations_max_per_incident=recommendations_limit(),
+    )
+
+@bp.route('/admin/incident-templates',methods=['GET','POST'])
+@login_required
+def admin_incident_templates():
+    if not can_admin(): return redirect(url_for('main.index'))
+    editing=None
+    edit_id=request.args.get('edit', type=int)
+    if edit_id:
+        editing=IncidentTemplate.query.get_or_404(edit_id)
+    if request.method=='POST':
+        action=request.form.get('action') or 'save'
+        if action=='delete':
+            tmpl=IncidentTemplate.query.get_or_404(request.form.get('id', type=int))
+            db.session.delete(tmpl); db.session.commit(); flash('Modello incidente cancellato.'); return redirect(url_for('main.admin_incident_templates'))
+        if action=='create_from_incident':
+            inc=Incident.query.get_or_404(request.form.get('incident_id', type=int))
+            tmpl=incident_template_from_incident(inc, request.form.get('template_name') or f'Modello da {inc.name}', request.form.get('template_description') or '')
+            db.session.add(tmpl); db.session.commit(); flash('Modello creato dall’incidente esistente, senza azioni e documenti.'); return redirect(url_for('main.admin_incident_templates'))
+        payload=incident_template_form_payload()
+        if not payload['name']:
+            flash('Il nome del modello è obbligatorio.', 'error')
+            return redirect(url_for('main.admin_incident_templates'))
+        tid=request.form.get('id', type=int)
+        tmpl=IncidentTemplate.query.get(tid) if tid else None
+        if tmpl is None:
+            tmpl=IncidentTemplate(); db.session.add(tmpl)
+        for k,v in payload.items(): setattr(tmpl,k,v)
+        try:
+            db.session.commit(); flash('Modello incidente salvato.')
+        except IntegrityError:
+            db.session.rollback(); flash('Esiste già un modello con questo nome.', 'error')
+        return redirect(url_for('main.admin_incident_templates'))
+    return render_template('admin_incident_templates.html', templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), editing=editing, incidents=Incident.query.order_by(Incident.created_at.desc()).limit(200).all(), **incident_template_context(editing))
+
+@bp.route('/incident/<int:iid>/create-template',methods=['POST'])
+@login_required
+def incident_create_template(iid):
+    if not can_admin(): return redirect(url_for('main.index'))
+    inc=Incident.query.get_or_404(iid)
+    name=(request.form.get('template_name') or f'Modello da {inc.name}').strip()
+    tmpl=incident_template_from_incident(inc, name, request.form.get('template_description') or '')
+    db.session.add(tmpl)
+    try:
+        db.session.commit(); flash('Modello creato dall’incidente corrente, senza azioni e documenti.')
+    except IntegrityError:
+        db.session.rollback(); flash('Esiste già un modello con questo nome.', 'error')
+    return incident_detail_redirect(iid, 'incident-main')
+
 @bp.route('/incident/new',methods=['GET','POST'])
 @login_required
 def incident_new():
     if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.index'))
+    selected_template = IncidentTemplate.query.get(request.args.get('template_id', type=int)) if request.args.get('template_id') else None
     if request.method=='POST':
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
@@ -1320,7 +1512,8 @@ def incident_new():
                 flash('Errore di sequenza del database corretto. Riprovare la creazione dell\'incidente.', 'error')
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit())
+    now_dt = application_now()
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'))
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
@@ -2115,8 +2308,13 @@ def admin_users():
         db.session.add(u); db.session.commit()
         audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
         flash('Utente aggiunto.')
-    users = User.query.order_by(User.username, User.auth_provider).all()
-    return render_template('admin_users.html', users=users, auth_provider_labels=auth_provider_labels, auth_provider_display=user_auth_provider_display)
+    search_query=(request.args.get('q') or '').strip()
+    q=User.query
+    if search_query:
+        pattern=f'%{search_query}%'
+        q=q.filter(or_(User.username.ilike(pattern), User.name.ilike(pattern), User.email.ilike(pattern), User.auth_provider.ilike(pattern), User.role.ilike(pattern)))
+    users = q.order_by(User.username, User.auth_provider).all()
+    return render_template('admin_users.html', users=users, auth_provider_labels=auth_provider_labels, auth_provider_display=user_auth_provider_display, search_query=search_query)
 @bp.route('/admin/user/<int:uid>/role',methods=['POST'])
 @login_required
 def user_role(uid):
@@ -2126,7 +2324,7 @@ def user_role(uid):
         db.session.commit()
         audit_log('admin:user_update', {'user_id': u.id, 'username': u.username, 'role': u.role}, actor_type='user', commit=True)
         flash('Utente aggiornato.')
-    return redirect(url_for('main.admin_users'))
+    return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
 
 @bp.route('/admin/user/<int:uid>/delete',methods=['POST'])
 @login_required
@@ -2135,11 +2333,11 @@ def admin_user_delete(uid):
     user=User.query.get_or_404(uid)
     if user.id == current_user.id:
         flash('Non è possibile rimuovere il proprio utente amministratore durante la sessione corrente.', 'error')
-        return redirect(url_for('main.admin_users'))
+        return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
     remaining_admins=User.query.filter(User.role=='admin', User.id!=user.id).count()
     if user.role == 'admin' and remaining_admins < 1:
         flash('Non è possibile rimuovere l’ultimo amministratore dell’applicazione.', 'error')
-        return redirect(url_for('main.admin_users'))
+        return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
     username=user.username
     auth_provider=user.auth_provider or ('ldap' if user.is_ldap else 'local')
     # Conserva la storia operativa: incidenti, promemoria e audit restano presenti,
@@ -2151,7 +2349,7 @@ def admin_user_delete(uid):
     db.session.commit()
     audit_log('admin:user_delete', {'deleted_user_id': uid, 'username': username}, actor_type='user', commit=True)
     flash(f'Utente {username} ({auth_provider}) rimosso. La cronologia degli incidenti e dell’audit è stata conservata.')
-    return redirect(url_for('main.admin_users'))
+    return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
 @bp.route('/settings/password',methods=['GET','POST'])
 @login_required
 def change_password():
@@ -3431,6 +3629,15 @@ def run_deadline_notification_check(force=False, source='request'):
         }
         if force or not _deadline_notification_check_already_audited_for_slot(schedule_slot):
             audit_log('scheduler:deadline_notification_check', json.dumps(result, ensure_ascii=False), actor_type='scheduler')
+            db.session.commit()
+            if str(db.engine.url).startswith('postgresql'):
+                for model in FULL_EXPORT_TABLES.values():
+                    table_name = getattr(model, '__tablename__', None)
+                    if table_name:
+                        try:
+                            align_table_sequence(table_name)
+                        except Exception:
+                            current_app.logger.exception('Riallineamento sequence post-import fallito per %s', table_name)
             purge_audit_logs()
             db.session.commit()
         return result
@@ -4701,7 +4908,7 @@ def _table_rows(table):
 FULL_EXPORT_MODELS = [
     Setting, User, MfaTotpToken, ConfigLabel, Person, Recommendation,
     NotificationType, NotificationTemplate, FormTemplateConfig,
-    FormTemplateBinary, FormFieldMapping, Incident, Action, Document,
+    FormTemplateBinary, FormFieldMapping, IncidentTemplate, Incident, Action, Document,
     ActionAttachment, IncidentReminder, DeadlineNotificationState, ExternalRecipient, AuditLog,
 ]
 
@@ -4715,6 +4922,7 @@ FULL_EXPORT_TABLES = {
     'notification_types': NotificationType,
     'incident_workflow_steps': IncidentWorkflowStep,
     'notification_templates': NotificationTemplate,
+    'incident_templates': IncidentTemplate,
     'form_template_configs': FormTemplateConfig,
     'form_template_binaries': FormTemplateBinary,
     'form_field_mappings': FormFieldMapping,
@@ -5072,15 +5280,11 @@ def import_full():
                 tables = data.get('tables', {})
                 relations = data.get('relations', {})
 
-                # Pulizia in ordine di dipendenza. L'import completo ripristina lo stato
-                # dell'archivio e sostituisce quello corrente.
-                db.session.execute(incident_people.delete())
-                db.session.execute(incident_categories.delete())
-                db.session.execute(incident_data_types.delete())
-                db.session.execute(incident_recommendations.delete())
-                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, BackupJob, ExternalRecipient, IncidentWorkflowStep, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
-                    db.session.query(model).delete()
-                db.session.flush()
+                # Full import distruttivo: dopo aver validato l'archivio, lo schema
+                # database viene eliminato e ricreato completamente. In questo modo
+                # vengono rimossi residui, vincoli e sequence non allineate prima del
+                # ripristino con ID espliciti contenuti nell'export.
+                rebuild_database_for_full_import()
 
                 for row in tables.get('settings', []):
                     db.session.add(Setting(**_coerce_row_for_model(Setting, row)))
@@ -5100,6 +5304,10 @@ def import_full():
                     db.session.add(Person(**_coerce_row_for_model(Person, row)))
                 for row in tables.get('recommendations', []):
                     db.session.add(Recommendation(**_coerce_row_for_model(Recommendation, row)))
+                db.session.flush()
+
+                for row in tables.get('incident_templates', []):
+                    db.session.add(IncidentTemplate(**_coerce_row_for_model(IncidentTemplate, row)))
                 for row in tables.get('incident_workflow_steps', []):
                     db.session.add(IncidentWorkflowStep(**_coerce_row_for_model(IncidentWorkflowStep, row)))
 
@@ -5262,7 +5470,7 @@ def import_full():
 
             purge_audit_logs()
             db.session.commit()
-            flash('Import completo completato: database, configurazioni, audit log, utenti, MFA, notifiche, logo, documenti, allegati e template moduli PDF ripristinati. I record audit oltre retention sono stati eliminati.','info')
+            flash('Import completo completato: database distrutto e ricreato, configurazioni, audit log, utenti, MFA, notifiche, logo, documenti, allegati e template moduli PDF ripristinati. I record audit oltre retention sono stati eliminati.','info')
             return redirect(url_for('main.index'))
         except Exception as exc:
             current_app.logger.exception('Import completo fallito')

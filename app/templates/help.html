@@ -22,9 +22,9 @@
   <p>I tooltip di aiuto dei campi incidente sono disponibili sia nella pagina di modifica/dettaglio sia nella pagina di creazione di un nuovo incidente.</p></section>
 
 
-  <section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1-10">
-    <h2>Sviluppi recenti della versione 0.2.1-10</h2>
-    <p>La versione 0.2.1-10 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
+  <section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1-13">
+    <h2>Sviluppi recenti della versione 0.2.1-13</h2>
+    <p>La versione 0.2.1-13 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
     <p>Le informazioni di versione sono riportate in questa guida, nelle note di rilascio e nella pagina <strong>Info → Applicazione</strong>.</p>
   </section>
 
@@ -216,4 +216,8 @@
   </section>
 
 </div>
+
+<section id="user-incident-templates" class="doc-chapter" data-doc-title="nuovo incidente modello profilo azioni data ora"><h2>Creazione incidente da modello e azioni</h2><p>Nella pagina <strong>Nuovo incidente</strong> è possibile scegliere un modello predefinito, se configurato dall’amministratore. Il modello compila i dati iniziali dell’incidente, mentre data e ora di inizio sono impostate al momento corrente.</p><p>Nella pagina del singolo incidente, sezione <strong>Azioni</strong>, il pulsante <strong>↻</strong> accanto a data e ora aggiorna il campo al momento corrente prima dell’inserimento dell’azione.</p></section>
+
+<section id="user-full-import-note" class="doc-chapter" data-doc-title="full import ripristino distruttivo backup"><h2>Nota sul Full import</h2><p>Il Full import è una funzione amministrativa di ripristino totale. Quando viene eseguito, il database viene ricreato completamente e sostituito con i dati dell'archivio importato. Gli utenti operativi devono richiederlo solo come procedura controllata di ripristino o migrazione.</p></section>
 {% endblock %}

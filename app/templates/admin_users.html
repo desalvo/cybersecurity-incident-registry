@@ -15,7 +15,7 @@
     <div><label>Ruolo</label><select name="role">{% for r in ['admin','operator','reader','writer','disabled'] %}<option>{{r}}</option>{% endfor %}</select></div>
     <button>Aggiungi</button>
   </form>
-  <p class="muted">L’identità utente è definita dalla combinazione <strong>username + backend</strong>: lo stesso username può esistere come account locale, LDAP o SSO/OAuth2 di profili diversi. Nel tipo di login gli account SSO sono mostrati con nome provider e id profilo, oltre al backend tecnico. La rimozione elimina l’account e i relativi token MFA. Incidenti, promemoria e audit vengono conservati svincolando il riferimento tecnico all’utente.</p>
+  <form method="get" class="form-grid"><div><label>Ricerca utenti</label><input name="q" value="{{ search_query or '' }}" placeholder="username, nome, email, backend o ruolo"></div><button>Cerca</button>{% if search_query %}<a class="button secondary" href="{{ url_for('main.admin_users') }}">Mostra tutti</a>{% endif %}</form><p class="muted">L’identità utente è definita dalla combinazione <strong>username + backend</strong>: lo stesso username può esistere come account locale, LDAP o SSO/OAuth2 di profili diversi. Nel tipo di login gli account SSO sono mostrati con nome provider e id profilo, oltre al backend tecnico. La rimozione elimina l’account e i relativi token MFA. Incidenti, promemoria e audit vengono conservati svincolando il riferimento tecnico all’utente.</p>
 </div>
 <div class="card">
   <table class="table">
@@ -25,7 +25,7 @@
       <td>{{u.username}}</td>
       <td>{{u.name}}</td>
       <td>
-        <form method="post" action="{{url_for('main.user_role',uid=u.id)}}" id="user-update-{{u.id}}">
+        <form method="post" action="{{url_for('main.user_role',uid=u.id, q=search_query) if search_query else url_for('main.user_role',uid=u.id)}}" id="user-update-{{u.id}}">
           <input name="email" value="{{u.email or ''}}">
         </form>
       </td>
@@ -36,7 +36,7 @@
       <td><button form="user-update-{{u.id}}">Salva</button></td>
       <td>
         {% if current_user.id != u.id %}
-        <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
+        <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id, q=search_query) if search_query else url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
           <button class="danger" type="submit">Rimuovi</button>
         </form>
         {% else %}

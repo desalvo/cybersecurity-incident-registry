@@ -17,7 +17,7 @@ spec:
         - {name: DATABASE_URL, valueFrom: {secretKeyRef: {name: cir-secrets, key: database-url}}}
         - {name: SECRET_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: secret-key}}}
         - {name: ADMIN_INITIAL_PASSWORD, valueFrom: {secretKeyRef: {name: cir-secrets, key: admin-initial-password}}}
-        - {name: APP_VERSION, value: "0.2.1-10"}
+        - {name: APP_VERSION, value: "0.2.1-13"}
         - {name: APP_BUILD, value: "2026051901"}
         - {name: CIR_PRODUCTION, value: "1"}
         - {name: SESSION_COOKIE_SECURE, value: "1"}

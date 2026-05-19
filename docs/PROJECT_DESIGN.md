@@ -9,7 +9,7 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.2.1-10
+- Versione: 0.2.1-13
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
@@ -27,7 +27,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.1-10, build 2026051901.
+La versione applicativa riportata nei metadati runtime è 0.2.1-13, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -597,7 +597,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-10, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-13, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1295,7 +1295,7 @@ On fresh installations the bootstrap creates an editable default workflow with f
 
 For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values only while the workflow step is still missing. Completed steps do not show deadline/remaining-time details anymore. A missing step is marked as critical when the remaining time is less than or equal to zero; the status remains informational and does not block manual completion or attachment/notification choices.
 
-### Aggiornamento 0.2.1-10 - Workflow interattivo nella pagina incidente
+### Aggiornamento 0.2.1-13 - Workflow interattivo nella pagina incidente
 
 La sezione degli avvisi procedurali è stata ricollocata subito sotto la sezione delle operazioni previste, in modo da mostrare all’operatore lo stato del workflow e i vincoli procedurali prima della scheda principale. Gli elementi del workflow esposti nella pagina incidente includono l'identificativo della label azione associata e sono resi attivabili da mouse e tastiera. L'attivazione scorre alla sezione Azioni e preseleziona la label dell'azione corrispondente, senza salvare automaticamente alcun dato: l'utente conserva il controllo su data, persona, descrizione, conseguenze e allegati.
 
@@ -1306,6 +1306,20 @@ La versione corrente introduce un sottosistema di backup configurabile da **Admi
 ## Application backups
 The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.
 
-## Aggiornamento 0.2.1-10 - Ricerca nella rubrica destinatari esterni
+## Aggiornamento 0.2.1-13 - Ricerca nella rubrica destinatari esterni
 
 La gestione della rubrica `ExternalRecipient`, sia dal menu Admin sia dal menu Impostazioni per utenti `writer`, espone un filtro testuale `q`. Il filtro viene applicato ai campi `name`, `email` e `notes` con matching case-insensitive e il template `admin_external_recipients.html` mantiene il parametro nelle azioni di modifica, salvataggio e cancellazione. La modifica non introduce nuove tabelle né migrazioni: utilizza il modello esistente e mantiene invariati audit, export/import e controlli di unicità sull'e-mail.
+
+## Aggiornamento 0.2.1-13 - Modelli incidente e gestione utenti
+
+La release introduce la tabella `incident_template`, usata per memorizzare profili di bootstrap degli incidenti. I modelli contengono solo dati iniziali e associazioni anagrafiche, non azioni né documenti. La pagina `Admin → Modelli incidente` permette CRUD completo e creazione da incidente esistente. La form di nuovo incidente può caricare un modello e imposta comunque `start_date` e `start_time` al momento corrente.
+
+La cancellazione utenti è stata resa più robusta riallineando la sequence PostgreSQL della tabella `audit_log` prima dell’inserimento dell’evento di audit. La pagina `Admin → Utenti` supporta ora filtro testuale su username, nome, email, backend e ruolo.
+
+## Aggiornamento 0.2.1-13 - Correzione sequence audit nelle operazioni utenti
+
+Le operazioni di aggiunta, modifica e cancellazione utenti registrano eventi nella tabella `audit_log`. In installazioni PostgreSQL ripristinate da full import, restore o migrazioni con ID espliciti, la sequence della tabella `audit_log` poteva restare disallineata e provocare l'errore `duplicate key value violates unique constraint "audit_log_pkey"` durante le operazioni sugli utenti. La gestione audit ora riallinea la sequence con una connessione separata e persistente prima degli inserimenti critici e riprova l'inserimento audit se viene rilevata una collisione sulla chiave primaria. La correzione si applica anche alle altre funzioni che usano il registro audit.
+
+## Aggiornamento 0.2.1-13 - Full import con ricostruzione dello schema database
+
+La funzione `import_full()` valida prima l'archivio di export completo e poi richiama `rebuild_database_for_full_import()`, che esegue rollback della sessione corrente, rimozione della sessione scoped, `db.drop_all()`, `db.create_all()` e commit dello schema vuoto. Solo dopo questa ricostruzione vengono importate le righe con ID espliciti e le relazioni molti-a-molti. La scelta rende il Full import coerente con una semantica di ripristino totale: non rimangono dati applicativi precedenti, vincoli o sequence PostgreSQL disallineate. I file contenuti nell'export continuano a essere ripristinati nelle directory persistenti configurate; la manutenzione di file orfani non referenziati resta responsabilità delle procedure operative di storage.

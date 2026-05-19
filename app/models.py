@@ -122,6 +122,41 @@ class Incident(db.Model):
     creator=db.relationship(User); severity=db.relationship(ConfigLabel,foreign_keys=[severity_id]); categories=db.relationship(ConfigLabel,secondary=incident_categories); data_types=db.relationship(ConfigLabel,secondary=incident_data_types); people=db.relationship(Person,secondary=incident_people); recommendations=db.relationship(Recommendation,secondary=incident_recommendations); actions=db.relationship('Action',cascade='all,delete-orphan',order_by='Action.when_at'); documents=db.relationship('Document',cascade='all,delete-orphan'); reminders=db.relationship('IncidentReminder',cascade='all,delete-orphan',order_by='IncidentReminder.scheduled_at',back_populates='incident')
 
 
+
+class IncidentTemplate(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    name=db.Column(db.String(160),nullable=False,unique=True,index=True)
+    description=db.Column(db.Text,default='')
+    incident_name=db.Column(db.String(255),default='')
+    reference=db.Column(db.String(255),nullable=True)
+    recipient=db.Column(db.String(255),nullable=True)
+    incident_description=db.Column(db.Text,default='')
+    severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True)
+    personal_data=db.Column(db.Boolean,default=False,nullable=False)
+    data_subjects_count=db.Column(db.String(255),nullable=True)
+    data_volume=db.Column(db.Text,nullable=True)
+    status=db.Column(db.String(40),default='aperto')
+    category_ids=db.Column(db.Text,default='')
+    data_type_ids=db.Column(db.Text,default='')
+    people_ids=db.Column(db.Text,default='')
+    recommendation_ids=db.Column(db.Text,default='')
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow)
+    severity=db.relationship('ConfigLabel',foreign_keys=[severity_id])
+
+    def _ids(self, field):
+        values=[]
+        for item in (getattr(self, field) or '').split(','):
+            try:
+                values.append(int(item.strip()))
+            except (TypeError, ValueError):
+                pass
+        return values
+    def category_id_list(self): return self._ids('category_ids')
+    def data_type_id_list(self): return self._ids('data_type_ids')
+    def people_id_list(self): return self._ids('people_ids')
+    def recommendation_id_list(self): return self._ids('recommendation_ids')
+
 class IncidentReminder(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     incident_id=db.Column(db.Integer,db.ForeignKey('incident.id'),nullable=False,index=True)

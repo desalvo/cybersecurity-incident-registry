@@ -1,10 +1,24 @@
+## 0.2.1-13
 
-## 0.2.1-10
+- Corretto errore PostgreSQL `audit_log_pkey` durante aggiunta, modifica e cancellazione utenti dopo import/restore.
+- Riallineamento sequence audit persistente fuori dalla transazione web.
+- Retry automatico dell’inserimento audit in caso di collisione sulla chiave primaria.
+- Documentazione IT/EN aggiornata.
+
+## 0.2.1-13
+- Corretto il riallineamento della sequenza audit per evitare errori duplicate key durante la cancellazione utenti su database importati o con sequence PostgreSQL non allineate.
+- Aggiunta ricerca nella pagina Admin → Utenti.
+- Aggiunto pulsante di aggiornamento rapido data/ora nella sezione Azioni del singolo incidente.
+- Aggiunti Modelli incidente configurabili da Admin, utilizzabili per inizializzare nuovi incidenti e creabili da incidenti esistenti senza azioni e documenti.
+- Documentazione italiana, inglese e progettuale aggiornata.
+
+
+## 0.2.1-13
 - Aggiunti tooltip dei campi anche nella pagina nuovo incidente.
 - Aggiunta gestione Admin → Backup con categorie selezionabili, backup on-demand, schedulazione cron-like, destinazioni POSIX/S3/download e verifica restore.
 - Updated documentation in Italian and English.
 
-0.2.1-10
+0.2.1-13
 - Spostati gli avvisi procedurali subito sotto le operazioni previste nella pagina incidente.
 - Resi cliccabili e accessibili da tastiera gli step workflow.
 - Clic su uno step: scroll alla sezione Azioni e preselezione della label associata.
@@ -701,7 +715,7 @@ Notification menu and SMTP sender fix
 - Added top-of-page incident workflow progress with completed/missing visual states.
 - Updated Italian and English user, administrator and project documentation.
 
-0.2.1-10
+0.2.1-13
 - Workflow incidenti: didascalia da descrizione task, fallback al nome task.
 - Aggiunta descrizione operativa ulteriore per ogni step di workflow.
 - Visualizzazione tempo limite, scadenza e tempo rimanente per step con tempo massimo.

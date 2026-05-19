@@ -11,7 +11,7 @@
   </div>
   <div>
     <h4>Categorie selezionate</h4>
-    <div class="dropzone" data-target="categories">{% if inc %}{% for l in inc.categories %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
+    <div class="dropzone" data-target="categories">{% if inc %}{% for l in inc.categories %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% elif selected_template is defined and selected_template %}{% for l in categories if l.id in selected_template.category_id_list() %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
   </div>
   <div>
     <h4>Dati interessati disponibili</h4>
@@ -24,7 +24,7 @@
   </div>
   <div>
     <h4>Dati interessati selezionati</h4>
-    <div class="dropzone" data-target="data_types">{% if inc %}{% for l in inc.data_types %}<span class="chip">{{l.value}} ×<input type="hidden" name="data_types" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
+    <div class="dropzone" data-target="data_types">{% if inc %}{% for l in inc.data_types %}<span class="chip">{{l.value}} ×<input type="hidden" name="data_types" value="{{l.id}}"></span>{% endfor %}{% elif selected_template is defined and selected_template %}{% for l in data_types if l.id in selected_template.data_type_id_list() %}<span class="chip">{{l.value}} ×<input type="hidden" name="data_types" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
   </div>
   <div>
     <h4>Personale disponibile</h4>
@@ -37,7 +37,7 @@
   </div>
   <div>
     <h4>Personale coinvolto</h4>
-    <div class="dropzone" data-target="people">{% if inc %}{% for p in inc.people %}<span class="chip">{{p.name}} ×<input type="hidden" name="people" value="{{p.id}}"></span>{% endfor %}{% endif %}</div>
+    <div class="dropzone" data-target="people">{% if inc %}{% for p in inc.people %}<span class="chip">{{p.name}} ×<input type="hidden" name="people" value="{{p.id}}"></span>{% endfor %}{% elif selected_template is defined and selected_template %}{% for p in people if p.id in selected_template.people_id_list() %}<span class="chip">{{p.name}} ×<input type="hidden" name="people" value="{{p.id}}"></span>{% endfor %}{% endif %}</div>
   </div>
   <div>
     <h4>Raccomandazioni disponibili</h4>
@@ -52,6 +52,6 @@
   </div>
   <div>
     <h4>Raccomandazioni selezionate</h4>
-    <div class="dropzone" data-target="recommendations" data-max-items="{{ recommendations_max_per_incident or 3 }}">{% if inc %}{% for r in inc.recommendations %}<span class="chip">{{r.text}} ×<input type="hidden" name="recommendations" value="{{r.id}}"></span>{% endfor %}{% endif %}</div>
+    <div class="dropzone" data-target="recommendations" data-max-items="{{ recommendations_max_per_incident or 3 }}">{% if inc %}{% for r in inc.recommendations %}<span class="chip">{{r.text}} ×<input type="hidden" name="recommendations" value="{{r.id}}"></span>{% endfor %}{% elif selected_template is defined and selected_template %}{% for r in recommendations if r.id in selected_template.recommendation_id_list() %}<span class="chip">{{r.text}} ×<input type="hidden" name="recommendations" value="{{r.id}}"></span>{% endfor %}{% endif %}</div>
   </div>
 </div>

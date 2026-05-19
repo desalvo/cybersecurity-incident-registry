@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Modelli incidente</h2>
+  <p class="muted">I modelli inizializzano un nuovo incidente con dati predefiniti. In creazione la data e l’ora di inizio vengono sempre impostate al momento corrente. Azioni e documenti non fanno parte dei modelli.</p>
+</div>
+<div class="card">
+  <h3>{{ 'Modifica modello' if editing else 'Nuovo modello' }}</h3>
+  {% set t = editing %}
+  <form method="post" class="form-grid">
+    {% if t %}<input type="hidden" name="id" value="{{t.id}}">{% endif %}
+    <input type="hidden" name="action" value="save">
+    <div><label>Nome modello</label><input name="template_name" value="{{t.name if t else ''}}" required></div>
+    <div class="wide"><label>Descrizione modello</label><textarea name="template_description">{{t.description if t else ''}}</textarea></div>
+    <div class="wide"><label>Nome incidente predefinito</label><input name="incident_name" value="{{t.incident_name if t else ''}}"></div>
+    <div><label>Riferimento</label><input name="reference" value="{{t.reference if t and t.reference else ''}}"></div>
+    <div><label>Destinatario</label><input name="recipient" value="{{t.recipient if t and t.recipient else ''}}"></div>
+    <div class="wide"><label>Descrizione incidente</label><textarea name="incident_description">{{t.incident_description if t else ''}}</textarea></div>
+    <div><label>Gravità</label><select name="severity_id"><option value="">-</option>{% for l in severities %}<option value="{{l.id}}" {% if t and t.severity_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select></div>
+    <div><label>Stato</label><select name="status">{% for st in ['aperto','in lavorazione','chiuso'] %}<option {% if t and t.status==st %}selected{% endif %}>{{st}}</option>{% endfor %}</select></div>
+    <div><label><input type="checkbox" name="personal_data" {% if t and t.personal_data %}checked{% endif %}> Dati personali</label></div>
+    <div><label>Numero interessati</label><input name="data_subjects_count" value="{{t.data_subjects_count if t and t.data_subjects_count else ''}}"></div>
+    <div class="wide"><label>Volume dati</label><textarea name="data_volume">{{t.data_volume if t and t.data_volume else ''}}</textarea></div>
+    {% include 'dnd_fields.html' %}
+    <button>Salva modello</button>
+    {% if editing %}<a class="button secondary" href="{{ url_for('main.admin_incident_templates') }}">Annulla</a>{% endif %}
+  </form>
+</div>
+<div class="card">
+  <h3>Crea modello da incidente esistente</h3>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="create_from_incident">
+    <div><label>Incidente sorgente</label><select name="incident_id" required>{% for inc in incidents %}<option value="{{inc.id}}">#{{inc.id}} - {{inc.name}}</option>{% endfor %}</select></div>
+    <div><label>Nome modello</label><input name="template_name" required></div>
+    <div class="wide"><label>Descrizione</label><textarea name="template_description"></textarea></div>
+    <button>Crea da incidente</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Modelli configurati</h3>
+  <table class="table"><tr><th>Nome</th><th>Descrizione</th><th>Dati personali</th><th>Azioni</th></tr>{% for model in templates %}<tr><td>{{model.name}}</td><td>{{model.description}}</td><td>{{'sì' if model.personal_data else 'no'}}</td><td><a class="button secondary" href="{{ url_for('main.admin_incident_templates', edit=model.id) }}">Modifica</a> <a class="button" href="{{ url_for('main.incident_new', template_id=model.id) }}">Usa</a><form method="post" class="inline-form" onsubmit="return confirm('Cancellare il modello?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{model.id}}"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="4" class="muted">Nessun modello configurato.</td></tr>{% endfor %}</table>
+</div>
+{% endblock %}
