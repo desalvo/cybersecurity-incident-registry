@@ -1,15 +1,12 @@
-<section class="doc-section"><h2>0.2.1 - Condizioni workflow estese</h2><p>Le operazioni previste dell’incidente possono dipendere da condizioni configurate dall’amministratore: dati personali, gravità e dati interessati. Nella pagina incidente compaiono solo gli step senza condizioni o con tutte le condizioni soddisfatte.</p></section>
-<section class="doc-section"><h2>Controllo globale dei task</h2><p>Alcuni task possono essere protetti dal controllo globale configurato dall’amministratore: in questo caso l’inserimento viene bloccato finché gli step procedurali precedenti del workflow dell’incidente non sono stati completati.</p></section>
-<section class="doc-section"><h2>Operazioni automatiche collegate ai task</h2><p>Alcune azioni possono produrre effetti automatici configurati dall’amministratore sulla relativa label: ad esempio impostare la fine violazione o chiudere l’incidente quando non sono presenti avvisi procedurali attivi. Se restano avvisi attivi, la chiusura automatica viene bloccata e viene mostrato un messaggio nella sezione Azioni.</p></section>
-<section class="doc-section"><h2>0.2.1 - Avvisi procedurali da workflow</h2><p>Gli avvisi procedurali mostrano ora gli step del workflow applicabile marcati come richiesti e non ancora completati. In assenza di avvisi attivi, l’azione di conclusione chiude automaticamente l’incidente.</p></section>
-<section class="doc-section"><h2>0.2.1 - Data/ora locale negli incidenti</h2><p>I campi Data/Ora inizio e Data/Ora fine hanno un pulsante <strong>Adesso</strong> che imposta il momento corrente nella timezone applicativa configurata. Anche le azioni registrate automaticamente dall’invio delle notifiche usano la stessa timezone locale.</p></section>
-<section class="doc-section"><h2>0.2.1 - Workflow guidato alle notifiche</h2><p>Quando uno step delle operazioni previste dipende da una notifica non ancora inviata, il click sullo step apre il percorso corretto: se i documenti necessari sono già disponibili apre la notifica specifica, altrimenti mostra un avviso e porta alla generazione moduli o alla sezione documenti/tagging.</p></section>
-<section class="doc-section"><h2>0.2.1 - Workflow ordinato</h2><p>Nella pagina del singolo incidente, quando gli step delle operazioni previste sono ordinati, una freccia indica la sequenza tra il passo precedente e quello successivo. La pagina Info applicazione mostra la versione normalizzata <strong>0.2.1</strong> e il build corrente.</p></section>
-<section class="doc-section"><h2>0.2.1 - Workflow default esteso</h2><p>Il flusso predefinito include ora Comunicazione al Garante, applicabile solo in presenza di dati personali, e Comunicazione all’utente prima della Conclusione.</p></section>
-<section class="doc-section"><h2>0.2.1 - Flussi operativi</h2><p>L’aggiunta di task ai flussi operativi è stata resa robusta anche dopo Full import o restore del database.</p></section>
 {% extends 'base.html' %}
 {% block content %}
 <section class="doc-section"><h2>0.2.1 - Operazioni previste condizionali</h2><p>Gli step delle operazioni previste configurati come validi solo per dati personali compaiono nella pagina incidente esclusivamente quando il flag <strong>Dati personali</strong> è attivo.</p></section>
+<section id="workflow-current-summary" class="doc-chapter" data-doc-title="workflow avvisi procedurali condizioni notifiche task">
+  <h2>Operazioni previste, avvisi e task</h2>
+  <p>Nella pagina del singolo incidente la sezione <strong>Operazioni previste</strong> mostra gli step del workflow applicabile all’incidente. Gli step possono dipendere da condizioni configurate dall’amministratore, come presenza di dati personali, gravità e dati interessati. Gli step completati e mancanti sono evidenziati in modo diverso; gli step scaduti sono marcati come critici.</p>
+  <p>Gli step richiesti non ancora completati sono riportati negli <strong>Avvisi procedurali</strong>. In assenza di avvisi attivi, l’inserimento di un task configurato per la chiusura può portare automaticamente l’incidente allo stato chiuso. Alcuni task possono richiedere notifiche o documenti: cliccando lo step, l’applicazione guida verso invio notifica, generazione documento o tagging degli allegati.</p>
+</section>
+
 <div class="card help-content documentation" aria-labelledby="doc-title">
   <div class="page-header">
     <div>
@@ -33,11 +30,6 @@
 
 
   <section class="doc-section"><h2>0.2.1 - Riferimento obbligatorio</h2><p>In creazione e modifica incidente il campo <strong>Riferimento</strong> deve essere sempre compilato. Il destinatario delle comunicazioni resta opzionale e, se vuoto, continua a usare il riferimento.</p></section>
-<section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1">
-    <h2>Sviluppi recenti della versione 0.2.1</h2>
-    <p>La versione 0.2.1 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
-    <p>Le informazioni di versione sono riportate in questa guida, nelle note di rilascio e nella pagina <strong>Info → Applicazione</strong>.</p>
-  </section>
 
   <figure class="doc-figure">
     <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma del ciclo di vita di un incidente">

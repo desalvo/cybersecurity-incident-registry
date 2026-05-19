@@ -1,3 +1,8 @@
+0.2.1-33
+- Corrette le occorrenze residue della versione applicativa nelle pagine Info, documentazione utente e amministrativa.
+- Separati i contenuti di changelog dalle guide operative: le guide descrivono lo stato corrente, mentre le variazioni restano nelle Note di rilascio.
+- Ricontrollata la documentazione IT/EN e progettuale rispetto agli ultimi sviluppi su workflow, condizioni e operazioni automatiche.
+
 0.2.1-32
 - Estese le condizioni degli step workflow: dati personali, gravità e dati interessati.
 - Associazione condizioni tramite drag & drop compatto nella gestione workflow.
@@ -110,38 +115,38 @@
 - Application version set to 0.2.1 and build to 2026051901.
 - Documentation updated in Italian and English.
 
-0.2.0-12-notification-doc-association-recipients
+0.2.1-12-notification-doc-association-recipients
 - Aggiunta associazione opzionale template notifica/template modulo PDF con preselezione automatica documenti generati.
 - Aggiunta rubrica destinatari esterni amministrabile e suggerita nei campi destinatario/CC.
 - Aggiornata documentazione italiana e inglese.
 
 
-0.2.0-10 - Placeholder notifiche manuali e allegato statistiche
+0.2.1-10 - Placeholder notifiche manuali e allegato statistiche
 - Le notifiche manuali/non schedulate inseriscono il link incidente solo tramite %INCIDENT_URL%.
 - Aggiunti %MEASURES_ADOPTED%, %SITE% e %STATISTICS% ai template di notifica generali.
 - %STATISTICS% allega il report statistiche PDF durante l'invio.
 - Aggiornata la documentazione utente/amministrativa italiana e inglese, inclusa la nota sull'utente admin che non invia notifiche dal dettaglio incidente.
 
-0.2.0-7 - User removal
+0.2.1-7 - User removal
 - Added administrator-controlled user removal with safeguards for current and last admin accounts.
 - User deletion preserves incidents, reminders and audit history while removing MFA tokens.
 - Updated bilingual documentation.
 
-0.2.0-4.2
+0.2.1-4.2
 - Corretto il rendering grafico dei loghi SSO caricati da interfaccia web nella sezione Admin → SSO/OAuth2 → Storage loghi SSO.
 - Le gallerie dei loghi usano ora la rotta persistente /sso-logos/<filename>, invece degli URL statici dell’immagine applicativa.
 - Aggiornata la documentazione italiana e inglese per chiarire anteprima, storage persistente e selezione dei loghi caricati.
 - Fixed graphical rendering of administrator-uploaded SSO logos in Admin → SSO/OAuth2 → SSO logo storage.
 - Logo galleries now use the persistent /sso-logos/<filename> route rather than static image URLs.
 
-0.2.0-4
+0.2.1-4
 - Spostato lo storage dei loghi condivisi SSO/OAuth2 caricati dalla UI in una directory persistente configurabile con SSO_LOGO_DIR, default /data/sso_logos.
 - Aggiunta rotta dedicata /sso-logos/<filename> per servire i loghi dallo storage persistente con validazione del nome file.
 - Aggiornati export/import completi per leggere e ripristinare i loghi SSO da SSO_LOGO_DIR.
 - Aggiornati docker-compose, .env.example e manifest Kubernetes con volume/PVC persistente per i loghi SSO.
 - Aggiornata la documentazione italiana e inglese.
 
-0.2.0-127
+0.2.1-127
 - Hardened production baseline: CSRF protection for unsafe HTTP methods, automatic hidden token injection in POST forms, security headers and secure cookie defaults.
 - Added fail-fast production checks for weak SECRET_KEY, weak ADMIN_INITIAL_PASSWORD and SQLite usage when CIR_PRODUCTION=1.
 - Removed hardcoded secrets from docker-compose.yml and added .env.example for safe bootstrap.
@@ -149,16 +154,16 @@
 - Added security smoke tests and requirements-dev.txt.
 - Aggiornata documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
 
-0.2.0-126
+0.2.1-126
 - Aggiunte icone informative con help online nei campi principali della pagina dettaglio incidente.
 - I tooltip spiegano nome, riferimento, destinatario, descrizione, gravità, stato, date/ore della violazione, dati personali, silenziamento notifiche deadline, numero interessati e volume dati.
 - Aggiornate documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
 - Added contextual online help icons to the main fields of the incident detail page and updated bilingual documentation.
 
-## 0.2.0 - build 2026051901
-- Aggiornata la versione applicativa a 0.2.0 e il build a 2026051901.
+## 0.2.1 - build 2026051901
+- Aggiornata la versione applicativa a 0.2.1 e il build a 2026051901.
 - Consolidati nella documentazione utente e amministrativa bilingue gli sviluppi recenti: audit, notifiche, promemoria, SSO, HTTPS/SSL, report PDF, menu Aiuto e loghi SSO.
-- Aggiornata la documentazione progettuale con la baseline funzionale 0.2.0.
+- Aggiornata la documentazione progettuale con la baseline funzionale 0.2.1.
 
 
 ## 0.1.0-125
@@ -753,25 +758,25 @@ Notification menu and SMTP sender fix
 - Documentazione IT/EN aggiornata.
 
 
-0.2.0-8-user-backend-identity
+0.2.1-8-user-backend-identity
 - Identità utenti basata sulla coppia username + backend/auth_provider.
 - Login locale, LDAP e SSO isolati per backend; i profili SSO usano auth_provider nel formato sso:<id profilo>.
 - Gestione utenti aggiornata per mostrare e creare account locali/LDAP con username duplicati su backend diversi.
 - Documentazione italiana e inglese aggiornata.
 
-0.2.0-126
+0.2.1-126
 - Admin utenti: la colonna Tipo login distingue gli utenti SSO anche per provider, mostrando nome provider, id profilo e backend tecnico.
 - Admin utenti: il menu backend include i profili SSO configurati per creare o predisporre identità SSO specifiche.
 - Documentazione italiana e inglese aggiornata.
 
-0.2.0-11
+0.2.1-11
 - Corretto l’invio notifiche manuali/non schedulate quando un placeholder, in particolare %MEASURES_ADOPTED%, produce una lista invece di una stringa.
 - Aggiunta normalizzazione centralizzata dei valori placeholder prima della sostituzione nei template.
 - Documentazione italiana e inglese aggiornata.
 - Fixed manual notification sending when a placeholder, especially %MEASURES_ADOPTED%, produces a list instead of a string.
 - Placeholder values are now normalised centrally before template replacement.
 
-0.2.0-13-notification-document-tags
+0.2.1-13-notification-document-tags
 - Added multiple notification-type tags on incident documents.
 - Added drag-and-drop tagging UI in the incident document list.
 - Manual notification preview now preselects documents tagged for the selected notification type, while keeping the final attachment selection editable.

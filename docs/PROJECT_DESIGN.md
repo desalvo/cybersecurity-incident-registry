@@ -1,3 +1,9 @@
+# Documentazione progettuale
+
+## Baseline progettuale 0.2.1 - build 2026051901
+
+La versione applicativa ufficiale è 0.2.1. La documentazione progettuale descrive lo stato corrente dell’applicazione; i dettagli cronologici degli aggiornamenti sono mantenuti nelle Note di rilascio e nel CHANGELOG.
+
 ## Aggiornamento 0.2.1 - Pulsanti data/ora locale e azioni notifica
 
 La pagina di creazione incidente e la pagina di dettaglio incidente espongono pulsanti rapidi accanto ai campi separati `start_date`, `start_time`, `end_date` ed `end_time`. Il JavaScript dei template calcola il momento corrente usando la timezone applicativa configurata (`application_timezone`) tramite `Intl.DateTimeFormat`, con fallback alla timezone del browser. La route `incident_new` passa ora il nome del fuso al template come avviene già per `incident_detail`.
@@ -25,9 +31,9 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
-## Baseline progettuale 0.2.0 - build 2026051901
+## Baseline progettuale 0.2.1 - build 2026051901
 
-La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per incidenti informatici. Include:
+La baseline 0.2.1 stabilizza l'applicazione come registro operativo bilingue per incidenti informatici. Include:
 
 - interfaccia e documentazione in italiano e inglese con selezione automatica da locale browser e override amministrativo;
 - menu Aiuto riorganizzato in Documentazione utente, Documentazione amministrativa e Note di rilascio, con PDF scaricabili dalle pagine relative;
@@ -1235,19 +1241,19 @@ La gestione utenti consente agli amministratori di creare e rimuovere account lo
 From the administrator perspective, user deletion is an access-control operation, not a data-retention purge. Removing a user blocks future access and removes MFA tokens, but does not remove incidents, reminders or audit history. This keeps operational traceability intact while allowing administrators to keep the active user list clean.
 
 
-## Aggiornamento 0.2.0-125 - Identità utente composta
+## Aggiornamento 0.2.1-125 - Identità utente composta
 
 Il modello `User` usa ora il vincolo composto `username + auth_provider` (`uq_user_username_auth_provider`) invece dell’unicità sul solo `username`. I login locali cercano esclusivamente utenti con `auth_provider='local'`; il login LDAP cerca o crea utenti con `auth_provider='ldap'`; i profili SSO/OAuth2 cercano o creano utenti con `auth_provider='sso:<id profilo>'`. In questo modo lo stesso identificativo restituito dai diversi backend non causa fusioni accidentali di account, ruoli o token MFA.
 
 La migrazione idempotente all’avvio aggiorna gli utenti storici con backend mancante e, su PostgreSQL, rimuove il vincolo univoco precedente sul solo username prima di creare il vincolo composto. I nuovi database SQLite di sviluppo usano direttamente il modello aggiornato; per produzione il database supportato resta PostgreSQL.
 
 
-### Aggiornamento 0.2.0-126 - Visualizzazione provider nel tipo login SSO
+### Aggiornamento 0.2.1-126 - Visualizzazione provider nel tipo login SSO
 
 La vista `Admin → Utenti` costruisce una mappa dei backend disponibili a partire dai profili SSO configurati. I backend `local` e `ldap` sono mostrati come login locali o LDAP, mentre ogni backend nel formato `sso:<id profilo>` viene presentato come `SSO/OAuth2 · <nome provider> (<id profilo>)`, mantenendo visibile anche il codice tecnico. Se un utente fa riferimento a un profilo SSO eliminato o non più configurato, l'interfaccia lo segnala come profilo non configurato invece di nascondere l'account.
 
 
-## Aggiornamento 0.2.0-10 - Placeholder notifiche manuali e link incidente esplicito
+## Aggiornamento 0.2.1-10 - Placeholder notifiche manuali e link incidente esplicito
 
 Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
 
@@ -1430,3 +1436,12 @@ Gli step dei flussi operativi supportano ora condizioni multiple memorizzate nel
 
 ## Version 0.2.1-32 - Extended workflow conditions
 Operational workflow steps now support multiple conditions stored in `IncidentWorkflowStep.conditions`. Available conditions are `personal_data`, `severity:<id>` and `data_type:<id>`. Evaluation uses AND logic: a step is included in expected operations only when it has no conditions or all conditions are satisfied by the incident. The administrative UI uses a compact drag-and-drop selector to reduce page space.
+
+
+## Versione 0.2.1-33 - Pulizia versione e documentazione
+
+La versione applicativa esposta da `APP_VERSION`, dalla pagina Info e dalle guide è normalizzata a `0.2.1`, con build `2026051901`. Le guide utente e amministrativa sono mantenute come documentazione operativa dello stato corrente: non devono contenere blocchi di changelog. Le variazioni cronologiche sono centralizzate in `CHANGELOG.txt` e nelle pagine `release_notes.html` / `release_notes_en.html`.
+
+## Version 0.2.1-33 - Version and documentation cleanup
+
+The application version exposed by `APP_VERSION`, the Info page and the guides is normalized to `0.2.1`, with build `2026051901`. User and administrator guides are maintained as operational documentation of the current state and must not contain changelog blocks. Chronological changes are centralized in `CHANGELOG.txt` and in `release_notes.html` / `release_notes_en.html`.
