@@ -634,3 +634,8 @@ Notification menu and SMTP sender fix
 - Login locale, LDAP e SSO isolati per backend; i profili SSO usano auth_provider nel formato sso:<id profilo>.
 - Gestione utenti aggiornata per mostrare e creare account locali/LDAP con username duplicati su backend diversi.
 - Documentazione italiana e inglese aggiornata.
+
+0.2.0-126
+- Admin utenti: la colonna Tipo login distingue gli utenti SSO anche per provider, mostrando nome provider, id profilo e backend tecnico.
+- Admin utenti: il menu backend include i profili SSO configurati per creare o predisporre identità SSO specifiche.
+- Documentazione italiana e inglese aggiornata.

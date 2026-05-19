@@ -7,11 +7,15 @@
     <div><label>Nome</label><input name="name"></div>
     <div><label>Email</label><input name="email"></div>
     <div><label>Password locale</label><input name="password" type="password"></div>
-    <div><label>Backend</label><select name="auth_provider"><option value="local">local</option><option value="ldap">ldap</option></select></div>
+    <div><label>Backend</label><select name="auth_provider">
+      {% for value, label in auth_provider_labels.items() %}
+      <option value="{{ value }}">{{ label }}</option>
+      {% endfor %}
+    </select></div>
     <div><label>Ruolo</label><select name="role">{% for r in ['admin','operator','reader','writer','disabled'] %}<option>{{r}}</option>{% endfor %}</select></div>
     <button>Aggiungi</button>
   </form>
-  <p class="muted">L’identità utente è definita dalla combinazione <strong>username + backend</strong>: lo stesso username può esistere come account locale, LDAP o SSO/OAuth2 di profili diversi. La rimozione elimina l’account e i relativi token MFA. Incidenti, promemoria e audit vengono conservati svincolando il riferimento tecnico all’utente.</p>
+  <p class="muted">L’identità utente è definita dalla combinazione <strong>username + backend</strong>: lo stesso username può esistere come account locale, LDAP o SSO/OAuth2 di profili diversi. Nel tipo di login gli account SSO sono mostrati con nome provider e id profilo, oltre al backend tecnico. La rimozione elimina l’account e i relativi token MFA. Incidenti, promemoria e audit vengono conservati svincolando il riferimento tecnico all’utente.</p>
 </div>
 <div class="card">
   <table class="table">
@@ -25,13 +29,14 @@
           <input name="email" value="{{u.email or ''}}">
         </form>
       </td>
-      <td><code>{{ u.auth_provider or ('ldap' if u.is_ldap else 'local') }}</code></td>
+      {% set provider_code = u.auth_provider or ('ldap' if u.is_ldap else 'local') %}
+      <td><strong>{{ auth_provider_display(provider_code) }}</strong><br><code>{{ provider_code }}</code></td>
       <td>{{ 'attiva' if u.mfa_enabled else 'disattivata' }} · <a href="{{ url_for('main.admin_user_mfa', uid=u.id) }}">gestisci</a></td>
       <td><select name="role" form="user-update-{{u.id}}">{% for r in ['admin','operator','reader','writer','disabled'] %}<option {% if u.role==r %}selected{% endif %}>{{r}}</option>{% endfor %}</select></td>
       <td><button form="user-update-{{u.id}}">Salva</button></td>
       <td>
         {% if current_user.id != u.id %}
-        <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ u.auth_provider or ('ldap' if u.is_ldap else 'local') }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
+        <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
           <button class="danger" type="submit">Rimuovi</button>
         </form>
         {% else %}

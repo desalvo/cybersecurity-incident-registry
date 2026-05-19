@@ -1867,14 +1867,45 @@ def admin_user_mfa(uid):
         return redirect(url_for('main.admin_user_mfa', uid=user.id))
     return render_template('admin_user_mfa.html', target_user=user, tokens=MfaTotpToken.query.filter_by(user_id=user.id).order_by(MfaTotpToken.created_at.desc()).all())
 
+def user_auth_provider_labels():
+    """Return human-readable labels for login backends shown in Admin → Users.
+
+    SSO backends are stored as sso:<profile id>; administrators need the
+    provider display name as well as the technical profile id to distinguish
+    users that share the same username across different SSO providers.
+    """
+    labels = {'local': 'Locale', 'ldap': 'LDAP'}
+    for profile in sso_profiles(include_legacy=True):
+        pid = (profile.get('id') or '').strip()
+        if not pid:
+            continue
+        name = (profile.get('sso_provider_name') or profile.get('name') or pid).strip() or pid
+        labels[f'sso:{pid}'] = f'SSO/OAuth2 · {name} ({pid})'
+    return labels
+
+
+def user_auth_provider_display(auth_provider):
+    provider = (auth_provider or 'local').strip()
+    labels = user_auth_provider_labels()
+    if provider in labels:
+        return labels[provider]
+    if provider.startswith('sso:'):
+        pid = provider.split(':', 1)[1] or 'sconosciuto'
+        return f'SSO/OAuth2 · profilo non configurato ({pid})'
+    return provider
+
+
 @bp.route('/admin/users',methods=['GET','POST'])
 @login_required
 def admin_users():
     if not can_admin(): return redirect(url_for('main.index'))
+    auth_provider_labels = user_auth_provider_labels()
+    valid_backends = set(auth_provider_labels.keys())
     if request.method=='POST':
         backend=(request.form.get('auth_provider') or 'local').strip()
-        if backend not in {'local','ldap'}:
-            backend = 'local'
+        if backend not in valid_backends:
+            flash('Backend di autenticazione non valido o profilo SSO non più configurato.', 'error')
+            return redirect(url_for('main.admin_users'))
         is_ldap = backend == 'ldap'
         username = request.form['username'].strip()
         if User.query.filter_by(username=username, auth_provider=backend).first():
@@ -1884,7 +1915,8 @@ def admin_users():
         db.session.add(u); db.session.commit()
         audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
         flash('Utente aggiunto.')
-    return render_template('admin_users.html',users=User.query.order_by(User.username, User.auth_provider).all())
+    users = User.query.order_by(User.username, User.auth_provider).all()
+    return render_template('admin_users.html', users=users, auth_provider_labels=auth_provider_labels, auth_provider_display=user_auth_provider_display)
 @bp.route('/admin/user/<int:uid>/role',methods=['POST'])
 @login_required
 def user_role(uid):
