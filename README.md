@@ -2,9 +2,9 @@
 
 Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
-## Versione 0.2.0 - Consolidamento piattaforma e documentazione bilingue
+## Versione 0.2.1-1 - Consolidamento piattaforma e documentazione bilingue
 
-La versione 0.2.0, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
+La versione 0.2.1-1, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
 
 Le guide operative sono mantenute in entrambe le lingue. Le note di rilascio sono separate dalla documentazione operativa e consultabili dal menu Aiuto.
 
@@ -122,7 +122,7 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.2.0
+- Versione: 0.2.1-1
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -633,3 +633,14 @@ I template di notifica manuale possono essere associati opzionalmente a un templ
 ## Aggiornamento 0.112-12 - Tag multipli documenti per notifiche
 
 Nella lista dei documenti allegati a un incidente ogni file può essere associato a uno o più tipi di notifica. L’assegnazione avviene con un meccanismo drag & drop: si trascina il tipo di notifica disponibile sull’area tag del documento, si possono rimuovere singoli tag e si salva la modifica. In fase di invio di una notifica manuale, i documenti taggati con il tipo di notifica scelto vengono preselezionati automaticamente come allegati. La preselezione non è vincolante: l’operatore può sempre deselezionare documenti proposti o selezionare altri allegati presenti nell’incidente. Resta supportata anche la preselezione dei documenti generati dal template modulo associato al template di notifica.
+
+
+## Aggiornamento 0.2.1-2 - Selezione destinatari esterni nelle notifiche manuali
+
+Nelle notifiche manuali/non schedulate con destinatario compilabile dall’utente, non vincolato alla configurazione dell’applicazione, l’anteprima di invio mostra ora una selezione esplicita dalla rubrica **Admin → Destinatari esterni**. L’operatore può scegliere un contatto visualizzando nome ed e-mail e usarlo come destinatario principale oppure aggiungerlo al campo CC; resta sempre possibile digitare manualmente un indirizzo nuovo, che verrà acquisito nella rubrica dopo l’indicazione del nome.
+
+## Aggiornamento 0.2.1-1 - Tag automatici sui moduli generati
+
+Quando un modulo PDF viene generato dalla pagina di dettaglio incidente e viene allegato come documento, l'applicazione assegna automaticamente al documento almeno i tag dei tipi di notifica dei template di notifica collegati al template modulo usato per la generazione. In questo modo il documento appena generato viene preselezionato automaticamente nel successivo invio della notifica del tipo corrispondente, fermo restando che l'operatore può sempre modificare manualmente la selezione degli allegati prima dell'invio.
+
+La versione applicativa è aggiornata a **0.2.1-1**, build **2026051901**.

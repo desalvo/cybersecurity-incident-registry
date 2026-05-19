@@ -2,9 +2,9 @@
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
 
-## Version 0.2.0 - Platform consolidation and bilingual documentation
+## Version 0.2.1-1 - Platform consolidation and bilingual documentation
 
-Version 0.2.0, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
+Version 0.2.1-1, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
 
 Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
 
@@ -94,7 +94,7 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.2.0
+- Version: 0.2.1-1
 - Build: 2026051901
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -436,3 +436,14 @@ Manual notification templates can optionally be linked to a PDF form template. W
 ## Update 0.112-12 - Multiple document tags for notifications
 
 In the incident document list, each file can be associated with one or more notification types. Tags are assigned through drag & drop: drag an available notification type onto the document tag area, remove individual tags when needed, and save the change. When sending a manual notification, documents tagged with the selected notification type are automatically preselected as attachments. This preselection is never mandatory: the operator can always deselect suggested documents or select other incident documents. Preselection of documents generated from the form template linked to the notification template remains supported.
+
+
+## Update 0.2.1-2 - External recipient selection in manual notifications
+
+For manual/non-scheduled notifications with user-editable recipients that are not locked by application settings, the send preview now shows an explicit picker from **Admin → External recipients**. The operator can select a contact with both name and e-mail and use it as the main recipient or append it to CC; manually typed new addresses remain supported and are added to the shared address book after the recipient name is provided.
+
+## Update 0.2.1-1 - Automatic tags on generated forms
+
+When a PDF form is generated from the incident detail page and attached as a document, the application automatically assigns at least the notification-type tags of the notification templates linked to the form template used for generation. This makes the newly generated document automatically preselected during the next notification send of the corresponding type, while the operator can always manually change the attachment selection before sending.
+
+The application version is updated to **0.2.1-1**, build **2026051901**.

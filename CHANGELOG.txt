@@ -1,3 +1,14 @@
+0.2.1-2 - External recipient picker for manual notifications
+- Added explicit address-book selection in manual notification previews with free recipient fields.
+- Selected contacts can populate the main recipient or be appended to CC.
+- Updated Italian and English documentation.
+
+0.2.1-1 - Automatic notification tags on generated forms
+- Generated PDF form documents automatically receive notification tags derived from notification templates linked to the form template.
+- Attachment preselection keeps using document tags and linked templates while remaining manually editable.
+- Application version set to 0.2.1-1 and build to 2026051901.
+- Documentation updated in Italian and English.
+
 0.2.0-12-notification-doc-association-recipients
 - Aggiunta associazione opzionale template notifica/template modulo PDF con preselezione automatica documenti generati.
 - Aggiunta rubrica destinatari esterni amministrabile e suggerita nei campi destinatario/CC.

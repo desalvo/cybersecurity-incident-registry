@@ -2490,6 +2490,27 @@ def notification_needs_documents(kind, template_id=None):
     return '%DOCUMENTS%' in (notification_body_template(kind, template_id) or '')
 
 
+
+def notification_tags_for_generated_form_template(template_name):
+    """Return notification type codes linked to a generated PDF form template.
+
+    When an incident document is produced from a configured PDF form, it must
+    inherit the notification tags of every manual notification template that is
+    linked to that form template. This keeps the document automatically eligible
+    for preselection during the corresponding incident notification flow while
+    still allowing the operator to change the final attachment selection.
+    """
+    if not template_name:
+        return []
+    rows = NotificationTemplate.query.filter_by(linked_form_template_name=template_name).all()
+    seen = []
+    enabled_kinds = set(notification_type_map().keys())
+    for row in rows:
+        code = (row.kind or '').strip()
+        if code and code in enabled_kinds and code not in seen:
+            seen.append(code)
+    return seen
+
 def documents_generated_from_template(inc, template_name):
     if not template_name:
         return []
@@ -5119,7 +5140,15 @@ def confirm_generated_forms(iid):
             final_path = upload_dir / final_name
         if src.name != final_path.name:
             src.rename(final_path)
-        db.session.add(Document(incident_id=inc.id, filename=final_path.name, stored_name=final_path.name, generated_template_name=request.form.get('template_name_' + Path(pdf_stored).name) or None))
+        generated_template = request.form.get('template_name_' + Path(pdf_stored).name) or None
+        doc = Document(
+            incident_id=inc.id,
+            filename=final_path.name,
+            stored_name=final_path.name,
+            generated_template_name=generated_template,
+        )
+        doc.set_notification_tags(notification_tags_for_generated_form_template(generated_template))
+        db.session.add(doc)
         saved += 1
     try:
         db.session.commit()

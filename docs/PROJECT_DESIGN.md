@@ -9,7 +9,7 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.2.0
+- Versione: 0.2.1-1
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
@@ -27,7 +27,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.0, build 2026051901.
+La versione applicativa riportata nei metadati runtime è 0.2.1-1, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -573,7 +573,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.0, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-1, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1227,3 +1227,16 @@ La tabella `ExternalRecipient` contiene nome, email e note della rubrica condivi
 Il modello `Document` contiene il campo `notification_tags`, una lista compatta di codici di tipo notifica associati al documento. Nel dettaglio incidente la sezione Documenti espone una palette dei tipi notifica e una drop-zone per ogni documento: l’utente con permesso di scrittura trascina il tipo sulla drop-zone, può rimuovere il tag e salva la configurazione. La route `update_document_notification_tags` valida i codici rispetto a `NotificationType` e aggiorna solo documenti appartenenti a incidenti visibili all’utente.
 
 In anteprima invio notifica, `auto_selected_notification_documents()` combina due criteri di preselezione: documenti taggati con il tipo notifica corrente e documenti generati dal template modulo eventualmente collegato al template di notifica. I duplicati vengono rimossi. La lista rimane modificabile dall’utente prima dell’invio, quindi il tagging è un suggerimento operativo e non un vincolo di allegazione. Il full export/import include il campo perché deriva dallo schema SQLAlchemy.
+
+
+## Aggiornamento 0.2.1-2 - Picker rubrica destinatari esterni
+
+La pagina di anteprima delle notifiche manuali con destinatario libero riceve la lista `ExternalRecipient` solo quando il tipo di notifica non usa destinatari bloccati da configurazione. Il template `notification_preview.html` espone un selettore con nome ed e-mail dei destinatari esterni e pulsanti client-side per valorizzare il campo destinatario principale o aggiungere l’indirizzo al campo CC, mantenendo invariata la validazione server-side e l’acquisizione dei nuovi indirizzi tramite `ensure_external_recipients_from_addresses()`.
+
+## Aggiornamento 0.2.1-1 - Tag automatici dei documenti generati
+
+La conferma dei moduli PDF generati dall'incidente ora determina i tag di notifica da applicare al documento partendo dai template di notifica manuali che hanno `linked_form_template_name` uguale al template modulo usato per la generazione. La funzione `notification_tags_for_generated_form_template()` restituisce i codici dei tipi di notifica abilitati, rimuove i duplicati e viene invocata durante `confirm_generated_forms()` prima del salvataggio del nuovo record `Document`.
+
+Il campo `Document.notification_tags`, già introdotto per il tagging multiplo degli allegati, viene quindi valorizzato automaticamente anche per i documenti generati. La preselezione in invio notifica continua a usare `auto_selected_notification_documents()`, che combina tag del documento e template modulo collegato, lasciando invariata la possibilità per l'utente di modificare manualmente gli allegati.
+
+Metadati runtime aggiornati: versione `0.2.1-1`, build `2026051901`.

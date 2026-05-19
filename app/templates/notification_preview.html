@@ -13,9 +13,21 @@
   {% else %}
     <form method="get" class="form-grid notification-recipient-form">
       <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
-      <div><label>Destinatario</label><input name="recipient" type="email" value="{{ recipient }}" list="external-recipients" required></div>
-      <div><label>CC</label><input name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola"></div>
-      <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}">{{ r.name }}</option>{% endfor %}</datalist>
+      <div class="wide">
+        <label>Rubrica destinatari esterni</label>
+        <div class="inline-actions">
+          <select id="recipient-picker" aria-label="Seleziona destinatario dalla rubrica">
+            <option value="">Seleziona un destinatario dalla rubrica...</option>
+            {% for r in external_recipients %}<option value="{{ r.email }}" data-name="{{ r.name }}">{{ r.name }} &lt;{{ r.email }}&gt;</option>{% endfor %}
+          </select>
+          <button type="button" class="secondary" id="use-recipient-picker">Usa come destinatario</button>
+          <button type="button" class="secondary" id="use-cc-picker">Aggiungi in CC</button>
+        </div>
+        <p class="muted">Per i destinatari liberi puoi scegliere nome ed e-mail dalla rubrica oppure digitare un nuovo indirizzo. Gli indirizzi nuovi verranno aggiunti alla rubrica dopo l’indicazione del nome.</p>
+      </div>
+      <div><label>Destinatario</label><input id="recipient-input" name="recipient" type="email" value="{{ recipient }}" list="external-recipients" required></div>
+      <div><label>CC</label><input id="cc-input" name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola"></div>
+      <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}" label="{{ r.name }}">{{ r.name }}</option>{% endfor %}</datalist>
       <button type="submit">Aggiorna anteprima</button>
     </form>
   {% endif %}
@@ -53,4 +65,22 @@
     <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
   </form>
 </div>
+<script>
+(function(){
+  const picker = document.getElementById('recipient-picker');
+  const recipientInput = document.getElementById('recipient-input');
+  const ccInput = document.getElementById('cc-input');
+  function selectedEmail(){ return picker && picker.value ? picker.value.trim() : ''; }
+  function appendAddress(input, email){
+    if(!input || !email) return;
+    const values = input.value.split(',').map(v => v.trim()).filter(Boolean);
+    if(!values.some(v => v.toLowerCase() === email.toLowerCase())) values.push(email);
+    input.value = values.join(', ');
+  }
+  const useTo = document.getElementById('use-recipient-picker');
+  const useCc = document.getElementById('use-cc-picker');
+  if(useTo) useTo.addEventListener('click', function(){ const email = selectedEmail(); if(email && recipientInput) recipientInput.value = email; });
+  if(useCc) useCc.addEventListener('click', function(){ appendAddress(ccInput, selectedEmail()); });
+})();
+</script>
 {% endblock %}
