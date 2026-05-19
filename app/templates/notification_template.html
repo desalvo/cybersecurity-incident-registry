@@ -26,6 +26,7 @@
     {% endif %}
     <div><label>Nome template</label><input name="name" required value="{{ editing.name if editing else '' }}" placeholder="Nome template"></div>
     <div><label><input type="checkbox" name="is_default" {% if editing and editing.is_default %}checked{% endif %}> Predefinito</label></div>
+    <div class="wide"><label>Template modulo associato ai documenti</label><select name="linked_form_template_name"><option value="">Nessuno</option>{% for ft in form_templates %}<option value="{{ ft.name }}" {% if editing and editing.linked_form_template_name==ft.name %}selected{% endif %}>{{ ft.name }}</option>{% endfor %}</select><p class="muted">Opzionale: quando questo template viene usato da un incidente, i documenti generati con il template modulo associato vengono preselezionati come allegati.</p></div>
     <div class="wide"><label>Label azione automatica</label><select name="action_label_id"><option value="">Nessuna / default</option>{% for l in action_labels %}<option value="{{ l.id }}" {% if editing and editing.action_label_id==l.id %}selected{% endif %}>{{ l.value }}</option>{% endfor %}</select><p class="muted">Dopo l’invio della notifica sarà aggiunta automaticamente un’azione con questa label.</p></div>
     <div class="wide"><label>Oggetto</label><input name="subject" value="{{ editing.subject if editing else '' }}" placeholder="Oggetto della mail"></div>
     <div class="wide"><label>Testo della mail</label><textarea name="body" rows="14" placeholder="Testo del template">{{ editing.body if editing else '' }}</textarea></div>
@@ -40,11 +41,12 @@
   <h3>Template configurati</h3>
   <p><a class="button" href="{{ url_for('main.notification_template_new', kind=kind) }}">Aggiungi template {{ title }}</a></p>
   <table class="table">
-    <tr><th>Nome</th><th>Oggetto</th><th>Label azione</th><th>Predefinito</th><th>Azioni</th></tr>
+    <tr><th>Nome</th><th>Oggetto</th><th>Template modulo associato</th><th>Label azione</th><th>Predefinito</th><th>Azioni</th></tr>
     {% for t in templates %}
     <tr>
       <td>{{ t.name }}</td>
       <td>{{ t.subject }}</td>
+      <td>{{ t.linked_form_template_name or 'nessuno' }}</td>
       <td>{{ t.action_label.value if t.action_label else 'default' }}</td>
       <td>{{ 'sì' if t.is_default else 'no' }}</td>
       <td class="button-row">

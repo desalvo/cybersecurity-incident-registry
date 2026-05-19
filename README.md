@@ -624,3 +624,7 @@ Le notifiche manuali/non schedulate non aggiungono più automaticamente il link 
 ## Aggiornamento 0.2.0-11 - Correzione placeholder notifiche manuali
 
 Corretto l’invio delle notifiche dalla sezione **Notifiche** del dettaglio incidente: i valori dei placeholder vengono ora normalizzati sempre in testo prima della sostituzione nel template. In particolare `%MEASURES_ADOPTED%`, che usa la stessa origine dati del campo `measures_adopted` per la compilazione dei moduli e può essere calcolato come lista di righe, viene trasformato in un elenco testuale multilinea. Questo elimina l’errore `TypeError: replace() argument 2 must be str, not list` alla pressione del pulsante di notifica. La regola vale per tutti i placeholder delle notifiche manuali/non schedulate: valori mancanti diventano stringa vuota, liste/tuple/set diventano righe separate da ritorno a capo, gli altri tipi vengono convertiti in stringa.
+
+### Template notifiche, allegati documentali e destinatari esterni
+
+I template di notifica manuale possono essere associati opzionalmente a un template modulo PDF. Durante l’invio da un incidente, i documenti generati da quel template modulo vengono preselezionati automaticamente, ma l’operatore può sempre aggiungere altri allegati o deselezionare quelli proposti. Se il documento atteso non è presente viene mostrato un warning non bloccante. La rubrica **Admin → Destinatari esterni** alimenta i campi destinatario/CC e le nuove email usate in invio vengono salvate dopo la richiesta del nome.

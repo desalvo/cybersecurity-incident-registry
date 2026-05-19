@@ -1,3 +1,8 @@
+0.2.0-12-notification-doc-association-recipients
+- Aggiunta associazione opzionale template notifica/template modulo PDF con preselezione automatica documenti generati.
+- Aggiunta rubrica destinatari esterni amministrabile e suggerita nei campi destinatario/CC.
+- Aggiornata documentazione italiana e inglese.
+
 
 0.2.0-10 - Placeholder notifiche manuali e allegato statistiche
 - Le notifiche manuali/non schedulate inseriscono il link incidente solo tramite %INCIDENT_URL%.

@@ -146,7 +146,7 @@ class Action(db.Model):
 class ActionAttachment(db.Model):
     id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow)
 class Document(db.Model):
-    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow)
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True)
 
 
 
@@ -189,6 +189,7 @@ class NotificationTemplate(db.Model):
     name=db.Column(db.String(160),nullable=False)
     subject=db.Column(db.String(255),nullable=False,default='')
     body=db.Column(db.Text,nullable=False,default='')
+    linked_form_template_name=db.Column(db.String(255),nullable=True,index=True)
     action_label_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True)
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
     is_default=db.Column(db.Boolean,default=False)
@@ -196,6 +197,15 @@ class NotificationTemplate(db.Model):
     __table_args__=(db.UniqueConstraint('kind','name',name='uq_notification_template_kind_name'),)
 
 
+
+
+class ExternalRecipient(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    name=db.Column(db.String(160),nullable=False,default='')
+    email=db.Column(db.String(255),nullable=False,unique=True,index=True)
+    notes=db.Column(db.Text,default='')
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow)
 
 
 class FormTemplateConfig(db.Model):

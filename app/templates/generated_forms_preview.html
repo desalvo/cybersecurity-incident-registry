@@ -9,6 +9,7 @@
     <section class="card generated-preview-card">
       <h3>Template: {{ item.template }}</h3>
       <input type="hidden" name="pdf_stored" value="{{ item.pdf_stored }}">
+      <input type="hidden" name="template_name_{{ item.pdf_stored }}" value="{{ item.template }}">
       <div class="form-grid">
         <div>
           <label>Nome documento PDF da salvare</label>

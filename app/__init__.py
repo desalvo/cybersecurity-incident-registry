@@ -2,7 +2,7 @@ import os, time, shutil
 from flask import Flask
 from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError
-from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder
+from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient
 from .auth import login_manager, hash_password
 from .security import init_security
 
@@ -285,6 +285,16 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE notification_template ADD COLUMN action_label_id INTEGER'))
                 app.logger.info('Schema migration applied: notification_template.action_label_id added')
+            if 'linked_form_template_name' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE notification_template ADD COLUMN linked_form_template_name VARCHAR(255)'))
+                app.logger.info('Schema migration applied: notification_template.linked_form_template_name added')
+        if 'document' in tables:
+            cols = {c['name'] for c in inspector.get_columns('document')}
+            if 'generated_template_name' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE document ADD COLUMN generated_template_name VARCHAR(255)'))
+                app.logger.info('Schema migration applied: document.generated_template_name added')
         if 'user' in tables:
             cols = {c['name'] for c in inspector.get_columns('user')}
             if 'mfa_enabled' not in cols:
@@ -301,7 +311,7 @@ def run_schema_migrations(app):
                 app.logger.info('Schema migration applied: mfa_totp_token.verified_at added')
         # Le nuove tabelle vengono create da create_all(); questa sezione resta
         # intenzionalmente idempotente per database creati con versioni precedenti.
-        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables:
+        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables:
             db.create_all()
             app.logger.info('Schema migration applied: auxiliary tables ensured')
     except Exception:
@@ -348,6 +358,7 @@ def repair_postgres_sequences(app):
         ('mfa_totp_token', 'id'),
         ('audit_log', 'id'),
         ('incident_reminder', 'id'),
+        ('external_recipient', 'id'),
     ]
     try:
         with db.engine.begin() as conn:

@@ -1214,3 +1214,9 @@ La vista `Admin → Utenti` costruisce una mappa dei backend disponibili a parti
 ## Aggiornamento 0.2.0-10 - Placeholder notifiche manuali e link incidente esplicito
 
 Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
+
+## Template notifiche, moduli associati e rubrica destinatari esterni
+
+`NotificationTemplate.linked_form_template_name` collega opzionalmente un template di notifica manuale a un template modulo PDF. I documenti generati tramite il flusso moduli salvano `Document.generated_template_name`; in anteprima notifica i documenti dello stesso incidente con quel valore vengono preselezionati. La preselezione non è vincolante: l’utente può modificare gli allegati e, se nessun documento corrisponde, viene mostrato un warning non bloccante.
+
+La tabella `ExternalRecipient` contiene nome, email e note della rubrica condivisa. I campi destinatario/CC delle notifiche manuali usano questa rubrica come suggerimento; durante l’invio, nuove email vengono aggiunte dopo acquisizione del nome. La rubrica è amministrabile da menu Admin e inclusa nel full export/import.

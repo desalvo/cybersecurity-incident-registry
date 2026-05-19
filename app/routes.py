@@ -1895,6 +1895,45 @@ def user_auth_provider_display(auth_provider):
     return provider
 
 
+
+@bp.route('/admin/external-recipients', methods=['GET','POST'])
+@login_required
+def admin_external_recipients():
+    if not can_admin(): return redirect(url_for('main.index'))
+    editing = None
+    edit_id = request.args.get('edit', type=int)
+    if edit_id:
+        editing = ExternalRecipient.query.get_or_404(edit_id)
+    if request.method == 'POST':
+        action = request.form.get('action', 'save')
+        rid = request.form.get('recipient_id', type=int)
+        if action == 'delete':
+            rec = ExternalRecipient.query.get_or_404(rid)
+            db.session.delete(rec); db.session.commit()
+            audit_log('admin:external_recipient_delete', {'recipient_id': rid}, actor_type='user', commit=True)
+            flash('Destinatario esterno cancellato.')
+            return redirect(url_for('main.admin_external_recipients'))
+        name = (request.form.get('name') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        notes = request.form.get('notes') or ''
+        if not name or not email:
+            flash('Nome ed email sono obbligatori.', 'error')
+            return redirect(url_for('main.admin_external_recipients', edit=rid) if rid else url_for('main.admin_external_recipients'))
+        duplicate = ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == email.lower())
+        if rid:
+            duplicate = duplicate.filter(ExternalRecipient.id != rid)
+        if duplicate.first():
+            flash('Esiste già un destinatario esterno con questa email.', 'error')
+            return redirect(url_for('main.admin_external_recipients', edit=rid) if rid else url_for('main.admin_external_recipients'))
+        rec = ExternalRecipient.query.get(rid) if rid else ExternalRecipient()
+        rec.name = name; rec.email = email; rec.notes = notes
+        db.session.add(rec); db.session.commit()
+        audit_log('admin:external_recipient_save', {'recipient_id': rec.id, 'email': rec.email}, actor_type='user', commit=True)
+        flash('Destinatario esterno salvato.')
+        return redirect(url_for('main.admin_external_recipients'))
+    recipients = get_external_recipients()
+    return render_template('admin_external_recipients.html', recipients=recipients, editing=editing)
+
 @bp.route('/admin/users',methods=['GET','POST'])
 @login_required
 def admin_users():
@@ -2433,6 +2472,36 @@ def _statistics_pdf_for_notification():
 
 def notification_needs_documents(kind, template_id=None):
     return '%DOCUMENTS%' in (notification_body_template(kind, template_id) or '')
+
+
+def documents_generated_from_template(inc, template_name):
+    if not template_name:
+        return []
+    return Document.query.filter_by(incident_id=inc.id, generated_template_name=template_name).order_by(Document.uploaded_at.desc(), Document.filename).all()
+
+def auto_selected_notification_documents(inc, template):
+    return documents_generated_from_template(inc, getattr(template, 'linked_form_template_name', None))
+
+def get_external_recipients():
+    return ExternalRecipient.query.order_by(ExternalRecipient.name, ExternalRecipient.email).all()
+
+def ensure_external_recipients_from_addresses(addresses, names_by_email=None):
+    names_by_email = names_by_email or {}
+    added = []
+    for email in split_addresses(addresses):
+        normalized = email.strip().lower()
+        if not normalized:
+            continue
+        existing = ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == normalized).first()
+        if not existing:
+            name = (names_by_email.get(normalized) or names_by_email.get(email) or '').strip()
+            if not name:
+                local_part = normalized.split('@', 1)[0]
+                name = local_part.replace('.', ' ').replace('_', ' ').title() or normalized
+            existing = ExternalRecipient(name=name, email=email.strip())
+            db.session.add(existing)
+            added.append(existing.email)
+    return added
 
 def split_addresses(value):
     if not value:
@@ -3506,6 +3575,7 @@ def notification_template_new():
         tmpl.name = name
         tmpl.subject = request.form.get('subject','')
         tmpl.body = request.form.get('body','')
+        tmpl.linked_form_template_name = request.form.get('linked_form_template_name') or None
         action_label_id = request.form.get('action_label_id', type=int)
         tmpl.action_label_id = action_label_id or None
         if request.form.get('is_default'):
@@ -3513,7 +3583,7 @@ def notification_template_new():
             tmpl.is_default = True
         db.session.add(tmpl); db.session.commit(); flash('Template di notifica aggiunto')
         return redirect(url_for('main.notification_template', kind=kind))
-    return render_template('notification_template.html', kind=kind, title='Nuovo template', fields=NOTIFICATION_FIELDS, templates=[], editing=None, adding=True, kinds=kinds, action_labels=labels('action_label'))
+    return render_template('notification_template.html', kind=kind, title='Nuovo template', fields=NOTIFICATION_FIELDS, templates=[], editing=None, adding=True, kinds=kinds, action_labels=labels('action_label'), form_templates=list_templates())
 
 @bp.route('/notifiche/template/<kind>', methods=['GET','POST'])
 @login_required
@@ -3545,6 +3615,7 @@ def notification_template(kind):
                 name=candidate,
                 subject=source.subject,
                 body=source.body,
+                linked_form_template_name=source.linked_form_template_name,
                 action_label_id=source.action_label_id,
                 is_default=False,
             )
@@ -3568,6 +3639,7 @@ def notification_template(kind):
         tmpl.name = name
         tmpl.subject = request.form.get('subject','')
         tmpl.body = request.form.get('body','')
+        tmpl.linked_form_template_name = request.form.get('linked_form_template_name') or None
         action_label_id = request.form.get('action_label_id', type=int)
         tmpl.action_label_id = action_label_id or None
         if request.form.get('is_default'):
@@ -3576,7 +3648,7 @@ def notification_template(kind):
         db.session.add(tmpl); db.session.commit(); flash(f'Template {title} salvato')
         return redirect(url_for('main.notification_template', kind=kind))
     templates = NotificationTemplate.query.filter_by(kind=kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
-    return render_template('notification_template.html', kind=kind, title=title, fields=NOTIFICATION_FIELDS, templates=templates, editing=editing, adding=False, action_labels=labels('action_label'))
+    return render_template('notification_template.html', kind=kind, title=title, fields=NOTIFICATION_FIELDS, templates=templates, editing=editing, adding=False, action_labels=labels('action_label'), form_templates=list_templates())
 
 @bp.route('/incident/<int:iid>/notify/<kind>/preview')
 @login_required
@@ -3605,9 +3677,15 @@ def notify_preview(iid, kind):
     body = notification_body(kind, inc, template_id=tmpl.id)
     title = ntype.label
     templates = NotificationTemplate.query.filter_by(kind=kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
+    auto_documents = auto_selected_notification_documents(inc, tmpl)
+    auto_document_ids = {d.id for d in auto_documents}
+    linked_template_missing_warning = bool(tmpl.linked_form_template_name and not auto_documents)
+    if linked_template_missing_warning:
+        flash(f'Warning: non è presente nell’incidente alcun documento generato dal template associato "{tmpl.linked_form_template_name}". È comunque possibile selezionare altri documenti e inviare la notifica.', 'warning')
     if needs_documents and not inc.documents:
         flash('Il template contiene %DOCUMENTS%, ma non sono presenti documenti allegati all’incidente. Invio bloccato.', 'error')
-    return render_template('notification_preview.html', inc=inc, kind=kind, title=title, sender=current_user.email or '', recipient=recipient, cc=cc, subject=subject, body=body, attach_report=attach_report, attach_statistics=attach_statistics, needs_documents=needs_documents, template=tmpl, templates=templates, recipient_locked=recipient_locked)
+    external_recipients = get_external_recipients() if not recipient_locked else []
+    return render_template('notification_preview.html', inc=inc, kind=kind, title=title, sender=current_user.email or '', recipient=recipient, cc=cc, subject=subject, body=body, attach_report=attach_report, attach_statistics=attach_statistics, needs_documents=needs_documents, template=tmpl, templates=templates, recipient_locked=recipient_locked, auto_document_ids=auto_document_ids, linked_template_missing_warning=linked_template_missing_warning, external_recipients=external_recipients)
 
 @bp.route('/incident/<int:iid>/notify/<kind>/send', methods=['POST'])
 @login_required
@@ -3640,25 +3718,43 @@ def notify_send(iid, kind):
         if not recipient:
             flash('Specificare un destinatario per questa notifica.', 'error')
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
+        names_by_email = {}
+        rec_name = (request.form.get('recipient_name') or '').strip()
+        cc_name = (request.form.get('cc_name') or '').strip()
+        for addr in split_addresses(recipient):
+            if rec_name:
+                names_by_email[addr.lower()] = rec_name
+        for addr in split_addresses(cc):
+            if cc_name:
+                names_by_email[addr.lower()] = cc_name
+        unknown = []
+        for addr in split_addresses(recipient + ',' + cc):
+            if not ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == addr.lower()).first() and not names_by_email.get(addr.lower()):
+                unknown.append(addr)
+        if unknown:
+            flash('Nuovo destinatario esterno rilevato: indicare il nome del destinatario per inserirlo in rubrica.', 'warning')
+            return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
+        added_recipients = ensure_external_recipients_from_addresses(recipient + ',' + cc, names_by_email)
     subject = notification_subject(kind, inc, tmpl.id)
     title = ntype.label
     attach_report = notification_needs_report(kind, tmpl.id)
     attach_statistics = notification_needs_statistics(kind, tmpl.id)
     needs_documents = notification_needs_documents(kind, tmpl.id)
+    selected_ids = [int(x) for x in request.form.getlist('document_ids') if x.isdigit()]
     selected_documents = []
+    if selected_ids:
+        selected_documents = Document.query.filter(Document.incident_id == inc.id, Document.id.in_(selected_ids)).all()
+        if len(selected_documents) != len(set(selected_ids)):
+            flash('Invio bloccato: uno o più documenti selezionati non appartengono a questo incidente.', 'error')
+            return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id))
     if needs_documents:
-        selected_ids = [int(x) for x in request.form.getlist('document_ids') if x.isdigit()]
         if not inc.documents:
             flash('Invio bloccato: il template contiene %DOCUMENTS%, ma l’incidente non ha documenti allegati.', 'error')
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id))
         if not selected_ids:
             flash('Invio bloccato: selezionare almeno un documento da allegare perché il template contiene %DOCUMENTS%.', 'error')
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id))
-        selected_documents = Document.query.filter(Document.incident_id == inc.id, Document.id.in_(selected_ids)).all()
-        if len(selected_documents) != len(set(selected_ids)):
-            flash('Invio bloccato: uno o più documenti selezionati non appartengono a questo incidente.', 'error')
-            return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id))
-    body = notification_body(kind, inc, selected_documents=selected_documents if needs_documents else None, template_id=tmpl.id)
+    body = notification_body(kind, inc, selected_documents=selected_documents if selected_documents else None, template_id=tmpl.id)
     try:
         send_info = send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=selected_documents, attach_statistics=attach_statistics)
         label = tmpl.action_label or ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
@@ -4067,7 +4163,7 @@ FULL_EXPORT_MODELS = [
     Setting, User, MfaTotpToken, ConfigLabel, Person, Recommendation,
     NotificationType, NotificationTemplate, FormTemplateConfig,
     FormTemplateBinary, FormFieldMapping, Incident, Action, Document,
-    ActionAttachment, IncidentReminder, DeadlineNotificationState, AuditLog,
+    ActionAttachment, IncidentReminder, DeadlineNotificationState, ExternalRecipient, AuditLog,
 ]
 
 FULL_EXPORT_TABLES = {
@@ -4088,6 +4184,7 @@ FULL_EXPORT_TABLES = {
     'action_attachments': ActionAttachment,
     'incident_reminders': IncidentReminder,
     'deadline_notification_states': DeadlineNotificationState,
+    'external_recipients': ExternalRecipient,
     'audit_logs': AuditLog,
 }
 
@@ -4440,7 +4537,7 @@ def import_full():
                 db.session.execute(incident_categories.delete())
                 db.session.execute(incident_data_types.delete())
                 db.session.execute(incident_recommendations.delete())
-                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
+                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, ExternalRecipient, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
                     db.session.query(model).delete()
                 db.session.flush()
 
@@ -4469,6 +4566,10 @@ def import_full():
 
                 for row in tables.get('notification_templates', []):
                     db.session.add(NotificationTemplate(**_coerce_row_for_model(NotificationTemplate, row)))
+                db.session.flush()
+
+                for row in tables.get('external_recipients', []):
+                    db.session.add(ExternalRecipient(**_coerce_row_for_model(ExternalRecipient, row)))
                 db.session.flush()
 
                 for row in tables.get('form_field_mappings', []):
@@ -4985,7 +5086,7 @@ def confirm_generated_forms(iid):
             final_path = upload_dir / final_name
         if src.name != final_path.name:
             src.rename(final_path)
-        db.session.add(Document(incident_id=inc.id, filename=final_path.name, stored_name=final_path.name))
+        db.session.add(Document(incident_id=inc.id, filename=final_path.name, stored_name=final_path.name, generated_template_name=request.form.get('template_name_' + Path(pdf_stored).name) or None))
         saved += 1
     try:
         db.session.commit()

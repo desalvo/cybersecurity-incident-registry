@@ -427,3 +427,7 @@ Manual/non-scheduled notifications no longer append the direct incident link aut
 ## Update 0.2.0-11 - Manual notification placeholder fix
 
 Fixed notification sending from the **Notifications** section of the incident detail page: placeholder values are now always normalised to text before being substituted into the template. In particular `%MEASURES_ADOPTED%`, which uses the same data source as the `measures_adopted` field used for form filling and may be calculated as a list of lines, is converted into a multiline text list. This removes the `TypeError: replace() argument 2 must be str, not list` error when pressing the notification button. The rule applies to all manual/non-scheduled notification placeholders: missing values become an empty string, lists/tuples/sets become newline-separated lines and other values are converted to strings.
+
+### Notification templates, document attachments and external recipients
+
+Manual notification templates can optionally be linked to a PDF form template. When sending from an incident, documents generated from that form template are preselected automatically, while the operator can still add other attachments or deselect the proposed ones. If the expected document is missing, a non-blocking warning is shown. The **Admin → External recipients** address book feeds recipient/CC fields, and new emails used during sending are saved after asking for the recipient name.

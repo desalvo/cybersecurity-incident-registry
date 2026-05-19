@@ -13,12 +13,9 @@
   {% else %}
     <form method="get" class="form-grid notification-recipient-form">
       <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
-    {% if not recipient_locked %}
-      <input type="hidden" name="recipient" value="{{ recipient }}">
-      <input type="hidden" name="cc" value="{{ cc }}">
-    {% endif %}
-      <div><label>Destinatario</label><input name="recipient" type="email" value="{{ recipient }}" required></div>
-      <div><label>CC</label><input name="cc" value="{{ cc }}" placeholder="opzionale, separare più indirizzi con virgola"></div>
+      <div><label>Destinatario</label><input name="recipient" type="email" value="{{ recipient }}" list="external-recipients" required></div>
+      <div><label>CC</label><input name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola"></div>
+      <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}">{{ r.name }}</option>{% endfor %}</datalist>
       <button type="submit">Aggiorna anteprima</button>
     </form>
   {% endif %}
@@ -33,20 +30,24 @@
     {% if not recipient_locked %}
       <input type="hidden" name="recipient" value="{{ recipient }}">
       <input type="hidden" name="cc" value="{{ cc }}">
+      <label>Nome nuovo destinatario principale <input name="recipient_name" placeholder="Obbligatorio se email nuova"></label>
+      <label>Nome nuovo destinatario CC <input name="cc_name" placeholder="Obbligatorio se email CC nuova"></label>
     {% endif %}
-    {% if needs_documents %}
-      {% if inc.documents %}
-        <fieldset>
-          <legend>Seleziona i documenti da allegare</legend>
-          <div class="checkbox-list">
-            {% for d in inc.documents %}
-            <label><input type="checkbox" name="document_ids" value="{{ d.id }}"> {{ d.filename }}</label>
-            {% endfor %}
-          </div>
-        </fieldset>
-      {% else %}
-        <p class="error">Non sono presenti documenti allegati all’incidente: la notifica non può essere inviata perché il template usa <code>%DOCUMENTS%</code>.</p>
-      {% endif %}
+    {% if inc.documents %}
+      <fieldset>
+        <legend>Documenti da allegare</legend>
+        {% if template.linked_form_template_name %}<p class="muted">Template modulo associato: <strong>{{ template.linked_form_template_name }}</strong>. I documenti generati da questo template sono preselezionati.</p>{% endif %}
+        {% if linked_template_missing_warning %}<p class="warning">Non è presente un documento generato dal template associato: puoi selezionare manualmente altri documenti.</p>{% endif %}
+        <div class="checkbox-list">
+          {% for d in inc.documents %}
+          <label><input type="checkbox" name="document_ids" value="{{ d.id }}" {% if d.id in auto_document_ids %}checked{% endif %}> {{ d.filename }}{% if d.generated_template_name %} <span class="muted">({{ d.generated_template_name }})</span>{% endif %}</label>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% elif needs_documents %}
+      <p class="error">Non sono presenti documenti allegati all’incidente: la notifica non può essere inviata perché il template usa <code>%DOCUMENTS%</code>.</p>
+    {% elif linked_template_missing_warning %}
+      <p class="warning">Non è presente un documento generato dal template associato: la notifica può essere inviata senza allegati documentali.</p>
     {% endif %}
     <button type="submit" {% if (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
     <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
