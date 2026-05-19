@@ -50,6 +50,7 @@ class IncidentWorkflowStep(db.Model):
     action_label_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=False,index=True)
     position=db.Column(db.Integer,nullable=False,default=0,index=True)
     description=db.Column(db.Text,default='')
+    personal_data_only=db.Column(db.Boolean,default=False,nullable=False)
     created_at=db.Column(db.DateTime,default=datetime.utcnow)
     category=db.relationship('ConfigLabel',foreign_keys=[category_id])
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
@@ -62,7 +63,7 @@ class Recommendation(db.Model):
     created_at=db.Column(db.DateTime,default=datetime.utcnow)
 
 class Incident(db.Model):
-    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=True); recipient=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=datetime.utcnow)
 
     @property
     def start_at(self):

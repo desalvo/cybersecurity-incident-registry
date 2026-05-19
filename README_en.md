@@ -2,9 +2,9 @@
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
 
-## Version 0.2.1-13 - Platform consolidation and bilingual documentation
+## Version 0.2.1-17 - Personal-data workflow steps and admin notification for new users
 
-Version 0.2.1-13, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
+Version 0.2.1-17, build 2026051901, adds workflow steps conditional on personal data being involved and notifies the admin when LDAP/SSO automatically creates disabled users. It also keeps the incident Reference field mandatory and consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
 
 Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
 
@@ -101,7 +101,7 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.2.1-13
+- Version: 0.2.1-17
 - Build: 2026051901
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -463,13 +463,13 @@ Non-administrator users with the `writer` role, therefore allowed to write and e
 
 The incident detail page now shows, at the top of the form, the list of operations expected until closure. Operations already recorded through incident actions are highlighted as completed, while missing operations are highlighted separately. From **Admin → Incident operational workflows** administrators can configure a default workflow and category-specific workflows. Each step uses a configurable action label, may have a dedicated operational description and has a numeric order. If an incident has multiple categories, workflows are merged and duplicates are removed; if no selected category has a workflow, the default workflow is used.
 
-## Update 0.2.1-13 - Incident workflows with descriptions, deadlines and editable default flow
+## Update 0.2.1-17 - Incident workflows with descriptions, deadlines and editable default flow
 
 The incident detail page now uses the task description configured in the action list as the workflow-step caption when available, falling back to the task name. The description configured on the specific workflow step remains available as an additional operational note, so the same action can be reused multiple times with different meanings.
 
 For steps based on tasks with a maximum completion time, the application shows the limit, due time and remaining time only while the step has not yet been completed; if the remaining time is less than or equal to zero, the missing step is highlighted as critical. The calculation uses the same logic already used for scheduled deadline notifications. The initial default workflow is: Initial information, Analysis, CSIRT notification, DPO notification and Closure. All steps, including default-workflow steps, can be added, edited or deleted from **Admin → Incident operational workflows**.
 
-## Update 0.2.1-13 - Clickable workflow and procedural warnings placement
+## Update 0.2.1-17 - Clickable workflow and procedural warnings placement
 
 - In the incident detail page the **Procedural warnings** section is now displayed immediately below **Expected operations**, so missing activities and procedural checks are visible before the main incident form.
 - Workflow step cards are clickable: selecting a step automatically scrolls to the **Actions** section and prepares the form with the action label associated with the selected step.
@@ -479,21 +479,42 @@ For steps based on tasks with a maximum completion time, the application shows t
 ### Configurable application backups
 The **Admin → Backup** menu provides central management for scheduled and on-demand backups. Selectable categories are: incidents as CSV, application database, templates, logos and uploads. All categories are selected by default; when all are enabled the archive is an application full backup consistent with the full export. Supported destinations are local POSIX filesystem, S3/compatible storage and downloadable file for on-demand backups only. Scheduled backups use a five-field cron-like syntax and are disabled by default. Optional e-mail notifications can be sent to the admin user for success or failure.
 
-## Update 0.2.1-13 - External recipient search
+## Update 0.2.1-17 - External recipient search
 
 The **Admin → External recipients** and **Settings → External recipients** pages now include a search field to filter the shared address book by name, e-mail or notes. The filter is preserved while editing, saving or deleting, so the operator returns to the same filtered list after the operation.
 
-## Update 0.2.1-13 - Incident templates, user search and operational fixes
+## Update 0.2.1-17 - Incident templates, user search and operational fixes
 
 - **Admin → Users** includes search by username, name, e-mail, backend and role. User deletion realigns the audit sequence before recording the event, preventing `duplicate key value violates unique constraint` errors on imported databases or PostgreSQL sequences that are out of sync.
 - On the single incident page, in the **Actions** section, the `↻` button next to date/time refreshes the value to the current moment before adding the action.
 - **Admin → Incident templates** can create, edit and delete templates/profiles used to initialise new incidents. A template can include name, reference, recipient, description, severity, status, personal-data flag, categories, data types, people and recommendations.
 - A template can also be created from an existing incident: actions and documents are not copied. When a new incident is created from a template, start date and time are always set to the current moment.
 
-## Update 0.2.1-13 - Audit sequence fix for user operations
+## Update 0.2.1-17 - Audit sequence fix for user operations
 
 User creation, update and deletion write events to the `audit_log` table. On PostgreSQL installations restored from full import, backup restore or migrations with explicit IDs, the `audit_log` sequence could remain behind the existing rows and raise `duplicate key value violates unique constraint "audit_log_pkey"` during user operations. Audit handling now realigns the sequence through a separate persistent connection before critical inserts and retries the audit insert when a primary-key collision is detected. The fix also protects other features that write audit records.
 
-## Update 0.2.1-13 - Destructive full import with complete database recreation
+## Update 0.2.1-17 - Destructive full import with complete database recreation
 
 **Full import** is now a truly replacing procedure: after validating the `tar.gz` archive, the application drops and recreates the whole database schema before importing settings, users, audit records, configuration, incidents, relations and related data. This removes leftovers from previous versions, obsolete relation tables and misaligned PostgreSQL sequences. Before running a Full import in production, keep a recent backup of the database and persistent volumes. Physical files included in the archive are restored to the configured directories, while any already existing unreferenced files in the volumes can be handled through normal storage maintenance procedures.
+
+## Update 0.2.1-17 - User sequence fix
+
+Creating new users from **Admin → Users** now realigns the PostgreSQL sequence of the `user` table before insertion and automatically retries when a `user_pkey` collision is detected. This prevents errors after full import, restore or loads with explicit IDs; the same alignment is also applied to automatic LDAP/SSO user creation.
+
+## Update 0.2.1-17 - General duplicate-key protection
+
+PostgreSQL sequence realignment has been extended to every application table with an integer primary key. After a Full import or restore, the system recreates the schema, imports records with their original IDs and realigns all sequences derived from SQLAlchemy metadata. This prevents `duplicate key value violates unique constraint` errors in later creation of users, incidents, actions, documents, workflows, templates, recipients, backups, audit records and scheduler states.
+
+
+
+## Update 0.2.1-17 - Mandatory incident reference
+
+The **Reference** field is now mandatory for every incident. The rule is enforced when creating and editing incidents and is also handled during imports: older archives with an empty reference are normalized during startup migrations or Full import using a technical value based on the incident id. User and administrator documentation has been updated.
+
+
+## Update 0.2.1-17 - Personal-data conditional workflows and disabled-user admin notification
+
+In **Admin → Incident operational workflows** each step can be marked as **Only when personal data is involved**. The step remains part of the configured workflow, but it is considered among the expected incident operations only when the incident has the personal-data flag enabled. Workflow deduplication also takes this condition into account.
+
+When LDAP or SSO/OAuth2 automatically creates a user with the default `disabled` role, the application attempts to send an email to the `admin` user address stored in the database. The email includes username, backend, name, email, creation source and a direct link to **Admin → Users** to enable the account or change its role. Delivery is best-effort: SMTP problems do not block login/provisioning.

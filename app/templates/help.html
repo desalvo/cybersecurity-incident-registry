@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-section"><h2>0.2.1-17 - Operazioni previste condizionali</h2><p>Gli step delle operazioni previste configurati come validi solo per dati personali compaiono nella pagina incidente esclusivamente quando il flag <strong>Dati personali</strong> è attivo.</p></section>
 <div class="card help-content documentation" aria-labelledby="doc-title">
   <div class="page-header">
     <div>
@@ -22,9 +23,10 @@
   <p>I tooltip di aiuto dei campi incidente sono disponibili sia nella pagina di modifica/dettaglio sia nella pagina di creazione di un nuovo incidente.</p></section>
 
 
-  <section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1-13">
-    <h2>Sviluppi recenti della versione 0.2.1-13</h2>
-    <p>La versione 0.2.1-13 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
+  <section class="doc-section"><h2>0.2.1-16 - Riferimento obbligatorio</h2><p>In creazione e modifica incidente il campo <strong>Riferimento</strong> deve essere sempre compilato. Il destinatario delle comunicazioni resta opzionale e, se vuoto, continua a usare il riferimento.</p></section>
+<section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1-16">
+    <h2>Sviluppi recenti della versione 0.2.1-16</h2>
+    <p>La versione 0.2.1-16 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
     <p>Le informazioni di versione sono riportate in questa guida, nelle note di rilascio e nella pagina <strong>Info → Applicazione</strong>.</p>
   </section>
 
@@ -125,7 +127,7 @@
       <p>Nella form di modifica/visualizzazione, i campi principali mostrano un simbolo informativo accanto all’etichetta. Passando il mouse sul simbolo, o portandovi il focus da tastiera, viene visualizzato l’help online del campo.</p>
       <ul>
         <li><strong>Nome</strong>: nome dell’incidente, obbligatorio.</li>
-        <li><strong>Riferimento</strong>: riferimento dell’incidente, normalmente collegato all’utente che ha subito le conseguenze.</li>
+        <li><strong>Riferimento</strong>: campo obbligatorio; identifica il soggetto, utente o riferimento operativo collegato all’incidente.</li>
         <li><strong>Destinatario</strong>: destinatario delle comunicazioni; se vuoto viene usato il riferimento.</li>
         <li><strong>Descrizione</strong>: descrizione sintetica opzionale.</li>
         <li><strong>Gravità e Stato</strong>: livello di gravità e stato operativo, con chiusura automatica possibile solo se non restano avvisi procedurali attivi.</li>

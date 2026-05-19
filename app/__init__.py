@@ -19,7 +19,7 @@ def create_app():
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.2.1-13'),
+        'version': os.getenv('APP_VERSION','0.2.1-17'),
         'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
@@ -136,12 +136,16 @@ def run_schema_migrations(app):
                     app.logger.info('Schema migration applied: incident.%s added', col_name)
             if 'reference' not in cols:
                 with db.engine.begin() as conn:
-                    conn.execute(text('ALTER TABLE incident ADD COLUMN reference VARCHAR(255)'))
+                    conn.execute(text("ALTER TABLE incident ADD COLUMN reference VARCHAR(255) DEFAULT ''"))
                 app.logger.info('Schema migration applied: incident.reference added')
             if 'recipient' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident ADD COLUMN recipient VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident.recipient added')
+            if 'reference' in cols or 'reference' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
+                app.logger.info('Schema migration applied: incident.reference mandatory values normalized')
             if 'deadline_notifications_muted' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident ADD COLUMN deadline_notifications_muted BOOLEAN'))
@@ -281,6 +285,18 @@ def run_schema_migrations(app):
             with db.engine.begin() as conn:
                 conn.execute(text("UPDATE deadline_notification_state SET notification_type = 'deadline' WHERE notification_type IS NULL"))
                 conn.execute(text('UPDATE deadline_notification_state SET send_count = 1 WHERE send_count IS NULL OR send_count < 1'))
+
+        if 'incident_workflow_step' in tables:
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'personal_data_only' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN personal_data_only BOOLEAN'))
+                    conn.execute(text('UPDATE incident_workflow_step SET personal_data_only = FALSE WHERE personal_data_only IS NULL'))
+                app.logger.info('Schema migration applied: incident_workflow_step.personal_data_only added')
+            elif 'personal_data_only' in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('UPDATE incident_workflow_step SET personal_data_only = FALSE WHERE personal_data_only IS NULL'))
+
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}
             if 'action_label_id' not in cols:
@@ -371,7 +387,8 @@ def ensure_default_incident_workflow():
             category_id=None,
             action_label_id=label.id,
             position=idx * 10,
-            description=''
+            description='',
+            personal_data_only=False
         ))
 
 def repair_postgres_sequences(app):
@@ -385,24 +402,31 @@ def repair_postgres_sequences(app):
     if not str(db.engine.url).startswith('postgresql'):
         return
     sequence_map = [
+        # Ogni tabella applicativa con PK intera autoincrementale deve essere
+        # riallineata.  Dopo un Full import i record vengono reinseriti con ID
+        # espliciti: se una sola sequence resta indietro, il successivo INSERT
+        # può fallire con "duplicate key value violates unique constraint".
         ('user', 'id'),
+        ('audit_log', 'id'),
+        ('mfa_totp_token', 'id'),
         ('config_label', 'id'),
+        ('incident_workflow_step', 'id'),
         ('person', 'id'),
+        ('recommendation', 'id'),
         ('incident', 'id'),
+        ('incident_template', 'id'),
+        ('incident_reminder', 'id'),
         ('action', 'id'),
         ('action_attachment', 'id'),
         ('document', 'id'),
+        ('backup_job', 'id'),
+        ('deadline_notification_state', 'id'),
         ('notification_type', 'id'),
         ('notification_template', 'id'),
-        ('form_field_mapping', 'id'),
-        ('form_template_config', 'id'),
-        ('recommendation', 'id'),
-        ('mfa_totp_token', 'id'),
-        ('audit_log', 'id'),
-        ('incident_reminder', 'id'),
         ('external_recipient', 'id'),
-        ('backup_job', 'id'),
-        ('incident_template', 'id'),
+        ('form_template_config', 'id'),
+        ('form_template_binary', 'id'),
+        ('form_field_mapping', 'id'),
     ]
     try:
         with db.engine.begin() as conn:
@@ -456,6 +480,7 @@ def bootstrap(app):
             app.logger.exception('Unable to restore PDF form templates from database')
         admin=User.query.filter_by(username='admin', auth_provider='local').first()
         if not admin:
+            repair_postgres_sequences(app)
             admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='admin', is_ldap=False, auth_provider='local', password_hash=hash_password(os.getenv('ADMIN_INITIAL_PASSWORD','adminpass')))
             db.session.add(admin)
         else:

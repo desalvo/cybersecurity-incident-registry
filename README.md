@@ -2,9 +2,9 @@
 
 Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
-## Versione 0.2.1-13 - Consolidamento piattaforma e documentazione bilingue
+## Versione 0.2.1-17 - Workflow condizionali dati personali e notifica admin nuovi utenti
 
-La versione 0.2.1-13, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
+La versione 0.2.1-17, build 2026051901, aggiunge step workflow condizionati alla presenza di dati personali nell’incidente e invia una notifica all’admin quando LDAP/SSO crea automaticamente utenti disabled. Mantiene inoltre obbligatorio il campo Riferimento in ogni incidente e consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
 
 Le guide operative sono mantenute in entrambe le lingue. Le note di rilascio sono separate dalla documentazione operativa e consultabili dal menu Aiuto.
 
@@ -129,7 +129,7 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.2.1-13
+- Versione: 0.2.1-17
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -258,7 +258,7 @@ I campi sono disponibili anche per la generazione dei moduli PDF tramite il modu
 
 
 ## Aggiornamento campo Destinatario
-Ogni incidente include il campo opzionale **Destinatario**, usato per indicare l'utente destinatario delle comunicazioni di data breach. Se il campo non viene compilato, l'applicazione usa automaticamente il valore di **Riferimento**. Il campo è disponibile nelle form, nei mapping dei moduli PDF e nei template tramite il campo database `recipient`.
+Ogni incidente richiede il campo **Riferimento**, normalmente corrispondente all’utente o soggetto interessato dall’incidente. Il valore è obbligatorio sia in creazione sia in modifica e viene validato anche lato server. Ogni incidente include inoltre il campo opzionale **Destinatario**, usato per indicare l'utente destinatario delle comunicazioni di data breach. Se il campo non viene compilato, l'applicazione usa automaticamente il valore di **Riferimento**. Il campo è disponibile nelle form, nei mapping dei moduli PDF e nei template tramite il campo database `recipient`.
 
 ## Export completo
 
@@ -660,13 +660,13 @@ Gli utenti non amministratori con ruolo `writer`, quindi dotati di privilegi di 
 
 La pagina di dettaglio incidente mostra ora, in cima alla form, la lista delle operazioni previste fino alla conclusione. Le operazioni già registrate tramite azioni dell’incidente sono evidenziate come completate, mentre quelle ancora mancanti sono evidenziate separatamente. Da **Admin → Flussi operativi incidenti** è possibile configurare un flusso di default e flussi specifici per categoria. Ogni passo usa una label azione configurabile, può avere una descrizione operativa dedicata e un ordinamento numerico. Se un incidente ha più categorie, i flussi vengono sommati rimuovendo i duplicati; se nessuna categoria ha un flusso, viene usato quello di default.
 
-## Aggiornamento 0.2.1-13 - Workflow incidenti con descrizioni, scadenze e default modificabile
+## Aggiornamento 0.2.1-17 - Workflow incidenti con descrizioni, scadenze e default modificabile
 
 La scheda dello specifico incidente mostra ora gli step del workflow usando come didascalia la descrizione del task configurata nella lista azioni, se presente, e in alternativa il nome del task. La descrizione definita nello specifico workflow resta disponibile come nota operativa aggiuntiva del singolo passo, così la stessa azione può essere riutilizzata più volte con significati diversi.
 
 Per gli step basati su task con tempo massimo, l’applicazione mostra limite, scadenza e tempo rimanente solo finché lo step non è stato effettuato; se il tempo rimanente è minore o uguale a zero lo step mancante viene evidenziato come critico. Il calcolo usa la stessa logica già usata per le notifiche automatiche dei task schedulati. Il flusso di default iniziale è: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Conclusione. Tutti gli step, inclusi quelli del default, possono essere aggiunti, modificati o cancellati da **Admin → Flussi operativi incidenti**.
 
-## Aggiornamento 0.2.1-13 - Workflow cliccabile e avvisi procedurali in evidenza
+## Aggiornamento 0.2.1-17 - Workflow cliccabile e avvisi procedurali in evidenza
 
 - Nella pagina del singolo incidente la sezione **Avvisi procedurali** è ora mostrata subito sotto **Operazioni previste**, così le attività mancanti e i controlli procedurali sono consultabili prima della scheda principale.
 - I riquadri degli step di workflow sono cliccabili: selezionando uno step la pagina scorre automaticamente alla sezione **Azioni** e predispone la form con la label dell’azione associata allo step.
@@ -676,21 +676,42 @@ Per gli step basati su task con tempo massimo, l’applicazione mostra limite, s
 ### Backup applicativi configurabili
 Dal menu **Admin → Backup** è disponibile una gestione centralizzata dei backup periodici e on-demand. Le categorie selezionabili sono: incidenti in CSV, database applicativo, template, loghi e uploads. Tutte le categorie sono selezionate per default; quando sono tutte abilitate il backup rappresenta un full backup applicativo coerente con il full export. Le destinazioni supportate sono filesystem POSIX locale, S3/compatibile e file scaricabile per il solo backup on-demand. I backup schedulati usano una sintassi cron-like a cinque campi e sono disabilitati per default. È possibile abilitare notifiche e-mail all’admin per esito positivo o errore.
 
-## Aggiornamento 0.2.1-13 - Ricerca destinatari esterni
+## Aggiornamento 0.2.1-17 - Ricerca destinatari esterni
 
 Le pagine **Admin → Destinatari esterni** e **Impostazioni → Destinatari esterni** includono ora un campo di ricerca per filtrare la rubrica condivisa per nome, e-mail o note. Il filtro resta attivo durante modifica, salvataggio o cancellazione, così l'operatore rientra nello stesso elenco filtrato dopo l'operazione.
 
-## Aggiornamento 0.2.1-13 - Modelli incidente, ricerca utenti e correzioni operative
+## Aggiornamento 0.2.1-17 - Modelli incidente, ricerca utenti e correzioni operative
 
 - **Admin → Utenti** include una ricerca per username, nome, email, backend e ruolo. La cancellazione utenti riallinea la sequence dell’audit prima di registrare l’evento, evitando errori `duplicate key value violates unique constraint` in database importati o con sequence PostgreSQL non allineate.
 - Nella pagina del singolo incidente, sezione **Azioni**, il pulsante `↻` accanto a data e ora aggiorna il valore al momento corrente prima dell’inserimento dell’azione.
 - **Admin → Modelli incidente** permette di creare, modificare e cancellare modelli/profili per inizializzare nuovi incidenti. Un modello può includere nome, riferimento, destinatario, descrizione, gravità, stato, flag dati personali, categorie, dati interessati, personale e raccomandazioni.
 - Un modello può essere creato anche da un incidente esistente: azioni e documenti non vengono copiati. Quando un nuovo incidente viene creato da modello, data e ora di inizio sono sempre quelle correnti.
 
-## Aggiornamento 0.2.1-13 - Correzione sequence audit nelle operazioni utenti
+## Aggiornamento 0.2.1-17 - Correzione sequence audit nelle operazioni utenti
 
 Le operazioni di aggiunta, modifica e cancellazione utenti registrano eventi nella tabella `audit_log`. In installazioni PostgreSQL ripristinate da full import, restore o migrazioni con ID espliciti, la sequence della tabella `audit_log` poteva restare disallineata e provocare l'errore `duplicate key value violates unique constraint "audit_log_pkey"` durante le operazioni sugli utenti. La gestione audit ora riallinea la sequence con una connessione separata e persistente prima degli inserimenti critici e riprova l'inserimento audit se viene rilevata una collisione sulla chiave primaria. La correzione si applica anche alle altre funzioni che usano il registro audit.
 
-## Aggiornamento 0.2.1-13 - Full import distruttivo con ricreazione completa del database
+## Aggiornamento 0.2.1-17 - Full import distruttivo con ricreazione completa del database
 
 Il **Full import** è ora una procedura realmente sostitutiva: dopo la validazione dell'archivio `tar.gz`, l'applicazione elimina e ricrea completamente lo schema del database prima di importare impostazioni, utenti, audit, configurazioni, incidenti, relazioni e dati collegati. Questo comportamento rimuove residui di versioni precedenti, tabelle di relazione obsolete e sequence PostgreSQL disallineate. Prima di eseguire un Full import in produzione è obbligatorio disporre di un backup recente del database e dei volumi persistenti. I file fisici inclusi nell'archivio vengono ripristinati nelle directory configurate, mentre eventuali file non referenziati già presenti nei volumi possono essere gestiti con le normali procedure di manutenzione dello storage.
+
+## Aggiornamento 0.2.1-17 - Correzione sequence utenti
+
+La creazione di nuovi utenti da **Admin → Utenti** riallinea preventivamente la sequence PostgreSQL della tabella `user` e ritenta automaticamente l’inserimento se viene rilevata una collisione `user_pkey`. La protezione evita errori dopo full import, restore o caricamenti con ID espliciti; la stessa logica di riallineamento è applicata anche alle creazioni automatiche LDAP/SSO.
+
+## Aggiornamento 0.2.1-17 - Protezione generale contro errori duplicate key
+
+È stato esteso il riallineamento delle sequence PostgreSQL a tutte le tabelle applicative con chiave primaria intera. Dopo un Full import o un restore, il sistema ricrea lo schema, importa i record con gli ID originali e riallinea tutte le sequence derivate dai metadati SQLAlchemy. Questo evita errori del tipo `duplicate key value violates unique constraint` nelle successive creazioni di utenti, incidenti, azioni, documenti, workflow, template, destinatari, backup, audit e stati scheduler.
+
+
+
+## Aggiornamento 0.2.1-17 - Riferimento obbligatorio negli incidenti
+
+Il campo **Riferimento** è ora obbligatorio per ogni incidente. La regola è applicata nella creazione, nella modifica e negli import: gli archivi storici con riferimento vuoto vengono normalizzati durante le migrazioni o il Full import usando un valore tecnico basato sull’id dell’incidente. La documentazione utente e amministrativa è stata aggiornata.
+
+
+## Aggiornamento 0.2.1-17 - Workflow condizionali dati personali e notifica admin utenti disabled
+
+In **Admin → Flussi operativi incidenti** ogni step può essere marcato come **Solo se sono coinvolti dati personali**. Lo step resta configurato nel flusso, ma nella pagina dell’incidente viene considerato tra le operazioni previste solo quando l’incidente ha il flag dati personali attivo. La deduplica dei flussi tiene conto anche di questa condizione.
+
+Quando un utente viene creato automaticamente da LDAP o SSO/OAuth2 con ruolo predefinito `disabled`, l’applicazione tenta di inviare una mail all’utente `admin` usando l’indirizzo configurato nel database. La mail contiene username, backend, nome, email, origine della creazione e il link diretto ad **Admin → Utenti** per abilitarlo o modificarne il ruolo. L’invio è best-effort: eventuali problemi SMTP non bloccano il login/provisioning.

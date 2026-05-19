@@ -353,8 +353,42 @@ def align_table_sequence(table_name):
         ))
 
 
+def sequence_managed_table_names():
+    """Restituisce tutte le tabelle con colonna ``id`` intera da riallineare.
+
+    La lista viene ricavata dai metadati SQLAlchemy, così nuove tabelle con PK
+    autoincrementale saranno protette senza dover ricordare di aggiungerle a
+    mano a una mappa parziale. Le tabelle associative senza colonna ``id`` sono
+    escluse perché non hanno sequence dedicate.
+    """
+    names = []
+    for table in db.metadata.sorted_tables:
+        column = table.c.get('id')
+        if column is None:
+            continue
+        try:
+            is_integer = column.type.python_type is int
+        except NotImplementedError:
+            is_integer = False
+        if is_integer:
+            names.append(table.name)
+    return names
 
 
+def align_all_table_sequences():
+    """Riallinea tutte le sequence PostgreSQL delle PK applicative.
+
+    Da usare dopo full import/restore e come recupero generalizzato quando una
+    qualsiasi INSERT segnala ``duplicate key value violates unique constraint``.
+    """
+    if not str(db.engine.url).startswith('postgresql'):
+        return
+    for table_name in sequence_managed_table_names():
+        align_table_sequence(table_name)
+
+
+def is_duplicate_key_integrity_error(exc):
+    return 'duplicate key value violates unique constraint' in str(exc)
 
 
 NON_EXPORTABLE_ACTION_KEYWORDS = (
@@ -587,20 +621,36 @@ def people_from_form(field_name='people'):
 def commit_with_sequence_retry(sequence_tables=None):
     """Commit robusto contro sequence PostgreSQL disallineate.
 
-    Non assegna mai ID applicativi; in caso di duplicate key su INSERT riallinea
-    le sequence indicate e ritenta una sola volta.
+    In caso di ``duplicate key value violates unique constraint`` riallinea
+    tutte le sequence note, oppure quelle richieste dal chiamante, e ritenta
+    una sola volta. Se il rollback ha annullato oggetti pending non più
+    riutilizzabili, l'eccezione viene rilanciata con log esplicito.
     """
     sequence_tables = sequence_tables or []
     try:
         db.session.commit()
+        return
     except IntegrityError as exc:
         db.session.rollback()
-        if 'duplicate key value violates unique constraint' not in str(exc):
+        if not is_duplicate_key_integrity_error(exc):
             raise
-        for table in sequence_tables:
-            align_table_sequence(table)
-        flash('Sequenze del database riallineate: ripetere il salvataggio se necessario.', 'warning')
-        raise
+        current_app.logger.warning('Duplicate key rilevata; riallineo le sequence PostgreSQL e ritento il commit')
+        try:
+            if sequence_tables:
+                for table in sequence_tables:
+                    align_table_sequence(table)
+            else:
+                align_all_table_sequences()
+        except Exception:
+            current_app.logger.exception('Riallineamento sequence fallito dopo duplicate key')
+            raise
+        try:
+            db.session.commit()
+            return
+        except IntegrityError:
+            current_app.logger.exception('Duplicate key persistente dopo riallineamento sequence')
+            db.session.rollback()
+            raise
 
 def add_notification_action_safely(inc, label, description):
     """Crea l'azione automatica senza assegnare manualmente la PK.
@@ -691,7 +741,7 @@ def labels(kind): return ConfigLabel.query.filter_by(kind=kind).order_by(ConfigL
 
 
 def workflow_step_key(step):
-    return (int(step.action_label_id or 0), (step.description or '').strip().lower())
+    return (int(step.action_label_id or 0), (step.description or '').strip().lower(), bool(getattr(step, 'personal_data_only', False)))
 
 def workflow_steps_for_incident(inc):
     category_ids = [c.id for c in (inc.categories or [])]
@@ -703,6 +753,8 @@ def workflow_steps_for_incident(inc):
     seen = set()
     deduped = []
     for row in rows:
+        if getattr(row, 'personal_data_only', False) and not getattr(inc, 'personal_data', False):
+            continue
         key = workflow_step_key(row)
         if key in seen:
             continue
@@ -748,6 +800,7 @@ def incident_workflow_status(inc):
             'label': (label.description or label.value) if label else '',
             'task_name': label.value if label else '',
             'description': step.description or '',
+            'personal_data_only': bool(getattr(step, 'personal_data_only', False)),
             'position': step.position,
             'done': done,
             'missing': not done,
@@ -1120,11 +1173,17 @@ def sso_user_from_claims(claims, cfg):
         user = User.query.filter_by(auth_provider=provider_key, external_id=external_subject).first()
     if not user:
         user = User.query.filter_by(username=username, auth_provider=provider_key).first()
+    created_auto = False
     if not user:
         if not bool_setting(cfg, 'sso_auto_create_users', True):
             raise ValueError('Utente SSO non registrato e creazione automatica disabilitata')
+        try:
+            align_table_sequence('user')
+        except Exception:
+            current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente SSO')
         user = User(username=username, name=name, email=email, role=cfg.get('sso_default_role') or 'disabled', is_ldap=False, auth_provider=provider_key, external_id=external_subject, password_hash=None)
         db.session.add(user)
+        created_auto = True
     else:
         user.name = name or user.name
         user.email = email or user.email
@@ -1133,6 +1192,8 @@ def sso_user_from_claims(claims, cfg):
             user.external_id = external_subject
         user.is_ldap = False
     db.session.commit()
+    if created_auto and user.role == 'disabled':
+        notify_admin_disabled_user_created(user, source='SSO/OAuth2')
     return user
 
 def ldap_auth(username,password):
@@ -1160,7 +1221,11 @@ def login():
         if info:
             user=User.query.filter_by(username=u, auth_provider='ldap').first()
             if not user:
-                user=User(username=u,is_ldap=True,auth_provider='ldap',name=info['name'],email=info['email'],role='disabled'); db.session.add(user); db.session.commit()
+                try:
+                    align_table_sequence('user')
+                except Exception:
+                    current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente LDAP')
+                user=User(username=u,is_ldap=True,auth_provider='ldap',name=info['name'],email=info['email'],role='disabled'); db.session.add(user); db.session.commit(); notify_admin_disabled_user_created(user, source='LDAP')
             else:
                 user.name=info['name']; user.email=info['email']; user.is_ldap=True; user.auth_provider='ldap'; db.session.commit()
             if user.role=='disabled': flash('Utente LDAP registrato ma disabilitato.','error'); return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled())
@@ -1491,9 +1556,14 @@ def incident_new():
     if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.index'))
     selected_template = IncidentTemplate.query.get(request.args.get('template_id', type=int)) if request.args.get('template_id') else None
     if request.method=='POST':
+        reference_value = (request.form.get('reference') or '').strip()
+        if not reference_value:
+            flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
+            now_dt = application_now()
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'))
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
-        inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=request.form.get('reference') or None,recipient=request.form.get('recipient') or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
+        inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=request.form.get('recipient') or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
         sync_incident_split_datetime(inc)
         inc.categories = labels_from_form('category', 'categories')
         inc.data_types = labels_from_form('data_type', 'data_types')
@@ -1521,7 +1591,11 @@ def incident_detail(iid):
     if request.method=='POST':
         if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.incident_detail',iid=iid))
         requested_status = request.form.get('status')
-        inc.name=request.form['name']; inc.reference=request.form.get('reference') or None; inc.recipient=request.form.get('recipient') or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc)
+        reference_value = (request.form.get('reference') or '').strip()
+        if not reference_value:
+            section_flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'incident-main', 'danger')
+            return incident_detail_redirect(iid, 'incident-main')
+        inc.name=request.form['name']; inc.reference=reference_value; inc.recipient=request.form.get('recipient') or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc)
         if requested_status == 'chiuso' and incident_procedural_status(inc)['has_warnings']:
             section_flash('Impossibile chiudere l’incidente: sono ancora presenti avvisi procedurali attivi.', 'incident-main', 'danger')
         else:
@@ -1645,7 +1719,7 @@ def incident_delete(iid):
 @login_required
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
-    src=Incident.query.get_or_404(iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=src.reference,recipient=src.recipient,description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=datetime.utcnow(),status='aperto')
+    src=Incident.query.get_or_404(iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=datetime.utcnow(),status='aperto')
     sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
 def create_manual_action_safely(iid):
     """Crea una nuova azione manuale senza assegnare ID espliciti.
@@ -1821,6 +1895,7 @@ def admin_incident_workflows():
             category_id = request.form.get('category_id', type=int) if scope == 'category' else None
             action_label_id = request.form.get('action_label_id', type=int)
             description = (request.form.get('description') or '').strip()
+            personal_data_only = bool(request.form.get('personal_data_only'))
             position = request.form.get('position', type=int)
             if not action_label_id:
                 flash('Selezionare una azione del flusso','error')
@@ -1829,7 +1904,7 @@ def admin_incident_workflows():
                     q = IncidentWorkflowStep.query.filter_by(category_id=category_id)
                     last = q.order_by(IncidentWorkflowStep.position.desc()).first()
                     position = (last.position + 10) if last else 10
-                db.session.add(IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, position=position))
+                db.session.add(IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, position=position))
                 db.session.commit(); flash('Passo del flusso aggiunto','success')
         elif action == 'save':
             ids = request.form.getlist('step_id')
@@ -1838,6 +1913,7 @@ def admin_incident_workflows():
                 if not step: continue
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()
+                step.personal_data_only = bool(request.form.get(f'personal_data_only_{sid}'))
                 new_label = request.form.get(f'action_label_id_{sid}', type=int)
                 if new_label: step.action_label_id = new_label
             db.session.commit(); flash('Flussi aggiornati','success')
@@ -2304,8 +2380,23 @@ def admin_users():
         if User.query.filter_by(username=username, auth_provider=backend).first():
             flash('Esiste già un utente con la stessa combinazione username + backend.', 'error')
             return redirect(url_for('main.admin_users'))
+        try:
+            align_table_sequence('user')
+        except Exception:
+            current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente')
         u=User(username=username,name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(request.form.get('password','changeme')) if backend == 'local' else None)
-        db.session.add(u); db.session.commit()
+        db.session.add(u)
+        try:
+            db.session.commit()
+        except IntegrityError as exc:
+            db.session.rollback()
+            if 'user_pkey' not in str(exc):
+                raise
+            current_app.logger.warning('Sequence user disallineata; riallineo e riprovo la creazione utente')
+            align_table_sequence('user')
+            u=User(username=username,name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(request.form.get('password','changeme')) if backend == 'local' else None)
+            db.session.add(u)
+            db.session.commit()
         audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
         flash('Utente aggiunto.')
     search_query=(request.args.get('q') or '').strip()
@@ -2926,6 +3017,60 @@ def smtp_sender_address():
     except Exception:
         user_email = ''
     return default_sender or user_email or username or 'admin@localhost.localdomain'
+
+
+def notify_admin_disabled_user_created(user, source='auto'):
+    """Invia una mail all'admin quando viene creato automaticamente un utente disabled.
+
+    La notifica è best-effort: eventuali problemi SMTP non devono impedire login,
+    provisioning o creazione dell'utente.
+    """
+    try:
+        if not user or getattr(user, 'role', None) != 'disabled':
+            return False, 'utente non disabled'
+        admin = User.query.filter_by(username='admin', auth_provider='local').first() or User.query.filter_by(role='admin').order_by(User.id).first()
+        admin_email = (getattr(admin, 'email', '') or '').strip()
+        if not admin_email:
+            return False, 'email admin non configurata'
+        host = setting_value('smtp_host')
+        if not host:
+            return False, 'SMTP non configurato'
+        base = (setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000').rstrip('/')
+        users_url = f'{base}/admin/users'
+        msg = EmailMessage()
+        msg['From'] = smtp_sender_address()
+        msg['To'] = admin_email
+        msg['Subject'] = 'Nuovo utente creato automaticamente in stato disabled'
+        msg.set_content(
+            'È stato creato automaticamente un nuovo utente con ruolo disabled.\n\n'
+            f'Username: {user.username or "-"}\n'
+            f'Backend: {user.auth_provider or "-"}\n'
+            f'Nome: {user.name or "-"}\n'
+            f'Email: {user.email or "-"}\n'
+            f'Origine: {source}\n\n'
+            'Per abilitarlo o modificarne il ruolo aprire direttamente la gestione utenti:\n'
+            f'{users_url}\n'
+        )
+        try:
+            port = int(setting_value('smtp_port', '587') or '587')
+        except ValueError:
+            return False, 'porta SMTP non valida'
+        smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
+        with smtp_cls(host, port, timeout=20) as smtp:
+            if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
+                smtp.starttls()
+            if setting_value('smtp_auth_enabled', '0') == '1':
+                username = setting_value('smtp_username')
+                if not username:
+                    return False, 'autenticazione SMTP abilitata senza username'
+                smtp.login(username, setting_value('smtp_password') or '')
+            smtp.send_message(msg)
+        audit_log('users:auto_disabled_admin_notification_sent', {'user_id': user.id, 'username': user.username, 'backend': user.auth_provider, 'admin_email': admin_email}, actor_type='system', commit=True)
+        return True, admin_email
+    except Exception as exc:
+        current_app.logger.exception('Invio notifica admin per utente disabled non riuscito')
+        return False, str(exc)
+
 
 def send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=None, attach_statistics=False):
     sender = smtp_sender_address()
@@ -3631,13 +3776,10 @@ def run_deadline_notification_check(force=False, source='request'):
             audit_log('scheduler:deadline_notification_check', json.dumps(result, ensure_ascii=False), actor_type='scheduler')
             db.session.commit()
             if str(db.engine.url).startswith('postgresql'):
-                for model in FULL_EXPORT_TABLES.values():
-                    table_name = getattr(model, '__tablename__', None)
-                    if table_name:
-                        try:
-                            align_table_sequence(table_name)
-                        except Exception:
-                            current_app.logger.exception('Riallineamento sequence post-import fallito per %s', table_name)
+                try:
+                    align_all_table_sequences()
+                except Exception:
+                    current_app.logger.exception('Riallineamento generale sequence post-import fallito')
             purge_audit_logs()
             db.session.commit()
         return result
@@ -4906,10 +5048,10 @@ def _table_rows(table):
     return [_table_row(row) for row in db.session.execute(stmt).mappings().all()]
 
 FULL_EXPORT_MODELS = [
-    Setting, User, MfaTotpToken, ConfigLabel, Person, Recommendation,
+    Setting, User, MfaTotpToken, ConfigLabel, IncidentWorkflowStep, Person, Recommendation,
     NotificationType, NotificationTemplate, FormTemplateConfig,
     FormTemplateBinary, FormFieldMapping, IncidentTemplate, Incident, Action, Document,
-    ActionAttachment, IncidentReminder, DeadlineNotificationState, ExternalRecipient, AuditLog,
+    ActionAttachment, IncidentReminder, DeadlineNotificationState, ExternalRecipient, BackupJob, AuditLog,
 ]
 
 FULL_EXPORT_TABLES = {
@@ -5234,7 +5376,7 @@ def import_csv():
                     creator_name=current_user.name or current_user.username,
                     creator_email=current_user.email,
                     name=name,
-                    reference=row.get('riferimento') or row.get('reference') or None,
+                    reference=((row.get('riferimento') or row.get('reference') or '').strip() or f'Incidente importato {name}'),
                     recipient=row.get('destinatario') or row.get('recipient') or None,
                     description=row.get('descrizione') or row.get('description') or '',
                     start_at=start_at,
@@ -5339,7 +5481,10 @@ def import_full():
                 db.session.flush()
 
                 for row in tables.get('incidents', []):
-                    db.session.add(Incident(**_coerce_row_for_model(Incident, row)))
+                    coerced = _coerce_row_for_model(Incident, row)
+                    if not (coerced.get('reference') or '').strip():
+                        coerced['reference'] = f"Incidente #{coerced.get('id') or coerced.get('name') or 'importato'}"
+                    db.session.add(Incident(**coerced))
                 db.session.flush()
 
                 for row in tables.get('actions', []):
@@ -5468,6 +5613,9 @@ def import_full():
                     with open(os.path.join(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', name), 'wb') as out:
                         shutil.copyfileobj(src, out)
 
+            # Garantisce che anche gli archivi storici precedenti alla regola del campo obbligatorio
+            # producano incidenti sempre completi dopo il Full import.
+            db.session.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
             purge_audit_logs()
             db.session.commit()
             flash('Import completo completato: database distrutto e ricreato, configurazioni, audit log, utenti, MFA, notifiche, logo, documenti, allegati e template moduli PDF ripristinati. I record audit oltre retention sono stati eliminati.','info')

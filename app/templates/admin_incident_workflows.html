@@ -13,6 +13,7 @@
     <div><label>Azione prevista</label><select name="action_label_id" required>{% for a in action_labels %}<option value="{{a.id}}">{{a.value}}</option>{% endfor %}</select></div>
     <div><label>Ordine</label><input type="number" name="position" placeholder="automatico"></div>
     <div class="wide"><label>Descrizione operativa</label><input name="description" placeholder="Descrizione specifica del passo nel flusso"></div>
+    <div><label><input type="checkbox" name="personal_data_only" value="1"> Solo se sono coinvolti dati personali</label></div>
     <div><button>Aggiungi</button></div>
   </form>
 </div>
@@ -24,13 +25,14 @@
     <form method="post">
       <input type="hidden" name="action" value="save">
       <table class="table compact-table">
-        <thead><tr><th>Ordine</th><th>Azione</th><th>Descrizione nel flusso</th><th>Azioni</th></tr></thead>
+        <thead><tr><th>Ordine</th><th>Azione</th><th>Descrizione nel flusso</th><th>Condizione</th><th>Azioni</th></tr></thead>
         <tbody>
           {% for step in rows %}
           <tr>
             <td><input type="hidden" name="step_id" value="{{step.id}}"><input type="number" name="position_{{step.id}}" value="{{step.position}}"></td>
             <td><select name="action_label_id_{{step.id}}">{% for a in action_labels %}<option value="{{a.id}}" {% if step.action_label_id==a.id %}selected{% endif %}>{{a.value}}</option>{% endfor %}</select></td>
             <td><input name="description_{{step.id}}" value="{{step.description or ''}}"></td>
+            <td><label><input type="checkbox" name="personal_data_only_{{step.id}}" value="1" {% if step.personal_data_only %}checked{% endif %}> Solo dati personali</label></td>
             <td><button type="submit" class="secondary">Salva</button> <button class="danger" type="submit" form="del-step-{{step.id}}">Elimina</button></td>
           </tr>
           {% endfor %}
