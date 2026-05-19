@@ -535,38 +535,32 @@ def close_incident_from_conclusion_action(incident_id, action):
 
 
 def incident_procedural_status(inc):
-    """Calcola in modo centralizzato gli avvisi procedurali di un incidente.
+    """Calcola gli avvisi procedurali dagli step workflow richiesti e mancanti.
 
-    La notifica all'utente è richiesta: se non è presente un'azione
-    riconducibile a tale notifica, l'incidente deve esporre un avviso sia nel
-    dettaglio sia nella lista principale.
+    Gli avvisi procedurali non sono più hard-coded sui singoli tipi di notifica:
+    derivano dagli step applicabili al singolo incidente che l'amministratore ha
+    marcato come richiesti nella definizione del workflow. Ogni avviso mostra la
+    descrizione operativa dello step, quando presente, altrimenti la descrizione
+    o il nome del task/label azione.
     """
-    def _action_text(action):
-        parts = []
-        if action.label and action.label.value:
-            parts.append(action.label.value)
-        if action.description:
-            parts.append(action.description)
-        return ' '.join(parts).strip().lower().replace('’', "'")
-
-    action_texts = [_action_text(a) for a in (inc.actions or [])]
+    workflow = incident_workflow_status(inc)
+    missing_required = [
+        step for step in workflow.get('steps', [])
+        if step.get('required', True) and not step.get('done')
+    ]
+    warnings = [step.get('warning_text') or step.get('label') or step.get('task_name') for step in missing_required]
     status = {
-        'has_csirt_notification': any('comunicazione allo csirt' in value for value in action_texts),
-        'has_dpo_notification': any('comunicazione al dpo' in value for value in action_texts),
-        'has_privacy_authority_notification': any('comunicazione al garante della privacy' in value for value in action_texts),
-        'has_user_notification': any('notifica' in value and 'utente' in value for value in action_texts),
+        'warnings': warnings,
+        'warning_steps': missing_required,
+        'has_warnings': bool(warnings),
+        # Compatibilità con template/route storici: i nuovi avvisi non dipendono
+        # più da questi flag specifici, ma li manteniamo veri quando non esiste
+        # un avviso esplicito della relativa famiglia.
+        'has_csirt_notification': not any('csirt' in (w or '').lower() for w in warnings),
+        'has_dpo_notification': not any('dpo' in (w or '').lower() for w in warnings),
+        'has_privacy_authority_notification': not any(('garante' in (w or '').lower() or 'privacy' in (w or '').lower()) for w in warnings),
+        'has_user_notification': not any('utente' in (w or '').lower() for w in warnings),
     }
-    warnings = []
-    if not status['has_csirt_notification']:
-        warnings.append('Notifica CSIRT richiesta')
-    if not status['has_dpo_notification']:
-        warnings.append('Notifica DPO richiesta')
-    if inc.personal_data and not status['has_privacy_authority_notification']:
-        warnings.append('Notifica al Garante Privacy da valutare')
-    if not status['has_user_notification']:
-        warnings.append("Notifica all'utente richiesta")
-    status['warnings'] = warnings
-    status['has_warnings'] = bool(warnings)
     return status
 
 def annotate_procedural_status(incidents):
@@ -863,6 +857,8 @@ def incident_workflow_status(inc):
             'task_name': label.value if label else '',
             'description': step.description or '',
             'personal_data_only': bool(getattr(step, 'personal_data_only', False)),
+            'required': bool(getattr(step, 'required', True)),
+            'warning_text': (step.description or ((label.description or label.value) if label else '')),
             'requires_notification': requires_notification,
             'required_notification_type': required_notification_type,
             'required_notification_label': ntype.label if ntype else required_notification_type,
@@ -884,6 +880,8 @@ def incident_workflow_status(inc):
     return {'steps': items, 'completed': sum(1 for x in items if x['done']), 'total': len(items), 'all_done': bool(items) and all(x['done'] for x in items), 'ordered': len(items) > 1 and any((x.get('position') or 0) != 0 for x in items)}
 def can_write(): return current_user.role in ['admin','writer']
 def can_admin(): return current_user.role=='admin'
+def is_builtin_admin_user():
+    return current_user.is_authenticated and (current_user.username or '').strip().lower() == 'admin' and (getattr(current_user, 'auth_provider', 'local') or 'local') == 'local'
 def can_manage_external_recipients_from_settings(): return current_user.is_authenticated and current_user.role == 'writer'
 
 def mfa_required_for(user):
@@ -1696,6 +1694,7 @@ def incident_detail(iid):
         has_dpo_notification=procedural_status['has_dpo_notification'],
         has_privacy_authority_notification=procedural_status['has_privacy_authority_notification'],
         has_user_notification=procedural_status['has_user_notification'],
+        procedural_warnings=procedural_status['warnings'],
         notification_types=notification_type_records(),
         form_templates=list_templates(),
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),
@@ -2012,6 +2011,7 @@ def admin_incident_workflows():
             action_label_id = request.form.get('action_label_id', type=int)
             description = (request.form.get('description') or '').strip()
             personal_data_only = bool(request.form.get('personal_data_only'))
+            required = bool(request.form.get('required'))
             requires_notification = bool(request.form.get('requires_notification'))
             required_notification_type = (request.form.get('required_notification_type') or '').strip() or None
             position = request.form.get('position', type=int)
@@ -2029,7 +2029,7 @@ def admin_incident_workflows():
                 # collisione concorrente, ricostruiamo l'oggetto dopo rollback e
                 # ritentiamo con sequence riallineata.
                 align_table_sequence('incident_workflow_step')
-                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
+                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
                 db.session.add(step)
                 try:
                     db.session.commit()
@@ -2039,7 +2039,7 @@ def admin_incident_workflows():
                         raise
                     current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
                     align_table_sequence('incident_workflow_step')
-                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
+                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
                     db.session.add(step)
                     db.session.commit()
                 flash('Passo del flusso aggiunto','success')
@@ -2051,6 +2051,7 @@ def admin_incident_workflows():
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()
                 step.personal_data_only = bool(request.form.get(f'personal_data_only_{sid}'))
+                step.required = bool(request.form.get(f'required_{sid}'))
                 step.requires_notification = bool(request.form.get(f'requires_notification_{sid}'))
                 step.required_notification_type = (request.form.get(f'required_notification_type_{sid}') or '').strip() or None
                 new_label = request.form.get(f'action_label_id_{sid}', type=int)
@@ -3112,8 +3113,9 @@ def auto_selected_notification_documents(inc, template, kind=None):
 def get_external_recipients():
     return ExternalRecipient.query.order_by(ExternalRecipient.name, ExternalRecipient.email).all()
 
-def ensure_external_recipients_from_addresses(addresses, names_by_email=None):
+def ensure_external_recipients_from_addresses(addresses, names_by_email=None, default_name=None):
     names_by_email = names_by_email or {}
+    default_name = (default_name or '').strip()
     added = []
     for email in split_addresses(addresses):
         normalized = email.strip().lower()
@@ -3121,7 +3123,7 @@ def ensure_external_recipients_from_addresses(addresses, names_by_email=None):
             continue
         existing = ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == normalized).first()
         if not existing:
-            name = (names_by_email.get(normalized) or names_by_email.get(email) or '').strip()
+            name = (names_by_email.get(normalized) or names_by_email.get(email) or default_name).strip()
             if not name:
                 local_part = normalized.split('@', 1)[0]
                 name = local_part.replace('.', ' ').replace('_', ' ').title() or normalized
@@ -4428,6 +4430,9 @@ def notify_preview(iid, kind):
     if not can_write():
         flash('Permessi insufficienti per inviare notifiche','error')
         return redirect(url_for('main.incident_detail', iid=iid))
+    admin_send_blocked = is_builtin_admin_user()
+    if admin_send_blocked:
+        flash('L’utente admin non può inviare notifiche dalla pagina degli incidenti. Accedere con un altro utente autorizzato.', 'error')
     ensure_default_notification_templates(); db.session.commit()
     if ntype.recipient_mode == 'settings':
         recipient = setting_value(ntype.recipient_setting_key)
@@ -4454,7 +4459,7 @@ def notify_preview(iid, kind):
     if needs_documents and not inc.documents:
         flash('Il template contiene %DOCUMENTS%, ma non sono presenti documenti allegati all’incidente. Invio bloccato.', 'error')
     external_recipients = get_external_recipients() if not recipient_locked else []
-    return render_template('notification_preview.html', inc=inc, kind=kind, title=title, sender=current_user.email or '', recipient=recipient, cc=cc, subject=subject, body=body, attach_report=attach_report, attach_statistics=attach_statistics, needs_documents=needs_documents, template=tmpl, templates=templates, recipient_locked=recipient_locked, auto_document_ids=auto_document_ids, linked_template_missing_warning=linked_template_missing_warning, external_recipients=external_recipients)
+    return render_template('notification_preview.html', inc=inc, kind=kind, title=title, sender=current_user.email or '', recipient=recipient, cc=cc, subject=subject, body=body, attach_report=attach_report, attach_statistics=attach_statistics, needs_documents=needs_documents, template=tmpl, templates=templates, recipient_locked=recipient_locked, auto_document_ids=auto_document_ids, linked_template_missing_warning=linked_template_missing_warning, external_recipients=external_recipients, admin_send_blocked=admin_send_blocked)
 
 @bp.route('/incident/<int:iid>/notify/<kind>/send', methods=['POST'])
 @login_required
@@ -4465,6 +4470,9 @@ def notify_send(iid, kind):
     if not can_write():
         flash('Permessi insufficienti per inviare notifiche','error')
         return redirect(url_for('main.incident_detail', iid=iid))
+    if is_builtin_admin_user():
+        flash('L’utente admin non può inviare notifiche dalla pagina degli incidenti. Accedere con un altro utente autorizzato.', 'error')
+        return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=request.form.get('template_id', type=int)))
     template_id = request.form.get('template_id', type=int)
     tmpl = get_notification_template(kind, template_id)
     if ntype.recipient_mode == 'settings':
@@ -4496,14 +4504,10 @@ def notify_send(iid, kind):
         for addr in split_addresses(cc):
             if cc_name:
                 names_by_email[addr.lower()] = cc_name
-        unknown = []
-        for addr in split_addresses(recipient + ',' + cc):
-            if not ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == addr.lower()).first() and not names_by_email.get(addr.lower()):
-                unknown.append(addr)
-        if unknown:
-            flash('Nuovo destinatario esterno rilevato: indicare il nome del destinatario per inserirlo in rubrica.', 'warning')
-            return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
-        added_recipients = ensure_external_recipients_from_addresses(recipient + ',' + cc, names_by_email)
+        # I nuovi indirizzi non presenti in rubrica vengono registrati
+        # automaticamente usando il Riferimento dell’incidente come nome
+        # predefinito, senza bloccare l’invio per chiedere dati aggiuntivi.
+        added_recipients = ensure_external_recipients_from_addresses(recipient + ',' + cc, names_by_email, default_name=inc.reference)
         if request.form.get('recipient_confirmed') != '1':
             flash('Confermare il destinatario prima di inviare la notifica.', 'warning')
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))

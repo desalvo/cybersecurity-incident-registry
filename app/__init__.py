@@ -310,6 +310,15 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN required_notification_type VARCHAR(40)'))
                 app.logger.info('Schema migration applied: incident_workflow_step.required_notification_type added')
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'required' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN required BOOLEAN'))
+                    conn.execute(text('UPDATE incident_workflow_step SET required = TRUE WHERE required IS NULL'))
+                app.logger.info('Schema migration applied: incident_workflow_step.required added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text('UPDATE incident_workflow_step SET required = TRUE WHERE required IS NULL'))
 
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}

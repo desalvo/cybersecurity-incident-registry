@@ -14,6 +14,7 @@
     <div><label>Ordine</label><input type="number" name="position" placeholder="automatico"></div>
     <div class="wide"><label>Descrizione operativa</label><input name="description" placeholder="Descrizione specifica del passo nel flusso"></div>
     <div><label><input type="checkbox" name="personal_data_only" value="1"> Solo se sono coinvolti dati personali</label></div>
+    <div><label><input type="checkbox" name="required" value="1" checked> Richiesto per gli avvisi procedurali</label></div>
     <div><label><input type="checkbox" name="requires_notification" value="1"> Dipende da una notifica</label></div>
     <div><label>Notifica richiesta</label><select name="required_notification_type"><option value="">-- nessuna --</option>{% for nt in notification_types %}<option value="{{nt.code}}">{{nt.label}}</option>{% endfor %}</select></div>
     <div><button>Aggiungi</button></div>
@@ -27,7 +28,7 @@
     <form method="post">
       <input type="hidden" name="action" value="save">
       <table class="table compact-table">
-        <thead><tr><th>Ordine</th><th>Azione</th><th>Descrizione nel flusso</th><th>Condizione</th><th>Dipendenza notifica</th><th>Azioni</th></tr></thead>
+        <thead><tr><th>Ordine</th><th>Azione</th><th>Descrizione nel flusso</th><th>Condizione</th><th>Richiesto</th><th>Dipendenza notifica</th><th>Azioni</th></tr></thead>
         <tbody>
           {% for step in rows %}
           <tr>
@@ -35,6 +36,7 @@
             <td><select name="action_label_id_{{step.id}}">{% for a in action_labels %}<option value="{{a.id}}" {% if step.action_label_id==a.id %}selected{% endif %}>{{a.value}}</option>{% endfor %}</select></td>
             <td><input name="description_{{step.id}}" value="{{step.description or ''}}"></td>
             <td><label><input type="checkbox" name="personal_data_only_{{step.id}}" value="1" {% if step.personal_data_only %}checked{% endif %}> Solo dati personali</label></td>
+            <td><label><input type="checkbox" name="required_{{step.id}}" value="1" {% if step.required %}checked{% endif %}> Richiesto</label></td>
             <td><label><input type="checkbox" name="requires_notification_{{step.id}}" value="1" {% if step.requires_notification %}checked{% endif %}> Richiede notifica</label><br><select name="required_notification_type_{{step.id}}"><option value="">-- seleziona --</option>{% for nt in notification_types %}<option value="{{nt.code}}" {% if step.required_notification_type==nt.code %}selected{% endif %}>{{nt.label}}</option>{% endfor %}</select></td>
             <td><button type="submit" class="secondary">Salva</button> <button class="danger" type="submit" form="del-step-{{step.id}}">Elimina</button></td>
           </tr>

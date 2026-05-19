@@ -6,6 +6,7 @@
     <div class="wide"><label>Template</label><select name="template_id" onchange="this.form.submit()">{% for t in templates %}<option value="{{ t.id }}" {% if template and template.id==t.id %}selected{% endif %}>{{ t.name }}{% if t.is_default %} (predefinito){% endif %}</option>{% endfor %}</select></div>
   </form>
   <p><strong>Mittente:</strong> {{ sender or 'mittente SMTP predefinito / username SMTP / fallback admin@localhost.localdomain' }}</p>
+  {% if admin_send_blocked %}<p class="error"><strong>Invio bloccato:</strong> l’utente admin non può inviare notifiche dalla pagina degli incidenti. Accedere con un altro utente autorizzato.</p>{% endif %}
   {% if recipient_locked %}
     <p><strong>Destinatario:</strong> {{ recipient or 'non configurato nelle impostazioni' }}</p>
     <p><strong>CC:</strong> {{ cc or 'nessuno' }}</p>
@@ -23,7 +24,7 @@
           <button type="button" class="secondary" id="use-recipient-picker">Usa come destinatario</button>
           <button type="button" class="secondary" id="use-cc-picker">Aggiungi in CC</button>
         </div>
-        <p class="muted">Per i destinatari liberi puoi scegliere nome ed e-mail dalla rubrica oppure digitare un nuovo indirizzo. Gli indirizzi nuovi verranno aggiunti alla rubrica dopo l’indicazione del nome.</p>
+        <p class="muted">Per i destinatari liberi puoi scegliere nome ed e-mail dalla rubrica oppure digitare un nuovo indirizzo. Gli indirizzi nuovi verranno aggiunti automaticamente alla rubrica usando il Riferimento dell’incidente come nome del destinatario.</p>
       </div>
       <div><label>Destinatario</label><input id="recipient-input" name="recipient" type="email" value="{{ recipient }}" list="external-recipients" required></div>
       <div><label>CC</label><input id="cc-input" name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola"></div>
@@ -47,8 +48,6 @@
         <p class="warning"><strong>Conferma destinatario richiesta:</strong> prima dell’invio verifica il destinatario libero indicato per questa notifica.</p>
         <p><strong>Destinatario da confermare:</strong> {{ recipient or 'non indicato' }}{% if cc %}<br><strong>CC:</strong> {{ cc }}{% endif %}</p>
       </div>
-      <label>Nome nuovo destinatario principale <input name="recipient_name" placeholder="Obbligatorio se email nuova"></label>
-      <label>Nome nuovo destinatario CC <input name="cc_name" placeholder="Obbligatorio se email CC nuova"></label>
     {% endif %}
     {% if inc.documents %}
       <fieldset>
@@ -66,7 +65,7 @@
     {% elif linked_template_missing_warning %}
       <p class="warning">Non è presente un documento generato dal template associato: la notifica può essere inviata senza allegati documentali.</p>
     {% endif %}
-    <button type="submit" {% if (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
+    <button type="submit" {% if admin_send_blocked or (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
     <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
   </form>
 </div>

@@ -1387,3 +1387,17 @@ Manual/non-scheduled notifications with a free recipient require explicit confir
 La vista `notification_settings.html` riceve da `upcoming_scheduled_notifications()` un riepilogo delle notifiche previste nelle successive 24 ore, ordinato per ora. La funzione combina promemoria puntuali (`IncidentReminder`) non ancora inviati e slot futuri del riepilogo task in scadenza, mostrando destinatari, tipo notifica e incidente.
 
 Il controllo opportunistico `maybe_run_deadline_notification_check()` usa lo stesso lock in-process e lo stesso advisory lock PostgreSQL dello scheduler di background prima di chiamare `run_deadline_notification_check()` e `process_due_incident_reminders()`. In questo modo deployment con più worker o repliche evitano mail duplicate nello stesso intervallo, mentre la tabella `DeadlineNotificationState` continua a registrare l’ultimo invio riuscito per incidente e slot.
+
+
+### 0.2.1-27 - Blocco invio admin e autosalvataggio destinatari
+
+Le notifiche manuali/non schedulate dalla pagina incidente ora verificano esplicitamente l'utente locale `admin`: la pagina di anteprima mostra un errore e il pulsante di invio è disabilitato; il controllo è replicato lato server nella route di invio. Per i destinatari liberi non presenti nella rubrica esterna, l'inserimento non richiede più il nome: il contatto viene creato automaticamente usando il campo `Incident.reference` come nome associato, con fallback tecnico solo se il riferimento fosse assente.
+
+
+## Versione 0.2.1-28 - Avvisi procedurali basati sul workflow richiesto
+
+La funzione `incident_procedural_status()` calcola ora gli avvisi procedurali a partire da `incident_workflow_status()`: vengono considerati solo gli step applicabili all'incidente marcati con `IncidentWorkflowStep.required=True` e non ancora completati. Ogni avviso usa `step.description` se disponibile, altrimenti la descrizione o il nome della label azione. La pagina principale continua a mostrare l'icona di pericolo per gli incidenti con `has_procedural_warnings=True`. La chiusura automatica tramite azione di conclusione continua a chiamare `incident_procedural_status()` e viene eseguita solo quando la lista degli avvisi è vuota.
+
+## Version 0.2.1-28 - Procedural warnings based on required workflow steps
+
+`incident_procedural_status()` now derives procedural warnings from `incident_workflow_status()`: only workflow steps applicable to the incident, marked with `IncidentWorkflowStep.required=True` and still missing, are considered. Each warning uses `step.description` when available, otherwise the action-label description or name. The dashboard still displays the warning icon for incidents with `has_procedural_warnings=True`. Automatic closure through a closure action still calls `incident_procedural_status()` and runs only when the warning list is empty.

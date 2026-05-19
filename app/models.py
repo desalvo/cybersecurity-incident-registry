@@ -51,6 +51,7 @@ class IncidentWorkflowStep(db.Model):
     position=db.Column(db.Integer,nullable=False,default=0,index=True)
     description=db.Column(db.Text,default='')
     personal_data_only=db.Column(db.Boolean,default=False,nullable=False)
+    required=db.Column(db.Boolean,default=True,nullable=False)
     requires_notification=db.Column(db.Boolean,default=False,nullable=False)
     required_notification_type=db.Column(db.String(40),nullable=True,index=True)
     created_at=db.Column(db.DateTime,default=datetime.utcnow)

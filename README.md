@@ -303,7 +303,7 @@ Il campo derivato `measures_adopted` include solo le azioni marcate come **expor
 
 ## Avvisi procedurali
 
-Nel dettaglio incidente il sistema mostra avvisi procedurali quando non risultano registrate le azioni previste. In particolare, la notifica all’utente è richiesta: l’avviso viene visualizzato se nella lista delle azioni effettuate non è presente una label o descrizione riconducibile a una notifica all’utente. Gli avvisi CSIRT e DPO restano sempre verificati, mentre l’avviso per il Garante Privacy è subordinato al coinvolgimento di dati personali. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome, con tooltip riepilogativo degli avvisi presenti. La sezione "Avvisi procedurali" è collocata nella parte alta del dettaglio incidente, subito dopo il riepilogo principale, in modo che le verifiche operative pendenti siano visibili prima delle sezioni dati titolare, conseguenze, azioni, documenti e moduli.
+Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step del workflow applicabile marcati come richiesti e non ancora completati. Ogni avviso riporta la descrizione operativa dello step, se disponibile, altrimenti la descrizione o il nome del task. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome, con tooltip riepilogativo degli avvisi presenti. La sezione "Avvisi procedurali" è collocata subito sotto "Operazioni previste". In assenza di avvisi attivi, l’inserimento dell’azione di conclusione porta automaticamente l’incidente allo stato "chiuso".
 
 
 ## Documentazione utente e logo applicativo
@@ -644,7 +644,7 @@ Nella pagina **Admin → Utenti** il campo **Tipo login** non mostra più solo i
 
 ## Aggiornamento 0.2.0-10 - Placeholder notifiche manuali e link incidente esplicito
 
-Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
+Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: la form blocca l’invio con un messaggio esplicito: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
 
 
 ## Aggiornamento 0.2.0-11 - Correzione placeholder notifiche manuali
@@ -677,7 +677,7 @@ Gli utenti non amministratori con ruolo `writer`, quindi dotati di privilegi di 
 
 ## Aggiornamento 0.2.1 - Flussi operativi per categoria di incidente
 
-La pagina di dettaglio incidente mostra ora, in cima alla form, la lista delle operazioni previste fino alla conclusione. Le operazioni già registrate tramite azioni dell’incidente sono evidenziate come completate, mentre quelle ancora mancanti sono evidenziate separatamente. Da **Admin → Flussi operativi incidenti** è possibile configurare un flusso di default e flussi specifici per categoria. Ogni passo usa una label azione configurabile, può avere una descrizione operativa dedicata e un ordinamento numerico. Se un incidente ha più categorie, i flussi vengono sommati rimuovendo i duplicati; se nessuna categoria ha un flusso, viene usato quello di default.
+La pagina di dettaglio incidente mostra ora, in cima alla form, la lista delle operazioni previste fino alla conclusione. Le operazioni già registrate tramite azioni dell’incidente sono evidenziate come completate, mentre quelle ancora mancanti sono evidenziate separatamente. Da **Admin → Flussi operativi incidenti** è possibile configurare un flusso di default e flussi specifici per categoria. Ogni passo usa una label azione configurabile, può avere una descrizione operativa dedicata, un ordinamento numerico e il flag **Richiesto**, usato per stabilire se lo step mancante genera un avviso procedurale. Se un incidente ha più categorie, i flussi vengono sommati rimuovendo i duplicati; se nessuna categoria ha un flusso, viene usato quello di default.
 
 ## Aggiornamento 0.2.1 - Workflow incidenti con descrizioni, scadenze e default modificabile
 
@@ -750,3 +750,13 @@ La cancellazione di un incidente rimuove ora esplicitamente anche gli stati inte
 ### Riepilogo notifiche schedulate e anti-flooding
 
 La pagina **Impostazioni → Notifiche** mostra le prossime notifiche schedulate nelle 24 ore successive, ordinate per ora, includendo tipo di notifica, incidente e destinatari. Il controllo opportunistico da richiesta web usa gli stessi lock dello scheduler di background per evitare invii multipli della stessa notifica nello stesso intervallo, anche in presenza di più worker o repliche.
+
+
+
+### 0.2.1-28 - Avvisi procedurali da workflow richiesto
+
+Gli avvisi procedurali dei singoli incidenti sono stati ricondotti al workflow applicabile: vengono mostrati singolarmente gli step non completati marcati come **Richiesti**. La chiusura automatica tramite azione di conclusione avviene solo quando non restano avvisi procedurali attivi.
+
+### 0.2.1-27 - Notifiche manuali
+
+L’utente locale `admin` non può inviare notifiche non schedulate dalla pagina incidente: la form mostra un blocco esplicito e il controllo è ripetuto lato server. Per i destinatari liberi non presenti nella rubrica esterna, il contatto viene creato automaticamente usando il campo **Riferimento** dell’incidente come nome associato, senza interrompere l’invio per chiedere dati ulteriori.

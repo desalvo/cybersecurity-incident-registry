@@ -167,7 +167,7 @@ In the incident detail page, the **Actions** section pre-fills the action date/t
 
 Before generating filled PDF forms, the application validates all incident fields used by the mappings of the selected templates. If one or more values are missing, generation is blocked and the user receives a grouped message listing the fields to complete, by template and PDF field.
 
-The **Procedural warnings** section is displayed near the top of the incident detail page, immediately after the main incident card, so pending checks and required notifications are visible before the lower operational sections.
+The **Procedural warnings** section is displayed immediately below **Expected operations**. It lists the applicable workflow steps marked as required that have not yet been completed, using the step description when available or otherwise the task description/name.
 
 ## PDF forms
 
@@ -480,7 +480,7 @@ Non-administrator users with the `writer` role, therefore allowed to write and e
 
 ## Update 0.2.1 - Operational workflows by incident category
 
-The incident detail page now shows, at the top of the form, the list of operations expected until closure. Operations already recorded through incident actions are highlighted as completed, while missing operations are highlighted separately. From **Admin → Incident operational workflows** administrators can configure a default workflow and category-specific workflows. Each step uses a configurable action label, may have a dedicated operational description and has a numeric order. If an incident has multiple categories, workflows are merged and duplicates are removed; if no selected category has a workflow, the default workflow is used.
+The incident detail page now shows, at the top of the form, the list of operations expected until closure. Operations already recorded through incident actions are highlighted as completed, while missing operations are highlighted separately. From **Admin → Incident operational workflows** administrators can configure a default workflow and category-specific workflows. Each step uses a configurable action label, may have a dedicated operational description, a numeric order and a **Required** flag used to decide whether a missing step creates a procedural warning. If an incident has multiple categories, workflows are merged and duplicates are removed; if no selected category has a workflow, the default workflow is used.
 
 ## Update 0.2.1 - Incident workflows with descriptions, deadlines and editable default flow
 
@@ -553,3 +553,12 @@ Deleting an incident now explicitly removes the related internal deadline-notifi
 ### Scheduled notification summary and anti-flooding
 
 The **Settings → Notifications** page shows the next scheduled notifications in the following 24 hours, sorted by time and including notification type, incident and recipients. The opportunistic web-request check uses the same locks as the background scheduler to avoid sending the same notification multiple times inside the same interval, even with multiple workers or replicas.
+
+
+### 0.2.1-28 - Procedural warnings from required workflow steps
+
+Incident procedural warnings now come from the applicable workflow: each missing step marked as **Required** is listed individually. Automatic closure through the Closure action happens only when no active procedural warning remains.
+
+### 0.2.1-27 - Manual notifications
+
+The local `admin` user cannot send non-scheduled notifications from the incident page: the form shows an explicit block and the server repeats the check. For free-address recipients not already present in the external address book, the contact is created automatically using the incident **Reference** field as the associated name, without interrupting sending to ask for extra data.

@@ -1,3 +1,12 @@
+0.2.1-28 - Avvisi procedurali da workflow richiesto
+- Gli avvisi procedurali derivano dagli step workflow marcati come richiesti e non completati.
+- La chiusura automatica tramite conclusione resta consentita solo senza avvisi attivi.
+
+0.2.1-27 - Blocco invio notifiche admin e destinatari automatici
+- Bloccato in anteprima e lato server l’invio di notifiche manuali/non schedulate dall’utente locale admin.
+- Le nuove email libere vengono salvate nei destinatari esterni usando il Riferimento dell’incidente come nome, senza richiesta bloccante.
+- Documentazione IT/EN aggiornata.
+
 0.2.1-26 - Riepilogo notifiche schedulate e anti-flooding
 - Aggiunto in Impostazioni → Notifiche il riepilogo delle notifiche schedulate nelle prossime 24 ore, ordinate per ora e con destinatari/tipo notifica.
 - Il controllo opportunistico da richiesta web usa gli stessi lock dello scheduler di background per evitare invii multipli nello stesso intervallo.
