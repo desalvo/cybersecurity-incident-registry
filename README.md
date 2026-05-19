@@ -628,3 +628,8 @@ Corretto l’invio delle notifiche dalla sezione **Notifiche** del dettaglio inc
 ### Template notifiche, allegati documentali e destinatari esterni
 
 I template di notifica manuale possono essere associati opzionalmente a un template modulo PDF. Durante l’invio da un incidente, i documenti generati da quel template modulo vengono preselezionati automaticamente, ma l’operatore può sempre aggiungere altri allegati o deselezionare quelli proposti. Se il documento atteso non è presente viene mostrato un warning non bloccante. La rubrica **Admin → Destinatari esterni** alimenta i campi destinatario/CC e le nuove email usate in invio vengono salvate dopo la richiesta del nome.
+
+
+## Aggiornamento 0.112-12 - Tag multipli documenti per notifiche
+
+Nella lista dei documenti allegati a un incidente ogni file può essere associato a uno o più tipi di notifica. L’assegnazione avviene con un meccanismo drag & drop: si trascina il tipo di notifica disponibile sull’area tag del documento, si possono rimuovere singoli tag e si salva la modifica. In fase di invio di una notifica manuale, i documenti taggati con il tipo di notifica scelto vengono preselezionati automaticamente come allegati. La preselezione non è vincolante: l’operatore può sempre deselezionare documenti proposti o selezionare altri allegati presenti nell’incidente. Resta supportata anche la preselezione dei documenti generati dal template modulo associato al template di notifica.

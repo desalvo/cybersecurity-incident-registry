@@ -1220,3 +1220,10 @@ Le notifiche manuali/non schedulate non aggiungono più automaticamente il link 
 `NotificationTemplate.linked_form_template_name` collega opzionalmente un template di notifica manuale a un template modulo PDF. I documenti generati tramite il flusso moduli salvano `Document.generated_template_name`; in anteprima notifica i documenti dello stesso incidente con quel valore vengono preselezionati. La preselezione non è vincolante: l’utente può modificare gli allegati e, se nessun documento corrisponde, viene mostrato un warning non bloccante.
 
 La tabella `ExternalRecipient` contiene nome, email e note della rubrica condivisa. I campi destinatario/CC delle notifiche manuali usano questa rubrica come suggerimento; durante l’invio, nuove email vengono aggiunte dopo acquisizione del nome. La rubrica è amministrabile da menu Admin e inclusa nel full export/import.
+
+
+### Tag multipli dei documenti per preselezione allegati notifiche
+
+Il modello `Document` contiene il campo `notification_tags`, una lista compatta di codici di tipo notifica associati al documento. Nel dettaglio incidente la sezione Documenti espone una palette dei tipi notifica e una drop-zone per ogni documento: l’utente con permesso di scrittura trascina il tipo sulla drop-zone, può rimuovere il tag e salva la configurazione. La route `update_document_notification_tags` valida i codici rispetto a `NotificationType` e aggiorna solo documenti appartenenti a incidenti visibili all’utente.
+
+In anteprima invio notifica, `auto_selected_notification_documents()` combina due criteri di preselezione: documenti taggati con il tipo notifica corrente e documenti generati dal template modulo eventualmente collegato al template di notifica. I duplicati vengono rimossi. La lista rimane modificabile dall’utente prima dell’invio, quindi il tagging è un suggerimento operativo e non un vincolo di allegazione. Il full export/import include il campo perché deriva dallo schema SQLAlchemy.

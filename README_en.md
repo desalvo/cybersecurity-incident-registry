@@ -431,3 +431,8 @@ Fixed notification sending from the **Notifications** section of the incident de
 ### Notification templates, document attachments and external recipients
 
 Manual notification templates can optionally be linked to a PDF form template. When sending from an incident, documents generated from that form template are preselected automatically, while the operator can still add other attachments or deselect the proposed ones. If the expected document is missing, a non-blocking warning is shown. The **Admin → External recipients** address book feeds recipient/CC fields, and new emails used during sending are saved after asking for the recipient name.
+
+
+## Update 0.112-12 - Multiple document tags for notifications
+
+In the incident document list, each file can be associated with one or more notification types. Tags are assigned through drag & drop: drag an available notification type onto the document tag area, remove individual tags when needed, and save the change. When sending a manual notification, documents tagged with the selected notification type are automatically preselected as attachments. This preselection is never mandatory: the operator can always deselect suggested documents or select other incident documents. Preselection of documents generated from the form template linked to the notification template remains supported.

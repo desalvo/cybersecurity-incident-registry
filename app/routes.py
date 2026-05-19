@@ -1528,6 +1528,22 @@ def del_doc(did):
         except Exception as exc:
             db.session.rollback(); current_app.logger.exception('Errore cancellazione documento'); section_flash(f'Errore cancellazione documento: {exc}', 'incident-documents', 'error')
     return incident_detail_redirect(iid, 'incident-documents')
+
+@bp.route('/document/<int:did>/notification-tags', methods=['POST'])
+@login_required
+def update_document_notification_tags(did):
+    d = Document.query.get_or_404(did)
+    visible(Incident.query).get_or_404(d.incident_id)
+    if not can_write():
+        section_flash('Permessi insufficienti', 'incident-documents', 'error')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
+    valid = {t.code for t in notification_type_records(enabled_only=False)}
+    requested = request.form.getlist('notification_tags')
+    tags = [code for code in requested if code in valid]
+    d.set_notification_tags(tags)
+    db.session.commit()
+    section_flash(f'Tag notifiche aggiornati per {d.filename}', 'incident-documents', 'success')
+    return incident_detail_redirect(d.incident_id, 'incident-documents')
 @bp.route('/admin/labels',methods=['GET','POST'])
 @login_required
 def admin_labels():
@@ -2479,8 +2495,25 @@ def documents_generated_from_template(inc, template_name):
         return []
     return Document.query.filter_by(incident_id=inc.id, generated_template_name=template_name).order_by(Document.uploaded_at.desc(), Document.filename).all()
 
-def auto_selected_notification_documents(inc, template):
-    return documents_generated_from_template(inc, getattr(template, 'linked_form_template_name', None))
+def documents_tagged_for_notification(inc, kind):
+    if not kind:
+        return []
+    docs = []
+    for doc in sorted(list(inc.documents or []), key=lambda d: (d.uploaded_at or datetime.min, d.filename or '')):
+        if kind in getattr(doc, 'notification_tag_list', []):
+            docs.append(doc)
+    return docs
+
+def auto_selected_notification_documents(inc, template, kind=None):
+    selected = []
+    seen = set()
+    for doc in documents_tagged_for_notification(inc, kind):
+        if doc.id not in seen:
+            selected.append(doc); seen.add(doc.id)
+    for doc in documents_generated_from_template(inc, getattr(template, 'linked_form_template_name', None)):
+        if doc.id not in seen:
+            selected.append(doc); seen.add(doc.id)
+    return selected
 
 def get_external_recipients():
     return ExternalRecipient.query.order_by(ExternalRecipient.name, ExternalRecipient.email).all()
@@ -3677,7 +3710,7 @@ def notify_preview(iid, kind):
     body = notification_body(kind, inc, template_id=tmpl.id)
     title = ntype.label
     templates = NotificationTemplate.query.filter_by(kind=kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
-    auto_documents = auto_selected_notification_documents(inc, tmpl)
+    auto_documents = auto_selected_notification_documents(inc, tmpl, kind)
     auto_document_ids = {d.id for d in auto_documents}
     linked_template_missing_warning = bool(tmpl.linked_form_template_name and not auto_documents)
     if linked_template_missing_warning:

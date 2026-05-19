@@ -36,11 +36,11 @@
     {% if inc.documents %}
       <fieldset>
         <legend>Documenti da allegare</legend>
-        {% if template.linked_form_template_name %}<p class="muted">Template modulo associato: <strong>{{ template.linked_form_template_name }}</strong>. I documenti generati da questo template sono preselezionati.</p>{% endif %}
+        {% if template.linked_form_template_name %}<p class="muted">Template modulo associato: <strong>{{ template.linked_form_template_name }}</strong>. I documenti generati da questo template sono preselezionati.</p>{% endif %}<p class="muted">Sono preselezionati anche i documenti taggati con il tipo notifica <strong>{{ title }}</strong>. La selezione resta modificabile prima dell’invio.</p>
         {% if linked_template_missing_warning %}<p class="warning">Non è presente un documento generato dal template associato: puoi selezionare manualmente altri documenti.</p>{% endif %}
         <div class="checkbox-list">
           {% for d in inc.documents %}
-          <label><input type="checkbox" name="document_ids" value="{{ d.id }}" {% if d.id in auto_document_ids %}checked{% endif %}> {{ d.filename }}{% if d.generated_template_name %} <span class="muted">({{ d.generated_template_name }})</span>{% endif %}</label>
+          <label><input type="checkbox" name="document_ids" value="{{ d.id }}" {% if d.id in auto_document_ids %}checked{% endif %}> {{ d.filename }}{% if kind in d.notification_tag_list %} <span class="muted">[tag {{ title }}]</span>{% endif %}{% if d.generated_template_name %} <span class="muted">({{ d.generated_template_name }})</span>{% endif %}</label>
           {% endfor %}
         </div>
       </fieldset>

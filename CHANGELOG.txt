@@ -658,3 +658,9 @@ Notification menu and SMTP sender fix
 - Documentazione italiana e inglese aggiornata.
 - Fixed manual notification sending when a placeholder, especially %MEASURES_ADOPTED%, produces a list instead of a string.
 - Placeholder values are now normalised centrally before template replacement.
+
+0.2.0-13-notification-document-tags
+- Added multiple notification-type tags on incident documents.
+- Added drag-and-drop tagging UI in the incident document list.
+- Manual notification preview now preselects documents tagged for the selected notification type, while keeping the final attachment selection editable.
+- Updated Italian/English user, admin and design documentation.

@@ -295,6 +295,10 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE document ADD COLUMN generated_template_name VARCHAR(255)'))
                 app.logger.info('Schema migration applied: document.generated_template_name added')
+            if 'notification_tags' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE document ADD COLUMN notification_tags TEXT NOT NULL DEFAULT ''"))
+                app.logger.info('Schema migration applied: document.notification_tags added')
         if 'user' in tables:
             cols = {c['name'] for c in inspector.get_columns('user')}
             if 'mfa_enabled' not in cols:

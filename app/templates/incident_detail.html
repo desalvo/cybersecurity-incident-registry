@@ -125,18 +125,39 @@
       <tr>
         <th>Documento</th>
         <th>Data upload</th>
+        <th>Tag notifiche</th>
         <th>Azioni</th>
       </tr>
     </thead>
     <tbody>
       {% for d in inc.documents %}
       <tr>
-        <td><a href="{{url_for('main.download_doc',did=d.id)}}">{{d.filename}}</a></td>
+        <td><a href="{{url_for('main.download_doc',did=d.id)}}">{{d.filename}}</a>{% if d.generated_template_name %}<br><span class="muted">Generato da: {{ d.generated_template_name }}</span>{% endif %}</td>
         <td>{{ d.uploaded_at.strftime('%d/%m/%Y %H:%M') if d.uploaded_at else '-' }}</td>
+        <td>
+          {% if notification_types %}
+          <form method="post" action="{{ url_for('main.update_document_notification_tags', did=d.id) }}" class="document-tag-form" data-scroll-anchor="incident-documents">
+            <input type="hidden" name="scroll_anchor" value="incident-documents">
+            <div class="tag-palette" aria-label="Tipi notifica disponibili">
+              {% for nt in notification_types %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}">{{ nt.label }}</span>{% endfor %}
+            </div>
+            <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tipi di notifica da associare">
+              {% for nt in notification_types %}
+                <label class="tag-selected {% if nt.code not in d.notification_tag_list %}hidden{% endif %}" data-tag-code="{{ nt.code }}">
+                  <input type="checkbox" name="notification_tags" value="{{ nt.code }}" {% if nt.code in d.notification_tag_list %}checked{% endif %}>
+                  {{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button>
+                </label>
+              {% endfor %}
+              <span class="muted tag-empty">Nessun tag. Trascina qui un tipo notifica.</span>
+            </div>
+            {% if current_user.role in ['admin','writer'] %}<button type="submit">Salva tag</button>{% endif %}
+          </form>
+          {% else %}<span class="muted">Nessun tipo notifica configurato.</span>{% endif %}
+        </td>
         <td>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.del_doc',did=d.id)}}" onsubmit="return confirm('Cancellare questo documento?')" data-scroll-anchor="incident-documents"><input type="hidden" name="scroll_anchor" value="incident-documents"><button class="danger">Elimina</button></form>{% endif %}</td>
       </tr>
       {% else %}
-      <tr><td colspan="3" class="muted">Nessun documento allegato.</td></tr>
+      <tr><td colspan="4" class="muted">Nessun documento allegato.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -180,4 +201,53 @@
   </div>
 </div>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.document-tag-form').forEach(function (form) {
+    const zone = form.querySelector('.tag-drop-zone');
+    const empty = form.querySelector('.tag-empty');
+    function refreshEmpty() {
+      const visible = form.querySelectorAll('.tag-selected:not(.hidden)').length;
+      if (empty) empty.style.display = visible ? 'none' : 'inline';
+    }
+    refreshEmpty();
+    form.querySelectorAll('.tag-chip').forEach(function (chip) {
+      chip.addEventListener('dragstart', function (event) {
+        event.dataTransfer.setData('text/plain', chip.dataset.tagCode || '');
+      });
+    });
+    if (zone) {
+      zone.addEventListener('dragover', function (event) { event.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function () { zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function (event) {
+        event.preventDefault(); zone.classList.remove('drag-over');
+        const code = event.dataTransfer.getData('text/plain');
+        const item = form.querySelector('.tag-selected[data-tag-code="' + code + '"]');
+        if (item) {
+          item.classList.remove('hidden');
+          const input = item.querySelector('input');
+          if (input) input.checked = true;
+          refreshEmpty();
+        }
+      });
+    }
+    form.querySelectorAll('.tag-remove').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const item = button.closest('.tag-selected');
+        if (item) {
+          const input = item.querySelector('input');
+          if (input) input.checked = false;
+          item.classList.add('hidden');
+          refreshEmpty();
+        }
+      });
+    });
+  });
+});
+</script>
+<style>
+.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold}.document-tag-form button[type=submit]{margin-top:.2rem}
+</style>
+
 {% endblock %}
