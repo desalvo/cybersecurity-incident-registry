@@ -671,9 +671,10 @@ def incident_workflow_status(inc):
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
             remaining_text = f'{sign}{hours}h {minutes:02d}m'
-            expired = remaining.total_seconds() < 0
+            expired = remaining.total_seconds() <= 0
         items.append({
             'id': step.id,
+            'action_label_id': label_id,
             'label': (label.description or label.value) if label else '',
             'task_name': label.value if label else '',
             'description': step.description or '',
@@ -4264,6 +4265,346 @@ def help_pdf():
     buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name='cybersecurity-incident-registry-documentazione.pdf')
 
+
+BACKUP_CATEGORY_KEYS = ['incidents', 'database', 'templates', 'logos', 'uploads']
+BACKUP_CATEGORY_LABELS = {
+    'incidents': 'Incidenti in CSV',
+    'database': 'Database applicativo',
+    'templates': 'Template moduli',
+    'logos': 'Loghi',
+    'uploads': 'Uploads e allegati',
+}
+
+
+def _backup_categories_from_form():
+    values = request.form.getlist('categories') or BACKUP_CATEGORY_KEYS[:]
+    return [v for v in values if v in BACKUP_CATEGORY_KEYS]
+
+
+def _cron_field_matches(field, value):
+    field = (field or '*').strip()
+    if field == '*':
+        return True
+    for part in field.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if part.startswith('*/'):
+            try:
+                step = int(part[2:])
+                if step > 0 and value % step == 0:
+                    return True
+            except ValueError:
+                pass
+        else:
+            try:
+                if int(part) == value:
+                    return True
+            except ValueError:
+                pass
+    return False
+
+
+def cron_matches_now(expr, dt):
+    """Matcher cron-like minimale: minuto ora giorno-mese mese giorno-settimana."""
+    parts = (expr or '').split()
+    if len(parts) != 5:
+        return False
+    minute, hour, dom, month, dow = parts
+    py_dow = (dt.weekday() + 1) % 7  # domenica=0
+    return (_cron_field_matches(minute, dt.minute) and _cron_field_matches(hour, dt.hour)
+            and _cron_field_matches(dom, dt.day) and _cron_field_matches(month, dt.month)
+            and _cron_field_matches(dow, py_dow))
+
+
+def _add_path_to_tar(archive, src, arc_prefix):
+    src_path = Path(src)
+    if not src_path.exists():
+        return
+    if src_path.is_file():
+        archive.add(str(src_path), arcname=f'{arc_prefix}/{src_path.name}')
+        return
+    for item in src_path.rglob('*'):
+        if item.is_file():
+            archive.add(str(item), arcname=f'{arc_prefix}/{item.relative_to(src_path)}')
+
+
+
+def build_full_export_archive_for_backup(prefix='cir-full-backup'):
+    fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
+    os.close(fd)
+    now = datetime.utcnow().isoformat()
+    payload = {
+        'format': 'cybersecurity-incident-registry-full-export',
+        'version': 4,
+        'created_at': now,
+        'schema': _export_schema_payload(),
+        'tables': _export_tables_payload(),
+        'relations': _export_relations_payload(),
+        'files': {
+            'documents': [{'document_id': d.id, 'filename': d.filename, 'stored_name': d.stored_name, 'archive_path': f'files/documents/{d.stored_name}'} for d in Document.query.order_by(Document.id).all() if d.stored_name],
+            'action_attachments': [{'attachment_id': a.id, 'filename': a.filename, 'stored_name': a.stored_name, 'archive_path': f'files/action_attachments/{a.stored_name}'} for a in ActionAttachment.query.order_by(ActionAttachment.id).all() if a.stored_name],
+            'logo': None, 'application_logos': [], 'ssl_certificates': {}, 'sso_logos': [],
+            'form_templates': [{'name': t.path.name, 'template_name': t.path.stem, 'archive_path': f'files/form_templates/{t.path.name}', 'fields': list(getattr(t, 'fields', []) or []), 'source': 'pdf_acroform'} for t in list_templates() if t.path and t.path.exists() and t.path.suffix.lower() == '.pdf'],
+        },
+    }
+    logo_setting = Setting.query.get('logo_path')
+    if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
+        payload['files']['logo'] = {'path': logo_setting.value, 'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'}
+    sso_dir = sso_logo_storage_dir()
+    if sso_dir.exists():
+        for logo_file in sorted(sso_dir.iterdir(), key=lambda p: p.name.lower()):
+            if logo_file.is_file() and logo_file.suffix.lower() in {'.svg','.png','.jpg','.jpeg','.gif','.webp'}:
+                payload['files']['sso_logos'].append({'relative_path': f'sso/{logo_file.name}', 'archive_path': f'files/sso_logos/{logo_file.name}'})
+    cert = ssl_cert_path(); key = ssl_key_path()
+    if cert.exists() and cert.is_file(): payload['files']['ssl_certificates']['certificate'] = {'archive_path': 'files/ssl/current.crt', 'path': str(cert)}
+    if key.exists() and key.is_file(): payload['files']['ssl_certificates']['private_key'] = {'archive_path': 'files/ssl/current.key', 'path': str(key)}
+    static_logo_candidates = [Path(current_app.static_folder or '') / 'cir-application-logo.svg', Path(current_app.static_folder or '') / 'help' / 'app-logo.png']
+    for logo_path in static_logo_candidates:
+        if logo_path.exists() and logo_path.is_file():
+            payload['files']['application_logos'].append({'name': logo_path.name, 'relative_path': str(logo_path.relative_to(current_app.static_folder)), 'archive_path': f'files/application_logos/{logo_path.relative_to(current_app.static_folder)}'})
+    with tarfile.open(path, 'w:gz') as archive:
+        manifest = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
+        info = tarfile.TarInfo('export.json'); info.size = len(manifest); archive.addfile(info, io.BytesIO(manifest))
+        for doc in payload['files']['documents']:
+            src = os.path.join(current_app.config['UPLOAD_DIR'], doc['stored_name'])
+            if os.path.exists(src): archive.add(src, arcname=doc['archive_path'])
+        for att in payload['files']['action_attachments']:
+            src = os.path.join(current_app.config['UPLOAD_DIR'], att['stored_name'])
+            if os.path.exists(src): archive.add(src, arcname=att['archive_path'])
+        if payload['files']['logo']: archive.add(logo_setting.value, arcname=payload['files']['logo']['archive_path'])
+        for ssl_item in payload['files'].get('ssl_certificates', {}).values():
+            src = ssl_item.get('path')
+            if src and os.path.exists(src): archive.add(src, arcname=ssl_item['archive_path'])
+        for sso_logo in payload['files'].get('sso_logos', []):
+            src = sso_logo_storage_dir() / Path(sso_logo['relative_path']).name
+            if src.exists(): archive.add(src, arcname=sso_logo['archive_path'])
+        for app_logo in payload['files'].get('application_logos', []):
+            src = Path(current_app.static_folder or '') / app_logo.get('relative_path', '')
+            if src.exists(): archive.add(src, arcname=app_logo['archive_path'])
+        for tmpl in payload['files'].get('form_templates', []):
+            src = os.path.join(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', tmpl['name'])
+            if os.path.exists(src): archive.add(src, arcname=tmpl['archive_path'])
+    return path
+
+def build_backup_archive(categories, prefix='cir-backup'):
+    categories = [c for c in (categories or BACKUP_CATEGORY_KEYS) if c in BACKUP_CATEGORY_KEYS]
+    if not categories:
+        categories = BACKUP_CATEGORY_KEYS[:]
+    if set(categories) == set(BACKUP_CATEGORY_KEYS):
+        return build_full_export_archive_for_backup(prefix)
+    fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
+    os.close(fd)
+    created_at = datetime.utcnow().isoformat()
+    manifest = {
+        'format': 'cybersecurity-incident-registry-backup',
+        'version': 1,
+        'created_at': created_at,
+        'categories': categories,
+        'full': set(categories) == set(BACKUP_CATEGORY_KEYS),
+    }
+    with tarfile.open(path, 'w:gz') as archive:
+        data = json.dumps(manifest, ensure_ascii=False, indent=2).encode('utf-8')
+        info = tarfile.TarInfo('backup.json')
+        info.size = len(data)
+        archive.addfile(info, io.BytesIO(data))
+        if 'incidents' in categories:
+            csv_buf = io.StringIO()
+            writer = csv.writer(csv_buf)
+            writer.writerow(['id','nome','riferimento','destinatario','stato','gravita','data_inizio','ora_inizio','data_fine','ora_fine','categorie','dati_interessati','descrizione'])
+            for inc in Incident.query.order_by(Incident.id).all():
+                writer.writerow([
+                    inc.id, inc.name or '', inc.reference or '', inc.recipient or '', inc.status or '',
+                    inc.severity.value if inc.severity else '',
+                    inc.start_date.isoformat() if inc.start_date else '', inc.start_time.strftime('%H:%M') if inc.start_time else '',
+                    inc.end_date.isoformat() if inc.end_date else '', inc.end_time.strftime('%H:%M') if inc.end_time else '',
+                    '; '.join(c.value for c in inc.categories), '; '.join(d.value for d in inc.data_types), inc.description or ''
+                ])
+            b = csv_buf.getvalue().encode('utf-8')
+            info = tarfile.TarInfo('incidents/incidents.csv')
+            info.size = len(b)
+            archive.addfile(info, io.BytesIO(b))
+        if 'database' in categories or set(categories) == set(BACKUP_CATEGORY_KEYS):
+            payload = {
+                'format': 'cybersecurity-incident-registry-full-export',
+                'version': 4,
+                'created_at': created_at,
+                'schema': _export_schema_payload(),
+                'tables': _export_tables_payload(),
+                'relations': _export_relations_payload(),
+            }
+            b = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
+            info = tarfile.TarInfo('database/export.json')
+            info.size = len(b)
+            archive.addfile(info, io.BytesIO(b))
+        if 'templates' in categories:
+            _add_path_to_tar(archive, current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', 'templates')
+        if 'logos' in categories:
+            _add_path_to_tar(archive, current_app.config.get('LOGO_DIR') or '/data/logo', 'logos/application')
+            _add_path_to_tar(archive, current_app.config.get('SSO_LOGO_DIR') or '/data/sso_logos', 'logos/sso')
+        if 'uploads' in categories or set(categories) == set(BACKUP_CATEGORY_KEYS):
+            _add_path_to_tar(archive, current_app.config['UPLOAD_DIR'], 'uploads')
+    return path
+
+
+def _send_backup_admin_email(job, status, message, filename=''):
+    if not getattr(job, 'notify_admin', False):
+        return
+    admin = User.query.filter_by(role='admin').filter(User.email.isnot(None)).order_by(User.id).first()
+    if not admin or not admin.email:
+        return
+    host = setting_value('smtp_host')
+    if not host:
+        return
+    sender = smtp_sender_address()
+    msg = EmailMessage()
+    msg['From'] = sender
+    msg['To'] = admin.email
+    msg['Subject'] = f'Backup Cybersecurity Incident Registry: {status}'
+    msg.set_content(f'Backup: {job.name}\nEsito: {status}\nFile: {filename}\nMessaggio: {message}\n')
+    port = int(setting_value('smtp_port', '587') or '587')
+    smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
+    with smtp_cls(host, port, timeout=20) as smtp:
+        if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
+            smtp.starttls()
+        if setting_value('smtp_auth_enabled', '0') == '1':
+            smtp.login(setting_value('smtp_username'), setting_value('smtp_password') or '')
+        smtp.send_message(msg)
+
+
+def execute_backup_job(job, allow_download=False):
+    categories = job.category_list() or BACKUP_CATEGORY_KEYS[:]
+    path = build_backup_archive(categories)
+    timestamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+    filename = f'backup-cir-{timestamp}.tar.gz'
+    try:
+        if job.destination == 's3':
+            try:
+                import boto3
+            except ImportError as exc:
+                raise RuntimeError('boto3 non installato: installare la dipendenza per usare destinazioni S3/compatibili') from exc
+            client = boto3.client('s3', endpoint_url=job.s3_endpoint_url or None,
+                                  aws_access_key_id=job.s3_access_key or None,
+                                  aws_secret_access_key=job.s3_secret_key or None)
+            key = '/'.join(x.strip('/') for x in [job.s3_prefix or '', filename] if x.strip('/'))
+            client.upload_file(path, job.s3_bucket, key)
+            result = f's3://{job.s3_bucket}/{key}'
+        elif job.destination == 'download' and allow_download:
+            result = path
+        else:
+            target_dir = Path(job.local_path or current_app.config.get('BACKUP_DIR') or '/data/backups')
+            target_dir.mkdir(parents=True, exist_ok=True)
+            dst = target_dir / filename
+            shutil.copyfile(path, dst)
+            result = str(dst)
+        job.last_run_at = datetime.utcnow()
+        job.last_status = 'ok'
+        job.last_message = result
+        audit_log('backup_execute', f'Backup {job.name}: {result}')
+        try: _send_backup_admin_email(job, 'ok', 'Backup completato', result)
+        except Exception: current_app.logger.exception('Invio notifica backup fallito')
+        db.session.commit()
+        return result, path
+    except Exception as exc:
+        job.last_run_at = datetime.utcnow()
+        job.last_status = 'error'
+        job.last_message = str(exc)
+        db.session.commit()
+        try: _send_backup_admin_email(job, 'errore', str(exc))
+        except Exception: current_app.logger.exception('Invio notifica errore backup fallito')
+        raise
+
+
+@bp.route('/admin/backups', methods=['GET','POST'])
+@login_required
+def admin_backups():
+    if not can_admin():
+        flash('Permessi insufficienti','error'); return redirect(url_for('main.index'))
+    job = BackupJob.query.order_by(BackupJob.id).first()
+    if not job:
+        job = BackupJob(name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories=','.join(BACKUP_CATEGORY_KEYS), destination='local', local_path=current_app.config.get('BACKUP_DIR','/data/backups'))
+        db.session.add(job); db.session.commit()
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action in ['save','run']:
+            job.name = request.form.get('name','Backup schedulato principale').strip() or 'Backup schedulato principale'
+            job.enabled = bool(request.form.get('enabled'))
+            job.cron_expression = request.form.get('cron_expression','0 2 * * *').strip() or '0 2 * * *'
+            job.categories = ','.join(_backup_categories_from_form())
+            job.destination = request.form.get('destination','local')
+            job.local_path = request.form.get('local_path','').strip() or current_app.config.get('BACKUP_DIR','/data/backups')
+            job.s3_endpoint_url = request.form.get('s3_endpoint_url','').strip()
+            job.s3_bucket = request.form.get('s3_bucket','').strip()
+            job.s3_prefix = request.form.get('s3_prefix','').strip()
+            job.s3_access_key = request.form.get('s3_access_key','').strip()
+            secret = request.form.get('s3_secret_key','')
+            if secret:
+                job.s3_secret_key = secret
+            job.notify_admin = bool(request.form.get('notify_admin'))
+            db.session.commit()
+            if action == 'run':
+                try:
+                    result, tmp_path = execute_backup_job(job, allow_download=(job.destination == 'download'))
+                    if job.destination == 'download':
+                        return send_file(tmp_path, download_name=os.path.basename(result) if result != tmp_path else f'backup-cir-{datetime.utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
+                    flash(f'Backup completato: {result}', 'success')
+                except Exception as exc:
+                    current_app.logger.exception('Backup on-demand fallito')
+                    flash(f'Backup fallito: {exc}', 'error')
+            else:
+                flash('Configurazione backup salvata.', 'success')
+        elif action == 'restore':
+            f = request.files.get('restore_file')
+            if not f or not f.filename:
+                flash('Selezionare un file di backup da ripristinare.', 'error')
+            else:
+                tmp = f'/tmp/{uuid.uuid4()}-restore.tar.gz'
+                f.save(tmp)
+                try:
+                    # I full backup sono compatibili con l’import completo: richiedono export.json.
+                    with tarfile.open(tmp, 'r:gz') as archive:
+                        names = archive.getnames()
+                    if 'export.json' in names:
+                        flash('Backup completo caricato. Per sicurezza usare la funzione Full import esistente con lo stesso file.', 'warning')
+                    elif 'database/export.json' in names:
+                        flash('Backup parziale verificato. Il restore automatico dei backup parziali non sostituisce il full import: estrarre e ripristinare manualmente le categorie incluse.', 'warning')
+                    else:
+                        flash('Archivio backup riconosciuto come backup di file; estrarre e ripristinare manualmente sulle directory persistenti corrispondenti.', 'warning')
+                except Exception as exc:
+                    flash(f'Backup non valido: {exc}', 'error')
+                finally:
+                    try: os.remove(tmp)
+                    except OSError: pass
+    return render_template('admin_backups.html', job=job, category_keys=BACKUP_CATEGORY_KEYS, category_labels=BACKUP_CATEGORY_LABELS, selected=set(job.category_list() or BACKUP_CATEGORY_KEYS))
+
+
+_backup_scheduler_started = False
+
+def start_backup_scheduler(app):
+    global _backup_scheduler_started
+    if _backup_scheduler_started:
+        return
+    _backup_scheduler_started = True
+    def loop():
+        last_minute = None
+        while True:
+            try:
+                with app.app_context():
+                    now = application_now().replace(second=0, microsecond=0)
+                    marker = now.strftime('%Y%m%d%H%M')
+                    if marker != last_minute:
+                        last_minute = marker
+                        for job in BackupJob.query.filter_by(enabled=True).all():
+                            if cron_matches_now(job.cron_expression, now):
+                                try:
+                                    execute_backup_job(job, allow_download=False)
+                                except Exception:
+                                    app.logger.exception('Backup schedulato fallito: %s', job.name)
+            except Exception:
+                app.logger.exception('Scheduler backup fallito')
+            time.sleep(30)
+    threading.Thread(target=loop, name='cir-backup-scheduler', daemon=True).start()
+
 @bp.route('/export/csv')
 @login_required
 def export_csv():
@@ -4369,6 +4710,7 @@ FULL_EXPORT_TABLES = {
     'incident_reminders': IncidentReminder,
     'deadline_notification_states': DeadlineNotificationState,
     'external_recipients': ExternalRecipient,
+    'backup_jobs': BackupJob,
     'audit_logs': AuditLog,
 }
 
@@ -4721,7 +5063,7 @@ def import_full():
                 db.session.execute(incident_categories.delete())
                 db.session.execute(incident_data_types.delete())
                 db.session.execute(incident_recommendations.delete())
-                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, ExternalRecipient, IncidentWorkflowStep, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
+                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, BackupJob, ExternalRecipient, IncidentWorkflowStep, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
                     db.session.query(model).delete()
                 db.session.flush()
 
@@ -4756,6 +5098,8 @@ def import_full():
 
                 for row in tables.get('external_recipients', []):
                     db.session.add(ExternalRecipient(**_coerce_row_for_model(ExternalRecipient, row)))
+                for row in tables.get('backup_jobs', []):
+                    db.session.add(BackupJob(**_coerce_row_for_model(BackupJob, row)))
                 db.session.flush()
 
                 for row in tables.get('form_field_mappings', []):

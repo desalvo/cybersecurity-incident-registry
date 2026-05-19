@@ -1,3 +1,15 @@
+
+## 0.2.1-9
+- Aggiunti tooltip dei campi anche nella pagina nuovo incidente.
+- Aggiunta gestione Admin → Backup con categorie selezionabili, backup on-demand, schedulazione cron-like, destinazioni POSIX/S3/download e verifica restore.
+- Updated documentation in Italian and English.
+
+0.2.1-9
+- Spostati gli avvisi procedurali subito sotto le operazioni previste nella pagina incidente.
+- Resi cliccabili e accessibili da tastiera gli step workflow.
+- Clic su uno step: scroll alla sezione Azioni e preselezione della label associata.
+- Documentazione italiana, inglese e progettuale aggiornata.
+
 0.2.1-3 - Container environment documentation
 - Added docs/CONTAINER_ENVIRONMENT.md and docs/CONTAINER_ENVIRONMENT_en.md with all container environment variables, persistent volumes, Docker Compose/Kubernetes operations, HTTPS, Gunicorn tuning, scheduler, backup and upgrade guidance.
 - Expanded .env.example with all operational variables and links to the new guide.
@@ -689,7 +701,7 @@ Notification menu and SMTP sender fix
 - Added top-of-page incident workflow progress with completed/missing visual states.
 - Updated Italian and English user, administrator and project documentation.
 
-0.2.1-6
+0.2.1-9
 - Workflow incidenti: didascalia da descrizione task, fallback al nome task.
 - Aggiunta descrizione operativa ulteriore per ogni step di workflow.
 - Visualizzazione tempo limite, scadenza e tempo rimanente per step con tempo massimo.

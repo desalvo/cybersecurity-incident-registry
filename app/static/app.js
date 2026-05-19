@@ -191,3 +191,34 @@ function preserveIncidentFormAnchor(){
   });
 }
 document.addEventListener('DOMContentLoaded', preserveIncidentFormAnchor);
+
+
+function makeIncidentWorkflowStepsClickable(){
+  const actionForm=document.querySelector('#incident-actions form[action*="/actions/add"], #incident-actions form[data-scroll-anchor="incident-actions"]');
+  const actionSelect=document.getElementById('new-action-label-id');
+  if(!actionForm || !actionSelect)return;
+  const description=actionForm.querySelector('textarea[name="description"]');
+  const activate=(step)=>{
+    const labelId=step.dataset.actionLabelId || '';
+    if(labelId){
+      actionSelect.value=labelId;
+      actionSelect.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+    const target=document.getElementById('incident-actions');
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    setTimeout(()=>{
+      if(description) description.focus();
+      else actionSelect.focus();
+    }, 250);
+  };
+  document.querySelectorAll('.workflow-step-action').forEach(step=>{
+    step.addEventListener('click',()=>activate(step));
+    step.addEventListener('keydown',event=>{
+      if(event.key==='Enter' || event.key===' '){
+        event.preventDefault();
+        activate(step);
+      }
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', makeIncidentWorkflowStepsClickable);

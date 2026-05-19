@@ -263,6 +263,11 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .workflow-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 999px; background: #f0f3f7; font-weight: 700; }
 .workflow-step.done .workflow-badge { background: #2f7d3f; color: #fff; }
 .workflow-step.missing .workflow-badge { background: #b36b00; color: #fff; }
-.workflow-step.expired { border-color: #b42318; background: #fff1f0; }
+.workflow-step.expired, .workflow-step.critical { border-color: #b42318; background: #fff1f0; box-shadow: inset 0 0 0 2px rgba(180,35,24,.15); }
+.workflow-critical-label { color: #b42318; text-transform: uppercase; letter-spacing: .02em; }
 .workflow-task-name { font-size: .9rem; color: #5b6472; }
 .workflow-deadline { font-size: .92rem; }
+
+.workflow-step-action { cursor: pointer; }
+.workflow-step-action:hover, .workflow-step-action:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
+.workflow-step-action:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.2); }

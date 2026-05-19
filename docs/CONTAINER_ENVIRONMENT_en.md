@@ -55,7 +55,7 @@ These three variables are consumed by the `db` container. The `web` application 
 | Variable | Default | Purpose |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Name shown in **Info → Application**. |
-| `APP_VERSION` | `0.2.1-6` | Application version shown by the UI and deployment manifests. |
+| `APP_VERSION` | `0.2.1-8` | Application version shown by the UI and deployment manifests. |
 | `APP_BUILD` | `2026051901` | Build number shown by the UI. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Displayed author. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | Displayed author e-mail. |
@@ -166,3 +166,7 @@ Persistent areas are mounted through PVCs:
 - `cir-ssl-certs` on `/data/ssl`.
 
 In multi-replica deployments keep PostgreSQL as the database and leave the scheduler lock enabled. If the scheduler must be run by a single external component, set `CIR_ENABLE_DEADLINE_SCHEDULER=0` on the web pods.
+
+
+## Container backups
+The `BACKUP_DIR` variable, default `/data/backups`, identifies the local POSIX destination used by **Admin → Backup** when the local destination is selected. Mount this path on a persistent volume or PVC. The feature supports downloadable on-demand backups, local backups, S3/compatible destinations and cron-like scheduling. Scheduled backups are disabled by default and must be explicitly enabled by an administrator. S3 requires the optional `boto3` library in the image or in a derived image.

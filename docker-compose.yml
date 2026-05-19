@@ -20,13 +20,14 @@ services:
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env with a strong one-time bootstrap password}
       CIR_PRODUCTION: ${CIR_PRODUCTION:-0}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
-      APP_VERSION: 0.2.1-6
+      APP_VERSION: 0.2.1-9
       APP_BUILD: 2026051901
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       LOGO_DIR: ${LOGO_DIR:-/data/logo}
       FORM_TEMPLATE_DIR: ${FORM_TEMPLATE_DIR:-/data/form_templates}
       SSO_LOGO_DIR: ${SSO_LOGO_DIR:-/data/sso_logos}
       SSL_DIR: ${SSL_DIR:-/data/ssl}
+      BACKUP_DIR: ${BACKUP_DIR:-/data/backups}
       PORT: ${PORT:-8000}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
@@ -37,8 +38,8 @@ services:
       MAX_CONTENT_LENGTH: ${MAX_CONTENT_LENGTH:-26214400}
       CIR_ENABLE_DEADLINE_SCHEDULER: ${CIR_ENABLE_DEADLINE_SCHEDULER:-1}
       CIR_DEADLINE_SCHEDULER_POLL_SECONDS: ${CIR_DEADLINE_SCHEDULER_POLL_SECONDS:-60}
-    volumes: ["uploads:${UPLOAD_DIR:-/data/uploads}", "logo:${LOGO_DIR:-/data/logo}", "form_templates:${FORM_TEMPLATE_DIR:-/data/form_templates}", "sso_logos:${SSO_LOGO_DIR:-/data/sso_logos}", "ssl:${SSL_DIR:-/data/ssl}"]
+    volumes: ["uploads:${UPLOAD_DIR:-/data/uploads}", "logo:${LOGO_DIR:-/data/logo}", "form_templates:${FORM_TEMPLATE_DIR:-/data/form_templates}", "sso_logos:${SSO_LOGO_DIR:-/data/sso_logos}", "ssl:${SSL_DIR:-/data/ssl}", "backups:${BACKUP_DIR:-/data/backups}"]
     depends_on:
       db:
         condition: service_healthy
-volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}}
+volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}, backups: {}}

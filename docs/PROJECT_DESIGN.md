@@ -9,7 +9,7 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.2.1-6
+- Versione: 0.2.1-9
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
@@ -27,7 +27,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.1-6, build 2026051901.
+La versione applicativa riportata nei metadati runtime è 0.2.1-9, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -597,7 +597,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-6, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-9, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1293,4 +1293,15 @@ Workflow-step captions are resolved from `ConfigLabel.description` first and fro
 
 On fresh installations the bootstrap creates an editable default workflow with five steps: initial information, analysis, CSIRT notification, DPO notification and closure. The default workflow is stored in the same `incident_workflow_step` table with `category_id = NULL`; it is not hard-coded in the UI and can be changed, extended or reduced from the administration page.
 
-For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values as informational status; it does not block manual completion or attachment/notification choices.
+For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values only while the workflow step is still missing. Completed steps do not show deadline/remaining-time details anymore. A missing step is marked as critical when the remaining time is less than or equal to zero; the status remains informational and does not block manual completion or attachment/notification choices.
+
+### Aggiornamento 0.2.1-9 - Workflow interattivo nella pagina incidente
+
+La sezione degli avvisi procedurali è stata ricollocata subito sotto la sezione delle operazioni previste, in modo da mostrare all’operatore lo stato del workflow e i vincoli procedurali prima della scheda principale. Gli elementi del workflow esposti nella pagina incidente includono l'identificativo della label azione associata e sono resi attivabili da mouse e tastiera. L'attivazione scorre alla sezione Azioni e preseleziona la label dell'azione corrispondente, senza salvare automaticamente alcun dato: l'utente conserva il controllo su data, persona, descrizione, conseguenze e allegati.
+
+
+## Backup applicativi
+La versione corrente introduce un sottosistema di backup configurabile da **Admin → Backup**. Il modello `BackupJob` contiene abilitazione, espressione cron-like, categorie incluse, destinazione, parametri POSIX/S3, preferenza di notifica e ultimo esito. La generazione produce archivi `tar.gz` con manifest `backup.json`; le categorie sono `incidents`, `database`, `templates`, `logos` e `uploads`. Se tutte sono selezionate l’archivio è trattato come full backup applicativo. Lo scheduler interno verifica i job abilitati a granularità di minuto; in deployment multi-replica è raccomandato eseguire lo scheduler in una sola replica o introdurre locking distribuito dedicato.
+
+## Application backups
+The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.

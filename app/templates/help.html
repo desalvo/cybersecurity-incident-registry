@@ -19,12 +19,12 @@
       <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
       <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p><p>Gli utenti non amministratori con ruolo writer trovano in <strong>Impostazioni → Destinatari esterni</strong> la gestione completa della rubrica usata per le notifiche manuali con destinatari liberi.</p><p><strong>Versione applicazione:</strong> {{ app_info.version }} · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
     </div>
-  </section>
+  <p>I tooltip di aiuto dei campi incidente sono disponibili sia nella pagina di modifica/dettaglio sia nella pagina di creazione di un nuovo incidente.</p></section>
 
 
-  <section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1-6">
-    <h2>Sviluppi recenti della versione 0.2.1-6</h2>
-    <p>La versione 0.2.1-6 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
+  <section class="doc-section card-lite" aria-label="Sviluppi recenti della versione 0.2.1-9">
+    <h2>Sviluppi recenti della versione 0.2.1-9</h2>
+    <p>La versione 0.2.1-9 consolida le funzioni introdotte negli ultimi aggiornamenti: report PDF con impaginazione professionale, promemoria schedulati per incidente, notifiche deadline pianificate con orari cron o intervalli, audit con anti-flooding e purge, login SSO multiprofilo con loghi condivisi e accesso HTTPS/SSL opzionale.</p>
     <p>Le informazioni di versione sono riportate in questa guida, nelle note di rilascio e nella pagina <strong>Info → Applicazione</strong>.</p>
   </section>
 
@@ -211,7 +211,7 @@
     <h2>Operazioni previste dell’incidente</h2>
     <p>Nella pagina dello specifico incidente, in cima alla form, viene mostrata la lista delle operazioni previste fino alla conclusione. Le operazioni già effettuate sono evidenziate in verde, quelle ancora mancanti in arancione; se un task con tempo massimo risulta scaduto, la scadenza viene evidenziata ulteriormente.</p>
     <p>La didascalia di ogni step usa la descrizione del task configurata nella lista azioni, se presente, altrimenti il nome del task. L’amministratore può aggiungere una descrizione operativa ulteriore sul singolo step del workflow, utile quando la stessa azione compare più volte con significati diversi.</p>
-    <p>Quando l’azione prevista ha un tempo massimo, la scheda mostra anche limite, scadenza e tempo rimanente, calcolati a partire dall’azione di informazione iniziale come per le notifiche automatiche dei task in scadenza.</p>
+    <p>Quando l’azione prevista ha un tempo massimo, la scheda mostra limite, scadenza e tempo rimanente solo finché lo step non risulta effettuato. Se il tempo rimanente è minore o uguale a zero, lo step mancante viene evidenziato come critico. Il calcolo parte dall’azione di informazione iniziale, come per le notifiche automatiche dei task in scadenza.</p>
     <p>Il flusso deriva dalle categorie associate all’incidente; con più categorie i flussi vengono sommati e i duplicati rimossi. Se nessuna categoria ha un flusso dedicato viene usato il flusso di default configurato dall’amministratore: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO e Conclusione. Anche il flusso di default è modificabile dall’amministratore.</p>
   </section>
 

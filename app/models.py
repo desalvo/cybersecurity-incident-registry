@@ -175,6 +175,29 @@ class Document(db.Model):
 
 
 
+class BackupJob(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    name=db.Column(db.String(160),nullable=False,default='Backup schedulato')
+    enabled=db.Column(db.Boolean,default=False,nullable=False)
+    cron_expression=db.Column(db.String(120),default='0 2 * * *')
+    categories=db.Column(db.Text,default='incidents,database,templates,logos,uploads')
+    destination=db.Column(db.String(40),default='local')
+    local_path=db.Column(db.String(500),default='/data/backups')
+    s3_endpoint_url=db.Column(db.String(500),default='')
+    s3_bucket=db.Column(db.String(255),default='')
+    s3_prefix=db.Column(db.String(255),default='cybersecurity-incident-registry')
+    s3_access_key=db.Column(db.String(255),default='')
+    s3_secret_key=db.Column(db.String(255),default='')
+    notify_admin=db.Column(db.Boolean,default=False,nullable=False)
+    last_run_at=db.Column(db.DateTime,nullable=True)
+    last_status=db.Column(db.String(40),default='never')
+    last_message=db.Column(db.Text,default='')
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow)
+
+    def category_list(self):
+        return [x.strip() for x in (self.categories or '').split(',') if x.strip()]
+
 class DeadlineNotificationState(db.Model):
     """Stato dell'ultimo invio riuscito delle notifiche task in scadenza.
 

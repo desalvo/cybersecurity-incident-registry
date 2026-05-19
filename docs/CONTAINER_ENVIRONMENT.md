@@ -55,7 +55,7 @@ Queste tre variabili sono lette dal container `db`. L'applicazione `web` usa inv
 | Variabile | Default | Uso |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Nome visualizzato in **Info → Applicazione**. |
-| `APP_VERSION` | `0.2.1-6` | Versione applicativa visualizzata e propagata nei deploy. |
+| `APP_VERSION` | `0.2.1-8` | Versione applicativa visualizzata e propagata nei deploy. |
 | `APP_BUILD` | `2026051901` | Numero build visualizzato. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Autore visualizzato. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | E-mail autore visualizzata. |
@@ -166,3 +166,7 @@ Le aree persistenti sono montate tramite PVC:
 - `cir-ssl-certs` su `/data/ssl`.
 
 In deployment multi-replica mantenere PostgreSQL come database e lasciare attivo il lock scheduler. Se lo scheduler deve essere eseguito da un solo componente esterno, impostare `CIR_ENABLE_DEADLINE_SCHEDULER=0` sui pod web.
+
+
+## Backup da container
+La variabile `BACKUP_DIR`, default `/data/backups`, identifica la destinazione locale POSIX usata dalla funzione **Admin → Backup** quando la destinazione è locale. Montare questo path su volume persistente o PVC. La funzione consente backup on-demand scaricabili, backup locali, destinazioni S3/compatibili e schedulazione cron-like. I backup schedulati sono disabilitati per default e devono essere abilitati esplicitamente dall’amministratore. Per S3 è richiesta la libreria opzionale `boto3` nell’immagine o in un’immagine derivata.

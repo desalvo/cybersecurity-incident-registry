@@ -2,7 +2,7 @@ import os, time, shutil
 from flask import Flask
 from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError
-from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep
+from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob
 from .auth import login_manager, hash_password
 from .security import init_security
 
@@ -16,14 +16,15 @@ def create_app():
     app.config['LOGO_DIR']=os.getenv('LOGO_DIR','/tmp/cir_logo')
     app.config['SSO_LOGO_DIR']=os.getenv('SSO_LOGO_DIR','/data/sso_logos')
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
+    app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.2.1-6'),
+        'version': os.getenv('APP_VERSION','0.2.1-9'),
         'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
-    os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True); os.makedirs(app.config['LOGO_DIR'], exist_ok=True); os.makedirs(app.config['SSO_LOGO_DIR'], exist_ok=True); os.makedirs(app.config['FORM_TEMPLATE_DIR'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True); os.makedirs(app.config['LOGO_DIR'], exist_ok=True); os.makedirs(app.config['SSO_LOGO_DIR'], exist_ok=True); os.makedirs(app.config['FORM_TEMPLATE_DIR'], exist_ok=True); os.makedirs(app.config['BACKUP_DIR'], exist_ok=True)
 
 
     # Copia i loghi SSO predefiniti nella directory persistente solo se non esistono.
@@ -81,11 +82,12 @@ def create_app():
         except Exception:
             data['modules_menu_visible'] = False
         return data
-    from .routes import bp, start_deadline_notification_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
+    from .routes import bp, start_deadline_notification_scheduler, start_backup_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
     with app.app_context():
         wait_db(db)
         bootstrap(app)
     start_deadline_notification_scheduler(app)
+    start_backup_scheduler(app)
     return app
 
 def wait_db(db):
@@ -318,6 +320,10 @@ def run_schema_migrations(app):
         if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables or 'incident_workflow_step' not in tables:
             db.create_all()
             app.logger.info('Schema migration applied: auxiliary tables ensured')
+        if 'backup_job' not in tables:
+            BackupJob.__table__.create(db.engine, checkfirst=True)
+            app.logger.info('Schema migration applied: backup_job table created')
+
     except Exception:
         db.session.rollback()
         app.logger.exception('Schema migration failed')
@@ -395,6 +401,7 @@ def repair_postgres_sequences(app):
         ('audit_log', 'id'),
         ('incident_reminder', 'id'),
         ('external_recipient', 'id'),
+        ('backup_job', 'id'),
     ]
     try:
         with db.engine.begin() as conn:
@@ -411,6 +418,7 @@ def repair_postgres_sequences(app):
                     """
                 ))
         app.logger.info('PostgreSQL sequences aligned successfully')
+
     except Exception:
         db.session.rollback()
         app.logger.exception('Unable to align PostgreSQL sequences')
@@ -482,7 +490,10 @@ def bootstrap(app):
         for template_name, mapping in default_form_mappings.items():
             for template_field, db_field in mapping.items():
                 ensure_form_mapping(template_name, template_field, db_field)
+        if BackupJob.query.count() == 0:
+            db.session.add(BackupJob(name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories='incidents,database,templates,logos,uploads', destination='local', local_path=os.getenv('BACKUP_DIR','/data/backups')))
         db.session.commit()
+
     except Exception:
         db.session.rollback(); app.logger.exception('Bootstrap failed'); raise
     finally:

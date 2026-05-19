@@ -1,0 +1,36 @@
+{% extends 'base.html' %}{% block content %}
+<div class="card">
+  <h2>Backup</h2>
+  <p class="muted">Configura backup periodici o on-demand dei dati applicativi. Per default sono incluse tutte le categorie; con tutte le categorie selezionate il backup corrisponde al full backup applicativo.</p>
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    <input type="hidden" name="action" value="save">
+    <div class="wide"><label>Nome configurazione</label><input name="name" value="{{ job.name }}"></div>
+    <div><label><input type="checkbox" name="enabled" {% if job.enabled %}checked{% endif %}> Backup schedulato abilitato</label></div>
+    <div><label><input type="checkbox" name="notify_admin" {% if job.notify_admin %}checked{% endif %}> Invia notifica e-mail all’admin</label></div>
+    <div><label>Schedulazione cron-like</label><input name="cron_expression" value="{{ job.cron_expression or '0 2 * * *' }}" placeholder="0 2 * * *"></div>
+    <div><label>Destinazione</label><select name="destination"><option value="local" {% if job.destination=='local' %}selected{% endif %}>File locale POSIX</option><option value="s3" {% if job.destination=='s3' %}selected{% endif %}>S3/compatibile</option><option value="download" {% if job.destination=='download' %}selected{% endif %}>File scaricabile (solo on-demand)</option></select></div>
+    <div class="wide"><label>Categorie incluse</label><div class="checkbox-grid">{% for key in category_keys %}<label><input type="checkbox" name="categories" value="{{ key }}" {% if key in selected %}checked{% endif %}> {{ category_labels[key] }}</label>{% endfor %}</div></div>
+    <div class="wide"><label>Percorso locale POSIX</label><input name="local_path" value="{{ job.local_path or '/data/backups' }}"></div>
+    <div class="wide"><h3>Destinazione S3/compatibile</h3></div>
+    <div><label>Endpoint URL</label><input name="s3_endpoint_url" value="{{ job.s3_endpoint_url or '' }}" placeholder="https://s3.example.org"></div>
+    <div><label>Bucket</label><input name="s3_bucket" value="{{ job.s3_bucket or '' }}"></div>
+    <div><label>Prefix</label><input name="s3_prefix" value="{{ job.s3_prefix or '' }}"></div>
+    <div><label>Access key</label><input name="s3_access_key" value="{{ job.s3_access_key or '' }}"></div>
+    <div><label>Secret key</label><input name="s3_secret_key" type="password" placeholder="Lasciare vuoto per non modificare"></div>
+    <div class="wide button-row"><button type="submit">Salva configurazione</button><button type="submit" name="action" value="run">Esegui backup ora</button></div>
+  </form>
+  <hr>
+  <h3>Ultimo esito</h3>
+  <p><strong>Stato:</strong> {{ job.last_status or 'never' }}{% if job.last_run_at %} · <strong>Data:</strong> {{ job.last_run_at }}{% endif %}</p>
+  <p class="muted">{{ job.last_message or 'Nessun backup eseguito.' }}</p>
+</div>
+<div class="card">
+  <h2>Restore da backup</h2>
+  <p class="muted">Il restore completo deve essere effettuato con un archivio full backup/full export. I backup parziali sono verificati e possono essere usati per recuperi selettivi sulle directory persistenti.</p>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="restore">
+    <label>File backup tar.gz</label><input type="file" name="restore_file" accept=".gz,.tgz,.tar.gz" required>
+    <button>Verifica / avvia restore</button>
+  </form>
+</div>
+{% endblock %}

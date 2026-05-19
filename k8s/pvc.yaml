@@ -28,3 +28,12 @@ metadata: {name: cir-ssl-certs}
 spec:
   accessModes: [ReadWriteOnce]
   resources: {requests: {storage: 100Mi}}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: cir-backups}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 10Gi}
