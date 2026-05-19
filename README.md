@@ -2,9 +2,9 @@
 
 Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
-## Versione 0.2.1-9 - Consolidamento piattaforma e documentazione bilingue
+## Versione 0.2.1-10 - Consolidamento piattaforma e documentazione bilingue
 
-La versione 0.2.1-9, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
+La versione 0.2.1-10, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
 
 Le guide operative sono mantenute in entrambe le lingue. Le note di rilascio sono separate dalla documentazione operativa e consultabili dal menu Aiuto.
 
@@ -129,7 +129,7 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.2.1-9
+- Versione: 0.2.1-10
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -634,7 +634,7 @@ Corretto l’invio delle notifiche dalla sezione **Notifiche** del dettaglio inc
 
 ### Template notifiche, allegati documentali e destinatari esterni
 
-I template di notifica manuale possono essere associati opzionalmente a un template modulo PDF. Durante l’invio da un incidente, i documenti generati da quel template modulo vengono preselezionati automaticamente, ma l’operatore può sempre aggiungere altri allegati o deselezionare quelli proposti. Se il documento atteso non è presente viene mostrato un warning non bloccante. La rubrica **Admin → Destinatari esterni** alimenta i campi destinatario/CC e le nuove email usate in invio vengono salvate dopo la richiesta del nome.
+I template di notifica manuale possono essere associati opzionalmente a un template modulo PDF. Durante l’invio da un incidente, i documenti generati da quel template modulo vengono preselezionati automaticamente, ma l’operatore può sempre aggiungere altri allegati o deselezionare quelli proposti. Se il documento atteso non è presente viene mostrato un warning non bloccante. La rubrica **Admin → Destinatari esterni** alimenta i campi destinatario/CC e le nuove email usate in invio vengono salvate dopo la richiesta del nome. La pagina della rubrica include una ricerca per nome, indirizzo e-mail o note, utile quando l'elenco cresce.
 
 
 ## Aggiornamento 0.112-12 - Tag multipli documenti per notifiche
@@ -654,19 +654,19 @@ La versione applicativa è aggiornata a **0.2.1-1**, build **2026051901**.
 
 ## Aggiornamento 0.2.1-4 - Gestione destinatari esterni da Impostazioni
 
-Gli utenti non amministratori con ruolo `writer`, quindi dotati di privilegi di scrittura e modifica ma senza accesso al menu Admin, possono ora gestire completamente la rubrica **Destinatari esterni** dal menu **Impostazioni → Destinatari esterni**. La funzione consente di aggiungere, modificare e cancellare contatti usati nelle notifiche manuali/non schedulate con campi destinatario o CC liberi. Gli amministratori continuano a gestire la stessa rubrica da **Admin → Destinatari esterni**.
+Gli utenti non amministratori con ruolo `writer`, quindi dotati di privilegi di scrittura e modifica ma senza accesso al menu Admin, possono ora gestire completamente la rubrica **Destinatari esterni** dal menu **Impostazioni → Destinatari esterni**. La funzione consente di aggiungere, modificare, cancellare e cercare contatti usati nelle notifiche manuali/non schedulate con campi destinatario o CC liberi. Gli amministratori continuano a gestire la stessa rubrica da **Admin → Destinatari esterni**.
 
 ## Aggiornamento 0.2.1-5 - Flussi operativi per categoria di incidente
 
 La pagina di dettaglio incidente mostra ora, in cima alla form, la lista delle operazioni previste fino alla conclusione. Le operazioni già registrate tramite azioni dell’incidente sono evidenziate come completate, mentre quelle ancora mancanti sono evidenziate separatamente. Da **Admin → Flussi operativi incidenti** è possibile configurare un flusso di default e flussi specifici per categoria. Ogni passo usa una label azione configurabile, può avere una descrizione operativa dedicata e un ordinamento numerico. Se un incidente ha più categorie, i flussi vengono sommati rimuovendo i duplicati; se nessuna categoria ha un flusso, viene usato quello di default.
 
-## Aggiornamento 0.2.1-9 - Workflow incidenti con descrizioni, scadenze e default modificabile
+## Aggiornamento 0.2.1-10 - Workflow incidenti con descrizioni, scadenze e default modificabile
 
 La scheda dello specifico incidente mostra ora gli step del workflow usando come didascalia la descrizione del task configurata nella lista azioni, se presente, e in alternativa il nome del task. La descrizione definita nello specifico workflow resta disponibile come nota operativa aggiuntiva del singolo passo, così la stessa azione può essere riutilizzata più volte con significati diversi.
 
 Per gli step basati su task con tempo massimo, l’applicazione mostra limite, scadenza e tempo rimanente solo finché lo step non è stato effettuato; se il tempo rimanente è minore o uguale a zero lo step mancante viene evidenziato come critico. Il calcolo usa la stessa logica già usata per le notifiche automatiche dei task schedulati. Il flusso di default iniziale è: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Conclusione. Tutti gli step, inclusi quelli del default, possono essere aggiunti, modificati o cancellati da **Admin → Flussi operativi incidenti**.
 
-## Aggiornamento 0.2.1-9 - Workflow cliccabile e avvisi procedurali in evidenza
+## Aggiornamento 0.2.1-10 - Workflow cliccabile e avvisi procedurali in evidenza
 
 - Nella pagina del singolo incidente la sezione **Avvisi procedurali** è ora mostrata subito sotto **Operazioni previste**, così le attività mancanti e i controlli procedurali sono consultabili prima della scheda principale.
 - I riquadri degli step di workflow sono cliccabili: selezionando uno step la pagina scorre automaticamente alla sezione **Azioni** e predispone la form con la label dell’azione associata allo step.
@@ -675,3 +675,7 @@ Per gli step basati su task con tempo massimo, l’applicazione mostra limite, s
 
 ### Backup applicativi configurabili
 Dal menu **Admin → Backup** è disponibile una gestione centralizzata dei backup periodici e on-demand. Le categorie selezionabili sono: incidenti in CSV, database applicativo, template, loghi e uploads. Tutte le categorie sono selezionate per default; quando sono tutte abilitate il backup rappresenta un full backup applicativo coerente con il full export. Le destinazioni supportate sono filesystem POSIX locale, S3/compatibile e file scaricabile per il solo backup on-demand. I backup schedulati usano una sintassi cron-like a cinque campi e sono disabilitati per default. È possibile abilitare notifiche e-mail all’admin per esito positivo o errore.
+
+## Aggiornamento 0.2.1-10 - Ricerca destinatari esterni
+
+Le pagine **Admin → Destinatari esterni** e **Impostazioni → Destinatari esterni** includono ora un campo di ricerca per filtrare la rubrica condivisa per nome, e-mail o note. Il filtro resta attivo durante modifica, salvataggio o cancellazione, così l'operatore rientra nello stesso elenco filtrato dopo l'operazione.

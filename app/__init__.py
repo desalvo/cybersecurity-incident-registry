@@ -19,7 +19,7 @@ def create_app():
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.2.1-9'),
+        'version': os.getenv('APP_VERSION','0.2.1-10'),
         'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),

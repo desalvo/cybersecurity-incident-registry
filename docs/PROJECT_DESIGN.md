@@ -9,7 +9,7 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.2.1-9
+- Versione: 0.2.1-10
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
@@ -27,7 +27,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.1-9, build 2026051901.
+La versione applicativa riportata nei metadati runtime è 0.2.1-10, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -597,7 +597,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-9, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-10, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1269,7 +1269,7 @@ Metadati runtime aggiornati: versione `0.2.1-1`, build `2026051901`.
 
 La rubrica `ExternalRecipient` resta una risorsa applicativa condivisa. La rotta amministrativa `admin_external_recipients()` continua a essere disponibile solo agli utenti con ruolo `admin`, mentre la nuova rotta `settings_external_recipients()` espone la stessa gestione CRUD dal menu **Impostazioni** agli utenti non amministratori con ruolo `writer`. La funzione di autorizzazione dedicata `can_manage_external_recipients_from_settings()` evita di aprire il menu amministrativo e limita l’accesso agli utenti con privilegi di scrittura/modifica sugli incidenti. Le due route condividono la funzione interna `_external_recipients_page()`, così validazione, controllo duplicati, audit, template HTML e comportamento operativo rimangono coerenti.
 
-Il template `base.html` mostra **Impostazioni → Destinatari esterni** solo agli utenti `writer`; gli amministratori mantengono la voce **Admin → Destinatari esterni**. Il template `admin_external_recipients.html` è stato parametrizzato con `endpoint_name` e `settings_mode`, in modo che annullamento, modifica e salvataggio ritornino alla route corretta in base al punto di accesso. Gli audit generati dalla pagina Impostazioni usano il prefisso `settings:external_recipient_*`, mentre quelli amministrativi mantengono il prefisso `admin:external_recipient_*`.
+Il template `base.html` mostra **Impostazioni → Destinatari esterni** solo agli utenti `writer`; gli amministratori mantengono la voce **Admin → Destinatari esterni**. La funzione comune `_external_recipients_page()` accetta il parametro `q` e filtra `ExternalRecipient` per nome, email o note mantenendo il filtro durante modifica, salvataggio e cancellazione. Il template `admin_external_recipients.html` è stato parametrizzato con `endpoint_name` e `settings_mode`, in modo che annullamento, modifica e salvataggio ritornino alla route corretta in base al punto di accesso. Gli audit generati dalla pagina Impostazioni usano il prefisso `settings:external_recipient_*`, mentre quelli amministrativi mantengono il prefisso `admin:external_recipient_*`.
 
 ## Flussi operativi incidenti
 
@@ -1295,7 +1295,7 @@ On fresh installations the bootstrap creates an editable default workflow with f
 
 For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values only while the workflow step is still missing. Completed steps do not show deadline/remaining-time details anymore. A missing step is marked as critical when the remaining time is less than or equal to zero; the status remains informational and does not block manual completion or attachment/notification choices.
 
-### Aggiornamento 0.2.1-9 - Workflow interattivo nella pagina incidente
+### Aggiornamento 0.2.1-10 - Workflow interattivo nella pagina incidente
 
 La sezione degli avvisi procedurali è stata ricollocata subito sotto la sezione delle operazioni previste, in modo da mostrare all’operatore lo stato del workflow e i vincoli procedurali prima della scheda principale. Gli elementi del workflow esposti nella pagina incidente includono l'identificativo della label azione associata e sono resi attivabili da mouse e tastiera. L'attivazione scorre alla sezione Azioni e preseleziona la label dell'azione corrispondente, senza salvare automaticamente alcun dato: l'utente conserva il controllo su data, persona, descrizione, conseguenze e allegati.
 
@@ -1305,3 +1305,7 @@ La versione corrente introduce un sottosistema di backup configurabile da **Admi
 
 ## Application backups
 The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.
+
+## Aggiornamento 0.2.1-10 - Ricerca nella rubrica destinatari esterni
+
+La gestione della rubrica `ExternalRecipient`, sia dal menu Admin sia dal menu Impostazioni per utenti `writer`, espone un filtro testuale `q`. Il filtro viene applicato ai campi `name`, `email` e `notes` con matching case-insensitive e il template `admin_external_recipients.html` mantiene il parametro nelle azioni di modifica, salvataggio e cancellazione. La modifica non introduce nuove tabelle né migrazioni: utilizza il modello esistente e mantiene invariati audit, export/import e controlli di unicità sull'e-mail.

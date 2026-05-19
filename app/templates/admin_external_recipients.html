@@ -9,22 +9,32 @@
   <form method="post" class="form-grid">
     {% if editing %}<input type="hidden" name="recipient_id" value="{{ editing.id }}">{% endif %}
     <input type="hidden" name="action" value="save">
+    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
     <div><label>Nome</label><input name="name" required value="{{ editing.name if editing else '' }}"></div>
     <div><label>Email</label><input type="email" name="email" required value="{{ editing.email if editing else '' }}"></div>
     <div class="wide"><label>Note</label><textarea name="notes" rows="3">{{ editing.notes if editing else '' }}</textarea></div>
     <button type="submit">Salva</button>
-    {% if editing %}<a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients') }}">Annulla</a>{% endif %}
+    {% if editing %}<a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients', q=search_query) if search_query else url_for(endpoint_name or 'main.admin_external_recipients') }}">Annulla</a>{% endif %}
   </form>
 </div>
 <div class="card">
-  <h3>Rubrica</h3>
+  <h3>Ricerca</h3>
+  <form method="get" class="form-grid">
+    <div class="wide"><label for="external-recipient-search">Cerca per nome, email o note</label><input id="external-recipient-search" type="search" name="q" value="{{ search_query or '' }}" placeholder="Nome, email o testo nelle note"></div>
+    <button type="submit">Cerca</button>
+    {% if search_query %}<a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients') }}">Mostra tutti</a>{% endif %}
+  </form>
+  {% if search_query %}<p class="muted">Risultati filtrati per: <strong>{{ search_query }}</strong></p>{% endif %}
+</div>
+<div class="card">
+  <h3>Rubrica{% if search_query %} - risultati ricerca{% endif %}</h3>
   <table class="table">
     <tr><th>Nome</th><th>Email</th><th>Note</th><th>Azioni</th></tr>
     {% for r in recipients %}
     <tr>
       <td>{{ r.name }}</td><td>{{ r.email }}</td><td>{{ r.notes }}</td>
-      <td class="button-row"><a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients', edit=r.id) }}">Modifica</a>
-        <form method="post" onsubmit="return confirm('Cancellare il destinatario esterno?')"><input type="hidden" name="recipient_id" value="{{ r.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button></form></td>
+      <td class="button-row"><a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients', edit=r.id, q=search_query) }}">Modifica</a>
+        <form method="post" onsubmit="return confirm('Cancellare il destinatario esterno?')">{% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}<input type="hidden" name="recipient_id" value="{{ r.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button></form></td>
     </tr>
     {% else %}<tr><td colspan="4">Nessun destinatario esterno configurato.</td></tr>{% endfor %}
   </table>

@@ -2,9 +2,9 @@
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
 
-## Version 0.2.1-9 - Platform consolidation and bilingual documentation
+## Version 0.2.1-10 - Platform consolidation and bilingual documentation
 
-Version 0.2.1-9, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
+Version 0.2.1-10, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
 
 Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
 
@@ -101,7 +101,7 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.2.1-9
+- Version: 0.2.1-10
 - Build: 2026051901
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -437,7 +437,7 @@ Fixed notification sending from the **Notifications** section of the incident de
 
 ### Notification templates, document attachments and external recipients
 
-Manual notification templates can optionally be linked to a PDF form template. When sending from an incident, documents generated from that form template are preselected automatically, while the operator can still add other attachments or deselect the proposed ones. If the expected document is missing, a non-blocking warning is shown. The **Admin → External recipients** address book feeds recipient/CC fields, and new emails used during sending are saved after asking for the recipient name.
+Manual notification templates can optionally be linked to a PDF form template. When sending from an incident, documents generated from that form template are preselected automatically, while the operator can still add other attachments or deselect the proposed ones. If the expected document is missing, a non-blocking warning is shown. The **Admin → External recipients** address book feeds recipient/CC fields, and new emails used during sending are saved after asking for the recipient name. The address-book page includes search by name, e-mail address or notes, which is useful as the list grows.
 
 
 ## Update 0.112-12 - Multiple document tags for notifications
@@ -457,19 +457,19 @@ The application version is updated to **0.2.1-1**, build **2026051901**.
 
 ## Update 0.2.1-4 - External recipient management from Settings
 
-Non-administrator users with the `writer` role, therefore allowed to write and edit incidents but not to access the Admin menu, can now fully manage the **External recipients** address book from **Settings → External recipients**. The page allows adding, editing and deleting contacts used by manual/non-scheduled notifications with free recipient or CC fields. Administrators continue to manage the same shared address book from **Admin → External recipients**.
+Non-administrator users with the `writer` role, therefore allowed to write and edit incidents but not to access the Admin menu, can now fully manage the **External recipients** address book from **Settings → External recipients**. The page allows adding, editing, deleting and searching contacts used by manual/non-scheduled notifications with free recipient or CC fields. Administrators continue to manage the same shared address book from **Admin → External recipients**.
 
 ## Update 0.2.1-5 - Operational workflows by incident category
 
 The incident detail page now shows, at the top of the form, the list of operations expected until closure. Operations already recorded through incident actions are highlighted as completed, while missing operations are highlighted separately. From **Admin → Incident operational workflows** administrators can configure a default workflow and category-specific workflows. Each step uses a configurable action label, may have a dedicated operational description and has a numeric order. If an incident has multiple categories, workflows are merged and duplicates are removed; if no selected category has a workflow, the default workflow is used.
 
-## Update 0.2.1-9 - Incident workflows with descriptions, deadlines and editable default flow
+## Update 0.2.1-10 - Incident workflows with descriptions, deadlines and editable default flow
 
 The incident detail page now uses the task description configured in the action list as the workflow-step caption when available, falling back to the task name. The description configured on the specific workflow step remains available as an additional operational note, so the same action can be reused multiple times with different meanings.
 
 For steps based on tasks with a maximum completion time, the application shows the limit, due time and remaining time only while the step has not yet been completed; if the remaining time is less than or equal to zero, the missing step is highlighted as critical. The calculation uses the same logic already used for scheduled deadline notifications. The initial default workflow is: Initial information, Analysis, CSIRT notification, DPO notification and Closure. All steps, including default-workflow steps, can be added, edited or deleted from **Admin → Incident operational workflows**.
 
-## Update 0.2.1-9 - Clickable workflow and procedural warnings placement
+## Update 0.2.1-10 - Clickable workflow and procedural warnings placement
 
 - In the incident detail page the **Procedural warnings** section is now displayed immediately below **Expected operations**, so missing activities and procedural checks are visible before the main incident form.
 - Workflow step cards are clickable: selecting a step automatically scrolls to the **Actions** section and prepares the form with the action label associated with the selected step.
@@ -478,3 +478,7 @@ For steps based on tasks with a maximum completion time, the application shows t
 
 ### Configurable application backups
 The **Admin → Backup** menu provides central management for scheduled and on-demand backups. Selectable categories are: incidents as CSV, application database, templates, logos and uploads. All categories are selected by default; when all are enabled the archive is an application full backup consistent with the full export. Supported destinations are local POSIX filesystem, S3/compatible storage and downloadable file for on-demand backups only. Scheduled backups use a five-field cron-like syntax and are disabled by default. Optional e-mail notifications can be sent to the admin user for success or failure.
+
+## Update 0.2.1-10 - External recipient search
+
+The **Admin → External recipients** and **Settings → External recipients** pages now include a search field to filter the shared address book by name, e-mail or notes. The filter is preserved while editing, saving or deleting, so the operator returns to the same filtered list after the operation.

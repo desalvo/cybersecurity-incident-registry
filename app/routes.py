@@ -2034,6 +2034,7 @@ def user_auth_provider_display(auth_provider):
 def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari esterni', settings_mode=False):
     editing = None
     edit_id = request.args.get('edit', type=int)
+    search_query = (request.values.get('q') or '').strip()
     if edit_id:
         editing = ExternalRecipient.query.get_or_404(edit_id)
     if request.method == 'POST':
@@ -2044,27 +2045,41 @@ def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari es
             db.session.delete(rec); db.session.commit()
             audit_log(f'{audit_prefix}:external_recipient_delete', {'recipient_id': rid}, actor_type='user', commit=True)
             flash('Destinatario esterno cancellato.')
-            return redirect(url_for(endpoint_name))
+            return redirect(url_for(endpoint_name, q=search_query) if search_query else url_for(endpoint_name))
         name = (request.form.get('name') or '').strip()
         email = (request.form.get('email') or '').strip()
         notes = request.form.get('notes') or ''
         if not name or not email:
             flash('Nome ed email sono obbligatori.', 'error')
-            return redirect(url_for(endpoint_name, edit=rid) if rid else url_for(endpoint_name))
+            params = {'edit': rid} if rid else {}
+            if search_query:
+                params['q'] = search_query
+            return redirect(url_for(endpoint_name, **params))
         duplicate = ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == email.lower())
         if rid:
             duplicate = duplicate.filter(ExternalRecipient.id != rid)
         if duplicate.first():
             flash('Esiste già un destinatario esterno con questa email.', 'error')
-            return redirect(url_for(endpoint_name, edit=rid) if rid else url_for(endpoint_name))
+            params = {'edit': rid} if rid else {}
+            if search_query:
+                params['q'] = search_query
+            return redirect(url_for(endpoint_name, **params))
         rec = ExternalRecipient.query.get(rid) if rid else ExternalRecipient()
         rec.name = name; rec.email = email; rec.notes = notes
         db.session.add(rec); db.session.commit()
         audit_log(f'{audit_prefix}:external_recipient_save', {'recipient_id': rec.id, 'email': rec.email}, actor_type='user', commit=True)
         flash('Destinatario esterno salvato.')
-        return redirect(url_for(endpoint_name))
-    recipients = get_external_recipients()
-    return render_template('admin_external_recipients.html', recipients=recipients, editing=editing, endpoint_name=endpoint_name, page_title=title, settings_mode=settings_mode)
+        return redirect(url_for(endpoint_name, q=search_query) if search_query else url_for(endpoint_name))
+    recipients_query = ExternalRecipient.query
+    if search_query:
+        like = f'%{search_query}%'
+        recipients_query = recipients_query.filter(db.or_(
+            ExternalRecipient.name.ilike(like),
+            ExternalRecipient.email.ilike(like),
+            ExternalRecipient.notes.ilike(like),
+        ))
+    recipients = recipients_query.order_by(ExternalRecipient.name, ExternalRecipient.email).all()
+    return render_template('admin_external_recipients.html', recipients=recipients, editing=editing, endpoint_name=endpoint_name, page_title=title, settings_mode=settings_mode, search_query=search_query)
 
 
 @bp.route('/admin/external-recipients', methods=['GET','POST'])
