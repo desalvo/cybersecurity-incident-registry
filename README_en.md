@@ -114,7 +114,7 @@ From **Notifications**, an administrator can configure:
 - separate CSIRT and DPO templates;
 - automatic deadline reminders for actions.
 
-Templates support the placeholders `%DATI%`, `%CATEGORIE%`, `%DATA%`, `%DATI_PERSONALI%`, `%REPORT%` and `%EXTERNAL_URL%`.
+Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%PERSONAL_DATA%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
 
 ### Automatic action deadline reminders
 
@@ -309,7 +309,7 @@ Manual or automatic incident closing is now blocked when active procedural warni
 
 The **Admin → Audit** page now uses pagination. The default number of records per page can be configured in **Admin → Other settings** through **Audit records per page**, with default 20 and maximum 100. The top of the Audit page shows the current total number of audit records, the filtered record count and the currently selected interval.
 
-All incident-related notifications always include a direct link to the specific incident page. General notification templates support the `%INCIDENT_URL%` placeholder; deadline-task templates support `%incident_url%`. Even when custom templates do not contain the placeholder, the direct link is automatically appended to the sent message.
+For manual/non-scheduled incident notifications, the direct link to the specific incident page is inserted only when the template contains the `%INCIDENT_URL%` placeholder. Deadline-task templates continue to support `%incident_url%` separately. General templates also support `%MEASURES_ADOPTED%` (list of countermeasures adopted so far in the incident), `%SITE%` (structure name configured in Admin → Structure) and `%STATISTICS%`, which requests the generated statistics PDF attachment at send time.
 
 ### Update 0.1.0-107
 
@@ -320,7 +320,7 @@ All incident-related notifications always include a direct link to the specific 
 
 Automatic deadline task notifications now use a cron-style schedule in addition to regular intervals. In **Admin → Notifications**, administrators can choose **Regular interval** or **Cron / specific times**. In cron mode, daily times can be entered as `HH:MM`, separated by commas, spaces, or new lines; interval-based slots remain available and are always calculated from midnight in the application timezone. The scheduler does not use the application start time as the reference. If the application restarts after one or more missed slots, only the latest due periodic slot is executed and the outcome is recorded in the audit table. The page also shows configured slots, current slot, estimated next run and last automatic execution.
 
-The sending logic has been reviewed: the internal scheduler keeps running independently from web traffic, uses the same execution path as the manual button, records SMTP errors and delivery summaries in audit, and always keeps the direct incident link in the notification body even when a custom template does not include the `%incident_url%` placeholder.
+The sending logic has been reviewed: the internal scheduler keeps running independently from web traffic and records SMTP errors and delivery summaries in audit. For manual notifications, the direct link is controlled by the template and is replaced only through `%INCIDENT_URL%`; scheduled notifications continue to use `%incident_url%`.
 
 ### Update 0.1.0-109
 - The Admin menu grouped into collapsible subsections now always loads with all submenus closed by default, improving readability when reloading or changing pages.
@@ -417,3 +417,8 @@ Each SSO/OAuth2 profile configured from **Admin → SSO** can have an optional l
 ## Update 0.2.0-126 - SSO login type distinguished by provider
 
 In **Admin → Users**, the **Login type** column no longer shows only the technical backend for SSO accounts. Each SSO user also shows the configured provider name and profile id, for example `SSO/OAuth2 · Central institution (institution)` with technical backend `sso:institution`. The user creation menu also includes configured SSO profiles, allowing administrators to pre-create or enable an identity for a specific provider without confusing it with local, LDAP or other SSO providers returning the same username.
+
+
+## Update 0.2.0-10 - Manual notification placeholders and explicit incident link
+
+Manual/non-scheduled notifications no longer append the direct incident link automatically: the link appears only when the template contains `%INCIDENT_URL%`. The placeholders `%MEASURES_ADOPTED%`, `%SITE%` and `%STATISTICS%` were added; `%STATISTICS%` attaches the statistics PDF. The user documentation clarifies that the local `admin` user cannot send notifications from the incident page: these notifications must be sent while logged in as another authorised user.

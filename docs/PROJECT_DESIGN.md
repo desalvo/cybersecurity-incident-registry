@@ -1085,7 +1085,7 @@ La chiusura manuale o automatica di un incidente viene impedita quando sono anco
 
 La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
 
-Tutte le notifiche relative a incidenti includono sempre un link diretto alla pagina dello specifico incidente. Nei template di notifica generale è disponibile il placeholder `%INCIDENT_URL%`; nei template dei task in scadenza è disponibile `%incident_url%`. Anche con template personalizzati che non includono il placeholder, il link diretto viene aggiunto automaticamente al messaggio inviato.
+Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
 
 ## Aggiornamento 0.1.0-107 / Update 0.1.0-107
 
@@ -1204,3 +1204,8 @@ La migrazione idempotente all’avvio aggiorna gli utenti storici con backend ma
 ### Aggiornamento 0.2.0-126 - Visualizzazione provider nel tipo login SSO
 
 La vista `Admin → Utenti` costruisce una mappa dei backend disponibili a partire dai profili SSO configurati. I backend `local` e `ldap` sono mostrati come login locali o LDAP, mentre ogni backend nel formato `sso:<id profilo>` viene presentato come `SSO/OAuth2 · <nome provider> (<id profilo>)`, mantenendo visibile anche il codice tecnico. Se un utente fa riferimento a un profilo SSO eliminato o non più configurato, l'interfaccia lo segnala come profilo non configurato invece di nascondere l'account.
+
+
+## Aggiornamento 0.2.0-10 - Placeholder notifiche manuali e link incidente esplicito
+
+Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.

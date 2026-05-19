@@ -159,8 +159,8 @@
 
   <section id="cap-notifiche" class="doc-chapter" data-doc-title="notifiche email deadline cron schedule link incidente">
     <h2>9. Notifiche e-mail</h2>
-    <p>Le notifiche possono essere inviate manualmente dagli operatori oppure automaticamente dallo scheduler. Le notifiche relative a incidenti includono sempre il link diretto alla pagina dell’incidente, in modo che il destinatario possa aprire subito il contesto corretto.</p>
-    <p>Le notifiche per task con scadenza usano una pianificazione di tipo cron, con orari specifici o intervalli. La pianificazione è calcolata rispetto alla mezzanotte della timezone applicativa e non rispetto all’avvio dell’applicazione.</p>
+    <p>Le notifiche possono essere inviate manualmente dagli operatori oppure automaticamente dallo scheduler. Le notifiche relative a incidenti includono il link diretto alla pagina dell’incidente solo quando il template contiene esplicitamente il placeholder <code>%INCIDENT_URL%</code>, così l’amministratore controlla il testo inviato.</p>
+    <p><strong>Importante:</strong> l’utente locale <code>admin</code> non può inviare notifiche dalla pagina degli incidenti; per inviare notifiche operative occorre accedere con un altro utente autorizzato.</p><p>I template delle notifiche manuali possono usare anche <code>%MEASURES_ADOPTED%</code> per la lista delle contromisure adottate, <code>%SITE%</code> per il nome della struttura configurata, <code>%INCIDENT_URL%</code> per il link diretto e <code>%STATISTICS%</code> per allegare il report statistiche in PDF.</p><p>Le notifiche per task con scadenza usano una pianificazione di tipo cron, con orari specifici o intervalli. La pianificazione è calcolata rispetto alla mezzanotte della timezone applicativa e non rispetto all’avvio dell’applicazione.</p>
     <p>Per evitare duplicati, l’applicazione tiene traccia dell’ultimo invio riuscito per tipologia/notifica e non reinvia messaggi identici all’interno dello stesso intervallo tra due schedule successive.</p>
   </section>
 

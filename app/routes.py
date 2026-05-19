@@ -17,7 +17,7 @@ import qrcode
 from .models import *
 from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
-from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields
+from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields, incident_measures
 bp=Blueprint('main',__name__)
 
 
@@ -2149,6 +2149,7 @@ NOTIFICATION_FIELDS = [
     ('%CATEGORIES%', 'Categorie dell’incidente'),
     ('%PERSONAL_DATA%', 'Frase esplicativa sul coinvolgimento di dati personali'),
     ('%REPORT%', 'Allega il report PDF aggiornato e inserisce un riferimento nel testo'),
+    ('%STATISTICS%', 'Allega alla notifica il Report con le statistiche in formato PDF'),
     ('%NAME%', 'Nome dell’incidente'),
     ('%OPERATOR%', 'Nome dell’utente che invia la mail'),
     ('%START%', 'Data e ora di inizio dell’incidente'),
@@ -2161,7 +2162,9 @@ NOTIFICATION_FIELDS = [
     ('%ACTIONS%', 'Lista cronologica delle azioni finora intraprese, con data e ora'),
     ('%STATUS%', 'Stato dell’incidente'),
     ('%EXTERNAL_URL%', 'URL esterna dell’applicazione configurata in Admin → Altre configurazioni'),
-    ('%INCIDENT_URL%', 'Link diretto alla pagina dell’incidente'),
+    ('%INCIDENT_URL%', 'Link diretto all’incidente'),
+    ('%MEASURES_ADOPTED%', 'lista delle contromisure adottate finora nell’incidente'),
+    ('%SITE%', 'nome della struttura dove si è verificato l’incidente'),
 ]
 
 DEFAULT_NOTIFICATION_SUBJECTS = {
@@ -2374,6 +2377,9 @@ def render_notification_text(template, inc, selected_documents=None):
         '%DOCUMENTS%': documents,
         '%ACTIONS%': actions,
         '%STATUS%': inc.status or '',
+        '%MEASURES_ADOPTED%': incident_measures(inc) or '[nessuna misura adottata registrata]',
+        '%SITE%': setting_value('structure_name', '') or '',
+        '%STATISTICS%': '[report statistiche allegato]',
         '%EXTERNAL_URL%': setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000',
         '%INCIDENT_URL%': incident_absolute_url(inc),
     }
@@ -2390,14 +2396,23 @@ def notification_body_template(kind, template_id=None):
     return get_notification_template(kind, template_id).body
 
 def notification_body(kind, inc, selected_documents=None, template_id=None):
-    body = render_notification_text(notification_body_template(kind, template_id), inc, selected_documents=selected_documents)
-    link = incident_absolute_url(inc)
-    if link not in (body or ''):
-        body = (body or '').rstrip() + f'\n\nLink diretto incidente: {link}'
-    return body
+    # Per le notifiche manuali/non schedulate il link diretto all'incidente
+    # viene inserito solo se il template contiene esplicitamente %INCIDENT_URL%.
+    return render_notification_text(notification_body_template(kind, template_id), inc, selected_documents=selected_documents)
 
 def notification_needs_report(kind, template_id=None):
-    return '%REPORT%' in (notification_body_template(kind, template_id) or '')
+    template_text = ((get_notification_template(kind, template_id).subject or '') + '\n' + (notification_body_template(kind, template_id) or ''))
+    return '%REPORT%' in template_text
+
+def notification_needs_statistics(kind, template_id=None):
+    template_text = ((get_notification_template(kind, template_id).subject or '') + '\n' + (notification_body_template(kind, template_id) or ''))
+    return '%STATISTICS%' in template_text
+
+def _statistics_pdf_for_notification():
+    _, raw_periods = _build_stats_rows(include_search=False)
+    from .reports import _period_statistics
+    periods = [_period_statistics(p['name'], p['incidents'], p.get('start'), p.get('end')) for p in raw_periods]
+    return statistics_pdf(periods)
 
 def notification_needs_documents(kind, template_id=None):
     return '%DOCUMENTS%' in (notification_body_template(kind, template_id) or '')
@@ -2429,7 +2444,7 @@ def smtp_sender_address():
         user_email = ''
     return default_sender or user_email or username or 'admin@localhost.localdomain'
 
-def send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=None):
+def send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=None, attach_statistics=False):
     sender = smtp_sender_address()
     if not recipient:
         raise RuntimeError('Email destinatario non configurata')
@@ -2451,23 +2466,13 @@ def send_notification_email(kind, inc, recipient, cc, subject, body, attach_repo
     if cc:
         msg['Cc'] = cc
     msg['Subject'] = subject
-    link = incident_absolute_url(inc)
-    if link not in (body or ''):
-        body = (body or '').rstrip() + f'\n\nLink diretto incidente: {link}'
-    msg.set_content(body)
+    # Non aggiunge automaticamente il link incidente: nelle notifiche manuali
+    # il link compare solo se il template contiene %INCIDENT_URL%.
+    msg.set_content(body or '')
     if attach_report:
-        pdf_file = incident_pdf(inc)
-        try:
-            if isinstance(pdf_file, (str, os.PathLike)):
-                with open(pdf_file, 'rb') as fh:
-                    pdf_bytes = fh.read()
-            else:
-                pdf_bytes = pdf_file.getvalue() if hasattr(pdf_file, 'getvalue') else pdf_file.read()
-            msg.add_attachment(pdf_bytes, maintype='application', subtype='pdf', filename=f'incident-{inc.id}-report.pdf')
-        finally:
-            if isinstance(pdf_file, (str, os.PathLike)) and os.path.exists(pdf_file):
-                try: os.remove(pdf_file)
-                except OSError: pass
+        _email_add_pdf_attachment_from_path_or_buffer(msg, incident_pdf(inc), f'incident-{inc.id}-report.pdf')
+    if attach_statistics:
+        _email_add_pdf_attachment_from_path_or_buffer(msg, _statistics_pdf_for_notification(), 'statistiche-incidenti.pdf')
     for doc in selected_documents or []:
         path = os.path.join(current_app.config['UPLOAD_DIR'], doc.stored_name or '')
         if not os.path.isfile(path):
@@ -2476,7 +2481,7 @@ def send_notification_email(kind, inc, recipient, cc, subject, body, attach_repo
             data = fh.read()
         msg.add_attachment(data, maintype='application', subtype='octet-stream', filename=doc.filename)
     smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
-    current_app.logger.info('Invio notifica %s incidente %s via SMTP host=%s port=%s ssl=%s starttls=%s auth=%s from=%s to=%s cc=%s attach_report=%s documents=%s', kind, inc.id, host, port, use_ssl, use_tls and not use_ssl, auth_enabled, sender, recipient, cc or '', attach_report, len(selected_documents or []))
+    current_app.logger.info('Invio notifica %s incidente %s via SMTP host=%s port=%s ssl=%s starttls=%s auth=%s from=%s to=%s cc=%s attach_report=%s attach_statistics=%s documents=%s', kind, inc.id, host, port, use_ssl, use_tls and not use_ssl, auth_enabled, sender, recipient, cc or '', attach_report, attach_statistics, len(selected_documents or []))
     with smtp_cls(host, port, timeout=20) as smtp:
         if use_tls and not use_ssl:
             smtp.starttls()
@@ -2485,7 +2490,7 @@ def send_notification_email(kind, inc, recipient, cc, subject, body, attach_repo
                 raise RuntimeError('Autenticazione SMTP abilitata ma username non configurato')
             smtp.login(username, password or '')
         smtp.send_message(msg)
-    return {'sender': sender, 'recipient': recipient, 'cc': cc or '', 'attach_report': attach_report, 'documents': [d.filename for d in (selected_documents or [])]}
+    return {'sender': sender, 'recipient': recipient, 'cc': cc or '', 'attach_report': attach_report, 'attach_statistics': attach_statistics, 'documents': [d.filename for d in (selected_documents or [])]}
 
 
 def send_smtp_test_email(test_recipient):
@@ -3579,12 +3584,13 @@ def notify_preview(iid, kind):
     subject = notification_subject(kind, inc, tmpl.id)
     needs_documents = notification_needs_documents(kind, tmpl.id)
     attach_report = notification_needs_report(kind, tmpl.id)
+    attach_statistics = notification_needs_statistics(kind, tmpl.id)
     body = notification_body(kind, inc, template_id=tmpl.id)
     title = ntype.label
     templates = NotificationTemplate.query.filter_by(kind=kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
     if needs_documents and not inc.documents:
         flash('Il template contiene %DOCUMENTS%, ma non sono presenti documenti allegati all’incidente. Invio bloccato.', 'error')
-    return render_template('notification_preview.html', inc=inc, kind=kind, title=title, sender=current_user.email or '', recipient=recipient, cc=cc, subject=subject, body=body, attach_report=attach_report, needs_documents=needs_documents, template=tmpl, templates=templates, recipient_locked=recipient_locked)
+    return render_template('notification_preview.html', inc=inc, kind=kind, title=title, sender=current_user.email or '', recipient=recipient, cc=cc, subject=subject, body=body, attach_report=attach_report, attach_statistics=attach_statistics, needs_documents=needs_documents, template=tmpl, templates=templates, recipient_locked=recipient_locked)
 
 @bp.route('/incident/<int:iid>/notify/<kind>/send', methods=['POST'])
 @login_required
@@ -3620,6 +3626,7 @@ def notify_send(iid, kind):
     subject = notification_subject(kind, inc, tmpl.id)
     title = ntype.label
     attach_report = notification_needs_report(kind, tmpl.id)
+    attach_statistics = notification_needs_statistics(kind, tmpl.id)
     needs_documents = notification_needs_documents(kind, tmpl.id)
     selected_documents = []
     if needs_documents:
@@ -3636,13 +3643,13 @@ def notify_send(iid, kind):
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id))
     body = notification_body(kind, inc, selected_documents=selected_documents if needs_documents else None, template_id=tmpl.id)
     try:
-        send_info = send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=selected_documents)
+        send_info = send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=selected_documents, attach_statistics=attach_statistics)
         label = tmpl.action_label or ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
         if not label:
             label = ConfigLabel(kind='action_label', group='azioni', value=notification_label_value(kind))
             db.session.add(label); db.session.flush()
         docs_text = ', '.join(send_info.get('documents') or []) or 'nessuno'
-        desc = f'Invio {title.lower()} con template "{tmpl.name}". Mittente: {send_info["sender"]}; Destinatario: {send_info["recipient"]}; CC: {send_info["cc"] or "nessuno"}; Report PDF allegato: {"sì" if send_info["attach_report"] else "no"}; Documenti allegati: {docs_text}.'
+        desc = f'Invio {title.lower()} con template "{tmpl.name}". Mittente: {send_info["sender"]}; Destinatario: {send_info["recipient"]}; CC: {send_info["cc"] or "nessuno"}; Report PDF allegato: {"sì" if send_info["attach_report"] else "no"}; Report statistiche allegato: {"sì" if send_info.get("attach_statistics") else "no"}; Documenti allegati: {docs_text}.'
         action = add_notification_action_safely(inc, label, desc)
         pdf_path = None
         try:

@@ -143,7 +143,7 @@ Dal menu **Notifiche** un amministratore può configurare:
 - template separati per CSIRT e DPO;
 - promemoria automatici di scadenza delle azioni.
 
-Nei template sono disponibili i segnaposto `%DATI%`, `%CATEGORIE%`, `%DATA%`, `%DATI_PERSONALI%`, `%REPORT%`.
+Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%PERSONAL_DATA%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%STATISTICS%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
 
 ### Promemoria automatici scadenze azioni
 
@@ -506,7 +506,7 @@ La chiusura manuale o automatica di un incidente viene impedita quando sono anco
 
 La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
 
-Tutte le notifiche relative a incidenti includono sempre un link diretto alla pagina dello specifico incidente. Nei template di notifica generale è disponibile il placeholder `%INCIDENT_URL%`; nei template dei task in scadenza è disponibile `%incident_url%`. Anche con template personalizzati che non includono il placeholder, il link diretto viene aggiunto automaticamente al messaggio inviato.
+Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
 
 ### Aggiornamento 0.1.0-107
 
@@ -517,7 +517,7 @@ Tutte le notifiche relative a incidenti includono sempre un link diretto alla pa
 
 Le notifiche automatiche dei task con scadenza passano da una sola pianificazione a intervallo regolare a una pianificazione in stile cron configurabile da **Admin → Notifiche**. È possibile scegliere tra modalità **Intervallo regolare** e **Cron / orari specifici**. In modalità cron si possono indicare orari giornalieri nel formato `HH:MM`, separati da virgole, spazi o righe; gli eventuali intervalli restano disponibili e sono sempre calcolati dalla mezzanotte del fuso applicativo. Lo scheduler non usa l’orario di avvio dell’applicazione come riferimento: se l’applicazione riparte dopo uno o più slot saltati, esegue solo l’ultimo slot periodico dovuto e registra l’esito nella tabella audit. La pagina mostra anche gli slot configurati, lo slot corrente, il prossimo invio stimato e l’ultima esecuzione automatica.
 
-La logica di invio è stata ricontrollata: lo scheduler interno continua a funzionare indipendentemente dal traffico web, usa la stessa funzione del pulsante manuale, registra errori SMTP e riepilogo invii in audit, e mantiene il link diretto all’incidente nel corpo della notifica anche quando il template personalizzato non contiene il placeholder `%incident_url%`.
+La logica di invio è stata ricontrollata: lo scheduler interno continua a funzionare indipendentemente dal traffico web, registra errori SMTP e riepilogo invii in audit. Per le notifiche manuali il link diretto è sotto controllo del template e viene sostituito solo tramite `%INCIDENT_URL%`; per le notifiche schedulate resta disponibile `%incident_url%`.
 
 ### Aggiornamento 0.1.0-109
 - Il menu Admin raggruppato in sottosezioni collassabili viene sempre caricato con tutti i sottogruppi chiusi per default, migliorando la leggibilità quando si ricarica o si cambia pagina.
@@ -614,3 +614,8 @@ Ogni profilo SSO/OAuth2 configurabile da **Admin → SSO** può avere un logo op
 ## Aggiornamento 0.2.0-126 - Tipo login SSO distinto per provider
 
 Nella pagina **Admin → Utenti** il campo **Tipo login** non mostra più solo il backend tecnico degli account SSO. Per ogni utente SSO viene visualizzato anche il nome del provider configurato e l'id del profilo, ad esempio `SSO/OAuth2 · Ente centrale (ente)` con backend tecnico `sso:ente`. Il menu di creazione utente include anche i profili SSO configurati, così un amministratore può predisporre o abilitare manualmente un'identità per uno specifico provider senza confonderla con login locali, LDAP o altri provider SSO che restituiscono lo stesso username.
+
+
+## Aggiornamento 0.2.0-10 - Placeholder notifiche manuali e link incidente esplicito
+
+Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.

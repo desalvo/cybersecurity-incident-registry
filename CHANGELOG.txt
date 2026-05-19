@@ -1,3 +1,10 @@
+
+0.2.0-10 - Placeholder notifiche manuali e allegato statistiche
+- Le notifiche manuali/non schedulate inseriscono il link incidente solo tramite %INCIDENT_URL%.
+- Aggiunti %MEASURES_ADOPTED%, %SITE% e %STATISTICS% ai template di notifica generali.
+- %STATISTICS% allega il report statistiche PDF durante l'invio.
+- Aggiornata la documentazione utente/amministrativa italiana e inglese, inclusa la nota sull'utente admin che non invia notifiche dal dettaglio incidente.
+
 0.2.0-7 - User removal
 - Added administrator-controlled user removal with safeguards for current and last admin accounts.
 - User deletion preserves incidents, reminders and audit history while removing MFA tokens.

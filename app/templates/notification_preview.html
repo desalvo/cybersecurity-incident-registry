@@ -24,6 +24,7 @@
   {% endif %}
   <p><strong>Oggetto:</strong> {{ subject }}</p>
   <p><strong>Report PDF:</strong> {{ 'allegato perché il template contiene %REPORT%' if attach_report else 'non allegato' }}</p>
+  <p><strong>Report statistiche:</strong> {{ 'allegato perché il template contiene %STATISTICS%' if attach_statistics else 'non allegato' }}</p>
   <p><strong>Documenti:</strong> {% if needs_documents %}richiesti, perché il template contiene <code>%DOCUMENTS%</code>{% else %}non richiesti{% endif %}</p>
   <h3>Testo</h3>
   <pre class="mail-preview">{{ body }}</pre>
