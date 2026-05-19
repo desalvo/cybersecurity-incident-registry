@@ -2341,6 +2341,23 @@ def get_notification_template(kind, template_id=None):
         db.session.add(t); db.session.commit()
     return t
 
+def _notification_placeholder_text(value):
+    """Restituisce sempre testo sicuro per la sostituzione dei placeholder.
+
+    Alcuni helper applicativi, come incident_measures(), restituiscono liste di
+    righe perché gli stessi valori vengono usati anche per la compilazione dei
+    moduli PDF. I template di notifica, invece, usano str.replace() e quindi
+    richiedono sempre stringhe. Questa normalizzazione evita TypeError quando
+    un placeholder è valorizzato con liste, tuple, set o altri tipi non testuali.
+    """
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple, set)):
+        return '\n'.join(_notification_placeholder_text(item) for item in value if item is not None)
+    return str(value)
+
 def render_notification_text(template, inc, selected_documents=None):
     data_types = ', '.join([x.value for x in inc.data_types]) or 'nessun tipo di dato indicato'
     categories = ', '.join([x.value for x in inc.categories]) or 'nessuna categoria indicata'
@@ -2385,7 +2402,7 @@ def render_notification_text(template, inc, selected_documents=None):
     }
     text = template or ''
     for key, value in replacements.items():
-        text = text.replace(key, value)
+        text = text.replace(key, _notification_placeholder_text(value))
     return text
 
 def notification_subject(kind, inc, template_id=None):

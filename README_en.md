@@ -422,3 +422,8 @@ In **Admin → Users**, the **Login type** column no longer shows only the techn
 ## Update 0.2.0-10 - Manual notification placeholders and explicit incident link
 
 Manual/non-scheduled notifications no longer append the direct incident link automatically: the link appears only when the template contains `%INCIDENT_URL%`. The placeholders `%MEASURES_ADOPTED%`, `%SITE%` and `%STATISTICS%` were added; `%STATISTICS%` attaches the statistics PDF. The user documentation clarifies that the local `admin` user cannot send notifications from the incident page: these notifications must be sent while logged in as another authorised user.
+
+
+## Update 0.2.0-11 - Manual notification placeholder fix
+
+Fixed notification sending from the **Notifications** section of the incident detail page: placeholder values are now always normalised to text before being substituted into the template. In particular `%MEASURES_ADOPTED%`, which uses the same data source as the `measures_adopted` field used for form filling and may be calculated as a list of lines, is converted into a multiline text list. This removes the `TypeError: replace() argument 2 must be str, not list` error when pressing the notification button. The rule applies to all manual/non-scheduled notification placeholders: missing values become an empty string, lists/tuples/sets become newline-separated lines and other values are converted to strings.

@@ -646,3 +646,10 @@ Notification menu and SMTP sender fix
 - Admin utenti: la colonna Tipo login distingue gli utenti SSO anche per provider, mostrando nome provider, id profilo e backend tecnico.
 - Admin utenti: il menu backend include i profili SSO configurati per creare o predisporre identità SSO specifiche.
 - Documentazione italiana e inglese aggiornata.
+
+0.2.0-11
+- Corretto l’invio notifiche manuali/non schedulate quando un placeholder, in particolare %MEASURES_ADOPTED%, produce una lista invece di una stringa.
+- Aggiunta normalizzazione centralizzata dei valori placeholder prima della sostituzione nei template.
+- Documentazione italiana e inglese aggiornata.
+- Fixed manual notification sending when a placeholder, especially %MEASURES_ADOPTED%, produces a list instead of a string.
+- Placeholder values are now normalised centrally before template replacement.

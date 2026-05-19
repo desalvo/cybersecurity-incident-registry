@@ -619,3 +619,8 @@ Nella pagina **Admin → Utenti** il campo **Tipo login** non mostra più solo i
 ## Aggiornamento 0.2.0-10 - Placeholder notifiche manuali e link incidente esplicito
 
 Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
+
+
+## Aggiornamento 0.2.0-11 - Correzione placeholder notifiche manuali
+
+Corretto l’invio delle notifiche dalla sezione **Notifiche** del dettaglio incidente: i valori dei placeholder vengono ora normalizzati sempre in testo prima della sostituzione nel template. In particolare `%MEASURES_ADOPTED%`, che usa la stessa origine dati del campo `measures_adopted` per la compilazione dei moduli e può essere calcolato come lista di righe, viene trasformato in un elenco testuale multilinea. Questo elimina l’errore `TypeError: replace() argument 2 must be str, not list` alla pressione del pulsante di notifica. La regola vale per tutti i placeholder delle notifiche manuali/non schedulate: valori mancanti diventano stringa vuota, liste/tuple/set diventano righe separate da ritorno a capo, gli altri tipi vengono convertiti in stringa.

@@ -373,8 +373,12 @@ Nel testo delle mail di notifica sono disponibili:
 - `%DOCUMENTS%`: documenti allegati all'incidente; se presente, richiede selezione documenti
 - `%STATUS%`: stato incidente
 - `%ACTIONS%`: lista cronologica delle azioni con data e ora
+- `%MEASURES_ADOPTED%`: lista delle contromisure adottate finora nell'incidente, calcolata dalla stessa origine dati del campo `measures_adopted` usato per la compilazione dei moduli
+- `%INCIDENT_URL%`: link diretto all'incidente; nelle notifiche manuali/non schedulate il link viene inserito solo se questo placeholder è presente nel template
+- `%SITE%`: nome della struttura dove si è verificato l'incidente, letto dalla configurazione **Admin → Struttura**
+- `%STATISTICS%`: richiede l'allegato del report statistiche in PDF
 
-La lista dei placeholder deve essere visibile in ogni pagina di configurazione template.
+La lista dei placeholder deve essere visibile in ogni pagina di configurazione template. I valori dei placeholder vengono normalizzati a testo prima della sostituzione: valori mancanti diventano stringa vuota, liste/tuple/set diventano righe separate da ritorno a capo e gli altri tipi vengono convertiti in stringa. Questa regola evita errori di rendering quando valori condivisi con i moduli, come `%MEASURES_ADOPTED%`, sono calcolati internamente come liste di righe.
 
 ### 7.4 Invio notifiche
 
@@ -384,6 +388,7 @@ Regole allegati:
 
 - se il template contiene `%REPORT%`, allegare il report PDF corrente dell'incidente
 - se contiene `%DOCUMENTS%`, chiedere quali documenti allegare e impedire l'invio se nessun documento è disponibile o selezionato
+- se contiene `%STATISTICS%`, allegare il report statistiche in PDF
 - per ogni notifica inviata, creare automaticamente un'azione con la label associata al template
 - allegare all'azione un PDF contenente il testo della mail inviata
 
