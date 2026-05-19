@@ -3491,6 +3491,75 @@ def _deadline_slot_label(value):
     return str(value or '')
 
 
+
+
+def upcoming_scheduled_notifications(hours=24, limit=200):
+    """Riepilogo delle prossime notifiche schedulate visibile in Impostazioni → Notifiche.
+
+    Include i promemoria puntuali degli incidenti e gli slot futuri delle notifiche
+    automatiche sui task in scadenza. Le date sono calcolate nel fuso applicativo
+    e i record già inviati nello slot corrente/futuro non vengono riproposti.
+    """
+    now = application_now()
+    horizon = now + timedelta(hours=hours)
+    rows = []
+
+    # Promemoria puntuali già schedulati sui singoli incidenti.
+    reminders = IncidentReminder.query.filter(
+        IncidentReminder.sent_at.is_(None),
+        IncidentReminder.scheduled_at >= now,
+        IncidentReminder.scheduled_at <= horizon,
+    ).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).limit(limit).all()
+    for rem in reminders:
+        inc = rem.incident
+        people_recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()}) if inc else []
+        cc = _split_email_list(rem.cc_emails)
+        rows.append({
+            'scheduled_at': rem.scheduled_at,
+            'scheduled_at_text': format_application_datetime(rem.scheduled_at, include_timezone=True),
+            'type': 'Promemoria incidente',
+            'recipients': ', '.join(people_recipients + cc) or 'nessun destinatario disponibile',
+            'incident': inc,
+            'incident_label': f'#{inc.id} - {inc.name}' if inc else f'#{rem.incident_id}',
+            'source': 'promemoria',
+        })
+
+    # Slot futuri del riepilogo task in scadenza. Per ogni slot si mostrano gli
+    # incidenti che, allo stato attuale, hanno operazioni pendenti con tempo massimo.
+    if setting_value('notification_deadline_enabled', '0') == '1':
+        slot_cursor = now
+        seen_slots = set()
+        while len(rows) < limit:
+            slot = next_deadline_notification_at(slot_cursor)
+            if slot > horizon:
+                break
+            if slot in seen_slots:
+                break
+            seen_slots.add(slot)
+            next_slot = next_deadline_notification_at(slot + timedelta(minutes=1))
+            for inc in Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).order_by(Incident.id.asc()).all():
+                if not pending_deadline_actions_for_incident(inc, now=now):
+                    continue
+                if _deadline_notification_sent_in_current_window(inc.id, slot, next_slot):
+                    continue
+                recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()})
+                rows.append({
+                    'scheduled_at': slot,
+                    'scheduled_at_text': format_application_datetime(slot, include_timezone=True),
+                    'type': 'Task in scadenza',
+                    'recipients': ', '.join(recipients) or 'nessun destinatario disponibile',
+                    'incident': inc,
+                    'incident_label': f'#{inc.id} - {inc.name}',
+                    'source': 'scheduler scadenze',
+                })
+                if len(rows) >= limit:
+                    break
+            slot_cursor = slot + timedelta(minutes=1)
+
+    rows.sort(key=lambda r: (r['scheduled_at'], r['type'], r['incident_label']))
+    return rows[:limit]
+
+
 def format_deadline_schedule_info():
     next_at = next_deadline_notification_at()
     current_slot = current_deadline_schedule_slot()
@@ -4010,12 +4079,25 @@ def run_deadline_notification_check(force=False, source='request'):
 @bp.before_app_request
 def maybe_run_deadline_notification_check():
     # Esecuzione leggera opportunistica: il controllo reale parte solo se è
-    # abilitato e se l'intervallo configurato è trascorso.
+    # abilitato e se l'intervallo configurato è trascorso. Usa lo stesso lock
+    # dello scheduler di background per evitare mail duplicate quando più poll
+    # o richieste arrivano nello stesso intervallo.
     try:
         if request.endpoint and request.endpoint.startswith('static'):
             return
-        run_deadline_notification_check(force=False, source='request_hook')
-        process_due_incident_reminders(source='request_hook')
+        if not _deadline_scheduler_lock.acquire(blocking=False):
+            return
+        db_lock_acquired = False
+        try:
+            db_lock_acquired = _try_database_scheduler_lock()
+            if not db_lock_acquired:
+                return
+            run_deadline_notification_check(force=False, source='request_hook')
+            process_due_incident_reminders(source='request_hook')
+        finally:
+            if db_lock_acquired:
+                _release_database_scheduler_lock()
+            _deadline_scheduler_lock.release()
     except Exception:
         db.session.rollback()
         current_app.logger.exception('Controllo automatico scadenze azioni non completato')
@@ -4241,7 +4323,7 @@ def notification_settings():
     settings = {k: setting_value(k, defaults.get(k,'')) for k in keys}
     preview_subject, preview_body = sample_deadline_preview()
     schedule_info = format_deadline_schedule_info()
-    return render_template('notification_settings.html', settings=settings, deadline_placeholders=DEADLINE_NOTIFICATION_PLACEHOLDERS, preview_subject=preview_subject, preview_body=preview_body, schedule_info=schedule_info)
+    return render_template('notification_settings.html', settings=settings, deadline_placeholders=DEADLINE_NOTIFICATION_PLACEHOLDERS, preview_subject=preview_subject, preview_body=preview_body, schedule_info=schedule_info, upcoming_notifications=upcoming_scheduled_notifications())
 
 @bp.route('/notifiche/template/nuovo', methods=['GET','POST'])
 @login_required
@@ -4422,6 +4504,9 @@ def notify_send(iid, kind):
             flash('Nuovo destinatario esterno rilevato: indicare il nome del destinatario per inserirlo in rubrica.', 'warning')
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
         added_recipients = ensure_external_recipients_from_addresses(recipient + ',' + cc, names_by_email)
+        if request.form.get('recipient_confirmed') != '1':
+            flash('Confermare il destinatario prima di inviare la notifica.', 'warning')
+            return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
     subject = notification_subject(kind, inc, tmpl.id)
     title = ntype.label
     attach_report = notification_needs_report(kind, tmpl.id)

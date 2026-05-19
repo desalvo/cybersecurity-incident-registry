@@ -1,3 +1,5 @@
+For manual/non-scheduled notifications with a free recipient, meaning not automatically taken from application settings, the application now requires an explicit confirmation of the recipient and any CC before sending. The confirmation is shown in the preview page and is also checked server-side, so sending to addresses typed manually or selected from the address book always requires a final operator validation. Automatically configured recipients are unchanged and do not require this additional confirmation.
+
 ## Update 0.2.1 - Local date/time for incident fields and notifications
 
 In the new/edit incident forms, the specific start date/time and end date/time fields now include a **Now** button next to the field. The button fills the date/time pair with the current moment in the application timezone configured under **Admin → Other settings**. Actions automatically created after manual notification sending now use the same local application timezone, keeping the incident timeline consistent with operator-entered values.
@@ -547,3 +549,7 @@ The default workflow now also includes Privacy Authority communication, applicab
 ## Update 0.2.1 - Incident deletion and deadline-notification states
 
 Deleting an incident now explicitly removes the related internal deadline-notification state records as well. This prevents PostgreSQL errors such as `update or delete on table "incident" violates foreign key constraint "deadline_notification_state_incident_id_fkey"` on installations upgraded from older versions or restored through Full import. Historical information not linked to the deleted incident continues to follow the normal application rules.
+
+### Scheduled notification summary and anti-flooding
+
+The **Settings → Notifications** page shows the next scheduled notifications in the following 24 hours, sorted by time and including notification type, incident and recipients. The opportunistic web-request check uses the same locks as the background scheduler to avoid sending the same notification multiple times inside the same interval, even with multiple workers or replicas.

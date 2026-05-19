@@ -1375,3 +1375,15 @@ La pagina del singolo incidente visualizza gli step delle operazioni previste co
 ## Aggiornamento 0.2.1 - Cancellazione incidenti con stati deadline collegati
 
 La funzione `incident_delete()` non elimina più direttamente solo il record `Incident`: usa `delete_incident_with_related_state()`, che rimuove prima i record `DeadlineNotificationState` collegati tramite `incident_id` e poi elimina l'incidente. Il modello dichiara inoltre la relazione `Incident.deadline_notification_states` con cascade applicativa e il vincolo `ForeignKey('incident.id', ondelete='CASCADE')` per i nuovi schemi. La cancellazione esplicita resta necessaria per database esistenti nei quali il vincolo PostgreSQL è stato creato da versioni precedenti senza `ON DELETE CASCADE`.
+
+### Conferma destinatario per notifiche manuali
+Le notifiche non schedulate con destinatario libero richiedono una conferma esplicita prima dell’invio. Il template di anteprima valorizza un campo `recipient_confirmed` solo dopo conferma dell’operatore; la route di invio verifica lato server tale valore e, in assenza di conferma, reindirizza alla preview senza inviare. Le notifiche con destinatario automatico da configurazione applicativa non sono soggette a questa conferma aggiuntiva.
+
+Manual/non-scheduled notifications with a free recipient require explicit confirmation before sending. The preview template sets `recipient_confirmed` only after operator confirmation; the send route checks this value server-side and redirects to preview without delivery if it is missing. Notifications with automatically configured recipients are not subject to this additional confirmation.
+
+
+## Riepilogo notifiche schedulate e protezione anti-flooding
+
+La vista `notification_settings.html` riceve da `upcoming_scheduled_notifications()` un riepilogo delle notifiche previste nelle successive 24 ore, ordinato per ora. La funzione combina promemoria puntuali (`IncidentReminder`) non ancora inviati e slot futuri del riepilogo task in scadenza, mostrando destinatari, tipo notifica e incidente.
+
+Il controllo opportunistico `maybe_run_deadline_notification_check()` usa lo stesso lock in-process e lo stesso advisory lock PostgreSQL dello scheduler di background prima di chiamare `run_deadline_notification_check()` e `process_due_incident_reminders()`. In questo modo deployment con più worker o repliche evitano mail duplicate nello stesso intervallo, mentre la tabella `DeadlineNotificationState` continua a registrare l’ultimo invio riuscito per incidente e slot.

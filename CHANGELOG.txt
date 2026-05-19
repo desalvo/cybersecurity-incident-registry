@@ -1,3 +1,13 @@
+0.2.1-26 - Riepilogo notifiche schedulate e anti-flooding
+- Aggiunto in Impostazioni → Notifiche il riepilogo delle notifiche schedulate nelle prossime 24 ore, ordinate per ora e con destinatari/tipo notifica.
+- Il controllo opportunistico da richiesta web usa gli stessi lock dello scheduler di background per evitare invii multipli nello stesso intervallo.
+- Documentazione italiana e inglese aggiornata.
+
+0.2.1-25 - Conferma destinatario notifiche manuali
+- Aggiunta conferma esplicita prima dell’invio delle notifiche manuali/non schedulate con destinatario libero.
+- La conferma mostra destinatario e CC e viene verificata anche lato server.
+- Aggiornata la documentazione italiana e inglese.
+
 ## 0.2.1
 - Aggiunti pulsanti "Adesso" accanto a data/ora inizio e data/ora fine nelle form incidente per valorizzarli con il momento corrente nel fuso applicativo configurato.
 - Le azioni registrate automaticamente dopo l'invio di notifiche usano ora la data e ora locale dell'applicazione, coerente con la timeline incidente.

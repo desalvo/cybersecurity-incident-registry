@@ -1,3 +1,5 @@
+Nelle notifiche manuali/non schedulate con destinatario libero, cioè non determinato automaticamente dalla configurazione applicativa, prima dell’invio viene richiesta una conferma esplicita del destinatario e degli eventuali CC. La conferma viene mostrata nella pagina di anteprima e verificata anche lato server, così un invio verso indirizzi digitati manualmente o selezionati dalla rubrica richiede sempre una validazione finale dell’operatore. I destinatari automatici configurati nell’app restano invariati e non richiedono questa conferma aggiuntiva.
+
 ## Aggiornamento 0.2.1 - Data/ora locale nei campi incidente e notifiche
 
 Nelle form di creazione e modifica incidente, i campi specifici di data/ora inizio e data/ora fine hanno ora un pulsante **Adesso** accanto al campo. Il pulsante valorizza la coppia data/ora con il momento corrente nella timezone applicativa configurata in **Admin → Altre configurazioni**. Anche le azioni create automaticamente a seguito dell'invio di notifiche manuali usano la stessa timezone locale applicativa, così la timeline dell'incidente resta coerente con i valori inseriti dagli operatori.
@@ -744,3 +746,7 @@ Il workflow di default include ora anche Comunicazione al Garante, valida solo p
 ## Aggiornamento 0.2.1 - Cancellazione incidenti e stati notifiche deadline
 
 La cancellazione di un incidente rimuove ora esplicitamente anche gli stati interni delle notifiche a scadenza collegati all'incidente. Questo evita errori PostgreSQL del tipo `update or delete on table "incident" violates foreign key constraint "deadline_notification_state_incident_id_fkey"` su installazioni aggiornate da versioni precedenti o ripristinate tramite Full import. Le informazioni storiche non collegate all'incidente eliminato restano gestite dalle normali regole applicative.
+
+### Riepilogo notifiche schedulate e anti-flooding
+
+La pagina **Impostazioni → Notifiche** mostra le prossime notifiche schedulate nelle 24 ore successive, ordinate per ora, includendo tipo di notifica, incidente e destinatari. Il controllo opportunistico da richiesta web usa gli stessi lock dello scheduler di background per evitare invii multipli della stessa notifica nello stesso intervallo, anche in presenza di più worker o repliche.

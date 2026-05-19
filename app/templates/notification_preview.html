@@ -42,6 +42,11 @@
     {% if not recipient_locked %}
       <input type="hidden" name="recipient" value="{{ recipient }}">
       <input type="hidden" name="cc" value="{{ cc }}">
+      <input type="hidden" name="recipient_confirmed" value="0">
+      <div class="wide notification-recipient-confirmation">
+        <p class="warning"><strong>Conferma destinatario richiesta:</strong> prima dell’invio verifica il destinatario libero indicato per questa notifica.</p>
+        <p><strong>Destinatario da confermare:</strong> {{ recipient or 'non indicato' }}{% if cc %}<br><strong>CC:</strong> {{ cc }}{% endif %}</p>
+      </div>
       <label>Nome nuovo destinatario principale <input name="recipient_name" placeholder="Obbligatorio se email nuova"></label>
       <label>Nome nuovo destinatario CC <input name="cc_name" placeholder="Obbligatorio se email CC nuova"></label>
     {% endif %}
@@ -81,6 +86,19 @@
   const useCc = document.getElementById('use-cc-picker');
   if(useTo) useTo.addEventListener('click', function(){ const email = selectedEmail(); if(email && recipientInput) recipientInput.value = email; });
   if(useCc) useCc.addEventListener('click', function(){ appendAddress(ccInput, selectedEmail()); });
+  const sendForm = document.querySelector('.notification-send-form');
+  if(sendForm && sendForm.querySelector('input[name="recipient_confirmed"]')){
+    sendForm.addEventListener('submit', function(event){
+      const recipient = (sendForm.querySelector('input[name="recipient"]')?.value || '').trim();
+      const cc = (sendForm.querySelector('input[name="cc"]')?.value || '').trim();
+      const message = 'Confermi l’invio della notifica al destinatario indicato?\n\nDestinatario: ' + (recipient || '(non indicato)') + (cc ? '\nCC: ' + cc : '');
+      if(!window.confirm(message)){
+        event.preventDefault();
+        return false;
+      }
+      sendForm.querySelector('input[name="recipient_confirmed"]').value = '1';
+    });
+  }
 })();
 </script>
 {% endblock %}
