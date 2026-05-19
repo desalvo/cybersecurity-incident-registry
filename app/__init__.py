@@ -2,7 +2,7 @@ import os, time, shutil
 from flask import Flask
 from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError
-from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient
+from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep
 from .auth import login_manager, hash_password
 from .security import init_security
 
@@ -18,7 +18,7 @@ def create_app():
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.2.1-1'),
+        'version': os.getenv('APP_VERSION','0.2.1-6'),
         'build': os.getenv('APP_BUILD','2026051901'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
@@ -315,7 +315,7 @@ def run_schema_migrations(app):
                 app.logger.info('Schema migration applied: mfa_totp_token.verified_at added')
         # Le nuove tabelle vengono create da create_all(); questa sezione resta
         # intenzionalmente idempotente per database creati con versioni precedenti.
-        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables:
+        if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables or 'incident_workflow_step' not in tables:
             db.create_all()
             app.logger.info('Schema migration applied: auxiliary tables ensured')
     except Exception:
@@ -335,6 +335,38 @@ def ensure_notification_type(code, label, description='', recipient_mode='manual
     else:
         t.label=label or t.label; t.description=description or t.description; t.recipient_mode=recipient_mode; t.recipient_setting_key=recipient_setting_key; t.cc_setting_key=cc_setting_key
 
+
+
+def ensure_default_incident_workflow():
+    """Create the editable default incident workflow on fresh installations.
+
+    The function is intentionally conservative: if any default workflow step already
+    exists, it leaves the administrator-customised workflow unchanged.
+    """
+    if IncidentWorkflowStep.query.filter_by(category_id=None).first():
+        return
+    desired = [
+        ('Informazione iniziale', 'informazione iniziale'),
+        ('Analisi', 'analisi'),
+        ('Notifica allo CSIRT', 'csirt'),
+        ('Notifica al DPO', 'dpo'),
+        ('Conclusione', 'conclusione'),
+    ]
+    for idx, (caption, needle) in enumerate(desired, start=1):
+        label = ConfigLabel.query.filter(
+            ConfigLabel.kind == 'action_label',
+            ConfigLabel.value.ilike(f'%{needle}%')
+        ).order_by(ConfigLabel.value).first()
+        if not label:
+            label = ConfigLabel(kind='action_label', value=caption, group='azioni', description=caption, default_exportable=False)
+            db.session.add(label)
+            db.session.flush()
+        db.session.add(IncidentWorkflowStep(
+            category_id=None,
+            action_label_id=label.id,
+            position=idx * 10,
+            description=''
+        ))
 
 def repair_postgres_sequences(app):
     """Riallinea le sequenze PostgreSQL dopo import o migrazioni.
@@ -425,6 +457,7 @@ def bootstrap(app):
         for v in ['password','dati personali']: ensure_label('data_type',v,'dati interessati')
         for v in ['furto di credenziali','phishing','SPAM','altro']: ensure_label('category',v,'categorie')
         for v in ['01-informazione iniziale','02-analisi','03-blocco','04-comunicazione allo CSIRT','05-comunicazione al DPO','06-comunicazione al Garante della Privacy','07-notifica all’utente','08-conclusione']: ensure_label('action_label',v,'azioni')
+        ensure_default_incident_workflow()
         ensure_notification_type('user','Notifica utente','Notifica generica a un destinatario specificato in fase di invio','manual','','')
         ensure_notification_type('csirt','Notifica CSIRT','Notifica allo CSIRT usando il destinatario configurato nelle impostazioni','settings','csirt_email','csirt_cc')
         ensure_notification_type('dpo','Notifica DPO','Notifica al DPO usando il destinatario configurato nelle impostazioni','settings','dpo_email','dpo_cc')

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Flussi operativi incidenti</h2>
+  <p class="muted">Definisci le azioni previste per categoria di incidente. Se un incidente appartiene a più categorie, il flusso mostrato è la somma dei flussi di categoria con rimozione dei duplicati. Se nessuna categoria dell’incidente ha un flusso dedicato, viene usato il flusso di default.</p>
+</div>
+<div class="card">
+  <h3>Aggiungi passo</h3>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="add">
+    <div><label>Ambito</label><select name="scope" id="workflow-scope"><option value="default">Flusso di default</option><option value="category">Categoria specifica</option></select></div>
+    <div><label>Categoria</label><select name="category_id"><option value="">-- default --</option>{% for c in categories %}<option value="{{c.id}}">{{c.value}}</option>{% endfor %}</select></div>
+    <div><label>Azione prevista</label><select name="action_label_id" required>{% for a in action_labels %}<option value="{{a.id}}">{{a.value}}</option>{% endfor %}</select></div>
+    <div><label>Ordine</label><input type="number" name="position" placeholder="automatico"></div>
+    <div class="wide"><label>Descrizione operativa</label><input name="description" placeholder="Descrizione specifica del passo nel flusso"></div>
+    <div><button>Aggiungi</button></div>
+  </form>
+</div>
+
+{% set scopes = [(0, 'Flusso di default')] + categories|map(attribute='id')|list %}
+{% for key, rows in grouped.items() %}
+  <div class="card">
+    <h3>{% if key == 0 %}Flusso di default{% else %}Categoria: {{ (categories|selectattr('id','equalto',key)|list|first).value if (categories|selectattr('id','equalto',key)|list) else key }}{% endif %}</h3>
+    <form method="post">
+      <input type="hidden" name="action" value="save">
+      <table class="table compact-table">
+        <thead><tr><th>Ordine</th><th>Azione</th><th>Descrizione nel flusso</th><th>Azioni</th></tr></thead>
+        <tbody>
+          {% for step in rows %}
+          <tr>
+            <td><input type="hidden" name="step_id" value="{{step.id}}"><input type="number" name="position_{{step.id}}" value="{{step.position}}"></td>
+            <td><select name="action_label_id_{{step.id}}">{% for a in action_labels %}<option value="{{a.id}}" {% if step.action_label_id==a.id %}selected{% endif %}>{{a.value}}</option>{% endfor %}</select></td>
+            <td><input name="description_{{step.id}}" value="{{step.description or ''}}"></td>
+            <td><button type="submit" class="secondary">Salva</button> <button class="danger" type="submit" form="del-step-{{step.id}}">Elimina</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    {% for step in rows %}<form id="del-step-{{step.id}}" method="post" action="{{ url_for('main.admin_incident_workflow_delete', sid=step.id) }}"></form>{% endfor %}
+  </div>
+{% else %}
+  <div class="card"><p class="muted">Nessun flusso configurato. Aggiungi almeno un passo nel flusso di default.</p></div>
+{% endfor %}
+{% endblock %}

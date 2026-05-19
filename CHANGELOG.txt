@@ -1,3 +1,10 @@
+0.2.1-3 - Container environment documentation
+- Added docs/CONTAINER_ENVIRONMENT.md and docs/CONTAINER_ENVIRONMENT_en.md with all container environment variables, persistent volumes, Docker Compose/Kubernetes operations, HTTPS, Gunicorn tuning, scheduler, backup and upgrade guidance.
+- Expanded .env.example with all operational variables and links to the new guide.
+- docker-compose.yml now exposes configurable persistent storage paths through UPLOAD_DIR, LOGO_DIR, FORM_TEMPLATE_DIR, SSO_LOGO_DIR and SSL_DIR.
+- Integrated the container environment guide into the Italian and English online administrator documentation.
+- Updated README and project design documentation.
+
 0.2.1-2 - External recipient picker for manual notifications
 - Added explicit address-book selection in manual notification previews with free recipient fields.
 - Selected contacts can populate the main recipient or be appended to CC.
@@ -675,3 +682,16 @@ Notification menu and SMTP sender fix
 - Added drag-and-drop tagging UI in the incident document list.
 - Manual notification preview now preselects documents tagged for the selected notification type, while keeping the final attachment selection editable.
 - Updated Italian/English user, admin and design documentation.
+
+## 0.2.1-5
+- Added incident operational workflow steps configurable by administrators.
+- Added default workflow fallback and category-specific workflows based on action labels.
+- Added top-of-page incident workflow progress with completed/missing visual states.
+- Updated Italian and English user, administrator and project documentation.
+
+0.2.1-6
+- Workflow incidenti: didascalia da descrizione task, fallback al nome task.
+- Aggiunta descrizione operativa ulteriore per ogni step di workflow.
+- Visualizzazione tempo limite, scadenza e tempo rimanente per step con tempo massimo.
+- Inizializzazione del flusso default modificabile: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Conclusione.
+- Documentazione IT/EN e progettuale aggiornata.

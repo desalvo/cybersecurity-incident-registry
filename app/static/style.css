@@ -253,3 +253,16 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .sso-login-button{background:#f3f4f6!important;color:#111827!important;border-color:#d1d5db!important}.sso-login-button:hover,.sso-login-button:focus{background:#e5e7eb!important;color:#111827!important}.sso-logo-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-top:.75rem}.sso-logo-tile{border:1px solid var(--line);border-radius:10px;padding:.65rem;background:#fff;display:grid;place-items:center;gap:.35rem;text-align:center;min-height:86px}.sso-logo-tile img{max-width:48px;max-height:36px;object-fit:contain}.sso-logo-tile code{font-size:.72rem;word-break:break-all}
 .field-label-with-help{display:inline-flex;align-items:center;gap:.35rem;max-width:100%;vertical-align:middle}.field-label-with-help>span:first-child{min-width:0;overflow-wrap:anywhere}.info-icon{display:inline-flex;align-items:center;justify-content:center;width:1.05rem;height:1.05rem;border-radius:50%;border:1px solid #94a3b8;background:#f8fafc;color:#334155;font-size:.78rem;font-weight:700;line-height:1;cursor:help;flex:0 0 auto}.info-icon:focus{outline:2px solid #2563eb;outline-offset:2px}.checkbox-with-help{display:flex!important;align-items:flex-start;gap:.45rem;flex-wrap:nowrap}.checkbox-with-help input[type=checkbox]{margin-top:.15rem;flex:0 0 auto}@media(max-width:640px){.field-label-with-help{align-items:flex-start}.info-icon{margin-top:.05rem}}
 .inline-actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.inline-actions select{min-width:260px;flex:1 1 260px}.inline-actions button{white-space:nowrap}
+
+.workflow-card { border-left: 6px solid #2f6f9f; }
+.workflow-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .75rem; margin-top: .75rem; }
+.workflow-step { display: flex; gap: .65rem; align-items: flex-start; border: 1px solid #d7dee8; border-radius: 10px; padding: .75rem; background: #fff; }
+.workflow-step.done { border-color: #6fa878; background: #eef8f0; }
+.workflow-step.missing { border-color: #d39a4a; background: #fff7e8; }
+.workflow-step p { margin: .25rem 0 0; color: #4b5563; }
+.workflow-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 999px; background: #f0f3f7; font-weight: 700; }
+.workflow-step.done .workflow-badge { background: #2f7d3f; color: #fff; }
+.workflow-step.missing .workflow-badge { background: #b36b00; color: #fff; }
+.workflow-step.expired { border-color: #b42318; background: #fff1f0; }
+.workflow-task-name { font-size: .9rem; color: #5b6472; }
+.workflow-deadline { font-size: .92rem; }

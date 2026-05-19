@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="card">
-  <h2>Destinatari esterni</h2>
-  <p class="muted">Rubrica condivisa usata nei campi destinatario e CC delle notifiche manuali. Le nuove email usate in invio possono essere aggiunte automaticamente dopo l’indicazione del nome.</p>
+  <h2>{{ page_title or 'Destinatari esterni' }}</h2>
+  <p class="muted">Rubrica condivisa usata nei campi destinatario e CC delle notifiche manuali. Le nuove email usate in invio possono essere aggiunte automaticamente dopo l’indicazione del nome.{% if settings_mode %} Questa pagina è disponibile dal menu Impostazioni per gli utenti non amministratori con ruolo writer.{% endif %}</p>
 </div>
 <div class="card">
   <h3>{{ 'Modifica destinatario' if editing else 'Nuovo destinatario' }}</h3>
@@ -13,7 +13,7 @@
     <div><label>Email</label><input type="email" name="email" required value="{{ editing.email if editing else '' }}"></div>
     <div class="wide"><label>Note</label><textarea name="notes" rows="3">{{ editing.notes if editing else '' }}</textarea></div>
     <button type="submit">Salva</button>
-    {% if editing %}<a class="button secondary" href="{{ url_for('main.admin_external_recipients') }}">Annulla</a>{% endif %}
+    {% if editing %}<a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients') }}">Annulla</a>{% endif %}
   </form>
 </div>
 <div class="card">
@@ -23,7 +23,7 @@
     {% for r in recipients %}
     <tr>
       <td>{{ r.name }}</td><td>{{ r.email }}</td><td>{{ r.notes }}</td>
-      <td class="button-row"><a class="button secondary" href="{{ url_for('main.admin_external_recipients', edit=r.id) }}">Modifica</a>
+      <td class="button-row"><a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients', edit=r.id) }}">Modifica</a>
         <form method="post" onsubmit="return confirm('Cancellare il destinatario esterno?')"><input type="hidden" name="recipient_id" value="{{ r.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button></form></td>
     </tr>
     {% else %}<tr><td colspan="4">Nessun destinatario esterno configurato.</td></tr>{% endfor %}

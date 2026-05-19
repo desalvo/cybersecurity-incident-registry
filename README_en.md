@@ -2,9 +2,9 @@
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
 
-## Version 0.2.1-1 - Platform consolidation and bilingual documentation
+## Version 0.2.1-6 - Platform consolidation and bilingual documentation
 
-Version 0.2.1-1, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
+Version 0.2.1-6, build 2026051901, consolidates recent platform developments: Italian/English interface, restructured user and administrator documentation, anti-flooding audit with retention and purge, deadline notification scheduler with cron/interval planning, per-incident scheduled reminders, professional PDF reports, multiple SSO/OAuth2 profiles with shared logos, optional HTTPS/SSL access and mobile usability improvements.
 
 Operational guides are maintained in both languages. Release notes are separated from the operational documentation and are available from the Help menu.
 
@@ -27,6 +27,13 @@ cp .env.example .env
 # change POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY and ADMIN_INITIAL_PASSWORD
 docker compose up --build
 ```
+
+
+## Environment variables and container operations
+
+A dedicated guide, `docs/CONTAINER_ENVIRONMENT_en.md`, has been added. It describes every environment variable used by the container, persistent volumes, Docker Compose startup, Kubernetes secrets, internal HTTPS, Gunicorn tuning, notification/reminder scheduler, backup and container upgrade operations.
+
+The online administrator documentation includes the same operational content in summarized form: in production always prepare `.env` from `.env.example`, set `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD`, `POSTGRES_PASSWORD`, enable `CIR_PRODUCTION=1` and mount `UPLOAD_DIR`, `LOGO_DIR`, `FORM_TEMPLATE_DIR`, `SSO_LOGO_DIR` and `SSL_DIR` on persistent storage.
 
 ## Local startup
 
@@ -94,7 +101,7 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.2.1-1
+- Version: 0.2.1-6
 - Build: 2026051901
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -447,3 +454,17 @@ For manual/non-scheduled notifications with user-editable recipients that are no
 When a PDF form is generated from the incident detail page and attached as a document, the application automatically assigns at least the notification-type tags of the notification templates linked to the form template used for generation. This makes the newly generated document automatically preselected during the next notification send of the corresponding type, while the operator can always manually change the attachment selection before sending.
 
 The application version is updated to **0.2.1-1**, build **2026051901**.
+
+## Update 0.2.1-4 - External recipient management from Settings
+
+Non-administrator users with the `writer` role, therefore allowed to write and edit incidents but not to access the Admin menu, can now fully manage the **External recipients** address book from **Settings → External recipients**. The page allows adding, editing and deleting contacts used by manual/non-scheduled notifications with free recipient or CC fields. Administrators continue to manage the same shared address book from **Admin → External recipients**.
+
+## Update 0.2.1-5 - Operational workflows by incident category
+
+The incident detail page now shows, at the top of the form, the list of operations expected until closure. Operations already recorded through incident actions are highlighted as completed, while missing operations are highlighted separately. From **Admin → Incident operational workflows** administrators can configure a default workflow and category-specific workflows. Each step uses a configurable action label, may have a dedicated operational description and has a numeric order. If an incident has multiple categories, workflows are merged and duplicates are removed; if no selected category has a workflow, the default workflow is used.
+
+## Update 0.2.1-6 - Incident workflows with descriptions, deadlines and editable default flow
+
+The incident detail page now uses the task description configured in the action list as the workflow-step caption when available, falling back to the task name. The description configured on the specific workflow step remains available as an additional operational note, so the same action can be reused multiple times with different meanings.
+
+For steps based on tasks with a maximum completion time, the application also shows the limit, due time and remaining time, calculated with the same logic already used for scheduled deadline notifications. The initial default workflow is: Initial information, Analysis, CSIRT notification, DPO notification and Closure. All steps, including default-workflow steps, can be added, edited or deleted from **Admin → Incident operational workflows**.

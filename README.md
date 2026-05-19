@@ -2,9 +2,9 @@
 
 Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
-## Versione 0.2.1-1 - Consolidamento piattaforma e documentazione bilingue
+## Versione 0.2.1-6 - Consolidamento piattaforma e documentazione bilingue
 
-La versione 0.2.1-1, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
+La versione 0.2.1-6, build 2026051901, consolida gli sviluppi recenti della piattaforma: interfaccia bilingue italiano/inglese, documentazione utente e amministrativa riorganizzata, audit anti-flooding con retention e purge, scheduler notifiche deadline con pianificazione cron/intervalli, promemoria puntuali per incidente, report PDF professionali, profili SSO/OAuth2 multipli con loghi condivisi, HTTPS/SSL opzionale e miglioramenti mobile.
 
 Le guide operative sono mantenute in entrambe le lingue. Le note di rilascio sono separate dalla documentazione operativa e consultabili dal menu Aiuto.
 
@@ -27,6 +27,13 @@ cp .env.example .env
 # modificare POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY e ADMIN_INITIAL_PASSWORD
 docker compose up --build
 ```
+
+
+## Variabili di ambiente e gestione container
+
+È stata aggiunta la guida dedicata `docs/CONTAINER_ENVIRONMENT.md`, che descrive tutte le variabili di ambiente usate dal container, i volumi persistenti, l'avvio con Docker Compose, l'uso dei secret Kubernetes, HTTPS interno, tuning Gunicorn, scheduler notifiche/promemoria, backup e aggiornamento del container.
+
+La documentazione amministrativa online include lo stesso contenuto operativo in forma sintetica: in produzione preparare sempre un file `.env` da `.env.example`, valorizzare `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD`, `POSTGRES_PASSWORD`, abilitare `CIR_PRODUCTION=1` e montare su storage persistente `UPLOAD_DIR`, `LOGO_DIR`, `FORM_TEMPLATE_DIR`, `SSO_LOGO_DIR` e `SSL_DIR`.
 
 ## Avvio locale
 
@@ -122,7 +129,7 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.2.1-1
+- Versione: 0.2.1-6
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -644,3 +651,17 @@ Nelle notifiche manuali/non schedulate con destinatario compilabile dall’utent
 Quando un modulo PDF viene generato dalla pagina di dettaglio incidente e viene allegato come documento, l'applicazione assegna automaticamente al documento almeno i tag dei tipi di notifica dei template di notifica collegati al template modulo usato per la generazione. In questo modo il documento appena generato viene preselezionato automaticamente nel successivo invio della notifica del tipo corrispondente, fermo restando che l'operatore può sempre modificare manualmente la selezione degli allegati prima dell'invio.
 
 La versione applicativa è aggiornata a **0.2.1-1**, build **2026051901**.
+
+## Aggiornamento 0.2.1-4 - Gestione destinatari esterni da Impostazioni
+
+Gli utenti non amministratori con ruolo `writer`, quindi dotati di privilegi di scrittura e modifica ma senza accesso al menu Admin, possono ora gestire completamente la rubrica **Destinatari esterni** dal menu **Impostazioni → Destinatari esterni**. La funzione consente di aggiungere, modificare e cancellare contatti usati nelle notifiche manuali/non schedulate con campi destinatario o CC liberi. Gli amministratori continuano a gestire la stessa rubrica da **Admin → Destinatari esterni**.
+
+## Aggiornamento 0.2.1-5 - Flussi operativi per categoria di incidente
+
+La pagina di dettaglio incidente mostra ora, in cima alla form, la lista delle operazioni previste fino alla conclusione. Le operazioni già registrate tramite azioni dell’incidente sono evidenziate come completate, mentre quelle ancora mancanti sono evidenziate separatamente. Da **Admin → Flussi operativi incidenti** è possibile configurare un flusso di default e flussi specifici per categoria. Ogni passo usa una label azione configurabile, può avere una descrizione operativa dedicata e un ordinamento numerico. Se un incidente ha più categorie, i flussi vengono sommati rimuovendo i duplicati; se nessuna categoria ha un flusso, viene usato quello di default.
+
+## Aggiornamento 0.2.1-6 - Workflow incidenti con descrizioni, scadenze e default modificabile
+
+La scheda dello specifico incidente mostra ora gli step del workflow usando come didascalia la descrizione del task configurata nella lista azioni, se presente, e in alternativa il nome del task. La descrizione definita nello specifico workflow resta disponibile come nota operativa aggiuntiva del singolo passo, così la stessa azione può essere riutilizzata più volte con significati diversi.
+
+Per gli step basati su task con tempo massimo, l’applicazione mostra anche il limite, la scadenza e il tempo rimanente, calcolati con la stessa logica già usata per le notifiche automatiche dei task schedulati. Il flusso di default iniziale è: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Conclusione. Tutti gli step, inclusi quelli del default, possono essere aggiunti, modificati o cancellati da **Admin → Flussi operativi incidenti**.

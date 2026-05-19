@@ -43,6 +43,17 @@ class MfaTotpToken(db.Model):
 
 class ConfigLabel(db.Model):
     id=db.Column(db.Integer,primary_key=True); kind=db.Column(db.String(40),nullable=False,index=True); group=db.Column(db.String(80),default='default'); value=db.Column(db.String(255),nullable=False); description=db.Column(db.Text,default=''); max_completion_hours=db.Column(db.Integer,nullable=False,default=0); default_exportable=db.Column(db.Boolean,default=True,nullable=False); __table_args__=(db.UniqueConstraint('kind','value',name='uq_label_kind_value'),)
+
+class IncidentWorkflowStep(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    category_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True,index=True)
+    action_label_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=False,index=True)
+    position=db.Column(db.Integer,nullable=False,default=0,index=True)
+    description=db.Column(db.Text,default='')
+    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    category=db.relationship('ConfigLabel',foreign_keys=[category_id])
+    action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
+
 class Person(db.Model):
     id=db.Column(db.Integer,primary_key=True); name=db.Column(db.String(160),unique=True,nullable=False); email=db.Column(db.String(255)); group=db.Column(db.String(80),default='personale')
 class Recommendation(db.Model):

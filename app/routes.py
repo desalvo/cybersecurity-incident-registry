@@ -618,8 +618,78 @@ def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc)
 
 
 def labels(kind): return ConfigLabel.query.filter_by(kind=kind).order_by(ConfigLabel.group,ConfigLabel.value).all()
+
+
+def workflow_step_key(step):
+    return (int(step.action_label_id or 0), (step.description or '').strip().lower())
+
+def workflow_steps_for_incident(inc):
+    category_ids = [c.id for c in (inc.categories or [])]
+    rows = []
+    if category_ids:
+        rows = IncidentWorkflowStep.query.filter(IncidentWorkflowStep.category_id.in_(category_ids)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    if not rows:
+        rows = IncidentWorkflowStep.query.filter(IncidentWorkflowStep.category_id.is_(None)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    seen = set()
+    deduped = []
+    for row in rows:
+        key = workflow_step_key(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+    return deduped
+
+def incident_workflow_status(inc):
+    steps = workflow_steps_for_incident(inc)
+    action_counts = {}
+    for action in (inc.actions or []):
+        if action.label_id:
+            action_counts[action.label_id] = action_counts.get(action.label_id, 0) + 1
+    used_counts = {}
+    items = []
+    start = first_initial_information_at(inc)
+    now = application_now()
+    for step in steps:
+        label_id = step.action_label_id
+        used = used_counts.get(label_id, 0)
+        total = action_counts.get(label_id, 0)
+        done = used < total
+        if done:
+            used_counts[label_id] = used + 1
+        label = step.action_label
+        max_hours = int(getattr(label, 'max_completion_hours', 0) or 0) if label else 0
+        due_at = None
+        remaining_text = ''
+        expired = False
+        if max_hours > 0 and start:
+            due_at = start + timedelta(hours=max_hours)
+            remaining = due_at - now
+            total_seconds = int(remaining.total_seconds())
+            sign = '' if total_seconds >= 0 else '-'
+            total_seconds = abs(total_seconds)
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            remaining_text = f'{sign}{hours}h {minutes:02d}m'
+            expired = remaining.total_seconds() < 0
+        items.append({
+            'id': step.id,
+            'label': (label.description or label.value) if label else '',
+            'task_name': label.value if label else '',
+            'description': step.description or '',
+            'position': step.position,
+            'done': done,
+            'missing': not done,
+            'max_completion_hours': max_hours,
+            'due_at': due_at,
+            'due_at_text': format_application_datetime(due_at) if due_at else '',
+            'remaining_text': remaining_text,
+            'expired': expired,
+        })
+    return {'steps': items, 'completed': sum(1 for x in items if x['done']), 'total': len(items), 'all_done': bool(items) and all(x['done'] for x in items)}
 def can_write(): return current_user.role in ['admin','writer']
 def can_admin(): return current_user.role=='admin'
+def can_manage_external_recipients_from_settings(): return current_user.is_authenticated and current_user.role == 'writer'
 
 def mfa_required_for(user):
     return bool(user and getattr(user, 'mfa_enabled', False) and getattr(user, 'auth_provider', 'local') in ['local','ldap'] and MfaTotpToken.query.filter_by(user_id=user.id).filter(MfaTotpToken.verified_at.isnot(None)).first())
@@ -1301,6 +1371,7 @@ def incident_detail(iid):
         consequences=incident_consequences(inc),
         measures=incident_measures(inc),
         default_action_when=datetime_local_value(),
+        workflow_status=incident_workflow_status(inc),
         application_timezone=application_timezone_name(),
         section_messages=section_messages,
         global_messages=global_messages,
@@ -1544,6 +1615,53 @@ def update_document_notification_tags(did):
     db.session.commit()
     section_flash(f'Tag notifiche aggiornati per {d.filename}', 'incident-documents', 'success')
     return incident_detail_redirect(d.incident_id, 'incident-documents')
+
+@bp.route('/admin/incident-workflows',methods=['GET','POST'])
+@login_required
+def admin_incident_workflows():
+    if not can_admin(): return redirect(url_for('main.index'))
+    if request.method=='POST':
+        action = request.form.get('action') or 'add'
+        if action == 'add':
+            scope = request.form.get('scope') or 'default'
+            category_id = request.form.get('category_id', type=int) if scope == 'category' else None
+            action_label_id = request.form.get('action_label_id', type=int)
+            description = (request.form.get('description') or '').strip()
+            position = request.form.get('position', type=int)
+            if not action_label_id:
+                flash('Selezionare una azione del flusso','error')
+            else:
+                if position is None:
+                    q = IncidentWorkflowStep.query.filter_by(category_id=category_id)
+                    last = q.order_by(IncidentWorkflowStep.position.desc()).first()
+                    position = (last.position + 10) if last else 10
+                db.session.add(IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, position=position))
+                db.session.commit(); flash('Passo del flusso aggiunto','success')
+        elif action == 'save':
+            ids = request.form.getlist('step_id')
+            for sid in ids:
+                step = IncidentWorkflowStep.query.get(int(sid))
+                if not step: continue
+                step.position = request.form.get(f'position_{sid}', type=int) or 0
+                step.description = (request.form.get(f'description_{sid}') or '').strip()
+                new_label = request.form.get(f'action_label_id_{sid}', type=int)
+                if new_label: step.action_label_id = new_label
+            db.session.commit(); flash('Flussi aggiornati','success')
+        return redirect(url_for('main.admin_incident_workflows'))
+    steps = IncidentWorkflowStep.query.order_by(IncidentWorkflowStep.category_id, IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    grouped = {}
+    for step in steps:
+        grouped.setdefault(step.category_id or 0, []).append(step)
+    return render_template('admin_incident_workflows.html', categories=labels('category'), action_labels=labels('action_label'), grouped=grouped)
+
+@bp.route('/admin/incident-workflows/<int:sid>/delete',methods=['POST'])
+@login_required
+def admin_incident_workflow_delete(sid):
+    if not can_admin(): return redirect(url_for('main.index'))
+    step=IncidentWorkflowStep.query.get_or_404(sid)
+    db.session.delete(step); db.session.commit(); flash('Passo del flusso eliminato','info')
+    return redirect(url_for('main.admin_incident_workflows'))
+
 @bp.route('/admin/labels',methods=['GET','POST'])
 @login_required
 def admin_labels():
@@ -1912,10 +2030,7 @@ def user_auth_provider_display(auth_provider):
 
 
 
-@bp.route('/admin/external-recipients', methods=['GET','POST'])
-@login_required
-def admin_external_recipients():
-    if not can_admin(): return redirect(url_for('main.index'))
+def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari esterni', settings_mode=False):
     editing = None
     edit_id = request.args.get('edit', type=int)
     if edit_id:
@@ -1926,29 +2041,43 @@ def admin_external_recipients():
         if action == 'delete':
             rec = ExternalRecipient.query.get_or_404(rid)
             db.session.delete(rec); db.session.commit()
-            audit_log('admin:external_recipient_delete', {'recipient_id': rid}, actor_type='user', commit=True)
+            audit_log(f'{audit_prefix}:external_recipient_delete', {'recipient_id': rid}, actor_type='user', commit=True)
             flash('Destinatario esterno cancellato.')
-            return redirect(url_for('main.admin_external_recipients'))
+            return redirect(url_for(endpoint_name))
         name = (request.form.get('name') or '').strip()
         email = (request.form.get('email') or '').strip()
         notes = request.form.get('notes') or ''
         if not name or not email:
             flash('Nome ed email sono obbligatori.', 'error')
-            return redirect(url_for('main.admin_external_recipients', edit=rid) if rid else url_for('main.admin_external_recipients'))
+            return redirect(url_for(endpoint_name, edit=rid) if rid else url_for(endpoint_name))
         duplicate = ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == email.lower())
         if rid:
             duplicate = duplicate.filter(ExternalRecipient.id != rid)
         if duplicate.first():
             flash('Esiste già un destinatario esterno con questa email.', 'error')
-            return redirect(url_for('main.admin_external_recipients', edit=rid) if rid else url_for('main.admin_external_recipients'))
+            return redirect(url_for(endpoint_name, edit=rid) if rid else url_for(endpoint_name))
         rec = ExternalRecipient.query.get(rid) if rid else ExternalRecipient()
         rec.name = name; rec.email = email; rec.notes = notes
         db.session.add(rec); db.session.commit()
-        audit_log('admin:external_recipient_save', {'recipient_id': rec.id, 'email': rec.email}, actor_type='user', commit=True)
+        audit_log(f'{audit_prefix}:external_recipient_save', {'recipient_id': rec.id, 'email': rec.email}, actor_type='user', commit=True)
         flash('Destinatario esterno salvato.')
-        return redirect(url_for('main.admin_external_recipients'))
+        return redirect(url_for(endpoint_name))
     recipients = get_external_recipients()
-    return render_template('admin_external_recipients.html', recipients=recipients, editing=editing)
+    return render_template('admin_external_recipients.html', recipients=recipients, editing=editing, endpoint_name=endpoint_name, page_title=title, settings_mode=settings_mode)
+
+
+@bp.route('/admin/external-recipients', methods=['GET','POST'])
+@login_required
+def admin_external_recipients():
+    if not can_admin(): return redirect(url_for('main.index'))
+    return _external_recipients_page('main.admin_external_recipients', 'admin', title='Destinatari esterni', settings_mode=False)
+
+
+@bp.route('/settings/external-recipients', methods=['GET','POST'])
+@login_required
+def settings_external_recipients():
+    if not can_manage_external_recipients_from_settings(): return redirect(url_for('main.index'))
+    return _external_recipients_page('main.settings_external_recipients', 'settings', title='Destinatari esterni', settings_mode=True)
 
 @bp.route('/admin/users',methods=['GET','POST'])
 @login_required
@@ -4228,6 +4357,7 @@ FULL_EXPORT_TABLES = {
     'people': Person,
     'recommendations': Recommendation,
     'notification_types': NotificationType,
+    'incident_workflow_steps': IncidentWorkflowStep,
     'notification_templates': NotificationTemplate,
     'form_template_configs': FormTemplateConfig,
     'form_template_binaries': FormTemplateBinary,
@@ -4591,7 +4721,7 @@ def import_full():
                 db.session.execute(incident_categories.delete())
                 db.session.execute(incident_data_types.delete())
                 db.session.execute(incident_recommendations.delete())
-                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, ExternalRecipient, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
+                for model in [ActionAttachment, Document, DeadlineNotificationState, IncidentReminder, Action, Incident, FormFieldMapping, FormTemplateBinary, FormTemplateConfig, NotificationTemplate, NotificationType, ExternalRecipient, IncidentWorkflowStep, Recommendation, Person, ConfigLabel, MfaTotpToken, AuditLog, User, Setting]:
                     db.session.query(model).delete()
                 db.session.flush()
 
@@ -4613,6 +4743,8 @@ def import_full():
                     db.session.add(Person(**_coerce_row_for_model(Person, row)))
                 for row in tables.get('recommendations', []):
                     db.session.add(Recommendation(**_coerce_row_for_model(Recommendation, row)))
+                for row in tables.get('incident_workflow_steps', []):
+                    db.session.add(IncidentWorkflowStep(**_coerce_row_for_model(IncidentWorkflowStep, row)))
 
                 for row in tables.get('notification_types', []):
                     db.session.add(NotificationType(**_coerce_row_for_model(NotificationType, row)))

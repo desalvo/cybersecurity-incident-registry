@@ -9,7 +9,7 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.2.1-1
+- Versione: 0.2.1-6
 - Build: 2026051901
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
@@ -27,7 +27,7 @@ La baseline 0.2.0 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.1-1, build 2026051901.
+La versione applicativa riportata nei metadati runtime è 0.2.1-6, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -262,6 +262,30 @@ Configurazione produzione:
 - Docker Compose: volume nominato `sso_logos` montato su `/data/sso_logos` e variabile `SSO_LOGO_DIR`;
 - Kubernetes: PVC `cir-sso-logos` montata su `/data/sso_logos`;
 - `.env.example`: variabile `SSO_LOGO_DIR=/data/sso_logos`.
+
+
+### 5.8 Variabili di ambiente e gestione container
+
+La documentazione del pacchetto include ora una guida dedicata alla gestione runtime del container:
+
+- `docs/CONTAINER_ENVIRONMENT.md` per l'italiano;
+- `docs/CONTAINER_ENVIRONMENT_en.md` per l'inglese.
+
+La guida cataloga tutte le variabili di ambiente effettivamente usate dall'applicazione, dal Dockerfile, dal `docker-compose.yml`, dall'entrypoint e dai manifest Kubernetes. Le variabili sono organizzate per area funzionale:
+
+- database e segreti: `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`;
+- produzione e sicurezza HTTP: `CIR_PRODUCTION`, `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_SAMESITE`, `REMEMBER_COOKIE_SAMESITE`, `CIR_FORCE_HSTS`, `MAX_CONTENT_LENGTH`, `FLASK_ENV`;
+- storage persistente: `UPLOAD_DIR`, `LOGO_DIR`, `FORM_TEMPLATE_DIR`, `SSO_LOGO_DIR`, `SSL_DIR`;
+- listener HTTP/HTTPS e tuning Gunicorn: `PORT`, `WEB_CONCURRENCY`, `WEB_CONCURRENCY_SSL`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT`, `SSL_ENABLED`, `SSL_PORT`, `SSL_CERT_FILE`, `SSL_KEY_FILE`;
+- scheduler notifiche e promemoria: `CIR_ENABLE_DEADLINE_SCHEDULER`, `CIR_DEADLINE_SCHEDULER_POLL_SECONDS`;
+- metadati applicativi: `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`, `ADMIN_EMAIL`;
+- variabili runtime dell'immagine: `PYTHONDONTWRITEBYTECODE`, `PYTHONUNBUFFERED`, `PIP_NO_CACHE_DIR`, `PIP_DISABLE_PIP_VERSION_CHECK`, `DEBIAN_FRONTEND`.
+
+La stessa descrizione è stata integrata nella documentazione amministrativa online come sezione autonoma, in modo che l'amministratore possa consultare direttamente dall'applicazione quali parametri usare per avvio, hardening, backup, HTTPS, scheduler e deploy Kubernetes.
+
+Il file `.env.example` è stato ampliato per includere anche le variabili operative non segrete e i riferimenti alla guida. Il `docker-compose.yml` espone in modo esplicito i percorsi configurabili `UPLOAD_DIR`, `LOGO_DIR`, `FORM_TEMPLATE_DIR`, `SSO_LOGO_DIR` e `SSL_DIR`, montandoli sui volumi nominati corrispondenti. Questo consente di cambiare i mount point in fase di avvio del container senza modificare l'immagine.
+
+Regola di produzione: un backup completo deve includere il dump PostgreSQL e tutti i volumi collegati alle directory persistenti. La rimozione dei volumi con `docker compose down -v` è esplicitamente documentata come operazione distruttiva e non ammessa per ambienti reali.
 
 ## 6. Interfaccia utente
 
@@ -573,7 +597,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-1, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.2.1-6, build 2026051901, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1240,3 +1264,33 @@ La conferma dei moduli PDF generati dall'incidente ora determina i tag di notifi
 Il campo `Document.notification_tags`, già introdotto per il tagging multiplo degli allegati, viene quindi valorizzato automaticamente anche per i documenti generati. La preselezione in invio notifica continua a usare `auto_selected_notification_documents()`, che combina tag del documento e template modulo collegato, lasciando invariata la possibilità per l'utente di modificare manualmente gli allegati.
 
 Metadati runtime aggiornati: versione `0.2.1-1`, build `2026051901`.
+
+## Aggiornamento 0.2.1-4 - Gestione rubrica destinatari esterni per utenti writer
+
+La rubrica `ExternalRecipient` resta una risorsa applicativa condivisa. La rotta amministrativa `admin_external_recipients()` continua a essere disponibile solo agli utenti con ruolo `admin`, mentre la nuova rotta `settings_external_recipients()` espone la stessa gestione CRUD dal menu **Impostazioni** agli utenti non amministratori con ruolo `writer`. La funzione di autorizzazione dedicata `can_manage_external_recipients_from_settings()` evita di aprire il menu amministrativo e limita l’accesso agli utenti con privilegi di scrittura/modifica sugli incidenti. Le due route condividono la funzione interna `_external_recipients_page()`, così validazione, controllo duplicati, audit, template HTML e comportamento operativo rimangono coerenti.
+
+Il template `base.html` mostra **Impostazioni → Destinatari esterni** solo agli utenti `writer`; gli amministratori mantengono la voce **Admin → Destinatari esterni**. Il template `admin_external_recipients.html` è stato parametrizzato con `endpoint_name` e `settings_mode`, in modo che annullamento, modifica e salvataggio ritornino alla route corretta in base al punto di accesso. Gli audit generati dalla pagina Impostazioni usano il prefisso `settings:external_recipient_*`, mentre quelli amministrativi mantengono il prefisso `admin:external_recipient_*`.
+
+## Flussi operativi incidenti
+
+Il modello dati include `IncidentWorkflowStep`, che rappresenta un passo operativo atteso. Ogni passo contiene un riferimento opzionale a una categoria di incidente (`category_id` nullo per il flusso di default), un riferimento obbligatorio a una label azione (`action_label_id`), una posizione ordinabile e una descrizione operativa. Le label azione continuano a essere gestite nella tabella `ConfigLabel` con `kind='action_label'`, quindi il catalogo delle azioni resta estendibile.
+
+Nel dettaglio incidente il servizio calcola il flusso applicabile partendo dalle categorie associate. Se esistono passi per almeno una categoria dell’incidente, i passi vengono uniti e i duplicati identici, definiti da stessa azione e stessa descrizione normalizzata, vengono rimossi. Se non esiste alcun passo per le categorie selezionate, viene caricato il flusso di default. Il completamento è calcolato confrontando i passi con le azioni registrate sull’incidente; in caso di più passi con la stessa azione, il conteggio delle azioni disponibili viene consumato progressivamente in ordine di flusso.
+
+L’interfaccia amministrativa `Admin → Flussi operativi incidenti` permette di creare, ordinare, modificare e cancellare passi. L’interfaccia utente del dettaglio incidente mostra una scheda riepilogativa con stato completato/mancante usando colori distinti; la scheda è informativa e non sostituisce gli avvisi procedurali né impedisce l’inserimento di azioni aggiuntive.
+
+## Incident operational workflows
+
+The data model includes `IncidentWorkflowStep`, representing an expected operational step. Each step contains an optional incident category reference (`category_id` null for the default workflow), a required action-label reference (`action_label_id`), an order position and an operational description. Action labels are still managed in `ConfigLabel` with `kind='action_label'`, keeping the action catalogue extensible.
+
+On the incident detail page, the service computes the applicable workflow from the incident categories. If at least one selected category has configured steps, those steps are merged and identical duplicates, defined as same action and same normalised description, are removed. If no selected category has configured steps, the default workflow is loaded. Completion is calculated by comparing workflow steps with actions recorded on the incident; when several steps use the same action, available action occurrences are consumed progressively in workflow order.
+
+The `Admin → Incident operational workflows` interface lets administrators create, order, edit and delete steps. The incident detail UI shows a summary card with completed/missing states using distinct colours; the card is informational and does not replace procedural warnings or prevent additional actions.
+
+### Workflow captions, editable default flow and deadline display
+
+Workflow-step captions are resolved from `ConfigLabel.description` first and from `ConfigLabel.value` only when no task description is configured. The `IncidentWorkflowStep.description` field is kept as an additional per-flow operational note, allowing administrators to reuse the same action label multiple times with different context.
+
+On fresh installations the bootstrap creates an editable default workflow with five steps: initial information, analysis, CSIRT notification, DPO notification and closure. The default workflow is stored in the same `incident_workflow_step` table with `category_id = NULL`; it is not hard-coded in the UI and can be changed, extended or reduced from the administration page.
+
+For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values as informational status; it does not block manual completion or attachment/notification choices.

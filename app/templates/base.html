@@ -64,6 +64,7 @@
         <a role="menuitem" href="{{ url_for('main.change_password') }}">Cambio password</a>
         <a role="menuitem" href="{{ url_for('main.mfa_settings') }}">Multi-factor authentication</a>
         {% if current_user.role=='admin' %}<a role="menuitem" href="{{ url_for('main.notification_settings') }}">Notifiche</a>{% endif %}
+        {% if current_user.role=='writer' %}<a role="menuitem" href="{{ url_for('main.settings_external_recipients') }}">Destinatari esterni</a>{% endif %}
       </div>
     </div>
 
@@ -83,6 +84,7 @@
         <details class="admin-menu-group">
           <summary>Anagrafiche e workflow</summary>
           <a role="menuitem" href="{{ url_for('main.admin_labels') }}">Liste configurabili</a>
+          <a role="menuitem" href="{{ url_for('main.admin_incident_workflows') }}">Flussi operativi incidenti</a>
           <a role="menuitem" href="{{ url_for('main.admin_people') }}">Personale</a>
           <a role="menuitem" href="{{ url_for('main.admin_external_recipients') }}">Destinatari esterni</a>
           <a role="menuitem" href="{{ url_for('main.admin_recommendations') }}">Raccomandazioni</a>
