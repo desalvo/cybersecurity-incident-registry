@@ -1,3 +1,9 @@
+## Aggiornamento 0.2.1 - Pulsanti data/ora locale e azioni notifica
+
+La pagina di creazione incidente e la pagina di dettaglio incidente espongono pulsanti rapidi accanto ai campi separati `start_date`, `start_time`, `end_date` ed `end_time`. Il JavaScript dei template calcola il momento corrente usando la timezone applicativa configurata (`application_timezone`) tramite `Intl.DateTimeFormat`, con fallback alla timezone del browser. La route `incident_new` passa ora il nome del fuso al template come avviene già per `incident_detail`.
+
+Le azioni automatiche generate dall'invio di notifiche manuali sono create tramite `add_notification_action_safely()` con `application_now()` invece di `datetime.utcnow()`. In questo modo gli eventi registrati nella timeline dell'incidente sono espressi nella timezone locale applicativa, coerentemente con gli input HTML e con la documentazione utente.
+
 ## Aggiornamento 0.2.1 - Workflow con dipendenze da notifiche e percorso guidato
 
 `IncidentWorkflowStep` supporta i campi `requires_notification` e `required_notification_type`. Quando uno step è configurato come dipendente da una notifica, `incident_workflow_status()` calcola se una azione di notifica compatibile è già presente nell’incidente, usando le label azione associate ai template di notifica del tipo richiesto e la label fallback del tipo notifica.

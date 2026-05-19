@@ -15,11 +15,38 @@
     <div class="wide"><label>{{ info_label('Descrizione', 'Descrizione sintetica dell’incidente, opzionale.') }}</label><textarea name="description">{{ t.incident_description if t else '' }}</textarea></div>
     <div><label>{{ info_label('Gravità', 'Livello di gravità dell’incidente, scelta fra una delle opzioni presentate nella lista.') }}</label><select name="severity_id">{% for l in severities %}<option value="{{l.id}}" {% if t and t.severity_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select></div>
     <div><label>{{ info_label('Stato', 'Stato dell’incidente. Lo stato viene automaticamente impostato a chiuso quando si inserisce una azione di conclusione, se non ci sono avvisi procedurali attivi.') }}</label><select name="status">{% for st in ['aperto','in lavorazione','chiuso'] %}<option {% if t and t.status==st %}selected{% endif %}>{{st}}</option>{% endfor %}</select></div>
-    <div><label>{{ info_label('Data inizio', 'La data in cui la violazione ha avuto inizio. Se si usa un modello viene impostata alla data corrente.') }}</label><input name="start_date" type="date" required value="{{ default_start_date }}"></div>
-    <div><label>{{ info_label('Ora inizio', 'L’ora in cui la violazione ha avuto inizio. Se si usa un modello viene impostata all’ora corrente.') }}</label><input name="start_time" type="time" required value="{{ default_start_time }}"></div>
-    <div><label>{{ info_label('Data fine', 'La data in cui la violazione ha avuto fine; può essere valorizzata successivamente o automaticamente alla conclusione.') }}</label><input name="end_date" type="date"></div>
-    <div><label>{{ info_label('Ora fine', 'L’ora in cui la violazione ha avuto fine; può essere valorizzata successivamente o automaticamente alla conclusione.') }}</label><input name="end_time" type="time"></div>
+    <div><label>{{ info_label('Data inizio', 'La data in cui la violazione ha avuto inizio. Se si usa un modello viene impostata alla data corrente.') }}</label><div class="date-time-now-field"><input name="start_date" id="incident-start-date" type="date" required value="{{ default_start_date }}"><button type="button" class="secondary small set-current-date-time" data-date-target="incident-start-date" data-time-target="incident-start-time" title="Imposta data e ora correnti">Adesso</button></div></div>
+    <div><label>{{ info_label('Ora inizio', 'L’ora in cui la violazione ha avuto inizio. Se si usa un modello viene impostata all’ora corrente.') }}</label><div class="date-time-now-field"><input name="start_time" id="incident-start-time" type="time" required value="{{ default_start_time }}"><button type="button" class="secondary small set-current-date-time" data-date-target="incident-start-date" data-time-target="incident-start-time" title="Imposta data e ora correnti">Adesso</button></div></div>
+    <div><label>{{ info_label('Data fine', 'La data in cui la violazione ha avuto fine; può essere valorizzata successivamente o automaticamente alla conclusione.') }}</label><div class="date-time-now-field"><input name="end_date" id="incident-end-date" type="date"><button type="button" class="secondary small set-current-date-time" data-date-target="incident-end-date" data-time-target="incident-end-time" title="Imposta data e ora correnti">Adesso</button></div></div>
+    <div><label>{{ info_label('Ora fine', 'L’ora in cui la violazione ha avuto fine; può essere valorizzata successivamente o automaticamente alla conclusione.') }}</label><div class="date-time-now-field"><input name="end_time" id="incident-end-time" type="time"><button type="button" class="secondary small set-current-date-time" data-date-target="incident-end-date" data-time-target="incident-end-time" title="Imposta data e ora correnti">Adesso</button></div></div>
     <div><label><input type="checkbox" name="personal_data" {% if t and t.personal_data %}checked{% endif %}> {{ info_label('Dati personali', 'Indica se l’incidente coinvolge dati personali e attiva le valutazioni procedurali correlate.') }}</label></div>
     <div><label>{{ info_label('Numero di interessati', 'Numero o stima dei soggetti interessati dall’incidente.') }}</label><input name="data_subjects_count" placeholder="es. 25 utenti, circa 100 persone" value="{{ t.data_subjects_count if t and t.data_subjects_count else '' }}"></div>
     <div class="wide"><label>{{ info_label('Volume dati', 'Descrivere quantità, tipologia o estensione dei dati coinvolti.') }}</label><textarea name="data_volume" placeholder="Descrivere quantità, tipologia o estensione dei dati coinvolti">{{ t.data_volume if t and t.data_volume else '' }}</textarea></div>
-  </div>{% include 'dnd_fields.html' %}<button>Crea</button></form></div>{% endblock %}
+  </div>{% include 'dnd_fields.html' %}<button>Crea</button></form></div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const appTimeZone = '{{ application_timezone }}' || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  function currentDateTimeParts() {
+    const d = new Date();
+    try {
+      const dateParts = new Intl.DateTimeFormat('en-CA', {timeZone: appTimeZone, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(d).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+      const timeParts = new Intl.DateTimeFormat('en-GB', {timeZone: appTimeZone, hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}).formatToParts(d).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+      return {date: dateParts.year + '-' + dateParts.month + '-' + dateParts.day, time: timeParts.hour + ':' + timeParts.minute};
+    } catch (e) {
+      const pad = n => String(n).padStart(2, '0');
+      return {date: d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()), time: pad(d.getHours()) + ':' + pad(d.getMinutes())};
+    }
+  }
+  document.querySelectorAll('.set-current-date-time').forEach(function(button){
+    button.addEventListener('click', function(){
+      const parts = currentDateTimeParts();
+      const dateField = document.getElementById(button.dataset.dateTarget);
+      const timeField = document.getElementById(button.dataset.timeTarget);
+      if (dateField) dateField.value = parts.date;
+      if (timeField) timeField.value = parts.time;
+      if (dateField) dateField.focus();
+    });
+  });
+});
+</script>
+{% endblock %}

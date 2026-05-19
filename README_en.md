@@ -1,3 +1,7 @@
+## Update 0.2.1 - Local date/time for incident fields and notifications
+
+In the new/edit incident forms, the specific start date/time and end date/time fields now include a **Now** button next to the field. The button fills the date/time pair with the current moment in the application timezone configured under **Admin → Other settings**. Actions automatically created after manual notification sending now use the same local application timezone, keeping the incident timeline consistent with operator-entered values.
+
 ## Update 0.2.1 - Guided workflow to notifications and documents
 
 Expected-operation steps that depend on a notification now guide the operator: if the required notification is not yet recorded among incident actions, clicking the step opens the specific notification flow directly. If that notification requires generated or tagged documents that are not available yet, a warning is shown and the page moves to form generation or document/tagging before sending.

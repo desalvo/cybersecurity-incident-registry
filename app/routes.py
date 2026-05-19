@@ -661,7 +661,7 @@ def add_notification_action_safely(inc, label, description):
     align_table_sequence('action')
     action = Action(
         incident_id=inc.id,
-        when_at=datetime.utcnow(),
+        when_at=application_now(),
         person_name=current_user.name or current_user.username,
         description=description,
         label_id=label.id if label else None,
@@ -679,7 +679,7 @@ def add_notification_action_safely(inc, label, description):
         align_table_sequence('action')
         action = Action(
             incident_id=inc.id,
-            when_at=datetime.utcnow(),
+            when_at=application_now(),
             person_name=current_user.name or current_user.username,
             description=description,
             label_id=label.id if label else None,
@@ -1631,7 +1631,7 @@ def incident_new():
         if not reference_value:
             flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'))
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
         inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=request.form.get('recipient') or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
@@ -1654,7 +1654,7 @@ def incident_new():
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
     now_dt = application_now()
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'))
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):

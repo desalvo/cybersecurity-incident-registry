@@ -275,3 +275,5 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .workflow-step-action { cursor: pointer; }
 .workflow-step-action:hover, .workflow-step-action:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
 .workflow-step-action:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
+
+.date-time-now-field{display:flex;gap:.35rem;align-items:center}.date-time-now-field input{min-width:0;flex:1 1 auto}.date-time-now-field .small{padding:.35rem .55rem;font-size:.85rem;white-space:nowrap}

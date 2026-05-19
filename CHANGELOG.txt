@@ -1,4 +1,9 @@
 ## 0.2.1
+- Aggiunti pulsanti "Adesso" accanto a data/ora inizio e data/ora fine nelle form incidente per valorizzarli con il momento corrente nel fuso applicativo configurato.
+- Le azioni registrate automaticamente dopo l'invio di notifiche usano ora la data e ora locale dell'applicazione, coerente con la timeline incidente.
+- Documentazione aggiornata.
+
+## 0.2.1
 - Gli step workflow dipendenti da notifica guidano automaticamente verso la form della notifica richiesta.
 - Se la notifica richiede documenti generati o taggati non ancora disponibili, il click mostra un avviso e porta alla sezione moduli/documenti.
 - Bloccato l’inserimento manuale dell’azione di uno step che richiede una notifica non ancora registrata.

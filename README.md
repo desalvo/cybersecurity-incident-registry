@@ -1,3 +1,7 @@
+## Aggiornamento 0.2.1 - Data/ora locale nei campi incidente e notifiche
+
+Nelle form di creazione e modifica incidente, i campi specifici di data/ora inizio e data/ora fine hanno ora un pulsante **Adesso** accanto al campo. Il pulsante valorizza la coppia data/ora con il momento corrente nella timezone applicativa configurata in **Admin → Altre configurazioni**. Anche le azioni create automaticamente a seguito dell'invio di notifiche manuali usano la stessa timezone locale applicativa, così la timeline dell'incidente resta coerente con i valori inseriti dagli operatori.
+
 ## Aggiornamento 0.2.1 - Workflow guidato verso notifiche e documenti
 
 Gli step delle operazioni previste che dipendono da una notifica guidano ora l’operatore: se la notifica richiesta non è ancora presente tra le azioni, il click sullo step apre direttamente la notifica specifica. Se la notifica richiede documenti generati o taggati non ancora disponibili, viene mostrato un avviso e la pagina porta alla generazione moduli o alla sezione documenti/tagging prima dell’invio.

@@ -1,3 +1,4 @@
+<section class="doc-section"><h2>0.2.1 - Data/ora locale negli incidenti</h2><p>I campi Data/Ora inizio e Data/Ora fine hanno un pulsante <strong>Adesso</strong> che imposta il momento corrente nella timezone applicativa configurata. Anche le azioni registrate automaticamente dall’invio delle notifiche usano la stessa timezone locale.</p></section>
 <section class="doc-section"><h2>0.2.1 - Workflow guidato alle notifiche</h2><p>Quando uno step delle operazioni previste dipende da una notifica non ancora inviata, il click sullo step apre il percorso corretto: se i documenti necessari sono già disponibili apre la notifica specifica, altrimenti mostra un avviso e porta alla generazione moduli o alla sezione documenti/tagging.</p></section>
 <section class="doc-section"><h2>0.2.1 - Workflow ordinato</h2><p>Nella pagina del singolo incidente, quando gli step delle operazioni previste sono ordinati, una freccia indica la sequenza tra il passo precedente e quello successivo. La pagina Info applicazione mostra la versione normalizzata <strong>0.2.1</strong> e il build corrente.</p></section>
 <section class="doc-section"><h2>0.2.1 - Workflow default esteso</h2><p>Il flusso predefinito include ora Comunicazione al Garante, applicabile solo in presenza di dati personali, e Comunicazione all’utente prima della Conclusione.</p></section>
@@ -146,7 +147,7 @@
     <h2>6. Azioni, allegati e chiusura</h2>
     <p>Le azioni descrivono ciò che è stato fatto sull’incidente. Ogni azione ha una label, una data e ora, una descrizione e, se necessario, allegati. Le nuove azioni possono essere esportabili per default in base alla configurazione della relativa label.</p><p>Solo le azioni contrassegnate come <strong>esportabili</strong> sono considerate per la generazione dei documenti e per i campi dinamici dei moduli PDF, ad esempio l’elenco delle misure adottate.</p>
     <p>L’inserimento dell’azione di conclusione può aggiornare automaticamente lo stato a <strong>chiuso</strong> e impostare data e ora di fine. La chiusura viene impedita se sono ancora presenti avvisi procedurali attivi.</p>
-    <p>Le date e ore predefinite nelle form usano la timezone applicativa configurata. Nei report PDF gli orari sono formattati con secondi interi.</p>
+    <p>Le date e ore predefinite nelle form usano la timezone applicativa configurata; i pulsanti Adesso nei campi inizio/fine permettono di impostare rapidamente il momento corrente nello stesso fuso. Nei report PDF gli orari sono formattati con secondi interi.</p>
   </section>
 
   <section id="cap-avvisi" class="doc-chapter" data-doc-title="avvisi procedurali notifica utente richiesta blocco chiusura">
