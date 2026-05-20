@@ -141,6 +141,14 @@ The deadline email template is configurable with subject and body fields. Placeh
 
 All deadline notification dates and times are formatted in the application time zone configured in **Admin → Other settings**. The time zone name is included in the notification text to avoid operational ambiguity.
 
+### Confirming notifications without sending
+
+Manual/non-scheduled notification preview pages now include a **Confirm without sending** button. The operation requires an additional explicit confirmation: when confirmed, the application completes the operational flow without transmitting any email, still records the action in the incident timeline, and attaches the PDF containing the planned communication text. The action description clearly states that the notification was confirmed without being sent.
+
+### Editing action date and time
+
+In the **Actions** section of the incident detail page, users with write permissions can now edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
+
 ## Incidents and action lifecycle
 
 The incident form uses separate date and time fields for the start and end of the incident. Existing databases are migrated automatically from the historical `start_at` and `end_at` columns to the granular `start_date`, `start_time`, `end_date`, `end_time` fields. Compatibility properties remain available for reports and filters.

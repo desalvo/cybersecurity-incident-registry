@@ -165,6 +165,14 @@ Nelle impostazioni notifiche sono configurabili:
 
 A ogni controllo, per ogni incidente aperto e non silenziato, l’applicazione cerca le label azione con tempo massimo configurato che non sono ancora presenti nella timeline dell’incidente. L’invio delle email può essere disabilitato totalmente da **Admin → Notifiche** con l’opzione dedicata **Abilita invio email per task in scadenza**. Se l’invio è abilitato ed esistono azioni mancanti, la mail viene inviata solo quando nell’incidente è selezionata almeno una unità di personale associata; i destinatari effettivi sono le persone coinvolte con indirizzo e-mail valorizzato. In assenza di personale selezionato l’incidente viene saltato e non viene inviata alcuna mail. Dalla pagina di dettaglio di ogni incidente è possibile selezionare **Silenzia notifiche email per task in scadenza** per escludere solo quello specifico incidente dai promemoria automatici. Il testo delle email di scadenza task è configurabile nella stessa pagina tramite template di oggetto e corpo con placeholder nella forma `%nome_placeholder%`; la pagina mostra l’elenco dei placeholder disponibili e una preview con dati dimostrativi prima dell’invio reale.
 
+### Conferma notifiche senza invio
+
+Nelle pagine di anteprima delle notifiche manuali/non schedulate è disponibile il pulsante **Conferma senza inviare**. L’operazione richiede una conferma esplicita aggiuntiva: se confermata, l’applicazione completa il flusso operativo senza trasmettere alcuna email, registra comunque l’azione nella timeline dell’incidente e allega il PDF con il testo della comunicazione prevista. La descrizione dell’azione indica chiaramente che si tratta di una conferma senza invio.
+
+### Modifica data e ora delle azioni
+
+Nella sezione **Azioni** del dettaglio incidente, gli utenti con permessi di scrittura possono modificare direttamente anche la data e ora di ciascuna azione esistente, oltre a label, persona, descrizione, conseguenze e flag exportable.
+
 ## Aiuto
 
 Il menu **Aiuto** mostra una documentazione sintetica d'uso dell'applicazione.

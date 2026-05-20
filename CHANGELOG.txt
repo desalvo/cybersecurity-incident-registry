@@ -1,3 +1,9 @@
+0.2.1-50
+- Aggiunto nelle notifiche manuali/non schedulate il pulsante “Conferma senza inviare”, con conferma esplicita lato browser e controllo server-side: l’azione viene registrata e viene prodotto il PDF del testo, ma nessuna email viene trasmessa.
+- La conferma senza invio usa la stessa validazione di template, destinatari e documenti della notifica ordinaria, ma non richiede la disponibilità effettiva del server SMTP.
+- Nella lista Azioni del dettaglio incidente è ora modificabile anche il campo data e ora di ciascuna azione.
+- Documentazione aggiornata.
+
 0.2.1-49
 - Corretto il RuntimeError "Working outside of application context" nei thread scheduler: la lettura degli intervalli configurabili avviene ora sempre dentro app.app_context(), con fallback sicuro.
 - Rafforzati i thread deadline e promemoria specifici affinché non accedano a Setting, db.session o proxy Flask fuori dal contesto applicativo.

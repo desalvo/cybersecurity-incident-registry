@@ -804,6 +804,13 @@ Le schermate sono illustrative e non contengono dati reali. Servono a rendere la
 
 La rotta `GET /aiuto/pdf` genera una versione PDF professionale della guida con ReportLab. La generazione include copertina, logo applicativo, indice sintetico, intestazione blu, piè di pagina con numerazione pagine, stili tipografici coerenti, callout introduttivo e inserimento degli asset visuali. Il PDF viene prodotto dinamicamente e scaricato come `cybersecurity-incident-registry-documentazione.pdf`.
 
+
+### 11.20 Conferma notifiche senza invio e modifica data azioni
+
+Le notifiche manuali/non schedulate esposte dalle rotte `notify_preview` e `notify_send` supportano due modalità di completamento: invio reale SMTP e conferma senza invio. La modalità senza invio è attivata dal parametro POST `send_mode=confirm_without_send` e richiede anche `confirm_without_send_confirmed=1`; in assenza della conferma server-side l’operazione viene respinta. In questa modalità non viene aperta alcuna connessione SMTP e non è richiesta la raggiungibilità del server di posta, ma il flusso valida comunque template, destinatari e documenti necessari, crea la stessa azione di workflow e allega il PDF con il testo della comunicazione prevista. La descrizione dell’azione usa una formula dedicata (“Conferma senza invio…”) per distinguere l’operazione da una mail realmente trasmessa.
+
+La tabella azioni del dettaglio incidente espone ora il campo `Action.when_at` come input `datetime-local` modificabile per gli utenti con ruolo `admin` o `writer`. La rotta `update_action` valida il valore ISO ricevuto, aggiorna `when_at` e mantiene invariati i controlli già presenti su label, chiusura automatica dell’incidente, descrizione, conseguenze ed exportabilità.
+
 ## Implicazioni manutentive
 
 Quando si aggiungono nuove funzionalità applicative, aggiornare sia la pagina `app/templates/help.html` sia la documentazione progettuale. Se la funzionalità ha impatto operativo rilevante, aggiungere o aggiornare anche un asset visuale in `app/static/help/` e verificare che la versione PDF resti leggibile. Il logo custom dell'ente non deve essere usato negli asset della guida utente.

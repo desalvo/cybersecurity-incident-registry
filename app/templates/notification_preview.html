@@ -40,6 +40,7 @@
   <pre class="mail-preview">{{ body }}</pre>
   <form method="post" action="{{ url_for('main.notify_send', iid=inc.id, kind=kind) }}" class="button-row notification-send-form">
     <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
+    <input type="hidden" name="confirm_without_send_confirmed" value="0">
     {% if not recipient_locked %}
       <input type="hidden" name="recipient" value="{{ recipient }}">
       <input type="hidden" name="cc" value="{{ cc }}">
@@ -65,7 +66,8 @@
     {% elif linked_template_missing_warning %}
       <p class="warning">Non è presente un documento generato dal template associato: la notifica può essere inviata senza allegati documentali.</p>
     {% endif %}
-    <button type="submit" {% if admin_send_blocked or (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
+    <button type="submit" name="send_mode" value="send" {% if admin_send_blocked or (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
+    <button type="submit" name="send_mode" value="confirm_without_send" class="secondary" {% if (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma senza inviare</button>
     <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
   </form>
 </div>
@@ -86,16 +88,25 @@
   if(useTo) useTo.addEventListener('click', function(){ const email = selectedEmail(); if(email && recipientInput) recipientInput.value = email; });
   if(useCc) useCc.addEventListener('click', function(){ appendAddress(ccInput, selectedEmail()); });
   const sendForm = document.querySelector('.notification-send-form');
-  if(sendForm && sendForm.querySelector('input[name="recipient_confirmed"]')){
+  if(sendForm){
     sendForm.addEventListener('submit', function(event){
-      const recipient = (sendForm.querySelector('input[name="recipient"]')?.value || '').trim();
-      const cc = (sendForm.querySelector('input[name="cc"]')?.value || '').trim();
-      const message = 'Confermi l’invio della notifica al destinatario indicato?\n\nDestinatario: ' + (recipient || '(non indicato)') + (cc ? '\nCC: ' + cc : '');
+      const mode = event.submitter && event.submitter.name === 'send_mode' ? event.submitter.value : 'send';
+      const recipient = (sendForm.querySelector('input[name="recipient"]')?.value || '{{ recipient|e }}').trim();
+      const cc = (sendForm.querySelector('input[name="cc"]')?.value || '{{ cc|e }}').trim();
+      const recipientConfirmed = sendForm.querySelector('input[name="recipient_confirmed"]');
+      const withoutSendConfirmed = sendForm.querySelector('input[name="confirm_without_send_confirmed"]');
+      let message;
+      if(mode === 'confirm_without_send'){
+        message = 'Confermi di completare la notifica SENZA inviare alcuna email?\n\nL’azione verrà registrata come completata nell’incidente.\nDestinatario previsto: ' + (recipient || '(non indicato)') + (cc ? '\nCC previsto: ' + cc : '');
+      } else {
+        message = 'Confermi l’invio della notifica al destinatario indicato?\n\nDestinatario: ' + (recipient || '(non indicato)') + (cc ? '\nCC: ' + cc : '');
+      }
       if(!window.confirm(message)){
         event.preventDefault();
         return false;
       }
-      sendForm.querySelector('input[name="recipient_confirmed"]').value = '1';
+      if(recipientConfirmed) recipientConfirmed.value = '1';
+      if(withoutSendConfirmed) withoutSendConfirmed.value = mode === 'confirm_without_send' ? '1' : '0';
     });
   }
 })();

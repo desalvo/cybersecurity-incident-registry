@@ -2038,6 +2038,13 @@ def add_action(iid):
 def update_action(aid):
     a=Action.query.get_or_404(aid); iid=a.incident_id
     if can_write():
+        when_value = (request.form.get('when_at') or '').strip()
+        if when_value:
+            try:
+                a.when_at = datetime.fromisoformat(when_value)
+            except ValueError:
+                section_flash('Data e ora azione non valida.', 'incident-actions', 'error')
+                return incident_detail_redirect(iid, 'incident-actions')
         a.person_name=request.form.get('person_name') or a.person_name
         a.description=request.form.get('description') or None
         a.consequence_text=request.form.get('consequence_text') or None
@@ -5219,8 +5226,13 @@ def notify_send(iid, kind):
     if not can_write():
         flash('Permessi insufficienti per inviare notifiche','error')
         return redirect(url_for('main.incident_detail', iid=iid))
-    if is_builtin_admin_user():
+    send_mode = (request.form.get('send_mode') or 'send').strip()
+    confirm_without_send = send_mode == 'confirm_without_send'
+    if is_builtin_admin_user() and not confirm_without_send:
         flash('L’utente admin non può inviare notifiche dalla pagina degli incidenti. Accedere con un altro utente autorizzato.', 'error')
+        return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=request.form.get('template_id', type=int)))
+    if confirm_without_send and request.form.get('confirm_without_send_confirmed') != '1':
+        flash('Confermare esplicitamente l’operazione senza invio prima di registrare la notifica.', 'warning')
         return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=request.form.get('template_id', type=int)))
     template_id = request.form.get('template_id', type=int)
     tmpl = get_notification_template(kind, template_id)
@@ -5281,13 +5293,31 @@ def notify_send(iid, kind):
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id))
     body = notification_body(kind, inc, selected_documents=selected_documents if selected_documents else None, template_id=tmpl.id)
     try:
-        send_info = send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=selected_documents, attach_statistics=attach_statistics)
+        if confirm_without_send:
+            try:
+                simulated_sender = smtp_sender_address()
+            except Exception:
+                simulated_sender = (current_user.email or setting_value('smtp_default_sender', '') or setting_value('smtp_username', '') or 'admin@localhost.localdomain')
+            send_info = {
+                'sender': simulated_sender,
+                'recipient': recipient,
+                'cc': cc or '',
+                'attach_report': attach_report,
+                'attach_statistics': attach_statistics,
+                'documents': [d.filename for d in (selected_documents or [])],
+                'suppressed_send': True,
+            }
+        else:
+            send_info = send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=selected_documents, attach_statistics=attach_statistics)
         label = tmpl.action_label or ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
         if not label:
             label = ConfigLabel(kind='action_label', group='azioni', value=notification_label_value(kind))
             db.session.add(label); db.session.flush()
         docs_text = ', '.join(send_info.get('documents') or []) or 'nessuno'
-        desc = f'Invio {title.lower()} con template "{tmpl.name}". Mittente: {send_info["sender"]}; Destinatario: {send_info["recipient"]}; CC: {send_info["cc"] or "nessuno"}; Report PDF allegato: {"sì" if send_info["attach_report"] else "no"}; Report statistiche allegato: {"sì" if send_info.get("attach_statistics") else "no"}; Documenti allegati: {docs_text}.'
+        if confirm_without_send:
+            desc = f'Conferma senza invio {title.lower()} con template "{tmpl.name}". Nessuna email è stata trasmessa. Mittente previsto: {send_info["sender"]}; Destinatario previsto: {send_info["recipient"]}; CC previsto: {send_info["cc"] or "nessuno"}; Report PDF previsto: {"sì" if send_info["attach_report"] else "no"}; Report statistiche previsto: {"sì" if send_info.get("attach_statistics") else "no"}; Documenti previsti: {docs_text}.'
+        else:
+            desc = f'Invio {title.lower()} con template "{tmpl.name}". Mittente: {send_info["sender"]}; Destinatario: {send_info["recipient"]}; CC: {send_info["cc"] or "nessuno"}; Report PDF allegato: {"sì" if send_info["attach_report"] else "no"}; Report statistiche allegato: {"sì" if send_info.get("attach_statistics") else "no"}; Documenti allegati: {docs_text}.'
         action = add_notification_action_safely(inc, label, desc)
         pdf_path = None
         try:
@@ -5298,7 +5328,10 @@ def notify_send(iid, kind):
             current_app.logger.exception('Errore nella generazione del PDF con il testo della mail inviata')
             raise
         db.session.commit()
-        flash('Notifica inviata e azione registrata')
+        if confirm_without_send:
+            flash('Notifica confermata senza invio: operazioni completate e azione registrata')
+        else:
+            flash('Notifica inviata e azione registrata')
     except Exception as exc:
         db.session.rollback()
         current_app.logger.exception('Errore invio notifica %s incidente %s', kind, iid)
