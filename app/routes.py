@@ -3581,21 +3581,81 @@ def _deadline_state_for_incident(incident_id):
 
 
 def _deadline_notification_sent_in_current_window(incident_id, schedule_slot, next_slot):
-    """True se la stessa notifica è già stata inviata nello stesso intervallo.
+    """True se la stessa notifica è già stata presa in carico nello stesso intervallo.
 
-    Usa prima la tabella di stato persistente, poi l'audit come fallback per
-    database importati o versioni precedenti.
+    La tabella persistente viene usata sia per gli invii riusciti sia come
+    *claim* preventivo dello slot. In questo modo, anche con più worker o più
+    repliche senza lock PostgreSQL efficace, un secondo ciclo dello scheduler
+    non può inviare la stessa notifica mentre il primo invio è in corso.
     """
     if not incident_id or not schedule_slot:
         return False
     state = _deadline_state_for_incident(incident_id)
-    if state and state.last_success_at:
-        last = state.last_success_at
-        if last >= schedule_slot and (not next_slot or last < next_slot):
-            return True
+    if state:
         if state.last_schedule_slot and state.last_schedule_slot == schedule_slot:
             return True
+        if state.last_success_at:
+            last = state.last_success_at
+            if last >= schedule_slot and (not next_slot or last < next_slot):
+                return True
     return _deadline_notification_already_sent_for_slot(incident_id, schedule_slot)
+
+
+def _claim_deadline_notification_slot(incident_id, schedule_slot, source='scheduler'):
+    """Riserva in modo persistente lo slot di notifica per un incidente.
+
+    Il claim viene scritto e committato prima dell'invio e sfrutta la chiave
+    unica ``notification_key``. Se due scheduler tentano di inviare nello
+    stesso intervallo, uno dei due trova già lo slot riservato oppure riceve
+    una IntegrityError e salta l'invio, evitando mail flooding.
+    """
+    if not incident_id or not schedule_slot:
+        return False
+    key = _deadline_notification_key(incident_id)
+    now = application_now()
+    try:
+        state = DeadlineNotificationState.query.filter_by(notification_key=key).first()
+        if not state:
+            state = DeadlineNotificationState(
+                notification_key=key,
+                notification_type='deadline_summary',
+                incident_id=incident_id,
+                last_success_at=now,
+                last_schedule_slot=schedule_slot,
+                last_recipients='',
+                last_details=f'invio in corso; sorgente {source}',
+                send_count=0,
+            )
+            db.session.add(state)
+            db.session.commit()
+            return True
+        updated = DeadlineNotificationState.query.filter(
+            DeadlineNotificationState.notification_key == key,
+            db.or_(
+                DeadlineNotificationState.last_schedule_slot.is_(None),
+                DeadlineNotificationState.last_schedule_slot != schedule_slot,
+            ),
+        ).update({
+            DeadlineNotificationState.notification_type: 'deadline_summary',
+            DeadlineNotificationState.incident_id: incident_id,
+            DeadlineNotificationState.last_success_at: now,
+            DeadlineNotificationState.last_schedule_slot: schedule_slot,
+            DeadlineNotificationState.last_recipients: '',
+            DeadlineNotificationState.last_details: f'invio in corso; sorgente {source}',
+            DeadlineNotificationState.updated_at: datetime.utcnow(),
+        }, synchronize_session=False)
+        if not updated:
+            db.session.rollback()
+            return False
+        db.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        return False
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Claim slot notifica deadline non completato per incidente %s', incident_id)
+        return False
 
 
 def _record_deadline_notification_success(incident_id, schedule_slot, recipients, details=''):
@@ -3622,9 +3682,42 @@ def _record_deadline_notification_success(incident_id, schedule_slot, recipients
         state.last_schedule_slot = schedule_slot
         state.last_recipients = recipients or ''
         state.last_details = details or ''
-        state.send_count = int(state.send_count or 0) + 1
+        state.send_count = max(1, int(state.send_count or 0) + 1)
         state.updated_at = datetime.utcnow()
     return state
+
+
+def _record_deadline_notification_failure(incident_id, schedule_slot, details=''):
+    """Registra l'esito negativo mantenendo il claim dello slot corrente."""
+    state = _deadline_state_for_incident(incident_id)
+    if state:
+        state.last_schedule_slot = schedule_slot
+        state.last_details = details or 'invio non riuscito'
+        state.updated_at = datetime.utcnow()
+    return state
+
+
+def cleanup_stale_deadline_notification_states():
+    """Rimuove stati scheduler riferiti a incidenti non più esistenti.
+
+    Viene eseguito ad ogni ciclo dello scheduler per eliminare rimanenze di
+    vecchi incidenti cancellati, anche su database esistenti o importati prima
+    dell'introduzione del cascade.
+    """
+    try:
+        stale = DeadlineNotificationState.query.outerjoin(Incident, DeadlineNotificationState.incident_id == Incident.id).filter(
+            DeadlineNotificationState.incident_id.isnot(None),
+            Incident.id.is_(None),
+        ).all()
+        for row in stale:
+            db.session.delete(row)
+        if stale:
+            db.session.commit()
+        return len(stale)
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Cleanup stati notifiche deadline orfani non completato')
+        return 0
 
 def _deadline_slot_label(value):
     if isinstance(value, datetime):
@@ -4110,6 +4203,7 @@ def run_deadline_notification_check(force=False, source='request'):
     """
     now = application_now()
     schedule_slot, next_schedule_slot = deadline_schedule_window(now)
+    stale_states_removed = cleanup_stale_deadline_notification_states()
 
     if setting_value('notification_deadline_enabled', '0') != '1' and not force:
         return {'sent': 0, 'skipped': 0, 'errors': [], 'executed': False, 'reason': 'disabled'}
@@ -4161,6 +4255,10 @@ def run_deadline_notification_check(force=False, source='request'):
             incidents_already_sent += 1
             skipped += 1
             continue
+        if not _claim_deadline_notification_slot(inc.id, schedule_slot, source=source):
+            incidents_already_sent += 1
+            skipped += 1
+            continue
         try:
             ok, info = send_deadline_summary_email(inc, rows)
             if ok:
@@ -4180,10 +4278,12 @@ def run_deadline_notification_check(force=False, source='request'):
                 skipped += 1
                 if 'nessun indirizzo email' in info or 'personale' in info:
                     incidents_without_recipients += 1
+                _record_deadline_notification_failure(inc.id, schedule_slot, info)
                 errors.append(f'Incidente {inc.id}: {info}')
         except Exception as exc:
             current_app.logger.exception('Errore notifica scadenze incidente %s', inc.id)
             skipped += 1
+            _record_deadline_notification_failure(inc.id, schedule_slot, str(exc))
             errors.append(f'Incidente {inc.id}: {exc}')
 
     if not force:
@@ -4206,6 +4306,7 @@ def run_deadline_notification_check(force=False, source='request'):
         'incidents_with_pending': incidents_with_pending,
         'incidents_already_sent': incidents_already_sent,
         'incidents_without_recipients': incidents_without_recipients,
+        'stale_states_removed': stale_states_removed,
     }
     should_audit_check = force or sent > 0 or not _deadline_notification_check_already_audited_for_slot(schedule_slot)
     if should_audit_check:

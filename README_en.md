@@ -404,3 +404,10 @@ User and administrator documentation has been reorganised into clearer chapters 
 ## Release notes
 
 Version changes are collected in `CHANGELOG.txt` and in **Help → Release notes** inside the application. Operational guides keep only current usage instructions.
+
+
+## Update 0.2.1-35 - Notification scheduler, anti-flooding and time zone
+
+Scheduled notifications for maximum-time tasks are now more robust against simultaneous duplicate sends. Before sending, the scheduler persistently claims the notification slot for each incident; if another worker, replica or opportunistic request check tries to send the same notification in the same interval, the send is skipped. Each scheduler cycle also cleans up stale notification states left by deleted incidents.
+
+All schedules, cron times and maximum-task intervals are interpreted in the application time zone configured under **Admin → Other configurations**. Regular intervals always start from midnight of the current day in that time zone, not from container or process startup time.

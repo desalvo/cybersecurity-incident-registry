@@ -125,7 +125,7 @@
   {% else %}
     <p>Nessuna notifica schedulata nelle prossime 24 ore.</p>
   {% endif %}
-  <p class="muted">La protezione anti-flooding impedisce invii multipli della stessa notifica nello stesso intervallo, anche con scheduler di background e controlli opportunistici da richiesta web.</p>
+  <p class="muted">La protezione anti-flooding riserva in modo persistente lo slot prima dell’invio: la stessa notifica per lo stesso incidente non viene inviata più di una volta nello stesso intervallo, anche con più worker, scheduler di background e controlli opportunistici da richiesta web. Ogni ciclo rimuove inoltre gli stati residui collegati a incidenti cancellati.</p>
 </div>
 
 <div class="card">

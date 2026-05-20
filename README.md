@@ -601,3 +601,10 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 ## Note di rilascio
 
 Le variazioni di versione sono raccolte in `CHANGELOG.txt` e nella pagina **Aiuto → Note di rilascio** dell’applicazione. Le guide operative mantengono solo le istruzioni d’uso correnti.
+
+
+## Aggiornamento 0.2.1-35 - Scheduler notifiche, anti-flooding e timezone
+
+Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker, replica o controllo opportunistico tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
+
+Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono interpretati nella timezone applicativa configurata in **Admin → Altre configurazioni**. Gli intervalli regolari partono sempre dalla mezzanotte del giorno corrente in tale timezone, non dall'avvio del container o del processo.

@@ -1453,3 +1453,10 @@ Le guide utente e amministrativa sono state ricontrollate per esporre esplicitam
 ## Version 0.2.1-34 - Operational guide alignment
 
 The user and administrator guides were reviewed to explicitly show `Application version: 0.2.1` / `Version 0.2.1`, without changelog chapters in the operational body. Sections that were outside the main online-documentation container were integrated as regular chapters.
+
+
+### Scheduler notifiche deadline: deduplica persistente e timezone
+
+Le notifiche schedulate per task con tempo massimo usano `DeadlineNotificationState` come stato persistente per incidente e slot. Prima dell'invio viene scritto un claim dello slot corrente; la chiave unica della notifica e il controllo su `last_schedule_slot` impediscono invii multipli nello stesso intervallo anche in presenza di più worker, repliche o controlli opportunistici. Ogni ciclo dello scheduler rimuove gli stati orfani collegati a incidenti cancellati.
+
+La pianificazione cron/intervallo è calcolata con `application_now()` e quindi nel fuso orario applicativo. Gli intervalli regolari sono ancorati alla mezzanotte locale del giorno corrente; gli orari cron sono interpretati come HH:MM della stessa timezone.
