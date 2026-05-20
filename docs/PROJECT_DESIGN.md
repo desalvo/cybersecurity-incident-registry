@@ -1294,7 +1294,7 @@ La pagina di anteprima delle notifiche manuali con destinatario libero riceve la
 
 ## Aggiornamento 0.2.1 - Tag automatici dei documenti generati
 
-La configurazione dei moduli PDF conserva in `FormTemplateConfig.notification_tags` l'elenco compatto dei codici dei tipi di notifica associati al template. L'interfaccia `modules_configuration.html` mostra i tipi di notifica con il nome leggibile del tipo e consente l'associazione tramite drag and drop, riutilizzando lo stesso paradigma della lista Documenti dell'incidente.
+La configurazione dei moduli PDF conserva in `FormTemplateConfig.notification_tags` l'elenco compatto dei codici dei tipi di notifica associati al template. L'interfaccia `modules_configuration.html` mostra i tipi di notifica con il nome leggibile del tipo e consente l'associazione tramite drag and drop e la rimozione con il pulsante × del chip selezionato, riutilizzando lo stesso paradigma della lista Documenti dell'incidente.
 
 Durante `confirm_generated_forms()` la funzione `notification_tags_for_generated_form_template()` legge esclusivamente i tag configurati sul template modulo usato per la generazione e li applica al nuovo record `Document`. Non vengono più derivati tag impliciti dai template di notifica manuale collegati al modulo: i documenti generati hanno per default solo i tag associati direttamente al template modulo. La preselezione degli allegati in anteprima notifica continua a usare `auto_selected_notification_documents()`, che considera i tag del documento e l'eventuale collegamento esplicito del template di notifica al modulo, lasciando comunque modificabile la selezione finale.
 
@@ -1671,3 +1671,8 @@ I riquadri degli step nella sezione **Operazioni previste** renderizzano ora la 
 ## Aggiornamento 0.2.1-70 - Tag notifica configurabili sui template modulo
 
 Ogni template PDF configurato in **Moduli → Configurazione** può avere uno o più tag di tipo notifica associati tramite drag and drop. I tag sono presentati con il nome del tipo notifica e salvati nel campo `FormTemplateConfig.notification_tags` come codici tecnici stabili. Quando un PDF viene generato da quel template, il record `Document` creato eredita solo tali tag, senza derivazioni automatiche dai template di notifica manuale.
+
+
+## Aggiornamento 0.2.1-71 - Rimozione tag dai template modulo
+
+Nel template `modules_configuration.html` i tag notifica selezionati per un template modulo sono resi come chip non più basati su `<label>`, ma su contenitori dedicati con checkbox nascosta e pulsante `×`. Il pulsante imposta la checkbox a non selezionata, applica `hidden`/classe `hidden` al chip e aggiorna il messaggio di stato vuoto. Al submit, `routes.py` continua a leggere `request.form.getlist('template_notification_tags')`: l'assenza del valore rimosso nel POST aggiorna `FormTemplateConfig.notification_tags` con l'insieme effettivamente rimasto selezionato. In questo modo l'amministratore può aggiungere e rimuovere tag nello stesso flusso drag & drop e i documenti generati successivamente ereditano solo i tag ancora associati al template.

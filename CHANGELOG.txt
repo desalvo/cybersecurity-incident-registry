@@ -1,3 +1,8 @@
+0.2.1-71 - Rimozione tag dai template modulo
+- Configurazione moduli: i tag di tipo notifica associati ai template PDF possono essere rimossi con il pulsante × del chip selezionato.
+- Il salvataggio persiste correttamente anche la rimozione dei tag, lasciando i documenti futuri con il solo insieme aggiornato dei tag del template.
+- Documentazione aggiornata in italiano e inglese.
+
 0.2.1-70
 - Configurazione moduli: aggiunta associazione drag & drop tra template PDF e tag di tipo notifica.
 - I documenti generati da un template ereditano per default solo i tag configurati direttamente sul template modulo.

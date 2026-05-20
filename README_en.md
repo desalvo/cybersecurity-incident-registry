@@ -171,9 +171,9 @@ The **Procedural warnings** section is displayed immediately below **Expected op
 
 ## PDF forms
 
-The application uses the original uploaded PDF template to generate filled PDFs. The form field names are the AcroForm field names extracted from the uploaded PDF. Template configuration maps database fields to PDF fields and also lets administrators associate one or more notification-type tags with each template through drag and drop. The UI identifies tags by notification type name, while the stored value is the stable type code.
+The application uses the original uploaded PDF template to generate filled PDFs. The form field names are the AcroForm field names extracted from the uploaded PDF. Template configuration maps database fields to PDF fields and also lets administrators associate one or more notification-type tags with each template through drag and drop. Already associated tags can be removed with the × button on the selected chip before saving. The UI identifies tags by notification type name, while the stored value is the stable type code.
 
-When a document is generated from a PDF template, it receives by default only the notification-type tags configured on that template; these tags can still be edited later in the incident document list.
+When a document is generated from a PDF template, it receives by default only the notification-type tags currently configured on that template; these tags can still be edited later in the incident document list.
 
 The full export includes PDF templates both as physical files and as persistent binary copies in the database, together with field mappings, configured notification tags and detected PDF field metadata. A template PDF can be replaced only if the new PDF contains exactly the same fillable AcroForm fields as the previous one; in that case the template name, field mapping, configured font and size are preserved.
 

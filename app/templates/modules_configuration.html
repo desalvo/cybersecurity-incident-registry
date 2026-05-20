@@ -153,10 +153,11 @@
           </div>
           <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tipi di notifica da associare al template">
             {% for nt in notification_type_tags %}
-              <label class="tag-selected {% if not cfg or nt.code not in cfg.notification_tag_list %}hidden{% endif %}" data-tag-code="{{ nt.code }}" {% if not cfg or nt.code not in cfg.notification_tag_list %}hidden{% endif %}>
+              <span class="tag-selected {% if not cfg or nt.code not in cfg.notification_tag_list %}hidden{% endif %}" data-tag-code="{{ nt.code }}" {% if not cfg or nt.code not in cfg.notification_tag_list %}hidden{% endif %}>
                 <input type="checkbox" name="template_notification_tags" value="{{ nt.code }}" {% if cfg and nt.code in cfg.notification_tag_list %}checked{% endif %}>
-                {{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button>
-              </label>
+                <span class="tag-selected-label">{{ nt.label }}</span>
+                <button type="button" class="tag-remove" title="Rimuovi tag" aria-label="Rimuovi tag {{ nt.label }}">×</button>
+              </span>
             {% endfor %}
             <span class="muted tag-empty">Nessun tag. Trascina qui un tipo notifica.</span>
           </div>
@@ -223,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
       zone.addEventListener('drop', function (event) {
         event.preventDefault(); zone.classList.remove('drag-over');
         const code = event.dataTransfer.getData('application/x-notification-tag') || event.dataTransfer.getData('text/plain');
-        const item = form.querySelector('.tag-selected[data-tag-code="' + code + '"]');
+        const item = form.querySelector('.tag-selected[data-tag-code="' + CSS.escape(code) + '"]');
         if (item) {
           item.classList.remove('hidden');
           item.hidden = false;
@@ -251,6 +252,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <style>
-.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold}
+.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold;line-height:1}.tag-remove:hover,.tag-remove:focus{outline:1px solid currentColor;border-radius:999px}
 </style>
 {% endblock %}
