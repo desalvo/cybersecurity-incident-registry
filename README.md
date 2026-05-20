@@ -649,3 +649,9 @@ La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinata
 ### Aggiornamento 0.2.1-45 - Promemoria specifici senza blocco da presa in carico
 
 Per i promemoria specifici la presa in carico tecnica da parte di un altro ciclo scheduler o di un controllo manuale concorrente non è più un motivo di blocco. L'invio viene deciso solo dal campo `incident_reminder.sent_at`: se è vuoto il promemoria è inviabile, se è valorizzato è già considerato inviato. La concorrenza viene gestita rivalutando atomicamente il record del promemoria, mentre `deadline_notification_state` resta solo diagnostico e non usa slot o finestre.
+
+### Aggiornamento 0.2.1-46 - Scheduler promemoria e pagina Stato servizi
+
+Il thread scheduler esegue ad ogni ciclo sia il controllo delle notifiche periodiche dei task in scadenza sia il controllo dei promemoria specifici. I due controlli sono indipendenti: un errore o una disabilitazione del controllo dei task in scadenza non impedisce più l'elaborazione dei promemoria specifici già scaduti e non inviati. Per i promemoria specifici resta valido il solo criterio funzionale `incident_reminder.sent_at`: se è vuoto il promemoria viene considerato inviabile, se è valorizzato non viene reinviato.
+
+Nel menu **Admin → Controllo e audit** è disponibile la nuova voce **Stato**, che mostra lo stato complessivo dei servizi applicativi: thread scheduler notifiche, scheduler backup, heartbeat, poll, fuso orario, ultimi cicli eseguiti per task in scadenza e promemoria specifici, risultati dell'ultimo ciclo, errori, contatori operativi e informazioni sulle schedule configurate.

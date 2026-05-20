@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Stato servizi</h2>
+  <p class="muted">Vista di diagnostica dei servizi applicativi e dello scheduler notifiche. Gli orari sono espressi nel fuso applicativo configurato.</p>
+  <dl class="meta-list">
+    <dt>Ora applicativa</dt><dd>{{ status.now }}</dd>
+    <dt>Fuso orario applicativo</dt><dd>{{ status.timezone }}</dd>
+    <dt>Thread scheduler</dt><dd>{{ 'avviato' if status.thread_started else 'non avviato' }}</dd>
+    <dt>Nome thread</dt><dd>{{ status.thread_name }}</dd>
+    <dt>Scheduler abilitato da ambiente</dt><dd>{{ 'sì' if status.enabled_by_env else 'no' }}</dd>
+    <dt>Intervallo poll</dt><dd>{{ status.poll_seconds }} secondi</dd>
+    <dt>Ultimo heartbeat registrato</dt><dd>{{ status.last_heartbeat_at or '-' }}</dd>
+  </dl>
+</div>
+
+<div class="card">
+  <h2>Scheduler notifiche</h2>
+  <table class="table compact-table">
+    <thead><tr><th>Tipo controllo</th><th>Stato ultimo ciclo</th><th>Cicli</th><th>Errori</th><th>Inizio ultimo ciclo</th><th>Fine ultimo ciclo</th><th>Ultimo risultato</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Task in scadenza</td>
+        <td>{{ status.deadline.status or 'non ancora eseguito' }}</td>
+        <td>{{ status.deadline.cycles or 0 }}</td>
+        <td>{{ status.deadline.failed_cycles or 0 }}{% if status.deadline.error %}<br><small>{{ status.deadline.error }}</small>{% endif %}</td>
+        <td>{{ status.deadline.started_at or '-' }}</td>
+        <td>{{ status.deadline.ended_at or '-' }}</td>
+        <td><pre class="mail-preview">{{ status.deadline.last_result|tojson }}</pre></td>
+      </tr>
+      <tr>
+        <td>Promemoria specifici</td>
+        <td>{{ status.reminders.status or 'non ancora eseguito' }}</td>
+        <td>{{ status.reminders.cycles or 0 }}</td>
+        <td>{{ status.reminders.failed_cycles or 0 }}{% if status.reminders.error %}<br><small>{{ status.reminders.error }}</small>{% endif %}</td>
+        <td>{{ status.reminders.started_at or '-' }}</td>
+        <td>{{ status.reminders.ended_at or '-' }}</td>
+        <td><pre class="mail-preview">{{ status.reminders.last_result|tojson }}</pre></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+<div class="card">
+  <h2>Scheduler backup</h2>
+  <dl class="meta-list">
+    <dt>Thread scheduler backup</dt><dd>{{ 'avviato' if status.backup.thread_started else 'non avviato' }}</dd>
+    <dt>Job abilitati</dt><dd>{{ status.backup.enabled_jobs }}</dd>
+  </dl>
+  {% if status.backup.jobs %}
+    <table class="table compact-table">
+      <thead><tr><th>Nome</th><th>Abilitato</th><th>Schedula</th><th>Destinazione</th><th>Ultima esecuzione</th><th>Esito</th></tr></thead>
+      <tbody>
+        {% for job in status.backup.jobs %}
+          <tr>
+            <td>{{ job.name }}</td>
+            <td>{{ 'sì' if job.enabled else 'no' }}</td>
+            <td>{{ job.cron_expression }}</td>
+            <td>{{ job.destination }}</td>
+            <td>{{ job.last_run_at }}</td>
+            <td>{{ job.last_status }}{% if job.last_message %}<br><small>{{ job.last_message }}</small>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Nessun job backup configurato.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Configurazione e contatori</h2>
+  <div class="form-grid">
+    <div class="notice">
+      <h3>Task in scadenza</h3>
+      <dl class="meta-list">
+        <dt>Controllo automatico</dt><dd>{{ 'abilitato' if status.deadline_schedule.enabled else 'disabilitato' }}</dd>
+        <dt>Invio email</dt><dd>{{ 'abilitato' if status.deadline_schedule.email_enabled else 'disabilitato' }}</dd>
+        <dt>Modalità</dt><dd>{{ status.deadline_schedule.schedule_mode_label }}</dd>
+        <dt>Orari cron</dt><dd>{{ status.deadline_schedule.cron_times }}</dd>
+        <dt>Intervallo effettivo</dt><dd>{{ status.deadline_schedule.interval_minutes }} minuti</dd>
+        <dt>Slot giornalieri</dt><dd>{{ status.deadline_schedule.configured_slots }}</dd>
+        <dt>Slot corrente</dt><dd>{{ status.deadline_schedule.current_slot }}</dd>
+        <dt>Prossima esecuzione stimata</dt><dd>{{ status.deadline_schedule.next_at }}</dd>
+      </dl>
+    </div>
+    <div class="notice">
+      <h3>Conteggi operativi</h3>
+      <dl class="meta-list">
+        <dt>Incidenti aperti</dt><dd>{{ status.counts.open_incidents }}</dd>
+        <dt>Incidenti con task in scadenza</dt><dd>{{ status.counts.pending_deadline_incidents }}</dd>
+        <dt>Promemoria specifici scaduti non inviati</dt><dd>{{ status.counts.due_reminders }}</dd>
+        <dt>Promemoria specifici futuri non inviati</dt><dd>{{ status.counts.future_reminders }}</dd>
+        <dt>Promemoria specifici già inviati</dt><dd>{{ status.counts.sent_reminders }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

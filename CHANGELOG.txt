@@ -877,3 +877,8 @@ Notification menu and SMTP sender fix
 - Il controllo manuale dei promemoria specifici mostra ora nel messaggio di output quali promemoria sono stati saltati e il motivo.
 - Rafforzata la diagnostica degli audit dei promemoria specifici saltati mantenendo identificativo, incidente, data programmata, testo sintetico e motivo.
 - Centralizzata la risoluzione dei destinatari delle notifiche task in scadenza e corretta la visualizzazione degli esiti recenti nella sezione Prossime notifiche schedulate.
+
+0.2.1-46
+- Scheduler notifiche: il ciclo automatico esegue sempre anche il controllo dei promemoria specifici, indipendentemente dall’esito o dall’abilitazione delle notifiche task in scadenza.
+- Aggiunta pagina Admin → Stato con stato completo dei servizi, heartbeat, tipi di schedula, cicli, ultimi risultati, errori e scheduler backup.
+- Documentazione italiana, inglese e progettuale aggiornata.

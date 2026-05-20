@@ -452,3 +452,9 @@ The **Upcoming scheduled notifications** section now uses the same recipient res
 ### Update 0.2.1-45 - Specific reminders are not blocked by technical claims
 
 For incident-specific reminders, a technical claim held by another scheduler cycle or by a concurrent manual check is no longer a functional blocking reason. Delivery is decided only by `incident_reminder.sent_at`: when it is empty the reminder can be sent, when it is set the reminder is already considered sent. Concurrency is handled by atomically rechecking the reminder record, while `deadline_notification_state` remains diagnostic only and does not use slots or windows.
+
+### Update 0.2.1-46 - Reminder scheduler and service status page
+
+The scheduler thread now runs both deadline-task notification checks and incident-specific reminder checks on every cycle. The two checks are independent: an error or disabled deadline-task check no longer prevents due, unsent incident-specific reminders from being processed. Incident-specific reminders still use only `incident_reminder.sent_at` as the functional send guard: empty means eligible, populated means already sent.
+
+A new **Admin → Control and audit → Status** page shows the complete application service status: notification scheduler thread, backup scheduler, heartbeat, poll interval, timezone, last cycles for deadline tasks and specific reminders, last results, errors, operational counters and configured schedule details.

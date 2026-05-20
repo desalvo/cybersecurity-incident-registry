@@ -4367,6 +4367,121 @@ def _audit_has_reminder_sent(reminder_id):
     pattern = f'"reminder_id": {int(reminder_id)}'
     return AuditLog.query.filter(AuditLog.operation_type=='scheduler:incident_reminder_sent', AuditLog.details.contains(pattern)).first() is not None
 
+
+def _scheduler_json_setting(key, default=None):
+    raw = setting_value(key, '')
+    if not raw:
+        return default if default is not None else {}
+    try:
+        return json.loads(raw)
+    except Exception:
+        return default if default is not None else {}
+
+
+def _record_scheduler_cycle(kind, result=None, started_at=None, ended_at=None, status='ok', error=''):
+    """Persist a compact diagnostic snapshot for Admin -> Stato."""
+    started_at = started_at or application_now()
+    ended_at = ended_at or application_now()
+    result = result or {}
+    key = f'scheduler_status_{kind}'
+    previous = _scheduler_json_setting(key, {})
+    cycles = int(previous.get('cycles') or 0) + 1
+    failed_cycles = int(previous.get('failed_cycles') or 0) + (1 if status != 'ok' else 0)
+    payload = {
+        'kind': kind,
+        'status': status,
+        'error': str(error or ''),
+        'cycles': cycles,
+        'failed_cycles': failed_cycles,
+        'started_at': started_at.isoformat(timespec='minutes'),
+        'ended_at': ended_at.isoformat(timespec='minutes'),
+        'last_result': result,
+        'source': result.get('source') or 'background_scheduler',
+    }
+    set_setting_value(key, json.dumps(payload, ensure_ascii=False))
+    set_setting_value('scheduler_last_heartbeat_at', ended_at.isoformat(timespec='minutes'))
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Aggiornamento stato scheduler non completato per %s', kind)
+
+
+def run_scheduler_services_cycle(source='background_scheduler'):
+    """Run every scheduler service independently.
+
+    I promemoria specifici devono essere controllati ad ogni ciclo del thread,
+    anche quando il controllo deadline è disabilitato o genera un errore. Per
+    questo i due controlli sono separati: un problema sulle notifiche task in
+    scadenza non impedisce l'invio dei promemoria specifici già scaduti.
+    """
+    summary = {}
+    for kind, func in (
+        ('deadline_notifications', lambda: run_deadline_notification_check(force=False, source=source)),
+        ('incident_reminders', lambda: process_due_incident_reminders(source=source)),
+    ):
+        started = application_now()
+        try:
+            result = func()
+            summary[kind] = result
+            _record_scheduler_cycle(kind, result=result, started_at=started, ended_at=application_now(), status='ok')
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.exception('Ciclo scheduler %s non completato', kind)
+            result = {'source': source, 'errors': [str(exc)], 'executed': False}
+            summary[kind] = result
+            _record_scheduler_cycle(kind, result=result, started_at=started, ended_at=application_now(), status='error', error=str(exc))
+    return summary
+
+
+def scheduler_service_status():
+    """Return diagnostic info for the admin status page."""
+    now = application_now()
+    poll_seconds = max(30, int(os.getenv('CIR_DEADLINE_SCHEDULER_POLL_SECONDS', '60') or '60'))
+    due_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).count()
+    future_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at > now).count()
+    sent_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.isnot(None)).count()
+    open_incidents = Incident.query.filter(Incident.status != 'chiuso').count()
+    pending_deadline_incidents = 0
+    for inc in Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all():
+        if pending_deadline_actions_for_incident(inc, now=now):
+            pending_deadline_incidents += 1
+    backup_jobs = BackupJob.query.order_by(BackupJob.id).all()
+    return {
+        'now': format_application_datetime(now, include_timezone=True),
+        'timezone': application_timezone_name(),
+        'thread_started': _deadline_scheduler_started,
+        'thread_name': 'cir-deadline-notification-scheduler',
+        'enabled_by_env': os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() not in {'0', 'false', 'no'},
+        'poll_seconds': poll_seconds,
+        'last_heartbeat_at': setting_value('scheduler_last_heartbeat_at', '-'),
+        'deadline': _scheduler_json_setting('scheduler_status_deadline_notifications', {}),
+        'reminders': _scheduler_json_setting('scheduler_status_incident_reminders', {}),
+        'deadline_schedule': format_deadline_schedule_info(),
+        'backup': {
+            'thread_started': _backup_scheduler_started,
+            'enabled_jobs': sum(1 for j in backup_jobs if j.enabled),
+            'jobs': [
+                {
+                    'name': j.name,
+                    'enabled': j.enabled,
+                    'cron_expression': j.cron_expression,
+                    'destination': j.destination,
+                    'last_run_at': format_application_datetime(j.last_run_at, include_timezone=True) if j.last_run_at else '-',
+                    'last_status': j.last_status or 'never',
+                    'last_message': j.last_message or '',
+                } for j in backup_jobs
+            ],
+        },
+        'counts': {
+            'open_incidents': open_incidents,
+            'pending_deadline_incidents': pending_deadline_incidents,
+            'due_reminders': due_reminders,
+            'future_reminders': future_reminders,
+            'sent_reminders': sent_reminders,
+        },
+    }
+
 def process_due_incident_reminders(source='background_scheduler'):
     now = application_now()
     due = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).all()
@@ -4697,8 +4812,7 @@ def start_deadline_notification_scheduler(app):
                     db_lock_acquired = _try_database_scheduler_lock()
                     if not db_lock_acquired:
                         continue
-                    run_deadline_notification_check(force=False, source='background_scheduler')
-                    process_due_incident_reminders(source='background_scheduler')
+                    run_scheduler_services_cycle(source='background_scheduler')
             except Exception:
                 try:
                     with app.app_context():
@@ -4789,6 +4903,14 @@ def notification_types():
     edit_id=request.args.get('edit', type=int)
     editing=NotificationType.query.get(edit_id) if edit_id else None
     return render_template('notification_types.html', types=NotificationType.query.order_by(NotificationType.label).all(), editing=editing)
+
+
+@bp.route('/admin/stato')
+@login_required
+def admin_status():
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    return render_template('admin_status.html', status=scheduler_service_status())
 
 @bp.route('/notifiche/impostazioni', methods=['GET','POST'])
 @login_required
