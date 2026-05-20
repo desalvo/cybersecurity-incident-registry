@@ -1,14 +1,22 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+.status-dot{display:inline-block;width:.75rem;height:.75rem;border-radius:50%;margin-right:.35rem;vertical-align:middle;background:#9ca3af;}
+.status-dot.ok{background:#16a34a;}
+.status-dot.warn{background:#d97706;}
+.status-dot.err{background:#dc2626;}
+.status-dot.off{background:#6b7280;}
+</style>
+{% macro dot(active) -%}<span class="status-dot {{ 'ok' if active else 'err' }}" aria-hidden="true"></span>{{ 'attivo' if active else 'non attivo' }}{%- endmacro %}
 <div class="card">
   <h2>Stato servizi</h2>
   <p class="muted">Vista di diagnostica dei servizi applicativi e dello scheduler notifiche. Gli orari sono espressi nel fuso applicativo configurato.</p>
   <dl class="meta-list">
     <dt>Ora applicativa</dt><dd>{{ status.now }}</dd>
     <dt>Fuso orario applicativo</dt><dd>{{ status.timezone }}</dd>
-    <dt>Thread scheduler task</dt><dd>{{ 'avviato' if status.thread_started else 'non avviato' }}</dd>
+    <dt>Thread scheduler task</dt><dd>{{ dot(status.thread_active) }} <span class="muted">({{ 'avviato' if status.thread_started else 'non avviato' }})</span></dd>
     <dt>Nome thread task</dt><dd>{{ status.thread_name }}</dd>
-    <dt>Thread scheduler promemoria specifici</dt><dd>{{ 'avviato' if status.reminder_thread_started else 'non avviato' }}</dd>
+    <dt>Thread scheduler promemoria specifici</dt><dd>{{ dot(status.reminder_thread_active) }} <span class="muted">({{ 'avviato' if status.reminder_thread_started else 'non avviato' }})</span></dd>
     <dt>Nome thread promemoria</dt><dd>{{ status.reminder_thread_name }}</dd>
     <dt>Scheduler abilitato da ambiente</dt><dd>{{ 'sì' if status.enabled_by_env else 'no' }}</dd>
     <dt>Intervallo poll task</dt><dd>{{ status.poll_seconds }} secondi</dd>
@@ -25,7 +33,7 @@
     <tbody>
       <tr>
         <td>Task in scadenza</td>
-        <td>{{ status.deadline.status or 'non ancora eseguito' }}</td>
+        <td><span class="status-dot {{ 'ok' if status.deadline.status == 'ok' else ('err' if status.deadline.status == 'error' else 'off') }}"></span>{{ status.deadline.status or 'non ancora eseguito' }}</td>
         <td>{{ status.deadline.cycles or 0 }}</td>
         <td>{{ status.deadline.failed_cycles or 0 }}{% if status.deadline.error %}<br><small>{{ status.deadline.error }}</small>{% endif %}</td>
         <td>{{ status.deadline.started_at or '-' }}</td>
@@ -34,7 +42,7 @@
       </tr>
       <tr>
         <td>Promemoria specifici</td>
-        <td>{{ status.reminders.status or 'non ancora eseguito' }}</td>
+        <td><span class="status-dot {{ 'ok' if status.reminders.status == 'ok' else ('err' if status.reminders.status == 'error' else 'off') }}"></span>{{ status.reminders.status or 'non ancora eseguito' }}</td>
         <td>{{ status.reminders.cycles or 0 }}</td>
         <td>{{ status.reminders.failed_cycles or 0 }}{% if status.reminders.error %}<br><small>{{ status.reminders.error }}</small>{% endif %}</td>
         <td>{{ status.reminders.started_at or '-' }}</td>
@@ -49,7 +57,7 @@
 <div class="card">
   <h2>Scheduler backup</h2>
   <dl class="meta-list">
-    <dt>Thread scheduler backup</dt><dd>{{ 'avviato' if status.backup.thread_started else 'non avviato' }}</dd>
+    <dt>Thread scheduler backup</dt><dd>{{ dot(status.backup.thread_active) }} <span class="muted">({{ 'avviato' if status.backup.thread_started else 'non avviato' }})</span></dd>
     <dt>Job abilitati</dt><dd>{{ status.backup.enabled_jobs }}</dd>
   </dl>
   {% if status.backup.jobs %}

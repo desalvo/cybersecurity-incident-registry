@@ -1585,7 +1585,7 @@ def incident_absolute_url(inc_or_id):
     """Restituisce il link diretto assoluto alla pagina dettaglio incidente."""
     incident_id = getattr(inc_or_id, 'id', inc_or_id)
     base = (setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000').rstrip('/')
-    return f'{base}{url_for("main.incident_detail", iid=incident_id)}'
+    return f'{base}/incident/{incident_id}'
 
 
 def _csv_ids_from_objects(objects):
@@ -4430,7 +4430,7 @@ def run_scheduler_services_cycle(source='background_scheduler'):
 def scheduler_service_status():
     """Return diagnostic info for the admin status page."""
     now = application_now()
-    poll_seconds = max(30, int(os.getenv('CIR_DEADLINE_SCHEDULER_POLL_SECONDS', '60') or '60'))
+    poll_seconds = deadline_scheduler_poll_seconds()
     due_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).count()
     future_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at > now).count()
     sent_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.isnot(None)).count()
@@ -4444,8 +4444,10 @@ def scheduler_service_status():
         'now': format_application_datetime(now, include_timezone=True),
         'timezone': application_timezone_name(),
         'thread_started': _deadline_scheduler_started,
+        'thread_active': bool(_deadline_scheduler_thread and _deadline_scheduler_thread.is_alive()),
         'thread_name': 'cir-deadline-notification-scheduler',
         'reminder_thread_started': _incident_reminder_scheduler_started,
+        'reminder_thread_active': bool(_incident_reminder_scheduler_thread and _incident_reminder_scheduler_thread.is_alive()),
         'reminder_thread_name': 'cir-incident-reminder-scheduler',
         'reminder_poll_seconds': incident_reminder_poll_seconds(),
         'enabled_by_env': os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() not in {'0', 'false', 'no'},
@@ -4457,6 +4459,7 @@ def scheduler_service_status():
         'deadline_schedule': format_deadline_schedule_info(),
         'backup': {
             'thread_started': _backup_scheduler_started,
+            'thread_active': bool(_backup_scheduler_thread and _backup_scheduler_thread.is_alive()) if '_backup_scheduler_thread' in globals() else False,
             'enabled_jobs': sum(1 for j in backup_jobs if j.enabled),
             'jobs': [
                 {
@@ -4746,6 +4749,8 @@ def maybe_run_deadline_notification_check():
 
 _deadline_scheduler_started = False
 _incident_reminder_scheduler_started = False
+_deadline_scheduler_thread = None
+_incident_reminder_scheduler_thread = None
 _deadline_scheduler_lock = threading.Lock()
 _incident_reminder_scheduler_lock = threading.Lock()
 _scheduler_mail_send_lock = threading.Lock()
@@ -4756,6 +4761,15 @@ def incident_reminder_poll_seconds():
     """Intervallo configurabile del thread dei promemoria specifici."""
     try:
         value = int(setting_value('notification_incident_reminder_poll_seconds', '60') or '60')
+    except (TypeError, ValueError):
+        value = 60
+    return max(10, value)
+
+
+def deadline_scheduler_poll_seconds():
+    """Intervallo configurabile del thread dei task in scadenza."""
+    try:
+        value = int(setting_value('notification_deadline_poll_seconds', '60') or '60')
     except (TypeError, ValueError):
         value = 60
     return max(10, value)
@@ -4796,7 +4810,7 @@ def start_deadline_notification_scheduler(app):
     evitare avvii duplicati nello stesso processo; nei deployment PostgreSQL
     il lock advisory serializza l'esecuzione fra worker o repliche.
     """
-    global _deadline_scheduler_started
+    global _deadline_scheduler_started, _deadline_scheduler_thread
     if _deadline_scheduler_started:
         return
     if os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() in {'0', 'false', 'no'}:
@@ -4808,9 +4822,10 @@ def start_deadline_notification_scheduler(app):
     _deadline_scheduler_started = True
 
     def loop():
-        poll_seconds = max(30, int(os.getenv('CIR_DEADLINE_SCHEDULER_POLL_SECONDS', '60') or '60'))
+        poll_seconds = deadline_scheduler_poll_seconds()
         app.logger.info('Scheduler notifiche task in scadenza avviato con poll=%ss', poll_seconds)
         while True:
+            poll_seconds = deadline_scheduler_poll_seconds()
             if not _deadline_scheduler_lock.acquire(blocking=False):
                 time.sleep(poll_seconds)
                 continue
@@ -4839,12 +4854,13 @@ def start_deadline_notification_scheduler(app):
             time.sleep(poll_seconds)
 
     t = threading.Thread(target=loop, name='cir-deadline-notification-scheduler', daemon=True)
+    _deadline_scheduler_thread = t
     t.start()
 
 
 def start_incident_reminder_scheduler(app):
     """Avvia il thread dedicato ai promemoria specifici degli incidenti."""
-    global _incident_reminder_scheduler_started
+    global _incident_reminder_scheduler_started, _incident_reminder_scheduler_thread
     if _incident_reminder_scheduler_started:
         return
     if os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() in {'0', 'false', 'no'}:
@@ -4889,6 +4905,7 @@ def start_incident_reminder_scheduler(app):
             time.sleep(poll_seconds)
 
     t = threading.Thread(target=loop, name='cir-incident-reminder-scheduler', daemon=True)
+    _incident_reminder_scheduler_thread = t
     t.start()
 
 
@@ -4974,7 +4991,7 @@ def admin_status():
 @login_required
 def notification_settings():
     if not can_admin(): return redirect(url_for('main.index'))
-    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
+    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_poll_seconds','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
     checkbox_keys = {'smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','notification_deadline_enabled','notification_deadline_email_enabled'}
     if request.method == 'POST':
         action = request.form.get('action', 'save')
@@ -5036,7 +5053,7 @@ def notification_settings():
     defaults = {
         'smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0',
         'notification_deadline_enabled':'0','notification_deadline_email_enabled':'1',
-        'notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0',
+        'notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60',
         'notification_deadline_subject_template': default_deadline_subject_template(),
         'notification_deadline_body_template': default_deadline_body_template(),
         'notification_incident_reminder_poll_seconds': '60',
@@ -5890,9 +5907,10 @@ def admin_backups():
 
 
 _backup_scheduler_started = False
+_backup_scheduler_thread = None
 
 def start_backup_scheduler(app):
-    global _backup_scheduler_started
+    global _backup_scheduler_started, _backup_scheduler_thread
     if _backup_scheduler_started:
         return
     _backup_scheduler_started = True
@@ -5914,7 +5932,9 @@ def start_backup_scheduler(app):
             except Exception:
                 app.logger.exception('Scheduler backup fallito')
             time.sleep(30)
-    threading.Thread(target=loop, name='cir-backup-scheduler', daemon=True).start()
+    t = threading.Thread(target=loop, name='cir-backup-scheduler', daemon=True)
+    _backup_scheduler_thread = t
+    t.start()
 
 @bp.route('/export/csv')
 @login_required

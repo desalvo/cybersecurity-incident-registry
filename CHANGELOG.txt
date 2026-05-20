@@ -1,3 +1,9 @@
+0.2.1-48
+- Corretto il crash del thread dei promemoria specifici dovuto alla generazione di URL con url_for fuori da un request context: i link incidente usano ora application_external_url e percorso stabile.
+- Aggiunta configurazione dell’intervallo di poll per i task in scadenza, default 60 secondi, nella pagina Impostazioni notifiche.
+- La pagina Admin → Stato mostra indicatori a pallino colorato per thread task, promemoria specifici e backup e per l’esito degli ultimi cicli scheduler.
+- Documentazione aggiornata.
+
 0.2.1-47
 - Separato il controllo automatico dei promemoria specifici in un thread dedicato.
 - L'intervallo del thread promemoria è configurabile da Impostazioni notifiche, default 60 secondi.

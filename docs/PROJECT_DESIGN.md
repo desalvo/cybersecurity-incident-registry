@@ -1553,3 +1553,11 @@ Questa separazione garantisce che i promemoria specifici scaduti e non ancora in
 ## Scheduler dedicato promemoria specifici
 
 Il controllo dei promemoria specifici è separato dallo scheduler delle notifiche periodiche dei task in scadenza. `start_incident_reminder_scheduler()` avvia il thread daemon `cir-incident-reminder-scheduler`, serializzato localmente da lock Python e, su PostgreSQL, da advisory lock dedicato. L'intervallo è letto a ogni ciclo dalla setting `notification_incident_reminder_poll_seconds`, configurabile da interfaccia con default 60 secondi. Ogni ciclo invoca `process_due_incident_reminders()`, che registra sempre l'audit `scheduler:incident_reminder_check`; la pagina Admin → Stato legge `scheduler_status_incident_reminders` per mostrare cicli, ultimo risultato e ultima esecuzione.
+
+
+## Aggiornamento 0.2.1-48 - Scheduler, URL e stato servizi
+
+- Il corpo delle mail dei promemoria specifici costruisce il link diretto all’incidente usando `application_external_url` e il percorso `/incident/<id>`, senza chiamare `url_for` in assenza di request context. Questo evita l’errore Flask `Unable to build URLs outside an active request` nei thread scheduler.
+- L’intervallo di poll del thread dei task in scadenza è configurabile da **Impostazioni → Notifiche** tramite `notification_deadline_poll_seconds`, con default 60 secondi e minimo applicativo 10 secondi.
+- L’intervallo di poll dei promemoria specifici resta configurabile separatamente tramite `notification_incident_reminder_poll_seconds`, con default 60 secondi.
+- La pagina **Admin → Stato** mostra lo stato attivo/non attivo dei thread scheduler task, promemoria specifici e backup con indicatori a pallino colorato, oltre all’esito degli ultimi cicli e all’ultima esecuzione dei promemoria specifici.

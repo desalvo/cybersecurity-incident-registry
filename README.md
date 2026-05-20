@@ -659,3 +659,9 @@ Nel menu **Admin → Controllo e audit** è disponibile la nuova voce **Stato**,
 ### Scheduler promemoria specifici
 
 I promemoria specifici degli incidenti sono controllati da un thread separato rispetto allo scheduler delle notifiche periodiche dei task in scadenza. L'intervallo è configurabile da **Impostazioni → Notifiche**, sezione **Promemoria automatici scadenze azioni**, con default 60 secondi. Ogni esecuzione del controllo promemoria produce un record di audit, anche quando non sono presenti promemoria scaduti. La pagina **Admin → Stato** riporta lo stato del thread, l'intervallo configurato e data/ora dell'ultima esecuzione del controllo sui promemoria specifici.
+
+### Note 0.2.1-48
+
+- Corretto il controllo promemoria specifici in thread: i link incidente nelle mail non dipendono più da un request context Flask.
+- Aggiunto intervallo configurabile per il controllo automatico dei task in scadenza, default 60 secondi.
+- La pagina Admin → Stato mostra pallini colorati per thread attivi/non attivi e per gli ultimi cicli scheduler.

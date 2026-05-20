@@ -462,3 +462,9 @@ A new **Admin → Control and audit → Status** page shows the complete applica
 ### Incident-specific reminder scheduler
 
 Incident-specific reminders are checked by a separate thread from the periodic deadline-task notification scheduler. The interval is configurable in **Settings → Notifications**, defaulting to 60 seconds. Every reminder check writes an audit record, even when no due reminders are found. The **Admin → Status** page reports the thread status, configured interval and date/time of the last incident-specific reminder check.
+
+### Notes 0.2.1-48
+
+- Fixed the dedicated incident-reminder thread: incident links in emails no longer depend on a Flask request context.
+- Added a configurable poll interval for deadline-task checks, default 60 seconds.
+- Admin → Status now shows colored dots for active/inactive threads and latest scheduler cycles.
