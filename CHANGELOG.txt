@@ -1,3 +1,10 @@
+## 0.2.1-42
+- Aggiunta nella pagina Notifiche → Impostazioni una sezione finale dedicata al controllo manuale dei promemoria specifici dei singoli incidenti.
+- Il pulsante manuale esegue `process_due_incident_reminders(source='manual_button')` e mostra inviati, saltati, scaduti verificati ed eventuali errori.
+- Gli audit `scheduler:incident_reminder_skipped` includono ora dettagli completi del promemoria saltato: id, data programmata, eventuale data invio, messaggio sintetico, destinatari/CC configurati, ultimo errore, incidente e motivo del salto.
+- Ribadito che i promemoria specifici non usano slot o finestre di invio come criterio di blocco: il blocco funzionale resta esclusivamente `incident_reminder.sent_at`; il claim tecnico serve solo per evitare invii contemporanei dello stesso record.
+- Documentazione aggiornata.
+
 ## 0.2.1-41
 - Corretto l'errore PostgreSQL `duplicate key value violates unique constraint "audit_log_pkey"` durante l'uso del pulsante manuale "Esegui controllo ora" del controllo scadenze azioni.
 - L'audit log forza ora il flush dell'inserimento e riallinea subito la sequence `audit_log` in caso di collisione, evitando che l'errore emerga al commit del controllo manuale.

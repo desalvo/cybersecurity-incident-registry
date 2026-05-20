@@ -178,7 +178,8 @@ def audit_detail_summary(operation_type, details):
         if op == 'scheduler:incident_reminder_sent':
             return f"Scheduler: inviato promemoria incidente #{data.get('incident_id','-')} / promemoria #{data.get('reminder_id','-')} ({short(data.get('scheduled_at')) or '-'})"
         if op == 'scheduler:incident_reminder_skipped':
-            return f"Scheduler: saltato promemoria incidente #{data.get('incident_id','-')} / promemoria #{data.get('reminder_id','-')}: {short(data.get('reason')) or '-'}"
+            reminder_when = data.get('reminder_scheduled_at') or data.get('scheduled_at') or '-'
+            return f"Scheduler: saltato promemoria incidente #{data.get('incident_id','-')} / promemoria #{data.get('reminder_id','-')} ({short(reminder_when) or '-'}): {short(data.get('reason')) or '-'}"
         if op == 'scheduler:incident_reminder_check':
             return f"Scheduler: controllo promemoria specifici, scaduti {data.get('due',0)}, inviati {data.get('sent',0)}, saltati {data.get('skipped',0)}, errori {len(data.get('errors') or [])}"
         if op == 'scheduler:deadline_notification_check':
@@ -4201,6 +4202,23 @@ def send_incident_reminder_email(reminder):
 def _incident_reminder_notification_key(reminder_id):
     return f'incident_reminder:{int(reminder_id)}'
 
+def _reminder_audit_details(reminder):
+    """Dettagli stabili del promemoria specifico per audit e diagnostica."""
+    if not reminder:
+        return {}
+    message = (reminder.message or '').strip()
+    if len(message) > 240:
+        message = message[:237] + '...'
+    return {
+        'reminder_id': reminder.id,
+        'reminder_scheduled_at': reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+        'reminder_sent_at': reminder.sent_at.isoformat(timespec='seconds') if reminder.sent_at else None,
+        'reminder_message': message,
+        'reminder_recipient_emails': reminder.recipient_emails or '',
+        'reminder_cc_emails': reminder.cc_emails or '',
+        'reminder_last_error': reminder.last_error or '',
+    }
+
 def _audit_scheduler_notification_skip(operation_type, incident=None, incident_id=None, reason='', reason_code='', source='scheduler', **extra):
     """Registra in audit il motivo per cui lo scheduler salta una notifica.
 
@@ -4315,8 +4333,7 @@ def process_due_incident_reminders(source='background_scheduler'):
                 'scheduler:incident_reminder_skipped',
                 incident=reminder.incident,
                 incident_id=reminder.incident_id,
-                reminder_id=reminder.id,
-                scheduled_at=reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+                **_reminder_audit_details(reminder),
                 reason_code='already_sent',
                 reason='promemoria già marcato come inviato tramite sent_at',
                 source=source,
@@ -4328,8 +4345,7 @@ def process_due_incident_reminders(source='background_scheduler'):
                 'scheduler:incident_reminder_skipped',
                 incident=reminder.incident,
                 incident_id=reminder.incident_id,
-                reminder_id=reminder.id,
-                scheduled_at=reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+                **_reminder_audit_details(reminder),
                 reason_code='claim_not_acquired',
                 reason='promemoria già preso in carico da un altro ciclo scheduler o invio concorrente',
                 source=source,
@@ -4351,8 +4367,7 @@ def process_due_incident_reminders(source='background_scheduler'):
                 'scheduler:incident_reminder_skipped',
                 incident=reminder.incident,
                 incident_id=reminder.incident_id,
-                reminder_id=reminder.id,
-                scheduled_at=reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+                **_reminder_audit_details(reminder),
                 reason_code='send_failed',
                 reason=info,
                 source=source,
@@ -4734,6 +4749,16 @@ def notification_settings():
             except Exception as exc:
                 current_app.logger.exception('Errore controllo scadenze azioni')
                 flash(f'Errore controllo scadenze: {exc}', 'error')
+        elif action == 'run_incident_reminder_check':
+            try:
+                result = process_due_incident_reminders(source='manual_button')
+                msg = f"Controllo promemoria specifici completato: {result['sent']} email inviate, {result['skipped']} promemoria saltati, {result['due']} promemoria scaduti verificati."
+                if result.get('errors'):
+                    msg += ' Dettagli: ' + '; '.join(result['errors'][:5])
+                flash(msg, 'success' if not result.get('errors') else 'warning')
+            except Exception as exc:
+                current_app.logger.exception('Errore controllo promemoria specifici')
+                flash(f'Errore controllo promemoria specifici: {exc}', 'error')
         elif action == 'preview_deadline_template':
             # Salva temporaneamente il template inserito nella form e mostra
             # l'anteprima renderizzata con dati dimostrativi.

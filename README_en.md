@@ -428,3 +428,11 @@ Whenever the notification scheduler skips an incident, a dedicated audit record 
 The **Run check now** button in the **Action deadline check** section now realigns PostgreSQL sequences before execution, and audit-log insertion immediately handles possible `audit_log_pkey` collisions. The manual check no longer fails at commit time after import/restore operations or when a sequence is out of sync.
 
 For incident-specific one-off reminders, the functional delivery block is based only on `incident_reminder.sent_at`: when it is set the reminder is not sent again, when it is empty the reminder can be sent or retried. The technical claim in `deadline_notification_state` remains only a temporary concurrency guard for the same reminder record and no longer uses delivery slots/windows.
+
+## Update 0.2.1-42 - Manual one-off reminder check
+
+The **Notifications → Settings** page now ends with a **One-off reminder check** section and a **Run reminder check now** button. The manual check immediately processes due one-off reminders configured on individual incidents, using the same serialised logic as the automatic scheduler.
+
+For one-off reminders, the functional delivery block remains only `incident_reminder.sent_at`: schedule slots, windows or periods are not used. The technical claim in `deadline_notification_state` only prevents two concurrent cycles from sending the same reminder at the same time.
+
+When a reminder is skipped, either by the scheduler or by the manual button, the `scheduler:incident_reminder_skipped` audit record includes the incident, reminder id, scheduled date/time, shortened message, configured recipients/CC, last available error, check source, reason code and human-readable reason.

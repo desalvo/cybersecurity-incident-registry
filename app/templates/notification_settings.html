@@ -161,6 +161,16 @@
     <button type="submit" class="secondary">Esegui controllo ora</button>
   </form>
 </div>
+
+<div class="card">
+  <h2>Controllo promemoria specifici</h2>
+  <p class="muted">Esegue subito il controllo dei promemoria specifici impostati nei singoli incidenti. Il controllo considera solo i promemoria scaduti e non ancora marcati come inviati; non usa gli slot delle notifiche periodiche.</p>
+  <form method="post">
+    <input type="hidden" name="action" value="run_incident_reminder_check">
+    <button type="submit" class="secondary">Esegui controllo promemoria ora</button>
+  </form>
+</div>
+
 <script>
 (function(){
   const auth = document.getElementById('smtp_auth_enabled');
