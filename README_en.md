@@ -306,7 +306,7 @@ The scheduler no longer computes intervals from the application startup time. Ex
 
 Each incident now includes a **Specific reminders** section where users with write permissions can schedule, edit, and delete one-off reminders for exact dates and times. The message is defined by the user, the primary recipients are automatically the personnel associated with the incident that have an e-mail address, and additional CC addresses can be configured.
 
-The scheduler sends every due, one-off reminder that has not been sent yet. After an application restart, all missed one-off reminders are recovered by comparing the reminder status with the audit records for sent reminders. Periodic deadline-task notifications remain deduplicated by type/interval: when multiple slots are missed, only the latest due notification for that type is executed.
+The scheduler sends every due one-off reminder whose `sent_at` field is still empty. After an application restart, all missed one-off reminders are recovered from the reminder status itself, without applying the type/interval block used by periodic notifications. A temporary technical claim still prevents simultaneous sends of the same reminder record, but it does not suppress other one-off reminders in the same period. Periodic deadline-task notifications remain deduplicated by type/interval: when multiple slots are missed, only the latest due notification for that type is executed.
 
 Full export/import now includes the incident-specific reminder table and preserves the audit history for automated sends.
 
@@ -417,4 +417,4 @@ In **Admin → Incident workflows** the procedural step description is multiline
 
 ### Update 0.2.1-37 - Serial notification scheduler
 
-Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially, with a persistent pre-send claim for both deadline summaries and one-off reminders, preventing simultaneous copies of the same email or of the same notification type within the same period.
+Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially. Deadline summaries keep their persistent type/window claim, while one-off reminders use `sent_at` as the only functional delivery flag and a temporary claim only for concurrency protection, so different reminders in the same period are not suppressed.

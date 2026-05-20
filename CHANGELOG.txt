@@ -1,8 +1,14 @@
+## 0.2.1-39
+- Separato il criterio dei promemoria specifici dalla deduplica periodica delle notifiche deadline.
+- I promemoria puntuali vengono inviati solo se `incident_reminder.sent_at` è nullo; audit e stato scheduler non sostituiscono più il flag funzionale di invio.
+- Il claim su `deadline_notification_state` resta solo temporaneo e anti-concorrenza, per evitare invii simultanei dello stesso promemoria senza bloccare promemoria diversi nello stesso periodo.
+- Aggiornata la documentazione progettuale e operativa.
+
 ## 0.2.1-37
 - Scheduler notifiche: rimosso l'invio opportunistico dalle richieste web; le notifiche schedulate vengono inviate solo dal thread dedicato.
 - Serializzato l'invio SMTP delle mail schedulate tramite lock applicativo, così deadline e promemoria vengono inviati uno alla volta.
 - Aggiunto claim persistente anche per i promemoria specifici incidente, prima dell'apertura SMTP, per evitare copie contemporanee dello stesso messaggio.
-- Rafforzata la deduplica per tipo/periodo usando la tabella deadline_notification_state anche per i promemoria.
+- Per i promemoria specifici è stato introdotto un claim tecnico pre-invio; dalla 0.2.1-39 il claim non applica più deduplica per periodo.
 - Aggiornata la documentazione progettuale sul meccanismo anti-flooding dello scheduler.
 
 0.2.1-36a

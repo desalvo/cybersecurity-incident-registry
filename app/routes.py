@@ -4199,21 +4199,45 @@ def _incident_reminder_notification_key(reminder_id):
     return f'incident_reminder:{int(reminder_id)}'
 
 def _claim_incident_reminder(reminder, source='scheduler'):
-    """Riserva un promemoria prima dell'invio per evitare invii paralleli.
+    """Riserva temporaneamente un promemoria specifico prima dell'invio.
 
-    Il claim usa la stessa tabella persistente delle notifiche deadline con
-    chiave unica per promemoria. Viene scritto prima dell'apertura SMTP: se un
-    secondo ciclo vede lo stesso promemoria già riservato, non invia.
+    I promemoria puntuali non usano la deduplica per finestra/periodo delle
+    notifiche deadline: il criterio funzionale è solo ``IncidentReminder.sent_at``.
+    La tabella ``deadline_notification_state`` viene usata esclusivamente come
+    claim anti-concorrenza mentre l'SMTP è in corso. Se un claim tecnico resta
+    appeso per un crash, viene considerato scaduto e il promemoria può essere
+    ritentato finché non risulta marcato come inviato.
     """
-    if not reminder or not reminder.id:
+    if not reminder or not reminder.id or reminder.sent_at:
         return False
     key = _incident_reminder_notification_key(reminder.id)
     now = application_now()
     schedule_slot = reminder.scheduled_at or now
+    claim_timeout = timedelta(minutes=10)
     try:
         existing = DeadlineNotificationState.query.filter_by(notification_key=key).first()
         if existing:
-            return False
+            # Il promemoria è già inviato solo se lo dice la riga principale
+            # incident_reminder.sent_at. Lo stato scheduler non blocca il periodo:
+            # protegge soltanto da invii contemporanei.
+            if reminder.sent_at:
+                return False
+            details = existing.last_details or ''
+            updated_at = existing.updated_at or datetime.utcnow()
+            claim_age = datetime.utcnow() - updated_at
+            in_progress = details.startswith('promemoria in invio') and claim_age < claim_timeout
+            if in_progress:
+                return False
+            existing.notification_type = 'incident_reminder'
+            existing.incident_id = reminder.incident_id
+            existing.last_success_at = now
+            existing.last_schedule_slot = schedule_slot
+            existing.last_recipients = ''
+            existing.last_details = f'promemoria in invio; sorgente {source}'
+            existing.send_count = 0
+            existing.updated_at = datetime.utcnow()
+            db.session.commit()
+            return True
         state = DeadlineNotificationState(
             notification_key=key,
             notification_type='incident_reminder',
@@ -4259,11 +4283,12 @@ def process_due_incident_reminders(source='background_scheduler'):
     sent = skipped = 0
     errors = []
     for reminder in due:
-        if _audit_has_reminder_sent(reminder.id):
-            reminder.sent_at = now
-            reminder.last_error = ''
+        # Per i promemoria specifici il criterio funzionale è esclusivamente
+        # incident_reminder.sent_at: un record viene inviato solo se non è già
+        # marcato come inviato. Audit e stati tecnici non sostituiscono questo
+        # flag, ma servono solo per tracciamento e claim anti-concorrenza.
+        if reminder.sent_at:
             skipped += 1
-            db.session.commit()
             continue
         if not _claim_incident_reminder(reminder, source=source):
             skipped += 1

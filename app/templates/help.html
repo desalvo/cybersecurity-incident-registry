@@ -150,7 +150,7 @@
     <h2>8. Promemoria schedulati dell’incidente</h2>
     <p>Per ogni incidente è possibile creare promemoria puntuali con data, ora, messaggio e indirizzi CC opzionali. I destinatari principali sono ricavati dal personale associato all’incidente.</p>
     <p>Dalla pagina dello specifico incidente si possono aggiungere, modificare, cancellare e reinviare i promemoria. La sezione è formattata per essere utilizzabile anche da mobile: i campi si dispongono su più righe e non devono uscire dallo schermo.</p>
-    <p>Se l’applicazione viene riavviata, lo scheduler recupera i promemoria specifici scaduti e non ancora inviati. Per i promemoria puntuali vengono inviati tutti quelli ancora non inviati; la deduplicazione usa le informazioni già presenti nell’audit e nello stato delle notifiche.</p>
+    <p>Se l’applicazione viene riavviata, lo scheduler recupera i promemoria specifici scaduti e non ancora inviati. Per i promemoria puntuali vengono inviati tutti quelli con stato <code>sent_at</code> non valorizzato; audit e stato tecnico servono solo per tracciamento e protezione anti-concorrenza, senza bloccare altri promemoria nello stesso periodo.</p>
   </section>
 
   <section id="cap-notifiche" class="doc-chapter" data-doc-title="notifiche email deadline cron schedule link incidente">

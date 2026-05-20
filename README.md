@@ -503,7 +503,7 @@ Lo scheduler non calcola più gli intervalli a partire dall'avvio dell'applicazi
 
 Ogni incidente dispone ora della sezione **Promemoria specifici**, dalla quale gli utenti con permessi di scrittura possono programmare, modificare e cancellare promemoria non periodici con data e ora puntuali. Il messaggio è definito dall’utente, i destinatari principali sono automaticamente le persone associate all’incidente con indirizzo e-mail valorizzato ed è possibile indicare ulteriori indirizzi in CC.
 
-Lo scheduler invia tutti i promemoria specifici scaduti e non ancora inviati. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti, confrontando lo stato del promemoria con i record di audit di invio. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
+Lo scheduler invia tutti i promemoria specifici scaduti che non sono già marcati come inviati tramite `sent_at`. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti leggendo lo stato del promemoria, senza applicare il blocco per tipologia/intervallo usato dalle notifiche periodiche. Un claim tecnico temporaneo evita invii contemporanei dello stesso record, ma non impedisce l’invio di altri promemoria nello stesso periodo. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
 
 Il full export/import include anche la tabella dei promemoria specifici e mantiene la cronologia audit degli invii automatici.
 
@@ -614,4 +614,4 @@ In **Admin → Flussi operativi incidenti** la descrizione dello step procedural
 
 ### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
 
-Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza, con claim persistente prima dell'invio sia per i riepiloghi task in scadenza sia per i promemoria specifici, evitando copie contemporanee della stessa mail o dello stesso tipo nello stesso periodo.
+Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale e un claim temporaneo solo anti-concorrenza, così promemoria diversi nello stesso periodo non vengono soppressi.
