@@ -13,8 +13,9 @@
     <div><label>Nome modello</label><input name="template_name" value="{{t.name if t else ''}}" required></div>
     <div class="wide"><label>Descrizione modello</label><textarea name="template_description">{{t.description if t else ''}}</textarea></div>
     <div class="wide"><label>Nome incidente predefinito</label><input name="incident_name" value="{{t.incident_name if t else ''}}"></div>
-    <div><label>Riferimento</label><input name="reference" value="{{t.reference if t and t.reference else ''}}"></div>
-    <div><label>Destinatario</label><input name="recipient" value="{{t.recipient if t and t.recipient else ''}}"></div><div><label>E-mail Destinatario</label><input name="recipient_email" type="email" value="{{t.recipient_email if t and t.recipient_email else ''}}"></div>
+    {% with reference_target='template-reference', recipient_target='template-recipient', email_target='template-recipient-email' %}{% include 'external_recipient_picker.html' %}{% endwith %}
+    <div><label>Riferimento</label><input id="template-reference" name="reference" value="{{t.reference if t and t.reference else ''}}"></div>
+    <div><label>Destinatario</label><input id="template-recipient" name="recipient" value="{{t.recipient if t and t.recipient else ''}}"></div><div><label>E-mail Destinatario</label><input id="template-recipient-email" name="recipient_email" type="email" value="{{t.recipient_email if t and t.recipient_email else ''}}"></div>
     <div class="wide"><label>Descrizione incidente</label><textarea name="incident_description">{{t.incident_description if t else ''}}</textarea></div>
     <div><label>Gravità</label><select name="severity_id"><option value="">-</option>{% for l in severities %}<option value="{{l.id}}" {% if t and t.severity_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select></div>
     <div><label>Stato</label><select name="status">{% for st in ['aperto','in lavorazione','chiuso'] %}<option {% if t and t.status==st %}selected{% endif %}>{{st}}</option>{% endfor %}</select></div>
@@ -40,4 +41,23 @@
   <h3>Modelli configurati</h3>
   <table class="table"><tr><th>Nome</th><th>Descrizione</th><th>Dati personali</th><th>Azioni</th></tr>{% for model in templates %}<tr><td>{{model.name}}</td><td>{{model.description}}</td><td>{{'sì' if model.personal_data else 'no'}}</td><td><a class="button secondary" href="{{ url_for('main.admin_incident_templates', edit=model.id) }}">Modifica</a> <a class="button" href="{{ url_for('main.incident_new', template_id=model.id) }}">Usa</a><form method="post" class="inline-form" onsubmit="return confirm('Cancellare il modello?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{model.id}}"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="4" class="muted">Nessun modello configurato.</td></tr>{% endfor %}</table>
 </div>
+
+<script>
+(function(){
+  document.querySelectorAll('.external-recipient-loader').forEach(function(box){
+    const select = box.querySelector('.external-recipient-select');
+    function selected(){ const opt = select && select.selectedOptions ? select.selectedOptions[0] : null; return {email: select ? select.value.trim() : '', name: opt ? (opt.dataset.name || '').trim() : ''}; }
+    function setValue(id, value){ const el = id ? document.getElementById(id) : null; if(el && value) el.value = value; }
+    const referenceTarget = box.dataset.referenceTarget;
+    const recipientTarget = box.dataset.recipientTarget;
+    const emailTarget = box.dataset.emailTarget;
+    const useReference = box.querySelector('.external-recipient-use-reference');
+    const useRecipient = box.querySelector('.external-recipient-use-recipient');
+    const useEmail = box.querySelector('.external-recipient-use-email');
+    if(useReference) useReference.addEventListener('click', function(){ const v = selected(); setValue(referenceTarget, v.name || v.email); });
+    if(useRecipient) useRecipient.addEventListener('click', function(){ const v = selected(); setValue(recipientTarget, v.name || v.email); });
+    if(useEmail) useEmail.addEventListener('click', function(){ const v = selected(); setValue(emailTarget, v.email); });
+  });
+})();
+</script>
 {% endblock %}

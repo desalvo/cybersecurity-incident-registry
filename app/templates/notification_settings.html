@@ -2,17 +2,13 @@
 {% block content %}
 <div class="card">
   <h2>Impostazioni notifiche</h2>
-  <p class="muted">Configura i parametri usati dall'applicazione per l'invio delle notifiche agli utenti, CSIRT e DPO. L'autenticazione SMTP è opzionale.</p>
+  <p class="muted">Configura i parametri SMTP e i controlli automatici. I destinatari e i CC delle notifiche manuali si configurano nei singoli template di notifica.</p>
   <form method="post" class="form-grid">
     <input type="hidden" name="action" value="save">
     <fieldset class="wide">
-      <legend>Destinatari notifiche</legend>
+      <legend>Mittente notifiche</legend>
       <div class="form-grid">
-        <div><label>Email CSIRT</label><input type="email" name="csirt_email" value="{{ settings.get('csirt_email','') }}" placeholder="csirt@example.org"></div>
-        <div><label>Email DPO</label><input type="email" name="dpo_email" value="{{ settings.get('dpo_email','') }}" placeholder="dpo@example.org"></div>
-        <div><label>CC CSIRT</label><input name="csirt_cc" value="{{ settings.get('csirt_cc','') }}" placeholder="cc1@example.org, cc2@example.org"></div>
-        <div><label>CC DPO</label><input name="dpo_cc" value="{{ settings.get('dpo_cc','') }}" placeholder="cc1@example.org, cc2@example.org"></div>
-        <div class="wide"><label>Mittente SMTP predefinito <span class="required-if-auth">*</span></label><input type="email" id="smtp_default_sender" name="smtp_default_sender" value="{{ settings.get('smtp_default_sender','') }}" placeholder="registry@example.org" {% if settings.get('smtp_auth_enabled','0')=='1' %}required{% endif %}><p class="muted">Obbligatorio se l’autenticazione SMTP è abilitata. Viene usato come mittente per le notifiche e per le mail di test, incluso l’utente admin.</p></div>
+        <div class="wide"><label>Mittente SMTP predefinito <span class="required-if-auth">*</span></label><input type="email" id="smtp_default_sender" name="smtp_default_sender" value="{{ settings.get('smtp_default_sender','') }}" placeholder="registry@example.org" {% if settings.get('smtp_auth_enabled','0')=='1' %}required{% endif %}><p class="muted">Obbligatorio se l’autenticazione SMTP è abilitata. Viene usato come mittente per le notifiche e per le mail di test. Destinatari e CC delle notifiche manuali sono definiti nei template.</p></div>
       </div>
     </fieldset>
 

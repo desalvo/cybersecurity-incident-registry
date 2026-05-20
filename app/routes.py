@@ -1661,6 +1661,7 @@ def incident_template_context(template=None):
         people=Person.query.order_by(Person.name).all(),
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),
         recommendations_max_per_incident=recommendations_limit(),
+        external_recipients=get_external_recipients(),
     )
 
 @bp.route('/admin/incident-templates',methods=['GET','POST'])
@@ -1684,11 +1685,16 @@ def admin_incident_templates():
         if not payload['name']:
             flash('Il nome del modello è obbligatorio.', 'error')
             return redirect(url_for('main.admin_incident_templates'))
+        recipient_email_error = validate_incident_recipient_email_fields(payload.get('reference'), payload.get('recipient'), payload.get('recipient_email'))
+        if recipient_email_error:
+            flash(recipient_email_error, 'error')
+            return redirect(url_for('main.admin_incident_templates', edit=request.form.get('id', type=int)) if request.form.get('id') else url_for('main.admin_incident_templates'))
         tid=request.form.get('id', type=int)
         tmpl=IncidentTemplate.query.get(tid) if tid else None
         if tmpl is None:
             tmpl=IncidentTemplate(); db.session.add(tmpl)
         for k,v in payload.items(): setattr(tmpl,k,v)
+        ensure_incident_recipient_email_in_address_book(tmpl.reference, tmpl.recipient, tmpl.recipient_email)
         try:
             db.session.commit(); flash('Modello incidente salvato.')
         except IntegrityError:
@@ -1720,10 +1726,17 @@ def incident_new():
         if not reference_value:
             flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+        recipient_value = (request.form.get('recipient') or '').strip()
+        recipient_email_value = (request.form.get('recipient_email') or '').strip()
+        recipient_email_error = validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email_value)
+        if recipient_email_error:
+            flash(recipient_email_error, 'error')
+            now_dt = application_now()
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
-        inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=request.form.get('recipient') or None,recipient_email=request.form.get('recipient_email') or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
+        inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
         sync_incident_split_datetime(inc)
         inc.categories = labels_from_form('category', 'categories')
         inc.data_types = labels_from_form('data_type', 'data_types')
@@ -1731,6 +1744,7 @@ def incident_new():
         inc.recommendations = recommendations_from_form('recommendations')
         align_table_sequence('incident')
         db.session.add(inc)
+        ensure_incident_recipient_email_in_address_book(inc.reference, inc.recipient, inc.recipient_email)
         try:
             db.session.commit()
             return redirect(url_for('main.incident_detail', iid=inc.id))
@@ -1743,7 +1757,7 @@ def incident_new():
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
     now_dt = application_now()
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name())
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
@@ -1755,7 +1769,13 @@ def incident_detail(iid):
         if not reference_value:
             section_flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'incident-main', 'danger')
             return incident_detail_redirect(iid, 'incident-main')
-        inc.name=request.form['name']; inc.reference=reference_value; inc.recipient=request.form.get('recipient') or None; inc.recipient_email=request.form.get('recipient_email') or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc)
+        recipient_value = (request.form.get('recipient') or '').strip()
+        recipient_email_value = (request.form.get('recipient_email') or '').strip()
+        recipient_email_error = validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email_value)
+        if recipient_email_error:
+            section_flash(recipient_email_error, 'incident-main', 'danger')
+            return incident_detail_redirect(iid, 'incident-main')
+        inc.name=request.form['name']; inc.reference=reference_value; inc.recipient=recipient_value or None; inc.recipient_email=recipient_email_value or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc)
         if requested_status == 'chiuso' and incident_procedural_status(inc)['has_warnings']:
             section_flash('Impossibile chiudere l’incidente: sono ancora presenti avvisi procedurali attivi.', 'incident-main', 'danger')
         else:
@@ -1764,6 +1784,7 @@ def incident_detail(iid):
         inc.data_types = labels_from_form('data_type', 'data_types')
         inc.people = people_from_form('people')
         inc.recommendations = recommendations_from_form('recommendations')
+        ensure_incident_recipient_email_in_address_book(inc.reference, inc.recipient, inc.recipient_email)
         try:
             db.session.commit()
             section_flash('Incidente aggiornato', 'incident-main', 'success')
@@ -1805,6 +1826,7 @@ def incident_detail(iid):
         section_messages=section_messages,
         global_messages=global_messages,
         split_email_list=_split_email_list,
+        external_recipients=get_external_recipients(),
     )
 
 @bp.route('/incident/<int:iid>/reminder/add',methods=['POST'])
@@ -3049,8 +3071,8 @@ def get_notification_type(kind):
     # fallback compatibile con database precedenti
     fallback = {
         'user': ('Notifica utente','manual','',''),
-        'csirt': ('Notifica CSIRT','settings','csirt_email','csirt_cc'),
-        'dpo': ('Notifica DPO','settings','dpo_email','dpo_cc'),
+        'csirt': ('Notifica CSIRT','manual','',''),
+        'dpo': ('Notifica DPO','manual','',''),
     }
     label, mode, recip_key, cc_key = fallback.get(kind, (kind, 'manual', '', ''))
     t = NotificationType(code=kind, label=label, recipient_mode=mode, recipient_setting_key=recip_key, cc_setting_key=cc_key, enabled=True)
@@ -3095,10 +3117,10 @@ def ensure_default_notification_templates():
                     subject=DEFAULT_NOTIFICATION_SUBJECTS[kind],
                     body=DEFAULT_NOTIFICATION_BODIES[kind],
                     action_label_id=action_label.id if action_label else None,
-                    recipient_source='incident_recipient_email' if kind == 'user' else 'type_default',
+                    recipient_source='incident_recipient_email' if kind == 'user' else 'empty',
                     recipient_editable=True,
                     recipient_external_allowed=True,
-                    cc_source='type_default',
+                    cc_source='empty',
                     cc_editable=True,
                     cc_external_allowed=True,
                     is_default=False,
@@ -3124,7 +3146,7 @@ def get_notification_template(kind, template_id=None):
     t = q.filter_by(is_default=True).first() or q.order_by(NotificationTemplate.id).first()
     if not t:
         action_label = ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
-        t = NotificationTemplate(kind=kind, name=DEFAULT_TEMPLATE_NAMES.get(kind, 'Template '+kind), subject=DEFAULT_NOTIFICATION_SUBJECTS.get(kind, 'Notifica incidente %NAME%'), body=DEFAULT_NOTIFICATION_BODIES.get(kind, DEFAULT_NOTIFICATION_BODIES['user']), action_label_id=action_label.id if action_label else None, recipient_source='incident_recipient_email' if kind == 'user' else 'type_default', recipient_editable=True, recipient_external_allowed=True, cc_source='type_default', cc_editable=True, cc_external_allowed=True, is_default=True)
+        t = NotificationTemplate(kind=kind, name=DEFAULT_TEMPLATE_NAMES.get(kind, 'Template '+kind), subject=DEFAULT_NOTIFICATION_SUBJECTS.get(kind, 'Notifica incidente %NAME%'), body=DEFAULT_NOTIFICATION_BODIES.get(kind, DEFAULT_NOTIFICATION_BODIES['user']), action_label_id=action_label.id if action_label else None, recipient_source='incident_recipient_email' if kind == 'user' else 'empty', recipient_editable=True, recipient_external_allowed=True, cc_source='empty', cc_editable=True, cc_external_allowed=True, is_default=True)
         db.session.add(t); db.session.commit()
     return t
 
@@ -3296,9 +3318,31 @@ def split_addresses(value):
     return [x.strip() for x in value.replace(';', ',').split(',') if x.strip()]
 
 
+def validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email):
+    """Validate the incident default recipient e-mail fields.
+
+    The recipient e-mail can be used by manual notification templates as the
+    default delivery address. To keep the external recipient address book
+    meaningful, an e-mail entered on an incident or incident template must have
+    at least a human-readable Reference or Recipient name associated with it.
+    """
+    email = (recipient_email or '').strip()
+    if email and not ((reference_value or '').strip() or (recipient_value or '').strip()):
+        return 'Se viene indicata l’E-mail Destinatario è obbligatorio compilare anche Riferimento o Destinatario.'
+    return ''
+
+
+def ensure_incident_recipient_email_in_address_book(reference_value, recipient_value, recipient_email):
+    email = (recipient_email or '').strip()
+    if not email:
+        return []
+    name = ((recipient_value or '').strip() or (reference_value or '').strip())
+    return ensure_external_recipients_from_addresses(email, {email.lower(): name} if name else {}, default_name=name)
+
+
 def notification_template_address_sources():
     return [
-        ('type_default', 'Default del tipo notifica / compatibilità'),
+        ('type_default', 'Compatibilità: e-mail del Destinatario o compilatore'),
         ('incident_recipient_email', 'E-mail del Destinatario dell’incidente'),
         ('incident_creator_email', 'E-mail del compilatore dell’incidente'),
         ('fixed', 'Valore fisso configurato nel template'),
@@ -3320,17 +3364,6 @@ def apply_notification_template_address_form(tmpl):
     tmpl.cc_editable = bool(request.form.get('cc_editable'))
     tmpl.cc_external_allowed = bool(request.form.get('cc_external_allowed'))
 
-def _legacy_notification_type_address(kind, ntype, field):
-    if field == 'recipient':
-        if getattr(ntype, 'recipient_mode', '') == 'settings' and getattr(ntype, 'recipient_setting_key', ''):
-            return setting_value(ntype.recipient_setting_key, '')
-        return ''
-    if getattr(ntype, 'cc_setting_key', ''):
-        return setting_value(ntype.cc_setting_key, '')
-    if kind == 'user':
-        return setting_value('user_cc', '')
-    return ''
-
 def _template_configured_address(template, kind, inc, ntype, field):
     source = _normalize_template_address_source(getattr(template, f'{field}_source', 'type_default'))
     value = (getattr(template, f'{field}_value', '') or '').strip()
@@ -3343,9 +3376,9 @@ def _template_configured_address(template, kind, inc, ntype, field):
     if source == 'empty':
         return ''
     if source == 'type_default':
-        legacy = _legacy_notification_type_address(kind, ntype, field).strip()
-        if legacy:
-            return legacy
+        # Compatibilità con template creati prima dello spostamento completo
+        # della configurazione destinatari/CC nei template: non legge più
+        # impostazioni globali CSIRT/DPO, ma usa solo dati dell'incidente.
         if field == 'recipient':
             return (getattr(inc, 'recipient_email', '') or getattr(inc, 'creator_email', '') or '').strip()
         return ''
@@ -5061,8 +5094,6 @@ def notification_types():
         label = (request.form.get('label') or '').strip()
         description = request.form.get('description') or ''
         mode = request.form.get('recipient_mode') or 'manual'
-        recipient_key = request.form.get('recipient_setting_key') or ''
-        cc_key = request.form.get('cc_setting_key') or ''
         enabled = bool(request.form.get('enabled'))
         if not code or not label:
             flash('Codice e nome del tipo sono obbligatori.', 'error')
@@ -5071,7 +5102,7 @@ def notification_types():
             if t.id and t.code in ['user','csirt','dpo'] and code != t.code:
                 flash('Il codice dei tipi predefiniti non può essere modificato.', 'error')
             else:
-                t.code=code; t.label=label; t.description=description; t.recipient_mode=mode; t.recipient_setting_key=recipient_key; t.cc_setting_key=cc_key; t.enabled=enabled
+                t.code=code; t.label=label; t.description=description; t.recipient_mode='manual'; t.recipient_setting_key=''; t.cc_setting_key=''; t.enabled=enabled
                 db.session.add(t)
                 try:
                     db.session.commit(); flash('Tipo di notifica salvato')
@@ -5094,7 +5125,7 @@ def admin_status():
 @login_required
 def notification_settings():
     if not can_admin(): return redirect(url_for('main.index'))
-    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_poll_seconds','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
+    keys = ['smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_poll_seconds','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
     checkbox_keys = {'smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','notification_deadline_enabled','notification_deadline_email_enabled'}
     if request.method == 'POST':
         action = request.form.get('action', 'save')
@@ -5326,8 +5357,8 @@ def notify_send(iid, kind):
     template_id = request.form.get('template_id', type=int)
     tmpl = get_notification_template(kind, template_id)
     recipient, cc = resolve_template_notification_addresses(tmpl, kind, inc, ntype, form=request.form)
-    if not recipient:
-        flash('Specificare o configurare un destinatario per questa notifica.', 'error')
+    if not split_addresses(recipient):
+        flash('Specificare o configurare almeno un destinatario per questa notifica.', 'error')
         return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
     names_by_email = {}
     rec_name = (request.form.get('recipient_name') or '').strip()

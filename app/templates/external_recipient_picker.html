@@ -1,0 +1,15 @@
+{% if external_recipients %}
+<div class="wide external-recipient-loader" data-reference-target="{{ reference_target }}" data-recipient-target="{{ recipient_target }}" data-email-target="{{ email_target }}">
+  <label>Carica da destinatari esterni</label>
+  <div class="inline-actions">
+    <select class="external-recipient-select" aria-label="Seleziona destinatario esterno">
+      <option value="">Seleziona dalla rubrica...</option>
+      {% for r in external_recipients %}<option value="{{ r.email }}" data-name="{{ r.name }}">{{ r.name }} &lt;{{ r.email }}&gt;</option>{% endfor %}
+    </select>
+    <button type="button" class="secondary external-recipient-use-reference">Usa come Riferimento</button>
+    <button type="button" class="secondary external-recipient-use-recipient">Usa come Destinatario</button>
+    <button type="button" class="secondary external-recipient-use-email">Usa e-mail</button>
+  </div>
+  <p class="muted">La rubrica può compilare Riferimento, Destinatario o E-mail Destinatario. Una nuova e-mail destinatario viene aggiunta automaticamente alla rubrica al salvataggio.</p>
+</div>
+{% endif %}

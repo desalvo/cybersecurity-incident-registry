@@ -179,7 +179,7 @@ Impostazioni principali:
 
 - LDAP
 - SMTP/notifiche
-- indirizzi CSIRT e DPO
+- configurazione SMTP e mittente predefinito; destinatari/CC delle notifiche manuali solo nei template
 - logo applicativo
 - dati informativi applicazione
 
@@ -381,7 +381,7 @@ Il menu Notifiche, visibile solo agli admin, contiene la gestione dei tipi di no
 - eventuale chiave impostazione CC
 - stato abilitato/disabilitato
 
-Per CSIRT e DPO i destinatari sono presi dalle impostazioni. Per altri tipi di notifica il destinatario viene richiesto all'invio, salvo sia già presente nel campo della form.
+Per CSIRT, DPO, utenti e altri tipi di notifica manuale, destinatario e CC sono risolti esclusivamente dalla configurazione del template selezionato, con eventuale modifica manuale in anteprima e uso della rubrica esterna se consentito dal template.
 
 ### 7.2 Template di notifica
 
@@ -453,8 +453,8 @@ Parametri:
 - username SMTP opzionale, obbligatorio se auth abilitata quando richiesto dalla configurazione
 - password SMTP opzionale
 - mittente SMTP predefinito, obbligatorio se autenticazione SMTP è abilitata
-- destinatario CSIRT
-- destinatario DPO
+- destinatario/CC definiti nel template CSIRT
+- destinatario/CC definiti nel template DPO
 - CC eventuali
 
 È disponibile una funzione di test invio mail verso un indirizzo specificato. Anche l'utente admin deve poter inviare la mail di test. Quando autenticazione SMTP è abilitata e un utente/mittente SMTP predefinito è presente, tutte le mail di notifica e di test usano tale identità SMTP, non l'email personale dell'utente.
@@ -639,11 +639,11 @@ Menu: Incidenti, Report, Export, Admin solo admin, Notifiche solo admin, Imposta
 
 Implementa LDAP configurabile con server URI, base DN, bind DN/password opzionali, filtro utenti, attributi uid/cn/email. Implementa inoltre SSO/OAuth2/OpenID Connect configurabile da Admin → SSO con endpoint authorization/token/userinfo, client ID/secret, scope, mapping claim, ruolo predefinito, controllo non distruttivo della configurazione e avvio del test login interattivo. Permetti test comunicazione e ricerca utente tramite uid mostrando attributi ottenuti. Permetti da admin inserire utenti LDAP nell'app e assegnare ruoli. Permetti account locali aggiunta/rimozione, ma admin non eliminabile e email admin modificabile. Cambio password per utenti locali con doppia verifica nuova password.
 
-Implementa notifiche. Menu Notifiche visibile solo admin e protetto lato backend. Gestisci tipi di notifica CRUD con codice, label, descrizione, modalità destinatario settings/manual, chiavi destinatario/cc e abilitazione. Gestisci template di notifica CRUD, aggiunta da voce separata, modifica, cancellazione, clonazione; associa ogni template a tipo notifica e a label azione. I template utente non devono essere cancellati al riavvio. Mostra elenco placeholder disponibili. Fornisci esempi per notifica utente, CSIRT e DPO.
+Implementa notifiche. Menu Notifiche visibile solo admin e protetto lato backend. Gestisci tipi di notifica CRUD con codice, label, descrizione e abilitazione; i tipi servono solo a raggruppare i template e non contengono configurazioni destinatario/CC. Gestisci template di notifica CRUD, aggiunta da voce separata, modifica, cancellazione, clonazione; associa ogni template a tipo notifica e a label azione. I template utente non devono essere cancellati al riavvio. Mostra elenco placeholder disponibili. Fornisci esempi per notifica utente, CSIRT e DPO. La configurazione di destinatario e CC delle notifiche manuali è presente solo nei singoli template.
 
 Placeholder template: %DATA%, %CATEGORIES%, %PERSONAL_DATA%, %REPORT%, %NAME%, %OPERATOR%, %START%, %END%, %DESCRIPTION%, %REFERENCE%, %CREATOR%, %CREATOR_EMAIL%, %DOCUMENTS%, %STATUS%, %ACTIONS%. %REPORT% allega automaticamente il PDF report incidente. %DOCUMENTS% richiede scelta dei documenti e blocca invio se nessun documento è selezionato o presente. %ACTIONS% diventa lista cronologica azioni con data/ora. Prima di inviare mostra sempre anteprima. La risoluzione di destinatario e CC è configurata nei singoli template: ogni template definisce sorgente automatica, modificabilità in anteprima e uso della rubrica destinatari esterni. Se un template ha label azione associata, dopo invio crea automaticamente azione con quella label, descrizione con mittente/destinatari/cc e allega un PDF con testo esatto della mail inviata. Nascondi controlli invio notifiche nel dettaglio incidente se utente corrente è admin.
 
-SMTP: impostazioni nel menu Impostazioni, non nel menu Notifiche. Campi host, porta, TLS/SSL, autenticazione opzionale, username, password, mittente SMTP predefinito obbligatorio se autenticazione abilitata, destinatari CSIRT/DPO e cc. Test invio mail verso indirizzo specificato, disponibile anche ad admin. Se auth SMTP è abilitata e mittente/utente default è configurato, tutte le mail usano l'identità SMTP default.
+SMTP: impostazioni nel menu Impostazioni/Notifiche con campi host, porta, TLS/SSL, autenticazione opzionale, username, password e mittente SMTP predefinito obbligatorio se autenticazione abilitata. Non sono presenti impostazioni globali per destinatari o CC CSIRT/DPO: questi valori sono configurati nei template di notifica manuale. Test invio mail verso indirizzo specificato, disponibile anche ad admin. Se auth SMTP è abilitata e mittente/utente default è configurato, tutte le mail usano l'identità SMTP default.
 
 Nel dettaglio incidente mostra avvisi evidenti se manca azione 04 CSIRT, se manca 05 DPO e, se dati personali è sì, se manca 06 Garante Privacy.
 
@@ -1613,3 +1613,11 @@ Il JavaScript della sezione Documenti aggiorna in modo coerente classe, attribut
 - Ogni template può scegliere la sorgente del destinatario/CC: default del tipo notifica, e-mail del Destinatario dell’incidente, e-mail del compilatore, valore fisso o campo vuoto/manuale.
 - Per ogni template è possibile rendere destinatario e CC modificabili in anteprima e abilitare l’uso della rubrica dei destinatari esterni.
 - Nei Dati Generali degli incidenti e nei Modelli incidente è disponibile il campo “E-mail Destinatario”, utilizzabile come destinatario predefinito dalle notifiche manuali.
+
+### Rubrica esterna, destinatario incidente e notifiche manuali
+
+La sezione **Dati Generali** degli incidenti e la pagina **Admin → Modelli incidente** espongono un selettore della rubrica dei destinatari esterni. L’operatore può usare il contatto selezionato per compilare il campo **Riferimento**, **Destinatario** oppure **E-mail Destinatario**.
+
+Il campo **E-mail Destinatario** rappresenta l’indirizzo predefinito utilizzabile dai template di notifica manuale. Se viene valorizzato, deve essere presente almeno un nome associato nel campo **Riferimento** o **Destinatario**. Al salvataggio dell’incidente o del modello, se l’e-mail non è ancora presente nella rubrica esterna, l’applicazione la inserisce automaticamente usando come nome il Destinatario oppure, in fallback, il Riferimento.
+
+L’invio delle notifiche manuali verifica sempre la presenza di almeno un destinatario effettivo risolto dal template o indicato manualmente. In assenza del destinatario l’invio e la conferma senza invio sono bloccati e viene mostrato un messaggio di errore.

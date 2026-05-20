@@ -24,6 +24,8 @@
 <section class="doc-section"><h2>0.2.1 - Incident templates, user search and user deletion fix</h2><ul><li>Fixed duplicate-key errors during user deletion by realigning the audit sequence before new events.</li><li>Admin → Users now provides search by username, name, e-mail, backend and role.</li><li>The incident Actions section includes a button to refresh the new action date/time to the current moment.</li><li>Admin → Incident templates can define bootstrap profiles and create them from existing incidents excluding actions and documents.</li></ul></section>
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-section"><h2>0.2.1-60 - External recipients in incidents</h2><ul><li>Incidents and incident templates can load Reference, Recipient and Recipient e-mail from the external address book.</li><li>New Recipient e-mail values are automatically added to the address book.</li><li>Manual notifications require at least one effective recipient.</li><li>Documentazione aggiornata.</li></ul></section>
+
 <section class="doc-section"><h2>0.2.1-52 - Collapsible actions</h2><p>In the incident detail page, each recorded action is now shown in a separate collapsible box, collapsed by default, with a summary header and expandable details.</p></section>
 
 <section class="doc-section"><h2>0.2.1-46 - Reminder scheduler and service status</h2><ul><li>The scheduler thread checks incident-specific reminders on every cycle, independently from periodic deadline-task notifications.</li><li>The new Admin → Status page shows heartbeat, cycles, schedule types, last results, errors, counters and backup scheduler.</li><li>Documentation updated.</li></ul></section>

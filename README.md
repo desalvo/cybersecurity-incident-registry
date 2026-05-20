@@ -146,10 +146,12 @@ Prima dell'invio viene mostrata un'anteprima del messaggio. L'invio usa il mitte
 
 Dal menu **Notifiche** un amministratore può configurare:
 
-- email CSIRT e DPO;
-- parametri SMTP;
-- template separati per CSIRT e DPO;
+- parametri SMTP e mittente predefinito;
+- template separati per utente, CSIRT, DPO e altri tipi;
+- destinatario e CC direttamente dentro ogni template di notifica manuale;
 - promemoria automatici di scadenza delle azioni.
+
+Le impostazioni globali **Email CSIRT**, **CC CSIRT**, **Email DPO** e **CC DPO** non sono più presenti: i relativi indirizzi vanno definiti nei template tramite valore fisso, e-mail del Destinatario dell’incidente, compilatore o compilazione manuale/rubrica esterna.
 
 Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%PERSONAL_DATA%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%STATISTICS%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
 
@@ -695,3 +697,7 @@ La pagina del singolo incidente è organizzata in sezioni collassabili. La sezio
 - Ogni template può scegliere la sorgente del destinatario/CC: default del tipo notifica, e-mail del Destinatario dell’incidente, e-mail del compilatore, valore fisso o campo vuoto/manuale.
 - Per ogni template è possibile rendere destinatario e CC modificabili in anteprima e abilitare l’uso della rubrica dei destinatari esterni.
 - Nei Dati Generali degli incidenti e nei Modelli incidente è disponibile il campo “E-mail Destinatario”, utilizzabile come destinatario predefinito dalle notifiche manuali.
+
+## Destinatari esterni e notifiche manuali
+
+Nella form degli incidenti e nei modelli incidente è possibile caricare Riferimento, Destinatario o E-mail Destinatario dalla rubrica dei destinatari esterni. Le nuove e-mail destinatario salvate sugli incidenti vengono inserite automaticamente in rubrica usando come nome il Destinatario oppure il Riferimento. Le notifiche manuali richiedono sempre almeno un destinatario effettivo.

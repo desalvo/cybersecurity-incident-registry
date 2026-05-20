@@ -297,7 +297,8 @@ class NotificationType(db.Model):
     code=db.Column(db.String(40),unique=True,nullable=False,index=True)
     label=db.Column(db.String(160),nullable=False)
     description=db.Column(db.Text,default='')
-    # settings: usa i destinatari configurati nelle impostazioni; manual: richiede il destinatario in fase di invio
+    # Campi mantenuti solo per compatibilità schema: la configurazione destinatario/CC
+    # delle notifiche manuali è nei singoli template.
     recipient_mode=db.Column(db.String(20),default='manual')
     recipient_setting_key=db.Column(db.String(100),default='')
     cc_setting_key=db.Column(db.String(100),default='')

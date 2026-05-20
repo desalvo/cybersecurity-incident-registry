@@ -1,3 +1,16 @@
+0.2.1-60
+- La form degli incidenti e i modelli incidente possono caricare Riferimento, Destinatario ed E-mail Destinatario dalla rubrica dei destinatari esterni.
+- Se viene salvata una nuova E-mail Destinatario non presente in rubrica, viene aggiunta automaticamente usando come nome Destinatario o Riferimento.
+- L'E-mail Destinatario richiede la compilazione di Riferimento o Destinatario.
+- Le notifiche manuali non possono essere inviate o confermate senza almeno un destinatario effettivo.
+- Documentazione aggiornata.
+
+0.2.1-59
+- Rimossi completamente dalle impostazioni notifiche i campi globali Email CSIRT, CC CSIRT, Email DPO e CC DPO.
+- Le notifiche manuali configurano destinatario e CC solo nei singoli template.
+- I tipi di notifica non espongono più chiavi impostazione destinatario/CC nell'interfaccia.
+- Aggiornata la documentazione progettuale e utente.
+
 
 0.2.1-58
 - Spostata nei template di notifica manuale la configurazione di destinatario e CC automatici.
@@ -7,8 +20,8 @@
 
 
 0.2.1-57
-- Aggiunto campo “CC Utente” in Admin → Notifiche.
-- Le notifiche manuali agli utenti usano “CC Utente” come CC predefinito, modificabile o rimovibile in anteprima.
+- Aggiunto campo “CC Utente” in Admin → Notifiche. [DEPRECATO in 0.2.1-59: i CC sono nei template.]
+- Le notifiche manuali agli utenti usano “CC Utente” come CC predefinito, modificabile o rimovibile in anteprima. [DEPRECATO in 0.2.1-59]
 - Aggiornata la documentazione progettuale e utente.
 
 0.2.1-55 - Operazioni previste aperte e sezioni destinazione
@@ -617,8 +630,8 @@ Mobile web interface update:
 - Startup migration adds notification_template.action_label_id for existing databases.
 
 2026-05-16 notification recipients routing fix
-- CSIRT notifications now always use csirt_email/csirt_cc from application settings and do not ask the sender for a recipient.
-- DPO notifications now always use dpo_email/dpo_cc from application settings and do not ask the sender for a recipient.
+- CSIRT notifications now always use template CSIRT from application settings and do not ask the sender for a recipient.
+- DPO notifications now always use template DPO from application settings and do not ask the sender for a recipient.
 - Other notifications require recipient entry at send/preview time and preserve optional CC.
 - Send button is disabled when the mandatory recipient is missing.
 

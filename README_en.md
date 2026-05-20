@@ -110,9 +110,6 @@ The information is visible from **Info → Application** and can be configured t
 
 ## CSIRT/DPO notifications
 
-In **Admin → Notifications**, the **User CC** field defines the default CC value for manual user notifications. The value is pre-filled in the notification preview and can still be changed or cleared before sending or confirming without sending.
-
-
 The detail page of each incident includes a **Notifications** section with **Notify CSIRT** and **Notify DPO** buttons. A message preview is shown before sending. Sending uses the sender associated with the logged-in user, attaches the current incident PDF report and automatically adds an action to the incident with label:
 
 - `04-comunicazione allo CSIRT` for CSIRT;
@@ -120,10 +117,12 @@ The detail page of each incident includes a **Notifications** section with **Not
 
 From **Notifications**, an administrator can configure:
 
-- CSIRT and DPO email addresses;
-- SMTP parameters;
-- separate CSIRT and DPO templates;
+- SMTP parameters and the default sender;
+- separate templates for users, CSIRT, DPO and other notification types;
+- recipient and CC directly inside each manual notification template;
 - automatic deadline reminders for actions.
+
+The global **CSIRT email**, **CSIRT CC**, **DPO email** and **DPO CC** settings have been removed: those addresses must be defined in the relevant templates through a fixed value, the incident Recipient email, the incident creator, manual entry or the external recipients address book.
 
 Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%PERSONAL_DATA%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
 
@@ -504,3 +503,7 @@ Document notification tags can be associated or removed through the drag-and-dro
 - Each template can use the notification type default, the incident recipient e-mail, the incident creator e-mail, a fixed value, or an empty/manual field.
 - Each template can decide whether To/CC are editable at send time and whether the external recipient directory is available.
 - Incident General Data and Incident Models now include the “Recipient e-mail” field, which can be used as the default manual notification recipient.
+
+## External recipients and manual notifications
+
+Incident forms and incident templates can load Reference, Recipient or Recipient e-mail from the external recipient address book. New recipient e-mail addresses saved on incidents are automatically added to the address book using the Recipient name or the Reference as fallback. Manual notifications always require at least one effective recipient.
