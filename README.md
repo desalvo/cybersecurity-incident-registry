@@ -687,4 +687,4 @@ Il thread dei task in scadenza e il thread dei promemoria specifici mantengono l
 
 ### Dettaglio incidente collassabile
 
-La pagina del singolo incidente è organizzata in sezioni collassabili chiuse per default. La sezione principale è denominata **Dati Generali**; le altre sezioni, incluse azioni, promemoria, documenti, generazione moduli e notifiche, possono essere aperte singolarmente per ridurre l’ingombro visivo della pagina.
+La pagina del singolo incidente è organizzata in sezioni collassabili. La sezione principale è denominata **Dati Generali**; le altre sezioni, incluse azioni, promemoria, documenti, generazione moduli e notifiche, possono essere aperte singolarmente per ridurre l’ingombro visivo della pagina. La sezione **Operazioni previste** rimane aperta per default perché guida il lavoro operativo; quando si clicca uno step del flusso, la sezione di destinazione, ad esempio **Azioni** o **Generazione moduli**, viene aperta automaticamente prima dello scorrimento.

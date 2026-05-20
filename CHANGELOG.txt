@@ -1,3 +1,9 @@
+0.2.1-55 - Operazioni previste aperte e sezioni destinazione
+- La sezione Operazioni previste del dettaglio incidente rimane aperta per default.
+- Il click su uno step workflow apre automaticamente la sezione di destinazione prima dello scorrimento.
+- L'apertura automatica è applicata anche agli anchor iniziali su sezioni collassabili.
+- Documentazione aggiornata.
+
 0.2.1-53
 - Nella lista Azioni del dettaglio incidente, il riquadro collassabile usa come nome azione la descrizione della label/task quando disponibile, altrimenti il nome della label/task.
 - Localizzata in italiano la dicitura di stato azione come “esportabile” / “non esportabile”.

@@ -193,6 +193,28 @@ function preserveIncidentFormAnchor(){
 document.addEventListener('DOMContentLoaded', preserveIncidentFormAnchor);
 
 
+function openIncidentSection(section){
+  if(!section)return;
+  if(section.tagName && section.tagName.toLowerCase()==='details') section.open = true;
+  const parent = section.closest && section.closest('details.incident-section-collapsible');
+  if(parent) parent.open = true;
+}
+
+function scrollToIncidentSection(section){
+  if(!section)return;
+  openIncidentSection(section);
+  section.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function openInitialIncidentAnchor(){
+  const hash=(window.location.hash || '').replace(/^#/, '');
+  if(!hash)return;
+  const section=document.getElementById(hash);
+  if(section) openIncidentSection(section);
+}
+
+document.addEventListener('DOMContentLoaded', openInitialIncidentAnchor);
+
 function makeIncidentWorkflowStepsClickable(){
   const actionForm=document.querySelector('#incident-actions form[action*="/actions/add"], #incident-actions form[data-scroll-anchor="incident-actions"]');
   const actionSelect=document.getElementById('new-action-label-id');
@@ -205,7 +227,7 @@ function makeIncidentWorkflowStepsClickable(){
         window.alert(message);
         const sectionId = step.dataset.notificationDocsSection || 'incident-forms';
         const section = document.getElementById(sectionId);
-        if(section) section.scrollIntoView({behavior:'smooth', block:'start'});
+        scrollToIncidentSection(section);
         return;
       }
       if(step.dataset.notificationUrl){
@@ -219,7 +241,7 @@ function makeIncidentWorkflowStepsClickable(){
       actionSelect.dispatchEvent(new Event('change', {bubbles:true}));
     }
     const target=document.getElementById('incident-actions');
-    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    scrollToIncidentSection(target);
     setTimeout(()=>{
       if(description) description.focus();
       else actionSelect.focus();

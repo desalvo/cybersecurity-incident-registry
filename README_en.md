@@ -490,4 +490,4 @@ The deadline-task thread and the incident-specific reminder thread remain operat
 
 ### Collapsible incident detail
 
-The incident detail page is organised into collapsible sections closed by default. The main section is named **Dati Generali** in the Italian interface; the other sections, including actions, reminders, documents, form generation and notifications, can be opened individually to reduce page clutter.
+The incident detail page is organised into collapsible sections. The main section is named **General Data**. **Expected operations** stays open by default because it drives the operational workflow; clicking a workflow step automatically opens the target section, such as **Actions** or **Form generation**, before scrolling to it.
