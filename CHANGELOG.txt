@@ -809,3 +809,10 @@ Notification menu and SMTP sender fix
 - Corretta la cancellazione degli incidenti quando esistono stati deadline_notification_state collegati.
 - Aggiunta cancellazione esplicita degli stati notifiche deadline prima della rimozione incidente.
 - Aggiornata la documentazione italiana, inglese e progettuale.
+
+## Aggiornamento 0.2.1-36 - Descrizioni workflow multilinea e URL cliccabili
+
+- Le descrizioni degli step nei flussi operativi incidenti sono ora campi multilinea con limite massimo di 500 caratteri.
+- Gli URL `http://` e `https://` presenti nelle descrizioni mostrate nella pagina del singolo incidente sono cliccabili.
+- Il click sui link non modifica il comportamento generale del riquadro dello step, che continua ad avviare il percorso guidato del workflow.
+- Documentazione utente, amministrativa e progettuale aggiornata in italiano e inglese.

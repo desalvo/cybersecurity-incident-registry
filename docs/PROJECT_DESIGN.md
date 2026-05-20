@@ -1460,3 +1460,7 @@ The user and administrator guides were reviewed to explicitly show `Application 
 Le notifiche schedulate per task con tempo massimo usano `DeadlineNotificationState` come stato persistente per incidente e slot. Prima dell'invio viene scritto un claim dello slot corrente; la chiave unica della notifica e il controllo su `last_schedule_slot` impediscono invii multipli nello stesso intervallo anche in presenza di più worker, repliche o controlli opportunistici. Ogni ciclo dello scheduler rimuove gli stati orfani collegati a incidenti cancellati.
 
 La pianificazione cron/intervallo è calcolata con `application_now()` e quindi nel fuso orario applicativo. Gli intervalli regolari sono ancorati alla mezzanotte locale del giorno corrente; gli orari cron sono interpretati come HH:MM della stessa timezone.
+
+### Workflow step text rendering
+
+Workflow step descriptions are stored as text, capped at 500 characters at the application boundary, and rendered with a safe linkification filter. The filter escapes all text first and only converts detected `http://` or `https://` URLs to links with `target="_blank"` and `rel="noopener noreferrer"`. Click handling on workflow cards ignores clicks originating from links, preserving both link navigation and the existing guided workflow card behaviour.

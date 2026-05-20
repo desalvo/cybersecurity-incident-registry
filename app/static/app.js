@@ -226,7 +226,10 @@ function makeIncidentWorkflowStepsClickable(){
     }, 250);
   };
   document.querySelectorAll('.workflow-step-action').forEach(step=>{
-    step.addEventListener('click',()=>activate(step));
+    step.addEventListener('click',event=>{
+      if(event.target.closest('a')) return;
+      activate(step);
+    });
     step.addEventListener('keydown',event=>{
       if(event.key==='Enter' || event.key===' '){
         event.preventDefault();

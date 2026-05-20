@@ -2143,7 +2143,7 @@ def admin_incident_workflows():
             scope = request.form.get('scope') or 'default'
             category_id = request.form.get('category_id', type=int) if scope == 'category' else None
             action_label_id = request.form.get('action_label_id', type=int)
-            description = (request.form.get('description') or '').strip()
+            description = (request.form.get('description') or '').strip()[:500]
             condition_tokens = workflow_condition_tokens_from_form('conditions')
             personal_data_only = ('personal_data' in condition_tokens)
             required = bool(request.form.get('required'))
@@ -2184,7 +2184,7 @@ def admin_incident_workflows():
                 step = IncidentWorkflowStep.query.get(int(sid))
                 if not step: continue
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
-                step.description = (request.form.get(f'description_{sid}') or '').strip()
+                step.description = (request.form.get(f'description_{sid}') or '').strip()[:500]
                 condition_tokens = workflow_condition_tokens_from_form(f'conditions_{sid}')
                 step.set_condition_tokens(condition_tokens)
                 step.required = bool(request.form.get(f'required_{sid}'))

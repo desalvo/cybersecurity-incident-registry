@@ -1,13 +1,42 @@
-import os, time, shutil
+import os, time, shutil, re
 from flask import Flask
+from markupsafe import Markup, escape
 from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError
 from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob
 from .auth import login_manager, hash_password
 from .security import init_security
 
+
+def linkify_text(value):
+    """Render plain text safely and turn detected http(s) URLs into links.
+
+    Used for workflow step descriptions in the incident page: the surrounding
+    workflow card remains clickable, while links embedded in the text can be
+    opened independently.
+    """
+    text_value = '' if value is None else str(value)
+    url_re = re.compile(r'(https?://[^\s<]+)', re.IGNORECASE)
+    parts = []
+    last = 0
+    for match in url_re.finditer(text_value):
+        parts.append(escape(text_value[last:match.start()]))
+        raw_url = match.group(1)
+        trailing = ''
+        while raw_url and raw_url[-1] in '.,;:!?)]}' :
+            trailing = raw_url[-1] + trailing
+            raw_url = raw_url[:-1]
+        safe_url = escape(raw_url)
+        parts.append(Markup('<a class="inline-url" href="{0}" target="_blank" rel="noopener noreferrer">{0}</a>').format(safe_url))
+        if trailing:
+            parts.append(escape(trailing))
+        last = match.end()
+    parts.append(escape(text_value[last:]))
+    return Markup('').join(parts).replace('\n', Markup('<br>'))
+
 def create_app():
     app=Flask(__name__)
+    app.jinja_env.filters['linkify_text'] = linkify_text
     app.config['SECRET_KEY']=os.getenv('SECRET_KEY','dev-change-me')
     app.config['SQLALCHEMY_DATABASE_URI']=os.getenv('DATABASE_URL','sqlite:////tmp/cir.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False

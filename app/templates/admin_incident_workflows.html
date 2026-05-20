@@ -30,7 +30,7 @@
     <div><label>Categoria</label><select name="category_id"><option value="">-- default --</option>{% for c in categories %}<option value="{{c.id}}">{{c.value}}</option>{% endfor %}</select></div>
     <div><label>Azione prevista</label><select name="action_label_id" required>{% for a in action_labels %}<option value="{{a.id}}">{{a.value}}</option>{% endfor %}</select></div>
     <div><label>Ordine</label><input type="number" name="position" placeholder="automatico"></div>
-    <div class="wide"><label>Descrizione operativa</label><input name="description" placeholder="Descrizione specifica del passo nel flusso"></div>
+    <div class="wide"><label>Descrizione operativa</label><textarea name="description" maxlength="500" rows="3" placeholder="Descrizione specifica del passo nel flusso, anche su più righe (max 500 caratteri)"></textarea><small class="muted">Massimo 500 caratteri. Sono ammessi URL, che nella pagina incidente saranno cliccabili.</small></div>
     <div class="wide"><label>Condizioni</label>{{ condition_picker('conditions', []) }}</div>
     <div><label><input type="checkbox" name="required" value="1" checked> Richiesto per gli avvisi procedurali</label></div>
     <div><label><input type="checkbox" name="requires_notification" value="1"> Dipende da una notifica</label></div>
@@ -52,7 +52,7 @@
           <div class="workflow-admin-main">
             <div><label>Ordine</label><input type="number" name="position_{{step.id}}" value="{{step.position}}"></div>
             <div><label>Azione</label><select name="action_label_id_{{step.id}}">{% for a in action_labels %}<option value="{{a.id}}" {% if step.action_label_id==a.id %}selected{% endif %}>{{a.value}}</option>{% endfor %}</select></div>
-            <div class="workflow-admin-description"><label>Descrizione nel flusso</label><input name="description_{{step.id}}" value="{{step.description or ''}}"></div>
+            <div class="workflow-admin-description"><label>Descrizione nel flusso</label><textarea name="description_{{step.id}}" maxlength="500" rows="3">{{step.description or ''}}</textarea><small class="muted">Max 500 caratteri, anche su più righe.</small></div>
           </div>
           <div class="workflow-admin-options">
             <div><label>Condizioni</label>{{ condition_picker('conditions_' ~ step.id, selected_conditions) }}</div>
@@ -90,6 +90,6 @@
 })();
 </script>
 <style>
-.condition-palette,.condition-dropzone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-dropzone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over{outline:2px solid currentColor}.condition-hidden{display:none}.condition-selected{cursor:default}.condition-selected input{display:none}.condition-remove{padding:0 .2rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 10rem 16rem;margin-top:.5rem}.workflow-admin-description input{width:100%}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options{grid-template-columns:1fr}}
+.condition-palette,.condition-dropzone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-dropzone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over{outline:2px solid currentColor}.condition-hidden{display:none}.condition-selected{cursor:default}.condition-selected input{display:none}.condition-remove{padding:0 .2rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 10rem 16rem;margin-top:.5rem}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options{grid-template-columns:1fr}}
 </style>
 {% endblock %}
