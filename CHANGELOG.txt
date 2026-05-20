@@ -1,3 +1,9 @@
+0.2.1-53
+- Nella lista Azioni del dettaglio incidente, il riquadro collassabile usa come nome azione la descrizione della label/task quando disponibile, altrimenti il nome della label/task.
+- Localizzata in italiano la dicitura di stato azione come “esportabile” / “non esportabile”.
+- Aggiornata la documentazione utente e progettuale.
+
+0.2.1-52
 - La lista Azioni del dettaglio incidente usa ora riquadri separati collassabili, chiusi per default, con intestazione riepilogativa e dettagli espandibili.
 0.2.1-51
 - La sezione Azioni del dettaglio incidente usa ora schede leggibili per ogni azione, con metadati, descrizione, conseguenze, allegati e comandi separati.
@@ -914,3 +920,9 @@ Notification menu and SMTP sender fix
 - Scheduler notifiche: il ciclo automatico esegue sempre anche il controllo dei promemoria specifici, indipendentemente dall’esito o dall’abilitazione delle notifiche task in scadenza.
 - Aggiunta pagina Admin → Stato con stato completo dei servizi, heartbeat, tipi di schedula, cicli, ultimi risultati, errori e scheduler backup.
 - Documentazione italiana, inglese e progettuale aggiornata.
+
+0.2.1-54
+- La pagina dettaglio incidente usa sezioni collassabili chiuse per default.
+- La sezione principale dell'incidente è rinominata "Dati Generali".
+- Operazioni previste, avvisi procedurali, dati titolare/responsabile, conseguenze, azioni, promemoria, documenti, generazione moduli e notifiche sono apribili singolarmente.
+- Documentazione aggiornata.

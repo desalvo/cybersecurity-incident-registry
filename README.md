@@ -171,7 +171,7 @@ Nelle pagine di anteprima delle notifiche manuali/non schedulate è disponibile 
 
 ### Modifica data e ora delle azioni
 
-Nella sezione **Azioni** del dettaglio incidente, la timeline è presentata con un riquadro separato e collassabile per ciascuna azione, chiuso per default per rendere più compatta la consultazione. L’intestazione mostra data/ora, label, persona e stato exportable; aprendo il riquadro vengono mostrati metadati, descrizione, conseguenze, allegati e comandi operativi. Gli utenti con permessi di scrittura possono modificare direttamente anche la data e ora di ciascuna azione esistente, oltre a label, persona, descrizione, conseguenze e flag exportable.
+Nella sezione **Azioni** del dettaglio incidente, la timeline è presentata con un riquadro separato e collassabile per ciascuna azione, chiuso per default per rendere più compatta la consultazione. L’intestazione mostra data/ora, nome azione calcolato dalla descrizione della label/task se presente oppure dal nome della label/task, persona e stato esportabile/non esportabile; aprendo il riquadro vengono mostrati metadati, descrizione, conseguenze, allegati e comandi operativi. Gli utenti con permessi di scrittura possono modificare direttamente anche la data e ora di ciascuna azione esistente, oltre a label, persona, descrizione, conseguenze e flag esportabile.
 
 
 ### Leggibilità form e checkbox
@@ -684,3 +684,7 @@ I promemoria specifici degli incidenti sono controllati da un thread separato ri
 Corretto il problema `RuntimeError: Working outside of application context` nei thread scheduler. Gli intervalli configurabili dei controlli automatici vengono letti dalla tabella `setting` solo all'interno di `app.app_context()`, mentre le eventuali chiamate diagnostiche fuori contesto usano un fallback sicuro.
 
 Il thread dei task in scadenza e il thread dei promemoria specifici mantengono la separazione operativa e continuano a registrare stato, heartbeat e risultati nella pagina **Admin → Stato**, con indicatori a pallino colorato per mostrare se i thread sono attivi.
+
+### Dettaglio incidente collassabile
+
+La pagina del singolo incidente è organizzata in sezioni collassabili chiuse per default. La sezione principale è denominata **Dati Generali**; le altre sezioni, incluse azioni, promemoria, documenti, generazione moduli e notifiche, possono essere aperte singolarmente per ridurre l’ingombro visivo della pagina.

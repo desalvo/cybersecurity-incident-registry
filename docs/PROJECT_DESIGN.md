@@ -135,7 +135,7 @@ Ogni azione appartiene a un incidente e contiene:
 - label azione
 - allegati multipli opzionali
 
-Il campo persona è precompilato con il nome dell'utente loggato ma può essere modificato. È possibile modificare o cancellare le azioni, se l'utente ha permessi di scrittura. Le azioni sono ordinate cronologicamente e sono mostrate nella pagina incidente come schede leggibili, non come una tabella compressa: ogni scheda separa data/ora, label, persona, descrizione, conseguenze, allegati e comandi di salvataggio/cancellazione.
+Il campo persona è precompilato con il nome dell'utente loggato ma può essere modificato. È possibile modificare o cancellare le azioni, se l'utente ha permessi di scrittura. Le azioni sono ordinate cronologicamente e sono mostrate nella pagina incidente come schede leggibili, non come una tabella compressa: ogni scheda separa data/ora, nome azione, persona, descrizione, conseguenze, allegati e comandi di salvataggio/cancellazione.
 
 Le notifiche generano automaticamente un'azione associata alla label configurata nel template usato. L'azione automatica include nella descrizione mittente, destinatari e CC. Inoltre viene generato e allegato all'azione un PDF con il testo della mail inviata.
 
@@ -144,7 +144,7 @@ Le notifiche generano automaticamente un'azione associata alla label configurata
 Lo stile globale dell'interfaccia applica un allineamento coerente alle checkbox e al testo associato tramite classi dedicate e selettori CSS per le label che contengono checkbox. Le form amministrative, le liste di selezione e i flag inline mantengono quindi il controllo e la descrizione sulla stessa linea visuale, con gestione responsive su schermi stretti.
 
 
-La lista delle azioni nel dettaglio incidente è resa come riquadri separati basati su `<details>/<summary>`, collassati per default. Il summary contiene le informazioni minime per orientare l'operatore (data/ora, label, persona e stato exportable), mentre il contenuto espanso mantiene form di modifica, allegati, descrizione, conseguenze e comandi di cancellazione. Questa scelta riduce l'ingombro della pagina nei casi con molte azioni senza rimuovere la possibilità di modifica puntuale.
+La lista delle azioni nel dettaglio incidente è resa come riquadri separati basati su `<details>/<summary>`, collassati per default. Il summary contiene le informazioni minime per orientare l'operatore (data/ora, nome dell'azione derivato dalla descrizione del task/label se presente oppure dal nome del task/label, persona e stato esportabile/non esportabile), mentre il contenuto espanso mantiene form di modifica, allegati, descrizione, conseguenze e comandi di cancellazione. Questa scelta riduce l'ingombro della pagina nei casi con molte azioni senza rimuovere la possibilità di modifica puntuale.
 
 ### 4.4 Documenti
 
@@ -1584,3 +1584,11 @@ I thread di background degli scheduler non devono usare proxy Flask-SQLAlchemy, 
 La funzione comune di lettura degli intervalli applica inoltre un fallback sicuro quando viene invocata da codice diagnostico privo di contesto applicativo. Il fallback non sostituisce la configurazione salvata in database durante il normale funzionamento, ma impedisce che pagine di stato, log o chiamate tecniche facciano terminare il thread.
 
 Il thread `cir-deadline-notification-scheduler` e il thread `cir-incident-reminder-scheduler` restano separati, serializzati con lock di processo e lock advisory PostgreSQL quando disponibile. La pagina **Admin → Stato** continua a mostrare heartbeat, ultimi cicli e indicatori visuali di attività dei thread.
+
+## Aggiornamento 0.2.1-54 - Sezioni collassabili nel dettaglio incidente
+
+La pagina del singolo incidente (`incident_detail.html`) organizza ora tutte le sezioni principali in elementi HTML `<details>` collassabili e chiusi per default. La sezione dei campi principali dell'incidente è stata rinominata **Dati Generali** e mantiene lo stesso identificativo tecnico `incident-main` usato da validazioni, messaggi di sezione e ritorno allo scroll anchor.
+
+Sono collassabili in modo indipendente: **Operazioni previste**, **Avvisi procedurali**, **Dati Generali**, **Dati titolare e responsabile**, **Conseguenze, misure e raccomandazioni**, **Azioni**, **Promemoria specifici**, **Documenti**, **Generazione moduli** e **Notifiche**. Il contenuto e le form esistenti non cambiano semantica: la modifica è di presentazione e riduce l'ingombro visivo della pagina dettaglio, lasciando ogni sezione apribile dall'utente quando necessario.
+
+Lo stile locale della pagina introduce le classi `incident-section-collapsible`, `incident-section-summary` e `incident-section-body`, con indicatore visuale di apertura/chiusura e padding coerente con le card esistenti. Le azioni registrate restano a loro volta riquadri collassabili interni alla sezione **Azioni**.

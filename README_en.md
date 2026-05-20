@@ -147,7 +147,7 @@ Manual/non-scheduled notification preview pages now include a **Confirm without 
 
 ### Editing action date and time
 
-In the **Actions** section of the incident detail page, the timeline is now displayed as one separate collapsible box per action, collapsed by default to keep the page compact. The header shows date/time, label, person and exportable status; expanding the box shows metadata, description, consequences, attachments and operational commands. Users with write permissions can edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
+In the **Actions** section of the incident detail page, the timeline is now displayed as one separate collapsible box per action, collapsed by default to keep the page compact. The header shows date/time, the action name computed from the label/task description when present or from the label/task name otherwise, person and exportable status; expanding the box shows metadata, description, consequences, attachments and operational commands. Users with write permissions can edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
 
 ## Incidents and action lifecycle
 
@@ -487,3 +487,7 @@ Incident-specific reminders are checked by a separate thread from the periodic d
 Fixed `RuntimeError: Working outside of application context` in scheduler threads. Configurable automatic-check intervals are now read from the `setting` table only inside `app.app_context()`, while diagnostic calls outside an application context use a safe fallback.
 
 The deadline-task thread and the incident-specific reminder thread remain operationally separated and keep reporting status, heartbeat and last results on **Admin → Status**, with colored dot indicators showing whether threads are currently active.
+
+### Collapsible incident detail
+
+The incident detail page is organised into collapsible sections closed by default. The main section is named **Dati Generali** in the Italian interface; the other sections, including actions, reminders, documents, form generation and notifications, can be opened individually to reduce page clutter.
