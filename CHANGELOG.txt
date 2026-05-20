@@ -1008,3 +1008,8 @@ Notification menu and SMTP sender fix
 - Full export esteso con snapshot completo dei volumi persistenti operativi: upload/documenti, template moduli PDF, loghi custom, loghi SSO e certificati SSL.
 - Il manifest `export.json` include ora `files.persistent_files` e `schema._coverage.file_groups` dichiara anche `persistent_files`.
 - Il full import ripristina anche i file persistenti non direttamente referenziati da singoli record, mantenendo comunque il dump completo del database e delle relazioni.
+
+0.2.1-69
+- Aggiunto rendering Markdown sicuro per le descrizioni degli step workflow nella pagina incidente.
+- Aggiunta sintassi controllata per testo colorato negli step: {color:red}testo{/color} e {color:#RRGGBB}testo{/color}.
+- Aggiornata la documentazione utente, amministrativa e progettuale con esempi di Markdown e colori.

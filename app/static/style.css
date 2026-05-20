@@ -341,3 +341,11 @@ label:has(> input[type="checkbox"]) input[type="checkbox"],
 /* Tag documenti: la classe hidden deve prevalere sulle regole globali di allineamento checkbox. */
 .tag-selected.hidden,
 .tag-selected[hidden]{display:none!important}
+
+.workflow-markdown { line-height: 1.45; }
+.workflow-markdown p { margin: .25rem 0; }
+.workflow-markdown ul, .workflow-markdown ol { margin: .25rem 0 .25rem 1.25rem; padding-left: 1rem; }
+.workflow-markdown li { margin: .12rem 0; }
+.workflow-markdown h3, .workflow-markdown h4, .workflow-markdown h5, .workflow-markdown h6 { margin: .25rem 0; font-size: 1rem; }
+.workflow-markdown code { padding: .05rem .25rem; border-radius: .25rem; background: rgba(0,0,0,.08); }
+.workflow-markdown-color { font-weight: inherit; }

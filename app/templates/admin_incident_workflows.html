@@ -52,7 +52,7 @@
           <div class="workflow-admin-main">
             <div><label>Ordine</label><input type="number" name="position_{{step.id}}" value="{{step.position}}"></div>
             <div><label>Azione</label><select name="action_label_id_{{step.id}}">{% for a in action_labels %}<option value="{{a.id}}" {% if step.action_label_id==a.id %}selected{% endif %}>{{a.value}}</option>{% endfor %}</select></div>
-            <div class="workflow-admin-description"><label>Descrizione nel flusso</label><textarea name="description_{{step.id}}" maxlength="500" rows="3">{{step.description or ''}}</textarea><small class="muted">Max 500 caratteri, anche su più righe.</small></div>
+            <div class="workflow-admin-description"><label>Descrizione nel flusso</label><textarea name="description_{{step.id}}" maxlength="500" rows="3">{{step.description or ''}}</textarea><small class="muted">Max 500 caratteri, anche su più righe. Supporta Markdown sicuro e colori con {color:red}testo{/color} o {color:#c00}testo{/color}.</small></div>
           </div>
           <div class="workflow-admin-options">
             <div><label>Condizioni</label>{{ condition_picker('conditions_' ~ step.id, selected_conditions) }}</div>

@@ -1480,7 +1480,19 @@ La pianificazione cron/intervallo è calcolata con `application_now()` e quindi 
 
 ### Workflow step text rendering
 
-Workflow step descriptions are stored as text, capped at 500 characters at the application boundary, and rendered with a safe linkification filter. The filter escapes all text first and only converts detected `http://` or `https://` URLs to links with `target="_blank"` and `rel="noopener noreferrer"`. Click handling on workflow cards ignores clicks originating from links, preserving both link navigation and the existing guided workflow card behaviour.
+Workflow step descriptions are stored as text, capped at 500 characters at the application boundary, and rendered with the dedicated `workflow_markdown` Jinja filter. The filter escapes raw HTML and supports a deliberately limited Markdown subset: headings, unordered/ordered lists, bold, italic, inline code, Markdown links and automatic `http://`/`https://` links with `target="_blank"` and `rel="noopener noreferrer"`. Click handling on workflow cards ignores clicks originating from links, preserving both link navigation and the existing guided workflow card behaviour.
+
+Controlled coloured text is supported with the application-specific syntax `{color:red}text{/color}` or `{color:#0b7285}text{/color}`. Only colour names and hexadecimal colours matching the validation pattern are emitted in the inline style; unsupported colour expressions are ignored while the text content remains visible. This avoids enabling arbitrary raw HTML while still allowing administrators to visually highlight workflow instructions.
+
+Example accepted workflow description:
+
+```markdown
+**Urgente**: completare entro la scadenza.
+- Verificare i log
+- Aprire il [ticket interno](https://example.org/ticket)
+{color:red}Attività critica{/color}
+{color:#0b7285}Nota informativa{/color}
+```
 
 ## Aggiornamento 0.2.1-36a - Bonifica criticità progettuali
 
@@ -1488,7 +1500,7 @@ Sono state chiuse le criticità emerse dall’analisi del pacchetto allegato:
 
 - le guide operative `README.md` e `README_en.md` non espongono più il banner iniziale di versione, evitando la duplicazione con Info, Note di rilascio e CHANGELOG;
 - la documentazione progettuale chiarisce che le versioni sono metadati tecnici/release e non contenuto operativo delle guide utente/amministrative;
-- il filtro Jinja `linkify_text`, usato per rendere cliccabili gli URL nelle descrizioni degli step procedurali, è stato estratto da `app/__init__.py` nel modulo dedicato `app/text_filters.py` e registrato tramite `register_text_filters(app)`, riducendo l’accoppiamento dell’app factory;
+- i filtri Jinja `linkify_text` e `workflow_markdown`, usati per rendere cliccabili gli URL e formattare in Markdown sicuro le descrizioni degli step procedurali, sono nel modulo dedicato `app/text_filters.py` e registrati tramite `register_text_filters(app)`, riducendo l’accoppiamento dell’app factory;
 - è stato aggiunto `.gitignore` per impedire il reinserimento di cache Python, ambienti virtuali, artefatti di build e dati locali;
 - le directory `__pycache__` presenti nel pacchetto sono state rimosse;
 - i test automatici Pytest risultano eseguiti con esito positivo nell’ambiente di verifica dopo l’installazione delle dipendenze applicative.
@@ -1649,3 +1661,7 @@ Nell’anteprima delle notifiche manuali il template `notification_preview.html`
 Il full export è stato esteso per includere non solo i file referenziati da documenti, allegati e template, ma anche uno snapshot completo dei volumi persistenti operativi dell'applicazione. Il manifest `files.persistent_files` è suddiviso nei gruppi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`; ogni voce contiene percorso relativo sicuro, percorso nell'archivio e dimensione del file.
 
 Questa copertura rende l'archivio idoneo a riprodurre completamente la directory/stato attuale dell'applicazione: database, relazioni, configurazioni, documenti, template di notifica, modelli incidente, modelli PDF compilabili, loghi custom, loghi SSO, certificati SSL e altri file operativi presenti nei volumi. Il full import valida i percorsi relativi, impedisce path traversal e ripristina i file nei volumi corrispondenti dopo la ricostruzione del database.
+
+## Aggiornamento 0.2.1-69 - Markdown e colori negli step workflow
+
+I riquadri degli step nella sezione **Operazioni previste** renderizzano ora la descrizione operativa con il filtro Jinja `workflow_markdown`. Il rendering supporta Markdown sicuro per titoli, elenchi, grassetto, corsivo, codice inline, link Markdown e URL automatici. Il testo colorato usa una sintassi controllata `{color:nome}testo{/color}` o `{color:#RRGGBB}testo{/color}`; l'HTML libero resta escapato. Il template `incident_detail.html` usa un contenitore `<div class="workflow-step-description workflow-markdown">` per permettere contenuti multi-paragrafo e liste, mentre `style.css` definisce la resa compatta dentro le card del workflow. La documentazione utente e amministrativa include esempi di Markdown e colori.

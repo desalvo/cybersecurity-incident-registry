@@ -434,9 +434,21 @@ Scheduled notifications for maximum-time tasks are now more robust against simul
 
 All schedules, cron times and maximum-task intervals are interpreted in the application time zone configured under **Admin → Other configurations**. Regular intervals always start from midnight of the current day in that time zone, not from container or process startup time.
 
-### Workflow step descriptions and clickable URLs
+### Workflow step descriptions, Markdown and colours
 
-In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
+In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, workflow step text is rendered with a safe Markdown subset: bold, italic, inline code, headings, unordered/ordered lists and links. `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
+
+Supported examples:
+
+```markdown
+**Urgent action** to complete before the deadline.
+- Check logs
+- Open the [internal ticket](https://example.org/ticket)
+{color:red}Warning: critical activity{/color}
+{color:#0b7285}Informational note in a custom colour{/color}
+```
+
+Colour syntax is `{color:colour-name}text{/color}` or `{color:#RRGGBB}text{/color}`. Free HTML markup is escaped.
 
 ### Update 0.2.1-37 - Serial notification scheduler
 

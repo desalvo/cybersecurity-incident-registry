@@ -631,9 +631,21 @@ Le notifiche schedulate per task con tempo massimo sono state rese più robuste 
 
 Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono interpretati nella timezone applicativa configurata in **Admin → Altre configurazioni**. Gli intervalli regolari partono sempre dalla mezzanotte del giorno corrente in tale timezone, non dall'avvio del container o del processo.
 
-### Descrizioni workflow e URL cliccabili
+### Descrizioni workflow, Markdown e colori
 
-In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente gli URL `http://` e `https://` presenti nel testo degli step sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati e link. Gli URL `http://` e `https://` presenti nel testo sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+
+Esempi supportati:
+
+```markdown
+**Azione urgente** da completare prima della scadenza.
+- Verificare i log
+- Aprire il ticket [interno](https://example.org/ticket)
+{color:red}Attenzione: attività critica{/color}
+{color:#0b7285}Nota informativa in colore personalizzato{/color}
+```
+
+La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. Il markup HTML libero viene escapato.
 
 ### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
 
