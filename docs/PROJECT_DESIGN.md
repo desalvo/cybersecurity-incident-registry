@@ -2,7 +2,7 @@
 
 ## Baseline progettuale 0.2.1 - build 2026051901
 
-La versione applicativa ufficiale è 0.2.1. La documentazione progettuale descrive lo stato corrente dell’applicazione; i dettagli cronologici degli aggiornamenti sono mantenuti nelle Note di rilascio e nel CHANGELOG.
+La documentazione progettuale descrive lo stato corrente dell’applicazione. I metadati tecnici della release sono mantenuti nella pagina Info, nelle Note di rilascio e nel CHANGELOG, mentre le guide operative restano prive di banner di versione.
 
 ## Aggiornamento 0.2.1 - Pulsanti data/ora locale e azioni notifica
 
@@ -45,7 +45,6 @@ La baseline 0.2.1 stabilizza l'applicazione come registro operativo bilingue per
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-La versione applicativa riportata nei metadati runtime è 0.2.1, build 2026051901.
 - Database: PostgreSQL 18.4
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
@@ -1440,7 +1439,7 @@ Operational workflow steps now support multiple conditions stored in `IncidentWo
 
 ## Versione 0.2.1-33 - Pulizia versione e documentazione
 
-La versione applicativa esposta da `APP_VERSION`, dalla pagina Info e dalle guide è normalizzata a `0.2.1`, con build `2026051901`. Le guide utente e amministrativa sono mantenute come documentazione operativa dello stato corrente: non devono contenere blocchi di changelog. Le variazioni cronologiche sono centralizzate in `CHANGELOG.txt` e nelle pagine `release_notes.html` / `release_notes_en.html`.
+La versione applicativa esposta da `APP_VERSION` e dalla pagina Info è normalizzata a `0.2.1`, con build `2026051901`. Le guide utente e amministrativa sono mantenute come documentazione operativa dello stato corrente: non devono contenere banner di versione né blocchi di changelog. Le variazioni cronologiche sono centralizzate in `CHANGELOG.txt` e nelle pagine `release_notes.html` / `release_notes_en.html`.
 
 ## Version 0.2.1-33 - Version and documentation cleanup
 
@@ -1448,11 +1447,11 @@ The application version exposed by `APP_VERSION`, the Info page and the guides i
 
 ## Versione 0.2.1-34 - Riallineamento guide operative
 
-Le guide utente e amministrativa sono state ricontrollate per esporre esplicitamente `Versione applicativa: 0.2.1` / `Versione 0.2.1`, senza capitoli di changelog nel corpo operativo. Le sezioni che erano fuori dal contenitore principale della documentazione online sono state integrate come capitoli regolari.
+Le guide utente e amministrativa sono state ricontrollate per eliminare i banner espliciti di versione dal corpo operativo, lasciando la versione alla pagina Info, alle Note di rilascio e al CHANGELOG. Le sezioni che erano fuori dal contenitore principale della documentazione online sono state integrate come capitoli regolari.
 
 ## Version 0.2.1-34 - Operational guide alignment
 
-The user and administrator guides were reviewed to explicitly show `Application version: 0.2.1` / `Version 0.2.1`, without changelog chapters in the operational body. Sections that were outside the main online-documentation container were integrated as regular chapters.
+The user and administrator guides were reviewed to remove explicit version banners from the operational body, leaving release identifiers to the Info page, Release notes and CHANGELOG. Sections that were outside the main online-documentation container were integrated as regular chapters.
 
 
 ### Scheduler notifiche deadline: deduplica persistente e timezone
@@ -1464,3 +1463,17 @@ La pianificazione cron/intervallo è calcolata con `application_now()` e quindi 
 ### Workflow step text rendering
 
 Workflow step descriptions are stored as text, capped at 500 characters at the application boundary, and rendered with a safe linkification filter. The filter escapes all text first and only converts detected `http://` or `https://` URLs to links with `target="_blank"` and `rel="noopener noreferrer"`. Click handling on workflow cards ignores clicks originating from links, preserving both link navigation and the existing guided workflow card behaviour.
+
+## Aggiornamento 0.2.1-36a - Bonifica criticità progettuali
+
+Sono state chiuse le criticità emerse dall’analisi del pacchetto allegato:
+
+- le guide operative `README.md` e `README_en.md` non espongono più il banner iniziale di versione, evitando la duplicazione con Info, Note di rilascio e CHANGELOG;
+- la documentazione progettuale chiarisce che le versioni sono metadati tecnici/release e non contenuto operativo delle guide utente/amministrative;
+- il filtro Jinja `linkify_text`, usato per rendere cliccabili gli URL nelle descrizioni degli step procedurali, è stato estratto da `app/__init__.py` nel modulo dedicato `app/text_filters.py` e registrato tramite `register_text_filters(app)`, riducendo l’accoppiamento dell’app factory;
+- è stato aggiunto `.gitignore` per impedire il reinserimento di cache Python, ambienti virtuali, artefatti di build e dati locali;
+- le directory `__pycache__` presenti nel pacchetto sono state rimosse;
+- i test automatici Pytest risultano eseguiti con esito positivo nell’ambiente di verifica dopo l’installazione delle dipendenze applicative.
+
+Questa bonifica non modifica il modello dati né le route pubbliche. La modularizzazione avviata sui filtri testuali è compatibile con ulteriori estrazioni future da `app/routes.py` verso moduli dedicati per scheduler, notifiche, workflow e amministrazione.
+

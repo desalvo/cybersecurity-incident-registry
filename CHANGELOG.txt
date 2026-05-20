@@ -1,3 +1,9 @@
+0.2.1-36a
+- Rimossi i banner di versione dalle guide operative README.md e README_en.md.
+- Estratto il filtro Jinja linkify_text in app/text_filters.py e registrato dall’app factory.
+- Aggiunto .gitignore e rimossi gli artefatti __pycache__ dal pacchetto sorgente.
+- Aggiornata la documentazione progettuale con la bonifica delle criticità rilevate.
+
 0.2.1-35 - Scheduler notifiche deadline e anti-flooding
 - Claim persistente dello slot prima dell'invio delle notifiche schedulate per task con tempo massimo.
 - Cleanup ad ogni ciclo degli stati scheduler orfani relativi a incidenti cancellati.

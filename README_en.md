@@ -1,7 +1,6 @@
 # cybersecurity-incident-registry
 
 
-> Application version: **0.2.1** · build **2026051901**. Version changes are maintained in Release notes, not in the operational guides.
 
 
 Flask/Gunicorn application for a cybersecurity incident registry backed by PostgreSQL.
