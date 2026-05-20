@@ -1,3 +1,9 @@
+0.2.1-64 - Invio notifiche manuali con campi modificabili da anteprima
+- In fase di invio o conferma senza invio vengono acquisiti direttamente tutti i campi destinatario e CC compilabili manualmente disponibili nell'anteprima.
+- La conferma browser resta obbligatoria e riepiloga i valori effettivamente presenti nei campi al momento del submit.
+- Rimosso dalla form il commento che richiamava l'aggiornamento dell'anteprima.
+- Documentazione aggiornata.
+
 0.2.1-63 - Validazione sintassi E-mail Destinatario negli incidenti
 - Il campo E-mail Destinatario viene validato sempre lato server nelle form di creazione e modifica incidente.
 - La stessa validazione è applicata ai Modelli incidente.

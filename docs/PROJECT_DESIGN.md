@@ -1625,3 +1625,7 @@ L’invio delle notifiche manuali verifica sempre la presenza di almeno un desti
 ### Aggiornamento 0.2.1-62 - Submit diretto dei destinatari manuali
 
 Il template `notification_preview.html` associa i campi manuali `manual_recipient` e `manual_cc` direttamente al form POST di invio/conferma. La funzione `resolve_template_notification_addresses()` dà priorità a questi valori quando il template consente la modifica manuale, poi usa i valori hidden/GET storici e infine la sorgente automatica del template. In questo modo l’operatore può digitare o sostituire destinatario/CC nella preview e premere subito “Conferma e invia” o “Conferma senza inviare”, mantenendo conferma browser e validazione server-side.
+
+## Aggiornamento 0.2.1-64 - Campi manuali acquisiti al submit notifiche
+
+Nelle notifiche manuali/non schedulate, la pagina di anteprima continua a mostrare i campi Destinatario e CC solo quando il template li rende modificabili. Al submit della form, sia per `send_mode=send` sia per `send_mode=confirm_without_send`, il client copia tutti i campi modificabili presenti nell’anteprima nei campi hidden del form di invio e il server dà priorità ai valori `manual_recipient` e `manual_cc` ricevuti nella POST. La validazione server-side resta autorevole: destinatario obbligatorio, formato e-mail valido e conferma esplicita tramite `recipient_confirmed=1`/`confirm_without_send_confirmed=1` dove applicabile. La form non richiede né suggerisce più il ricalcolo dell’anteprima per propagare i valori manuali.

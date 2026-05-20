@@ -30,7 +30,6 @@
       <div><label>Destinatario</label><input id="recipient-input" name="manual_recipient" form="notification-send-form" type="email" value="{{ recipient }}" list="external-recipients" {% if recipient_locked %}readonly{% else %}required{% endif %}></div>
       <div><label>CC</label><input id="cc-input" name="manual_cc" form="notification-send-form" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola" {% if cc_locked %}readonly{% endif %}></div>
       <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}" label="{{ r.name }}">{{ r.name }}</option>{% endfor %}</datalist>
-      <p class="muted wide">I valori inseriti manualmente vengono usati direttamente al momento dell’invio o della conferma senza invio; non è necessario aggiornare l’anteprima.</p>
     </div>
   {% endif %}
   <p><strong>Oggetto:</strong> {{ subject }}</p>
@@ -96,8 +95,11 @@
       const mode = event.submitter && event.submitter.name === 'send_mode' ? event.submitter.value : 'send';
       const recipientHidden = sendForm.querySelector('input[name="recipient"]');
       const ccHidden = sendForm.querySelector('input[name="cc"]');
-      if(recipientInput && recipientHidden && !recipientInput.readOnly) recipientHidden.value = recipientInput.value.trim();
-      if(ccInput && ccHidden && !ccInput.readOnly) ccHidden.value = ccInput.value.trim();
+      // Copia sempre nel form di invio tutti i campi modificabili presenti in anteprima.
+      // I campi manuali hanno comunque l'attributo form=notification-send-form,
+      // ma i campi hidden mantengono coerenti conferma, redirect e fallback server-side.
+      if(recipientInput && recipientHidden && !recipientInput.readOnly && !recipientInput.disabled) recipientHidden.value = recipientInput.value.trim();
+      if(ccInput && ccHidden && !ccInput.readOnly && !ccInput.disabled) ccHidden.value = ccInput.value.trim();
       const recipient = (recipientHidden?.value || '{{ recipient|e }}').trim();
       const cc = (ccHidden?.value || '{{ cc|e }}').trim();
       const recipientConfirmed = sendForm.querySelector('input[name="recipient_confirmed"]');
