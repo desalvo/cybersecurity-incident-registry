@@ -1,3 +1,9 @@
+
+0.2.1-57
+- Aggiunto campo “CC Utente” in Admin → Notifiche.
+- Le notifiche manuali agli utenti usano “CC Utente” come CC predefinito, modificabile o rimovibile in anteprima.
+- Aggiornata la documentazione progettuale e utente.
+
 0.2.1-55 - Operazioni previste aperte e sezioni destinazione
 - La sezione Operazioni previste del dettaglio incidente rimane aperta per default.
 - Il click su uno step workflow apre automaticamente la sezione di destinazione prima dello scorrimento.

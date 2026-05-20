@@ -110,6 +110,9 @@ The information is visible from **Info → Application** and can be configured t
 
 ## CSIRT/DPO notifications
 
+In **Admin → Notifications**, the **User CC** field defines the default CC value for manual user notifications. The value is pre-filled in the notification preview and can still be changed or cleared before sending or confirming without sending.
+
+
 The detail page of each incident includes a **Notifications** section with **Notify CSIRT** and **Notify DPO** buttons. A message preview is shown before sending. Sending uses the sender associated with the logged-in user, attaches the current incident PDF report and automatically adds an action to the incident with label:
 
 - `04-comunicazione allo CSIRT` for CSIRT;

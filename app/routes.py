@@ -5011,7 +5011,7 @@ def admin_status():
 @login_required
 def notification_settings():
     if not can_admin(): return redirect(url_for('main.index'))
-    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_poll_seconds','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
+    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','user_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_poll_seconds','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
     checkbox_keys = {'smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','notification_deadline_enabled','notification_deadline_email_enabled'}
     if request.method == 'POST':
         action = request.form.get('action', 'save')
@@ -5071,7 +5071,7 @@ def notification_settings():
                         set_setting_value(k, request.form.get(k, ''))
                 db.session.commit(); flash('Impostazioni notifiche salvate')
     defaults = {
-        'smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0',
+        'smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','user_cc':'',
         'notification_deadline_enabled':'0','notification_deadline_email_enabled':'1',
         'notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60',
         'notification_deadline_subject_template': default_deadline_subject_template(),
@@ -5196,7 +5196,15 @@ def notify_preview(iid, kind):
         recipient_locked = True
     else:
         recipient = request.args.get('recipient') or inc.creator_email or ''
-        cc = request.args.get('cc') or ''
+        # Per la notifica utente il CC parte dal valore predefinito configurato
+        # in Admin -> Notifiche, ma resta modificabile e rimovibile nella
+        # pagina di anteprima. Se il parametro cc è presente nella query, anche
+        # vuoto, prevale sulla configurazione per permettere all'operatore di
+        # cancellare il CC predefinito prima dell'invio.
+        if kind == 'user' and 'cc' not in request.args:
+            cc = setting_value('user_cc', '')
+        else:
+            cc = request.args.get('cc') or ''
         recipient_locked = False
     template_id = request.args.get('template_id', type=int)
     tmpl = get_notification_template(kind, template_id)
@@ -5252,7 +5260,12 @@ def notify_send(iid, kind):
             or request.form.get('to')
             or ''
         ).strip()
-        cc = (request.form.get('cc') or request.form.get('manual_cc') or '').strip()
+        cc = (request.form.get('cc') if request.form.get('cc') is not None else request.form.get('manual_cc') or '').strip()
+        # Compatibilità con form/template esterni: se la notifica utente viene
+        # inviata senza passare dalla preview e non arriva un campo CC, applica
+        # comunque il CC utente predefinito configurato nelle impostazioni.
+        if kind == 'user' and request.form.get('cc') is None and request.form.get('manual_cc') is None:
+            cc = setting_value('user_cc', '')
         if not recipient:
             flash('Specificare un destinatario per questa notifica.', 'error')
             return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))

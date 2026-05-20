@@ -158,6 +158,7 @@ Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%PERSONAL_
 Nelle label azioni, amministrate da **Admin → Liste configurabili**, sono disponibili il campo numerico **Tempo massimo (ore)**, espresso in ore e con default 0, e il campo **Esportabile per default**. Il valore 0 significa che per quella label non esiste alcun tempo massimo e la label non viene considerata nei promemoria. Se il valore è maggiore di zero, il sistema considera l’azione come attività da completare entro quel numero di ore a partire dalla prima azione di tipo **informazione iniziale** dell’incidente.
 
 Nelle impostazioni notifiche sono configurabili:
+- il campo **CC Utente**, usato come CC predefinito nelle notifiche manuali agli utenti e modificabile o rimovibile in anteprima;
 
 - abilitazione/disabilitazione dei promemoria automatici;
 - intervallo di controllo in ore e minuti;
