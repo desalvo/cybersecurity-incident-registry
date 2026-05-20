@@ -511,3 +511,6 @@ Incident forms and incident templates can load Reference, Recipient or Recipient
 
 ### Manual notification sending from preview
 Editable manual recipient and CC fields typed in the preview are read directly when the form is submitted, for both real delivery and confirmation without sending, after the usual operator confirmation.
+
+
+Manual notification CC precedence: when CC is editable and left empty in the preview, the empty manual value overrides any template default CC, so the email is sent without CC.

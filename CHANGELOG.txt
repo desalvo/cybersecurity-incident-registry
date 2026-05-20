@@ -1,3 +1,8 @@
+0.2.1-65 - Precedenza del CC manuale vuoto nelle notifiche
+- Quando il campo CC è compilabile manualmente in anteprima, il campo lasciato vuoto prevale sull’eventuale CC predefinito del template.
+- L’anteprima non inserisce automaticamente il CC di default nei campi modificabili, evitando invii con CC non confermati esplicitamente.
+- Documentazione aggiornata.
+
 0.2.1-64 - Invio notifiche manuali con campi modificabili da anteprima
 - In fase di invio o conferma senza invio vengono acquisiti direttamente tutti i campi destinatario e CC compilabili manualmente disponibili nell'anteprima.
 - La conferma browser resta obbligatoria e riepiloga i valori effettivamente presenti nei campi al momento del submit.
