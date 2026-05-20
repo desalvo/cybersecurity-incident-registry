@@ -503,7 +503,7 @@ Lo scheduler non calcola più gli intervalli a partire dall'avvio dell'applicazi
 
 Ogni incidente dispone ora della sezione **Promemoria specifici**, dalla quale gli utenti con permessi di scrittura possono programmare, modificare e cancellare promemoria non periodici con data e ora puntuali. Il messaggio è definito dall’utente, i destinatari principali sono automaticamente le persone associate all’incidente con indirizzo e-mail valorizzato ed è possibile indicare ulteriori indirizzi in CC.
 
-Lo scheduler invia tutti i promemoria specifici scaduti che non sono già marcati come inviati tramite `sent_at`. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti leggendo lo stato del promemoria, senza applicare il blocco per tipologia/intervallo usato dalle notifiche periodiche. Un claim tecnico temporaneo evita invii contemporanei dello stesso record, ma non impedisce l’invio di altri promemoria nello stesso periodo. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
+Lo scheduler invia tutti i promemoria specifici scaduti che non sono già marcati come inviati tramite `sent_at`. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti leggendo lo stato del promemoria, senza applicare il blocco per tipologia/intervallo usato dalle notifiche periodiche. La protezione anti-concorrenza non è più un criterio di salto: un ciclo concorrente attende/rivaluta il campo `sent_at`, senza considerare bloccante la presa in carico tecnica dello stesso record. Promemoria diversi nello stesso periodo non vengono soppressi. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
 
 Il full export/import include anche la tabella dei promemoria specifici e mantiene la cronologia audit degli invii automatici.
 
@@ -614,23 +614,23 @@ In **Admin → Flussi operativi incidenti** la descrizione dello step procedural
 
 ### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
 
-Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale e un claim temporaneo solo anti-concorrenza, così promemoria diversi nello stesso periodo non vengono soppressi.
+Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale; la concorrenza viene gestita con lock/rivalutazione del record, senza saltare l’invio perché il promemoria risulta preso in carico da un altro ciclo.
 
 ## Aggiornamento 0.2.1-40 - Audit degli incidenti saltati dallo scheduler notifiche
 
-Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, claim concorrenti, assenza destinatari/errori SMTP ed eccezioni.
+Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, assenza destinatari/errori SMTP, promemoria già marcati come inviati ed eccezioni.
 
 ## Aggiornamento 0.2.1-41 - Controllo manuale scadenze e promemoria specifici
 
 Il pulsante **Esegui controllo ora** nella sezione **Controllo scadenze azioni** riallinea preventivamente le sequence PostgreSQL e l'inserimento dei record audit gestisce subito eventuali collisioni `audit_log_pkey`. In questo modo il controllo manuale non fallisce più al commit quando il database proviene da import/restore o da sequence non allineate.
 
-Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. Il claim tecnico in `deadline_notification_state` resta solo una protezione temporanea contro invii contemporanei dello stesso record e non usa più slot/finestra di invio.
+Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. `deadline_notification_state` resta solo diagnostica; la protezione anti-concorrenza avviene sul record del promemoria e non introduce slot/finestra né un motivo di salto “già preso in carico”.
 
 ## Aggiornamento 0.2.1-42 - Controllo manuale promemoria specifici
 
 La pagina **Notifiche → Impostazioni** include alla fine una sezione **Controllo promemoria specifici** con il pulsante **Esegui controllo promemoria ora**. Il controllo manuale elabora subito i promemoria specifici dei singoli incidenti già scaduti e non ancora inviati, usando la stessa logica serializzata dello scheduler automatico.
 
-Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. Il claim tecnico in `deadline_notification_state` evita soltanto che due cicli concorrenti inviino contemporaneamente lo stesso promemoria.
+Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. La concorrenza viene risolta bloccando/rivalutando il record del promemoria: un ciclo concorrente non blocca funzionalmente l’invio, ma attende l’esito e poi vede `sent_at` valorizzato.
 
 Quando un promemoria viene saltato, sia dallo scheduler sia dal pulsante manuale, l'audit `scheduler:incident_reminder_skipped` riporta incidente, identificativo promemoria, data programmata, messaggio sintetico, destinatari/CC configurati, ultimo errore disponibile, sorgente del controllo, codice motivo e descrizione leggibile del motivo.
 ## Aggiornamento 0.2.1-43 - Correzione controllo promemoria specifici
@@ -642,6 +642,10 @@ Per i promemoria specifici resta invariata la regola funzionale: una mail viene 
 
 ### Aggiornamento notifiche e promemoria specifici
 
-Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i promemoria specifici saltati con identificativo, incidente, data programmata, messaggio sintetico e motivo. Per i promemoria specifici il blocco di invio resta basato solo su `sent_at`: gli stati tecnici dello scheduler servono soltanto a evitare invii concorrenti.
+Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i promemoria specifici saltati con identificativo, incidente, data programmata, messaggio sintetico e motivo. Per i promemoria specifici il blocco di invio resta basato solo su `sent_at`: gli stati tecnici dello scheduler sono solo diagnostici; l’eventuale concorrenza viene risolta rivalutando `sent_at` sul record del promemoria.
 
 La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinatari dell'invio delle notifiche per task in scadenza e mostra i destinatari effettivi anche per le notifiche già inviate di recente.
+
+### Aggiornamento 0.2.1-45 - Promemoria specifici senza blocco da presa in carico
+
+Per i promemoria specifici la presa in carico tecnica da parte di un altro ciclo scheduler o di un controllo manuale concorrente non è più un motivo di blocco. L'invio viene deciso solo dal campo `incident_reminder.sent_at`: se è vuoto il promemoria è inviabile, se è valorizzato è già considerato inviato. La concorrenza viene gestita rivalutando atomicamente il record del promemoria, mentre `deadline_notification_state` resta solo diagnostico e non usa slot o finestre.

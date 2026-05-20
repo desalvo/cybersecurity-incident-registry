@@ -1,3 +1,10 @@
+## 0.2.1-45
+- Rimossa la “presa in carico” tecnica come motivo bloccante per l'invio dei promemoria specifici.
+- I promemoria specifici vengono valutati solo tramite `incident_reminder.sent_at`: se è nullo sono inviabili, se è valorizzato sono già inviati.
+- La concorrenza viene gestita con lock/rivalutazione atomica del record `IncidentReminder`, senza usare slot o claim in `deadline_notification_state` come criterio di salto.
+- `deadline_notification_state` per i promemoria resta solo diagnostico per stato e riepiloghi amministrativi.
+- Documentazione aggiornata.
+
 ## 0.2.1-43
 - Corretto il controllo manuale dei promemoria specifici: gli audit non accedono più a un attributo inesistente `IncidentReminder.recipient_emails`.
 - Centralizzata la risoluzione dei destinatari dei promemoria specifici dal personale associato all’incidente, riutilizzata da invio e audit.

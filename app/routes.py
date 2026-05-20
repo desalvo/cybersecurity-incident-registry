@@ -4291,63 +4291,62 @@ def _audit_scheduler_notification_skip(operation_type, incident=None, incident_i
 
 
 def _claim_incident_reminder(reminder, source='scheduler'):
-    """Riserva temporaneamente un promemoria specifico prima dell'invio.
+    """Blocca atomicamente il record del promemoria e verifica solo ``sent_at``.
 
-    I promemoria puntuali non usano la deduplica per finestra/periodo delle
-    notifiche deadline: il criterio funzionale è solo ``IncidentReminder.sent_at``.
-    La tabella ``deadline_notification_state`` viene usata esclusivamente come
-    claim anti-concorrenza mentre l'SMTP è in corso. Se un claim tecnico resta
-    appeso per un crash, viene considerato scaduto e il promemoria può essere
-    ritentato finché non risulta marcato come inviato.
+    Per i promemoria specifici non esiste più un blocco funzionale basato su
+    claim, slot, finestra o "presa in carico". L'unica condizione che impedisce
+    l'invio è ``IncidentReminder.sent_at`` già valorizzato.
+
+    Su PostgreSQL viene acquisito un lock di riga sul promemoria: un eventuale
+    ciclo concorrente attende il completamento dell'invio in corso e poi
+    rivaluta ``sent_at``. In questo modo il promemoria viene spedito una sola
+    volta senza saltarlo perché risulta già preso in carico. La tabella
+    ``deadline_notification_state`` viene aggiornata solo come diagnostica e
+    non partecipa alla decisione di invio.
     """
-    if not reminder or not reminder.id or reminder.sent_at:
+    if not reminder or not reminder.id:
         return False
-    key = _incident_reminder_notification_key(reminder.id)
-    now = application_now()
-    claim_timeout = timedelta(minutes=10)
     try:
-        existing = DeadlineNotificationState.query.filter_by(notification_key=key).first()
-        if existing:
-            # Il promemoria è già inviato solo se lo dice la riga principale
-            # incident_reminder.sent_at. Lo stato scheduler non blocca il periodo:
-            # protegge soltanto da invii contemporanei.
-            if reminder.sent_at:
-                return False
-            details = existing.last_details or ''
-            updated_at = existing.updated_at or datetime.utcnow()
-            claim_age = datetime.utcnow() - updated_at
-            in_progress = details.startswith('promemoria in invio') and claim_age < claim_timeout
-            if in_progress:
-                return False
-            existing.notification_type = 'incident_reminder'
-            existing.incident_id = reminder.incident_id
-            existing.last_success_at = now
-            existing.last_schedule_slot = None
-            existing.last_recipients = ''
-            existing.last_details = f'promemoria in invio; sorgente {source}'
-            existing.send_count = 0
-            existing.updated_at = datetime.utcnow()
-            db.session.commit()
-            return True
-        state = DeadlineNotificationState(
-            notification_key=key,
-            notification_type='incident_reminder',
-            incident_id=reminder.incident_id,
-            last_success_at=now,
-            last_schedule_slot=None,
-            last_recipients='',
-            last_details=f'promemoria in invio; sorgente {source}',
-            send_count=0,
-        )
-        db.session.add(state)
-        db.session.commit()
+        locked = IncidentReminder.query.filter_by(id=reminder.id).with_for_update().first()
+        if not locked or locked.sent_at:
+            if locked and locked is not reminder:
+                reminder.sent_at = locked.sent_at
+            return False
+        # Stato puramente diagnostico: nessun errore o race su questa tabella
+        # deve bloccare l'invio del promemoria.
+        try:
+            key = _incident_reminder_notification_key(reminder.id)
+            state = DeadlineNotificationState.query.filter_by(notification_key=key).first()
+            if not state:
+                state = DeadlineNotificationState(
+                    notification_key=key,
+                    notification_type='incident_reminder',
+                    incident_id=reminder.incident_id,
+                    last_schedule_slot=None,
+                    send_count=0,
+                )
+                db.session.add(state)
+            state.notification_type = 'incident_reminder'
+            state.incident_id = reminder.incident_id
+            state.last_success_at = application_now()
+            state.last_schedule_slot = None
+            state.last_recipients = ''
+            state.last_details = f'promemoria in invio; sorgente {source}'
+            state.send_count = 0
+            state.updated_at = datetime.utcnow()
+            db.session.flush()
+        except IntegrityError:
+            db.session.rollback()
+            # Dopo rollback il lock è stato rilasciato: riacquisirlo e
+            # rivalutare soltanto sent_at, senza trattare il claim come blocco.
+            locked = IncidentReminder.query.filter_by(id=reminder.id).with_for_update().first()
+            return bool(locked and not locked.sent_at)
+        except Exception:
+            current_app.logger.exception('Aggiornamento diagnostico claim promemoria non completato per promemoria %s', getattr(reminder, 'id', '-'))
         return True
-    except IntegrityError:
-        db.session.rollback()
-        return False
     except Exception:
         db.session.rollback()
-        current_app.logger.exception('Claim promemoria incidente non completato per promemoria %s', getattr(reminder, 'id', '-'))
+        current_app.logger.exception('Lock promemoria incidente non completato per promemoria %s', getattr(reminder, 'id', '-'))
         return False
 
 def _record_incident_reminder_claim_result(reminder, ok, info=''):
@@ -4394,15 +4393,26 @@ def process_due_incident_reminders(source='background_scheduler'):
             )
             continue
         if not _claim_incident_reminder(reminder, source=source):
+            # Il lock di riga non è un criterio di salto: se qui arriviamo, il
+            # promemoria non è inviabile solo perché risulta già marcato come
+            # inviato dopo la rivalutazione atomica di sent_at oppure per un
+            # errore tecnico di lock. Non viene mai riportato come “preso in
+            # carico” da un altro ciclo.
             skipped += 1
-            reason_text = 'promemoria già preso in carico da un altro ciclo scheduler o invio concorrente'
+            if reminder.sent_at:
+                reason_code = 'already_sent'
+                reason_text = 'promemoria già marcato come inviato tramite sent_at'
+            else:
+                reason_code = 'lock_error'
+                reason_text = 'impossibile acquisire il lock tecnico del promemoria'
+                errors.append(f'Promemoria {reminder.id}: {reason_text}')
             skipped_details.append(_reminder_skip_label(reminder, reason_text))
             _audit_scheduler_notification_skip(
                 'scheduler:incident_reminder_skipped',
                 incident=reminder.incident,
                 incident_id=reminder.incident_id,
                 **_reminder_audit_details(reminder),
-                reason_code='claim_not_acquired',
+                reason_code=reason_code,
                 reason=reason_text,
                 source=source,
             )

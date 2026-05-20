@@ -448,3 +448,7 @@ The functional rule for one-off reminders is unchanged: a mail is blocked only w
 The **Run reminder check now** button now reports skipped incident reminders, including reminder id, incident, scheduled time, short message and reason. For incident-specific reminders the send block remains based only on `sent_at`; scheduler technical states are used only to prevent concurrent sends.
 
 The **Upcoming scheduled notifications** section now uses the same recipient resolution as deadline-task email delivery and displays the effective recipients for recently sent notifications as well.
+
+### Update 0.2.1-45 - Specific reminders are not blocked by technical claims
+
+For incident-specific reminders, a technical claim held by another scheduler cycle or by a concurrent manual check is no longer a functional blocking reason. Delivery is decided only by `incident_reminder.sent_at`: when it is empty the reminder can be sent, when it is set the reminder is already considered sent. Concurrency is handled by atomically rechecking the reminder record, while `deadline_notification_state` remains diagnostic only and does not use slots or windows.
