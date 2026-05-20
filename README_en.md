@@ -497,3 +497,10 @@ The incident detail page is organised into collapsible sections. The main sectio
 
 
 Document notification tags can be associated or removed through the drag-and-drop palette in the incident detail Documents section; selected tags are saved explicitly and used to preselect attachments in manual notifications.
+
+
+### Manual notification recipients update
+- Default To/CC configuration for manual notifications has moved to each notification template.
+- Each template can use the notification type default, the incident recipient e-mail, the incident creator e-mail, a fixed value, or an empty/manual field.
+- Each template can decide whether To/CC are editable at send time and whether the external recipient directory is available.
+- Incident General Data and Incident Models now include the “Recipient e-mail” field, which can be used as the default manual notification recipient.

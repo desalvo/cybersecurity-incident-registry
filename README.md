@@ -158,7 +158,6 @@ Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%PERSONAL_
 Nelle label azioni, amministrate da **Admin → Liste configurabili**, sono disponibili il campo numerico **Tempo massimo (ore)**, espresso in ore e con default 0, e il campo **Esportabile per default**. Il valore 0 significa che per quella label non esiste alcun tempo massimo e la label non viene considerata nei promemoria. Se il valore è maggiore di zero, il sistema considera l’azione come attività da completare entro quel numero di ore a partire dalla prima azione di tipo **informazione iniziale** dell’incidente.
 
 Nelle impostazioni notifiche sono configurabili:
-- il campo **CC Utente**, usato come CC predefinito nelle notifiche manuali agli utenti e modificabile o rimovibile in anteprima;
 
 - abilitazione/disabilitazione dei promemoria automatici;
 - intervallo di controllo in ore e minuti;
@@ -689,3 +688,10 @@ Il thread dei task in scadenza e il thread dei promemoria specifici mantengono l
 ### Dettaglio incidente collassabile
 
 La pagina del singolo incidente è organizzata in sezioni collassabili. La sezione principale è denominata **Dati Generali**; le altre sezioni, incluse azioni, promemoria, documenti, generazione moduli e notifiche, possono essere aperte singolarmente per ridurre l’ingombro visivo della pagina. La sezione **Operazioni previste** rimane aperta per default perché guida il lavoro operativo; quando si clicca uno step del flusso, la sezione di destinazione, ad esempio **Azioni** o **Generazione moduli**, viene aperta automaticamente prima dello scorrimento.
+
+
+### Aggiornamento notifiche manuali e destinatari
+- La configurazione di destinatario e CC predefiniti delle notifiche manuali è stata spostata nei singoli template di notifica.
+- Ogni template può scegliere la sorgente del destinatario/CC: default del tipo notifica, e-mail del Destinatario dell’incidente, e-mail del compilatore, valore fisso o campo vuoto/manuale.
+- Per ogni template è possibile rendere destinatario e CC modificabili in anteprima e abilitare l’uso della rubrica dei destinatari esterni.
+- Nei Dati Generali degli incidenti e nei Modelli incidente è disponibile il campo “E-mail Destinatario”, utilizzabile come destinatario predefinito dalle notifiche manuali.

@@ -14,7 +14,7 @@
     <div class="wide"><label>Descrizione modello</label><textarea name="template_description">{{t.description if t else ''}}</textarea></div>
     <div class="wide"><label>Nome incidente predefinito</label><input name="incident_name" value="{{t.incident_name if t else ''}}"></div>
     <div><label>Riferimento</label><input name="reference" value="{{t.reference if t and t.reference else ''}}"></div>
-    <div><label>Destinatario</label><input name="recipient" value="{{t.recipient if t and t.recipient else ''}}"></div>
+    <div><label>Destinatario</label><input name="recipient" value="{{t.recipient if t and t.recipient else ''}}"></div><div><label>E-mail Destinatario</label><input name="recipient_email" type="email" value="{{t.recipient_email if t and t.recipient_email else ''}}"></div>
     <div class="wide"><label>Descrizione incidente</label><textarea name="incident_description">{{t.incident_description if t else ''}}</textarea></div>
     <div><label>Gravità</label><select name="severity_id"><option value="">-</option>{% for l in severities %}<option value="{{l.id}}" {% if t and t.severity_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select></div>
     <div><label>Stato</label><select name="status">{% for st in ['aperto','in lavorazione','chiuso'] %}<option {% if t and t.status==st %}selected{% endif %}>{{st}}</option>{% endfor %}</select></div>

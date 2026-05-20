@@ -100,7 +100,7 @@ class Recommendation(db.Model):
     created_at=db.Column(db.DateTime,default=datetime.utcnow)
 
 class Incident(db.Model):
-    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); recipient_email=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=datetime.utcnow)
 
     @property
     def start_at(self):
@@ -168,6 +168,7 @@ class IncidentTemplate(db.Model):
     incident_name=db.Column(db.String(255),default='')
     reference=db.Column(db.String(255),nullable=True)
     recipient=db.Column(db.String(255),nullable=True)
+    recipient_email=db.Column(db.String(255),nullable=True)
     incident_description=db.Column(db.Text,default='')
     severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True)
     personal_data=db.Column(db.Boolean,default=False,nullable=False)
@@ -312,6 +313,14 @@ class NotificationTemplate(db.Model):
     linked_form_template_name=db.Column(db.String(255),nullable=True,index=True)
     action_label_id=db.Column(db.Integer,db.ForeignKey('config_label.id'),nullable=True)
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
+    recipient_source=db.Column(db.String(40),default='type_default',nullable=False)
+    recipient_value=db.Column(db.String(255),default='')
+    recipient_editable=db.Column(db.Boolean,default=True,nullable=False)
+    recipient_external_allowed=db.Column(db.Boolean,default=True,nullable=False)
+    cc_source=db.Column(db.String(40),default='type_default',nullable=False)
+    cc_value=db.Column(db.String(255),default='')
+    cc_editable=db.Column(db.Boolean,default=True,nullable=False)
+    cc_external_allowed=db.Column(db.Boolean,default=True,nullable=False)
 
     is_default=db.Column(db.Boolean,default=False)
     created_at=db.Column(db.DateTime,default=datetime.utcnow)

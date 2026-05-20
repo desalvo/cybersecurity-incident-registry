@@ -11,6 +11,7 @@
 </div>
 
 {% if adding or editing %}
+{% set t = editing %}
 <div class="card">
   <h3>{% if adding %}Nuovo template{% else %}Modifica template{% endif %}</h3>
   <form method="post" class="form-grid">
@@ -24,12 +25,37 @@
       </select>
     </div>
     {% endif %}
-    <div><label>Nome template</label><input name="name" required value="{{ editing.name if editing else '' }}" placeholder="Nome template"></div>
-    <div><label><input type="checkbox" name="is_default" {% if editing and editing.is_default %}checked{% endif %}> Predefinito</label></div>
-    <div class="wide"><label>Template modulo associato ai documenti</label><select name="linked_form_template_name"><option value="">Nessuno</option>{% for ft in form_templates %}<option value="{{ ft.name }}" {% if editing and editing.linked_form_template_name==ft.name %}selected{% endif %}>{{ ft.name }}</option>{% endfor %}</select><p class="muted">Opzionale: quando questo template viene usato da un incidente, i documenti generati con il template modulo associato vengono preselezionati come allegati.</p></div>
-    <div class="wide"><label>Label azione automatica</label><select name="action_label_id"><option value="">Nessuna / default</option>{% for l in action_labels %}<option value="{{ l.id }}" {% if editing and editing.action_label_id==l.id %}selected{% endif %}>{{ l.value }}</option>{% endfor %}</select><p class="muted">Dopo l’invio della notifica sarà aggiunta automaticamente un’azione con questa label.</p></div>
-    <div class="wide"><label>Oggetto</label><input name="subject" value="{{ editing.subject if editing else '' }}" placeholder="Oggetto della mail"></div>
-    <div class="wide"><label>Testo della mail</label><textarea name="body" rows="14" placeholder="Testo del template">{{ editing.body if editing else '' }}</textarea></div>
+    <div><label>Nome template</label><input name="name" required value="{{ t.name if t else '' }}" placeholder="Nome template"></div>
+    <div><label><input type="checkbox" name="is_default" {% if t and t.is_default %}checked{% endif %}> Predefinito</label></div>
+    <div class="wide"><label>Template modulo associato ai documenti</label><select name="linked_form_template_name"><option value="">Nessuno</option>{% for ft in form_templates %}<option value="{{ ft.name }}" {% if t and t.linked_form_template_name==ft.name %}selected{% endif %}>{{ ft.name }}</option>{% endfor %}</select><p class="muted">Opzionale: quando questo template viene usato da un incidente, i documenti generati con il template modulo associato vengono preselezionati come allegati.</p></div>
+    <div class="wide"><label>Label azione automatica</label><select name="action_label_id"><option value="">Nessuna / default</option>{% for l in action_labels %}<option value="{{ l.id }}" {% if t and t.action_label_id==l.id %}selected{% endif %}>{{ l.value }}</option>{% endfor %}</select><p class="muted">Dopo l’invio o la conferma senza invio della notifica sarà aggiunta automaticamente un’azione con questa label.</p></div>
+
+    <fieldset class="wide"><legend>Destinatario e CC automatici</legend>
+      <div class="form-grid">
+        <div>
+          <label>Destinatario predefinito</label>
+          <select name="recipient_source">
+            {% for code, label in address_sources %}<option value="{{ code }}" {% if (t and t.recipient_source==code) or ((not t) and code=='type_default') %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><label>Valore destinatario fisso</label><input name="recipient_value" value="{{ t.recipient_value if t else '' }}" placeholder="usato solo con valore fisso"></div>
+        <div><label><input type="checkbox" name="recipient_editable" {% if not t or t.recipient_editable %}checked{% endif %}> Destinatario modificabile in fase di invio</label></div>
+        <div><label><input type="checkbox" name="recipient_external_allowed" {% if not t or t.recipient_external_allowed %}checked{% endif %}> Consenti rubrica destinatari esterni per destinatario</label></div>
+        <div>
+          <label>CC predefinito</label>
+          <select name="cc_source">
+            {% for code, label in address_sources %}<option value="{{ code }}" {% if (t and t.cc_source==code) or ((not t) and code=='type_default') %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><label>Valore CC fisso</label><input name="cc_value" value="{{ t.cc_value if t else '' }}" placeholder="uno o più indirizzi separati da virgola"></div>
+        <div><label><input type="checkbox" name="cc_editable" {% if not t or t.cc_editable %}checked{% endif %}> CC modificabile in fase di invio</label></div>
+        <div><label><input type="checkbox" name="cc_external_allowed" {% if not t or t.cc_external_allowed %}checked{% endif %}> Consenti rubrica destinatari esterni per CC</label></div>
+      </div>
+      <p class="muted">La sorgente “E-mail del Destinatario dell’incidente” usa il nuovo campo nella sezione Dati Generali. Se il campo è modificabile, l’operatore può sovrascriverlo in anteprima e selezionare indirizzi dalla rubrica esterna quando abilitata.</p>
+    </fieldset>
+
+    <div class="wide"><label>Oggetto</label><input name="subject" value="{{ t.subject if t else '' }}" placeholder="Oggetto della mail"></div>
+    <div class="wide"><label>Testo della mail</label><textarea name="body" rows="14" placeholder="Testo del template">{{ t.body if t else '' }}</textarea></div>
     <button type="submit">{{ 'Aggiungi template' if adding else 'Salva modifiche' }}</button>
     {% if editing %}<a class="button secondary" href="{{ url_for('main.notification_template', kind=kind) }}">Annulla modifica</a>{% endif %}
   </form>
@@ -41,11 +67,13 @@
   <h3>Template configurati</h3>
   <p><a class="button" href="{{ url_for('main.notification_template_new', kind=kind) }}">Aggiungi template {{ title }}</a></p>
   <table class="table">
-    <tr><th>Nome</th><th>Oggetto</th><th>Template modulo associato</th><th>Label azione</th><th>Predefinito</th><th>Azioni</th></tr>
+    <tr><th>Nome</th><th>Oggetto</th><th>Destinatario</th><th>CC</th><th>Template modulo associato</th><th>Label azione</th><th>Predefinito</th><th>Azioni</th></tr>
     {% for t in templates %}
     <tr>
       <td>{{ t.name }}</td>
       <td>{{ t.subject }}</td>
+      <td>{{ t.recipient_source }}{% if t.recipient_editable %} <span class="muted">(modificabile)</span>{% endif %}</td>
+      <td>{{ t.cc_source }}{% if t.cc_editable %} <span class="muted">(modificabile)</span>{% endif %}</td>
       <td>{{ t.linked_form_template_name or 'nessuno' }}</td>
       <td>{{ t.action_label.value if t.action_label else 'default' }}</td>
       <td>{{ 'sì' if t.is_default else 'no' }}</td>

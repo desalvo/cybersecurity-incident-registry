@@ -151,6 +151,10 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident ADD COLUMN recipient VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident.recipient added')
+            if 'recipient_email' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident ADD COLUMN recipient_email VARCHAR(255)'))
+                app.logger.info('Schema migration applied: incident.recipient_email added')
             if 'reference' in cols or 'reference' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
@@ -350,6 +354,13 @@ def run_schema_migrations(app):
                     conn.execute(text("UPDATE incident_workflow_step SET conditions = 'personal_data' WHERE personal_data_only = TRUE AND (conditions IS NULL OR conditions = '')"))
                     conn.execute(text("UPDATE incident_workflow_step SET conditions = '' WHERE conditions IS NULL"))
 
+        if 'incident_template' in tables:
+            cols = {c['name'] for c in inspector.get_columns('incident_template')}
+            if 'recipient_email' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_template ADD COLUMN recipient_email VARCHAR(255)'))
+                app.logger.info('Schema migration applied: incident_template.recipient_email added')
+
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}
             if 'action_label_id' not in cols:
@@ -360,6 +371,25 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE notification_template ADD COLUMN linked_form_template_name VARCHAR(255)'))
                 app.logger.info('Schema migration applied: notification_template.linked_form_template_name added')
+            template_cols = {c['name'] for c in inspector.get_columns('notification_template')}
+            notification_template_new_cols = {
+                'recipient_source': "VARCHAR(40) DEFAULT 'type_default' NOT NULL",
+                'recipient_value': "VARCHAR(255) DEFAULT ''",
+                'recipient_editable': 'BOOLEAN DEFAULT TRUE NOT NULL',
+                'recipient_external_allowed': 'BOOLEAN DEFAULT TRUE NOT NULL',
+                'cc_source': "VARCHAR(40) DEFAULT 'type_default' NOT NULL",
+                'cc_value': "VARCHAR(255) DEFAULT ''",
+                'cc_editable': 'BOOLEAN DEFAULT TRUE NOT NULL',
+                'cc_external_allowed': 'BOOLEAN DEFAULT TRUE NOT NULL',
+            }
+            for col_name, col_type in notification_template_new_cols.items():
+                if col_name not in template_cols:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f'ALTER TABLE notification_template ADD COLUMN {col_name} {col_type}'))
+                    app.logger.info('Schema migration applied: notification_template.%s added', col_name)
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE notification_template SET recipient_source = 'type_default' WHERE recipient_source IS NULL OR recipient_source = ''"))
+                conn.execute(text("UPDATE notification_template SET cc_source = 'type_default' WHERE cc_source IS NULL OR cc_source = ''"))
         if 'document' in tables:
             cols = {c['name'] for c in inspector.get_columns('document')}
             if 'generated_template_name' not in cols:

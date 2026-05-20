@@ -7,13 +7,14 @@
   </form>
   <p><strong>Mittente:</strong> {{ sender or 'mittente SMTP predefinito / username SMTP / fallback admin@localhost.localdomain' }}</p>
   {% if admin_send_blocked %}<p class="error"><strong>Invio bloccato:</strong> l’utente admin non può inviare notifiche dalla pagina degli incidenti. Accedere con un altro utente autorizzato.</p>{% endif %}
-  {% if recipient_locked %}
-    <p><strong>Destinatario:</strong> {{ recipient or 'non configurato nelle impostazioni' }}</p>
+  {% if not address_editable %}
+    <p><strong>Destinatario:</strong> {{ recipient or 'non configurato dal template' }}</p>
     <p><strong>CC:</strong> {{ cc or 'nessuno' }}</p>
-    {% if not recipient %}<p class="error">Destinatario non configurato nelle impostazioni: invio non disponibile.</p>{% endif %}
+    {% if not recipient %}<p class="error">Destinatario non configurato dal template o dall’incidente: invio non disponibile.</p>{% endif %}
   {% else %}
     <form method="get" class="form-grid notification-recipient-form">
       <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
+      {% if external_recipients %}
       <div class="wide">
         <label>Rubrica destinatari esterni</label>
         <div class="inline-actions">
@@ -21,13 +22,14 @@
             <option value="">Seleziona un destinatario dalla rubrica...</option>
             {% for r in external_recipients %}<option value="{{ r.email }}" data-name="{{ r.name }}">{{ r.name }} &lt;{{ r.email }}&gt;</option>{% endfor %}
           </select>
-          <button type="button" class="secondary" id="use-recipient-picker">Usa come destinatario</button>
-          <button type="button" class="secondary" id="use-cc-picker">Aggiungi in CC</button>
+          {% if not recipient_locked and template.recipient_external_allowed %}<button type="button" class="secondary" id="use-recipient-picker">Usa come destinatario</button>{% endif %}
+          {% if not cc_locked and template.cc_external_allowed %}<button type="button" class="secondary" id="use-cc-picker">Aggiungi in CC</button>{% endif %}
         </div>
-        <p class="muted">Per i destinatari liberi puoi scegliere nome ed e-mail dalla rubrica oppure digitare un nuovo indirizzo. Gli indirizzi nuovi verranno aggiunti automaticamente alla rubrica usando il Riferimento dell’incidente come nome del destinatario.</p>
+        <p class="muted">Gli indirizzi nuovi digitati nei campi modificabili vengono aggiunti automaticamente alla rubrica usando il Riferimento dell’incidente come nome predefinito.</p>
       </div>
-      <div><label>Destinatario</label><input id="recipient-input" name="recipient" type="email" value="{{ recipient }}" list="external-recipients" required></div>
-      <div><label>CC</label><input id="cc-input" name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola"></div>
+      {% endif %}
+      <div><label>Destinatario</label><input id="recipient-input" name="recipient" type="email" value="{{ recipient }}" list="external-recipients" {% if recipient_locked %}readonly{% else %}required{% endif %}></div>
+      <div><label>CC</label><input id="cc-input" name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola" {% if cc_locked %}readonly{% endif %}></div>
       <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}" label="{{ r.name }}">{{ r.name }}</option>{% endfor %}</datalist>
       <button type="submit">Aggiorna anteprima</button>
     </form>
@@ -41,14 +43,16 @@
   <form method="post" action="{{ url_for('main.notify_send', iid=inc.id, kind=kind) }}" class="button-row notification-send-form">
     <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
     <input type="hidden" name="confirm_without_send_confirmed" value="0">
-    {% if not recipient_locked %}
-      <input type="hidden" name="recipient" value="{{ recipient }}">
-      <input type="hidden" name="cc" value="{{ cc }}">
+    <input type="hidden" name="recipient" value="{{ recipient }}">
+    <input type="hidden" name="cc" value="{{ cc }}">
+    {% if address_editable %}
       <input type="hidden" name="recipient_confirmed" value="0">
       <div class="wide notification-recipient-confirmation">
-        <p class="warning"><strong>Conferma destinatario richiesta:</strong> prima dell’invio verifica il destinatario libero indicato per questa notifica.</p>
+        <p class="warning"><strong>Conferma destinatario richiesta:</strong> prima dell’invio verifica destinatario e CC indicati per questa notifica.</p>
         <p><strong>Destinatario da confermare:</strong> {{ recipient or 'non indicato' }}{% if cc %}<br><strong>CC:</strong> {{ cc }}{% endif %}</p>
       </div>
+    {% else %}
+      <input type="hidden" name="recipient_confirmed" value="1">
     {% endif %}
     {% if inc.documents %}
       <fieldset>
@@ -66,8 +70,8 @@
     {% elif linked_template_missing_warning %}
       <p class="warning">Non è presente un documento generato dal template associato: la notifica può essere inviata senza allegati documentali.</p>
     {% endif %}
-    <button type="submit" name="send_mode" value="send" {% if admin_send_blocked or (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma e invia</button>
-    <button type="submit" name="send_mode" value="confirm_without_send" class="secondary" {% if (needs_documents and not inc.documents) or (recipient_locked and not recipient) or ((not recipient_locked) and not recipient) %}disabled{% endif %}>Conferma senza inviare</button>
+    <button type="submit" name="send_mode" value="send" {% if admin_send_blocked or (needs_documents and not inc.documents) or not recipient %}disabled{% endif %}>Conferma e invia</button>
+    <button type="submit" name="send_mode" value="confirm_without_send" class="secondary" {% if (needs_documents and not inc.documents) or not recipient %}disabled{% endif %}>Conferma senza inviare</button>
     <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
   </form>
 </div>

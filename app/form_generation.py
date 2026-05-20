@@ -217,6 +217,7 @@ def available_incident_fields() -> List[Tuple[str, str]]:
         ('name', 'Nome incidente'),
         ('reference', 'Riferimento'),
         ('recipient', 'Destinatario comunicazioni data breach'),
+        ('recipient_email', 'E-mail Destinatario'),
         ('description', 'Descrizione'),
         ('severity', 'Gravità'),
         ('personal_data', 'Dati personali'),
@@ -274,6 +275,7 @@ def incident_value(inc: Incident, field_name: str) -> str:
     if field_name == 'name': return inc.name or ''
     if field_name == 'reference': return inc.reference or ''
     if field_name == 'recipient': return inc.recipient or inc.reference or ''
+    if field_name == 'recipient_email': return getattr(inc, 'recipient_email', '') or ''
     if field_name == 'description': return inc.description or ''
     if field_name == 'severity': return inc.severity.value if inc.severity else ''
     if field_name == 'personal_data': return 'Sono presenti dati personali coinvolti.' if inc.personal_data else 'Non risultano dati personali coinvolti.'

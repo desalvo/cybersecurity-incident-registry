@@ -1,4 +1,11 @@
 
+0.2.1-58
+- Spostata nei template di notifica manuale la configurazione di destinatario e CC automatici.
+- Aggiunta configurazione per rendere destinatario/CC modificabili in anteprima e utilizzabili con la rubrica esterna.
+- Aggiunto campo E-mail Destinatario a incidenti e modelli incidente.
+- Aggiornata la documentazione progettuale.
+
+
 0.2.1-57
 - Aggiunto campo “CC Utente” in Admin → Notifiche.
 - Le notifiche manuali agli utenti usano “CC Utente” come CC predefinito, modificabile o rimovibile in anteprima.
