@@ -5863,6 +5863,110 @@ def _add_path_to_tar(archive, src, arc_prefix):
 
 
 
+
+def _safe_relative_file_entries(base_path, archive_prefix):
+    """Restituisce i file di una directory persistente in forma ripristinabile.
+
+    Il full export deve poter ricostruire anche eventuali file operativi non piu
+    referenziati direttamente da record specifici, per esempio template caricati,
+    loghi, allegati generati o residui necessari alla diagnostica. I percorsi
+    relativi vengono normalizzati e non possono uscire dalla directory base.
+    """
+    base = Path(base_path or '')
+    entries = []
+    if not base.exists() or not base.is_dir():
+        return entries
+    for item in sorted(base.rglob('*'), key=lambda x: str(x).lower()):
+        if not item.is_file():
+            continue
+        try:
+            rel = item.relative_to(base)
+        except ValueError:
+            continue
+        if rel.is_absolute() or '..' in rel.parts:
+            continue
+        rel_text = str(rel).replace('\\', '/')
+        entries.append({
+            'relative_path': rel_text,
+            'archive_path': f'{archive_prefix}/{rel_text}',
+            'size': item.stat().st_size,
+        })
+    return entries
+
+def _full_export_persistent_file_manifest():
+    """Snapshot completo dei volumi persistenti operativi dell'applicazione."""
+    groups = {
+        'uploads': current_app.config.get('UPLOAD_DIR'),
+        'form_templates': current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates',
+        'custom_logos': current_app.config.get('LOGO_DIR') or '/data/logo',
+        'sso_logos': str(sso_logo_storage_dir()),
+        'ssl': str(ssl_storage_dir()),
+    }
+    return {
+        name: _safe_relative_file_entries(path, f'files/persistent/{name}')
+        for name, path in groups.items()
+    }
+
+def _add_persistent_files_to_archive(archive, persistent_manifest):
+    base_paths = {
+        'uploads': current_app.config.get('UPLOAD_DIR'),
+        'form_templates': current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates',
+        'custom_logos': current_app.config.get('LOGO_DIR') or '/data/logo',
+        'sso_logos': str(sso_logo_storage_dir()),
+        'ssl': str(ssl_storage_dir()),
+    }
+    added = set()
+    for group, files in (persistent_manifest or {}).items():
+        base = Path(base_paths.get(group) or '')
+        if not base.exists():
+            continue
+        for item in files or []:
+            rel = Path(item.get('relative_path') or '')
+            arcname = item.get('archive_path') or ''
+            if not arcname or rel.is_absolute() or '..' in rel.parts:
+                continue
+            src = base / rel
+            if src.exists() and src.is_file() and arcname not in added:
+                archive.add(str(src), arcname=arcname)
+                added.add(arcname)
+
+def _restore_persistent_files_from_archive(archive, persistent_manifest):
+    base_paths = {
+        'uploads': current_app.config.get('UPLOAD_DIR'),
+        'form_templates': current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates',
+        'custom_logos': current_app.config.get('LOGO_DIR') or '/data/logo',
+        'sso_logos': str(sso_logo_storage_dir()),
+        'ssl': str(ssl_storage_dir()),
+    }
+    restored = 0
+    for group, files in (persistent_manifest or {}).items():
+        base = Path(base_paths.get(group) or '')
+        if not base:
+            continue
+        base.mkdir(parents=True, exist_ok=True)
+        for item in files or []:
+            rel = Path(item.get('relative_path') or '')
+            arcname = item.get('archive_path') or ''
+            if not arcname or rel.is_absolute() or '..' in rel.parts:
+                current_app.logger.warning('File persistente ignorato per path non sicuro: %s', rel)
+                continue
+            try:
+                src = archive.extractfile(archive.getmember(arcname))
+            except KeyError:
+                current_app.logger.warning('File persistente indicato nel manifest ma mancante: %s', arcname)
+                continue
+            dst = base / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            with open(dst, 'wb') as out:
+                shutil.copyfileobj(src, out)
+            if group == 'ssl' and dst.name.endswith('.key'):
+                try:
+                    os.chmod(dst, 0o600)
+                except OSError:
+                    pass
+            restored += 1
+    return restored
+
 def build_full_export_archive_for_backup(prefix='cir-full-backup'):
     fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
     os.close(fd)
@@ -5879,8 +5983,10 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
             'action_attachments': [{'attachment_id': a.id, 'filename': a.filename, 'stored_name': a.stored_name, 'archive_path': f'files/action_attachments/{a.stored_name}'} for a in ActionAttachment.query.order_by(ActionAttachment.id).all() if a.stored_name],
             'logo': None, 'application_logos': [], 'ssl_certificates': {}, 'sso_logos': [],
             'form_templates': [{'name': t.path.name, 'template_name': t.path.stem, 'archive_path': f'files/form_templates/{t.path.name}', 'fields': list(getattr(t, 'fields', []) or []), 'source': 'pdf_acroform'} for t in list_templates() if t.path and t.path.exists() and t.path.suffix.lower() == '.pdf'],
+            'persistent_files': {},
         },
     }
+    payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
     logo_setting = Setting.query.get('logo_path')
     if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
         payload['files']['logo'] = {'path': logo_setting.value, 'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'}
@@ -5918,6 +6024,7 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
         for tmpl in payload['files'].get('form_templates', []):
             src = os.path.join(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', tmpl['name'])
             if os.path.exists(src): archive.add(src, arcname=tmpl['archive_path'])
+        _add_persistent_files_to_archive(archive, payload['files'].get('persistent_files', {}))
     return path
 
 def build_backup_archive(categories, prefix='cir-backup'):
@@ -6280,7 +6387,7 @@ def _export_schema_payload():
     schema['_coverage'] = {
         'database_tables': sorted(FULL_EXPORT_TABLES.keys()),
         'relation_tables': sorted(FULL_EXPORT_RELATION_TABLES.keys()),
-        'file_groups': ['documents', 'action_attachments', 'form_templates', 'custom_logo', 'application_logos', 'ssl_certificates'],
+        'file_groups': ['documents', 'action_attachments', 'form_templates', 'custom_logo', 'application_logos', 'sso_logos', 'ssl_certificates', 'persistent_files'],
     }
     return schema
 
@@ -6425,8 +6532,10 @@ def export_full():
                 for path in [tmpl.path]
                 if path and path.exists() and path.suffix.lower() == '.pdf'
             ],
+            'persistent_files': {},
         },
     }
+    payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
 
     logo_setting = Setting.query.get('logo_path')
     if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
@@ -6514,6 +6623,7 @@ def export_full():
                     info = tarfile.TarInfo(tmpl['archive_path'])
                     info.size = len(row.pdf_data)
                     archive.addfile(info, io.BytesIO(row.pdf_data))
+        _add_persistent_files_to_archive(archive, payload['files'].get('persistent_files', {}))
 
     return send_file(path, download_name=f'export-completo-{datetime.utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
 
@@ -6784,6 +6894,8 @@ def import_full():
                         continue
                     with open(os.path.join(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', name), 'wb') as out:
                         shutil.copyfileobj(src, out)
+
+                _restore_persistent_files_from_archive(archive, data.get('files', {}).get('persistent_files', {}))
 
             # Garantisce che anche gli archivi storici precedenti alla regola del campo obbligatorio
             # producano incidenti sempre completi dopo il Full import.

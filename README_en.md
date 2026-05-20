@@ -522,3 +522,10 @@ Editable manual recipient and CC fields typed in the preview are read directly w
 
 
 Manual notification CC precedence: when CC is editable and left empty in the preview, the empty manual value overrides any template default CC, so the email is sent without CC. The CC can also be disabled explicitly through the preview checkbox; in that case it is hidden and ignored for real sending and confirmation without sending.
+
+
+### Self-contained full export
+
+The full export contains the complete application state required to reproduce the current installation: JSON dump of all application tables, many-to-many relations, settings, users, roles, MFA, audit logs, notifications, incident models, notification templates, reminders, scheduler state, documents, action attachments, PDF form templates, logos, SSL certificates uploaded by the application, and a snapshot of the operational persistent volumes.
+
+The `export.json` manifest includes `files.persistent_files`, covering files under `uploads`, `form_templates`, `custom_logos`, `sso_logos`, and `ssl`. This makes the archive restorable even when an operational file is not directly referenced by a single database record. Full import recreates the database and restores the files into the corresponding application directories.

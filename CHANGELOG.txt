@@ -1003,3 +1003,8 @@ Notification menu and SMTP sender fix
 - La classe hidden dei tag documento ora prevale sulle regole globali di allineamento checkbox.
 - Il JavaScript aggiorna anche l'attributo hidden durante aggiunta/rimozione dei tag, rendendo stabile il salvataggio.
 - Documentazione aggiornata.
+
+2026-05-20 - Full export autosufficiente
+- Full export esteso con snapshot completo dei volumi persistenti operativi: upload/documenti, template moduli PDF, loghi custom, loghi SSO e certificati SSL.
+- Il manifest `export.json` include ora `files.persistent_files` e `schema._coverage.file_groups` dichiara anche `persistent_files`.
+- Il full import ripristina anche i file persistenti non direttamente referenziati da singoli record, mantenendo comunque il dump completo del database e delle relazioni.

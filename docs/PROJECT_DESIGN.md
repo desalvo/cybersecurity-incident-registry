@@ -1642,3 +1642,10 @@ Nelle notifiche manuali, quando il template consente la modifica del campo CC, i
 ## Aggiornamento 0.2.1-67 - Abilitazione esplicita del CC in anteprima
 
 Nell’anteprima delle notifiche manuali il template `notification_preview.html` mostra ora la checkbox **Usa CC per questa notifica**, abilitata per default. La checkbox è associata al form di invio tramite `cc_enabled` e `cc_enabled_present`: quando viene deselezionata il client nasconde il campo CC, lo disabilita e copia nel submit un valore CC vuoto. La funzione `resolve_template_notification_addresses()` riconosce il submit dell’anteprima e, se `cc_enabled` non è attivo, forza il CC a stringa vuota prima di ogni validazione e invio. Il comportamento vale sia per l’invio reale sia per `confirm_without_send`, mantenendo la conferma operatore e la validazione server-side come fonte autoritativa.
+
+
+## Aggiornamento full export autosufficiente
+
+Il full export è stato esteso per includere non solo i file referenziati da documenti, allegati e template, ma anche uno snapshot completo dei volumi persistenti operativi dell'applicazione. Il manifest `files.persistent_files` è suddiviso nei gruppi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`; ogni voce contiene percorso relativo sicuro, percorso nell'archivio e dimensione del file.
+
+Questa copertura rende l'archivio idoneo a riprodurre completamente la directory/stato attuale dell'applicazione: database, relazioni, configurazioni, documenti, template di notifica, modelli incidente, modelli PDF compilabili, loghi custom, loghi SSO, certificati SSL e altri file operativi presenti nei volumi. Il full import valida i percorsi relativi, impedisce path traversal e ripristina i file nei volumi corrispondenti dopo la ricostruzione del database.
