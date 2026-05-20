@@ -3663,9 +3663,18 @@ def _claim_deadline_notification_slot(incident_id, schedule_slot, source='schedu
 
 
 def _record_deadline_notification_success(incident_id, schedule_slot, recipients, details=''):
-    """Aggiorna lo stato dell'ultimo invio riuscito di una notifica deadline."""
+    """Aggiorna lo stato dell'ultimo invio riuscito di una notifica deadline.
+
+    I destinatari vengono conservati nello stato persistente perché la sezione
+    "Prossime notifiche schedulate" mostra anche gli esiti recenti. Se il
+    chiamante non passa una stringa valorizzata, vengono ricalcolati
+    dall'incidente prima di salvare lo stato.
+    """
     key = _deadline_notification_key(incident_id)
     now = application_now()
+    recipients = (recipients or '').strip()
+    if not recipients:
+        recipients = _deadline_recipients_text_for_incident(Incident.query.get(incident_id))
     state = DeadlineNotificationState.query.filter_by(notification_key=key).first()
     if not state:
         state = DeadlineNotificationState(
@@ -3785,12 +3794,12 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
                     continue
                 if _deadline_notification_sent_in_current_window(inc.id, slot, next_slot):
                     continue
-                recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()})
+                recipients_text = _deadline_recipients_text_for_incident(inc)
                 rows.append({
                     'scheduled_at': slot,
                     'scheduled_at_text': format_application_datetime(slot, include_timezone=True),
                     'type': 'Task in scadenza',
-                    'recipients': ', '.join(recipients) or 'nessun destinatario disponibile',
+                    'recipients': recipients_text or 'nessun destinatario disponibile',
                     'incident': inc,
                     'incident_label': f'#{inc.id} - {inc.name}',
                     'source': 'deadline',
@@ -3814,11 +3823,14 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
         key = ('deadline', state.incident_id, state.last_schedule_slot)
         if key in existing_keys:
             continue
+        recipients_text = (state.last_recipients or '').strip()
+        if not recipients_text and int(state.send_count or 0) > 0:
+            recipients_text = _deadline_recipients_text_for_incident(inc)
         rows.append({
             'scheduled_at': state.last_schedule_slot or state.last_success_at or now,
             'scheduled_at_text': format_application_datetime(state.last_schedule_slot or state.last_success_at or now, include_timezone=True),
             'type': 'Task in scadenza',
-            'recipients': state.last_recipients or 'nessun destinatario disponibile',
+            'recipients': recipients_text or 'nessun destinatario disponibile',
             'incident': inc,
             'incident_label': f'#{inc.id} - {inc.name}' if inc else f'#{state.incident_id}',
             'source': 'deadline',
@@ -4102,7 +4114,7 @@ def _deadline_notification_check_already_audited_for_slot(schedule_slot):
     ).first() is not None
 
 def send_deadline_summary_email(inc, pending_rows):
-    recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()})
+    recipients = _deadline_recipients_for_incident(inc)
     if not recipients:
         return False, 'nessun indirizzo email nel personale coinvolto'
     host = setting_value('smtp_host')
@@ -4233,6 +4245,31 @@ def _reminder_audit_details(reminder):
         'reminder_last_error': reminder.last_error or '',
     }
 
+def _reminder_skip_label(reminder, reason):
+    """Testo leggibile per il risultato del controllo manuale promemoria."""
+    if not reminder:
+        return reason or 'promemoria non disponibile'
+    inc = reminder.incident
+    when_text = format_application_datetime(reminder.scheduled_at, include_timezone=True) if reminder.scheduled_at else '-'
+    message = (reminder.message or '').strip().replace('\n', ' ')
+    if len(message) > 120:
+        message = message[:117] + '...'
+    inc_label = f"incidente #{reminder.incident_id}"
+    if inc and inc.name:
+        inc_label += f" - {inc.name}"
+    parts = [f"Promemoria #{reminder.id}", inc_label, f"programmato {when_text}"]
+    if message:
+        parts.append(f"messaggio: {message}")
+    parts.append(f"motivo: {reason or 'notifica saltata'}")
+    return ' | '.join(parts)
+
+def _deadline_recipients_for_incident(inc):
+    """Destinatari effettivi delle notifiche task in scadenza."""
+    return sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()}) if inc else []
+
+def _deadline_recipients_text_for_incident(inc):
+    return ', '.join(_deadline_recipients_for_incident(inc))
+
 def _audit_scheduler_notification_skip(operation_type, incident=None, incident_id=None, reason='', reason_code='', source='scheduler', **extra):
     """Registra in audit il motivo per cui lo scheduler salta una notifica.
 
@@ -4336,6 +4373,7 @@ def process_due_incident_reminders(source='background_scheduler'):
     due = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).all()
     sent = skipped = 0
     errors = []
+    skipped_details = []
     for reminder in due:
         # Per i promemoria specifici il criterio funzionale è esclusivamente
         # incident_reminder.sent_at: un record viene inviato solo se non è già
@@ -4343,25 +4381,29 @@ def process_due_incident_reminders(source='background_scheduler'):
         # flag, ma servono solo per tracciamento e claim anti-concorrenza.
         if reminder.sent_at:
             skipped += 1
+            reason_text = 'promemoria già marcato come inviato tramite sent_at'
+            skipped_details.append(_reminder_skip_label(reminder, reason_text))
             _audit_scheduler_notification_skip(
                 'scheduler:incident_reminder_skipped',
                 incident=reminder.incident,
                 incident_id=reminder.incident_id,
                 **_reminder_audit_details(reminder),
                 reason_code='already_sent',
-                reason='promemoria già marcato come inviato tramite sent_at',
+                reason=reason_text,
                 source=source,
             )
             continue
         if not _claim_incident_reminder(reminder, source=source):
             skipped += 1
+            reason_text = 'promemoria già preso in carico da un altro ciclo scheduler o invio concorrente'
+            skipped_details.append(_reminder_skip_label(reminder, reason_text))
             _audit_scheduler_notification_skip(
                 'scheduler:incident_reminder_skipped',
                 incident=reminder.incident,
                 incident_id=reminder.incident_id,
                 **_reminder_audit_details(reminder),
                 reason_code='claim_not_acquired',
-                reason='promemoria già preso in carico da un altro ciclo scheduler o invio concorrente',
+                reason=reason_text,
                 source=source,
             )
             continue
@@ -4376,6 +4418,7 @@ def process_due_incident_reminders(source='background_scheduler'):
         else:
             reminder.last_error = info
             skipped += 1
+            skipped_details.append(_reminder_skip_label(reminder, info))
             _record_incident_reminder_claim_result(reminder, False, info)
             _audit_scheduler_notification_skip(
                 'scheduler:incident_reminder_skipped',
@@ -4389,10 +4432,10 @@ def process_due_incident_reminders(source='background_scheduler'):
             errors.append(f'Promemoria {reminder.id}: {info}')
             db.session.commit()
     if due:
-        audit_log('scheduler:incident_reminder_check', json.dumps({'source': source, 'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
+        audit_log('scheduler:incident_reminder_check', json.dumps({'source': source, 'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors[:10], 'skipped_details': skipped_details[:20]}, ensure_ascii=False), actor_type='scheduler')
         purge_audit_logs()
         db.session.commit()
-    return {'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors}
+    return {'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors, 'skipped_details': skipped_details}
 
 def run_deadline_notification_check(force=False, source='request'):
     """Controlla e invia le notifiche periodiche dei task in scadenza.
@@ -4768,8 +4811,10 @@ def notification_settings():
                 result = process_due_incident_reminders(source='manual_button')
                 msg = f"Controllo promemoria specifici completato: {result['sent']} email inviate, {result['skipped']} promemoria saltati, {result['due']} promemoria scaduti verificati."
                 if result.get('errors'):
-                    msg += ' Dettagli: ' + '; '.join(result['errors'][:5])
-                flash(msg, 'success' if not result.get('errors') else 'warning')
+                    msg += ' Errori: ' + '; '.join(result['errors'][:5])
+                if result.get('skipped_details'):
+                    msg += ' Promemoria saltati: ' + '; '.join(result['skipped_details'][:10])
+                flash(msg, 'success' if not result.get('errors') and not result.get('skipped_details') else 'warning')
             except Exception as exc:
                 current_app.logger.exception('Errore controllo promemoria specifici')
                 flash(f'Errore controllo promemoria specifici: {exc}', 'error')

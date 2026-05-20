@@ -639,3 +639,9 @@ Il pulsante **Esegui controllo promemoria ora** nella sezione **Controllo promem
 
 Per i promemoria specifici resta invariata la regola funzionale: una mail viene bloccata solo se il relativo record ha `incident_reminder.sent_at` valorizzato. Gli stati tecnici dello scheduler non introducono slot o finestre di deduplica per questi promemoria.
 
+
+### Aggiornamento notifiche e promemoria specifici
+
+Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i promemoria specifici saltati con identificativo, incidente, data programmata, messaggio sintetico e motivo. Per i promemoria specifici il blocco di invio resta basato solo su `sent_at`: gli stati tecnici dello scheduler servono soltanto a evitare invii concorrenti.
+
+La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinatari dell'invio delle notifiche per task in scadenza e mostra i destinatari effettivi anche per le notifiche già inviate di recente.

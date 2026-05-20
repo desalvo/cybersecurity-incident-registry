@@ -1524,3 +1524,11 @@ Il controllo manuale dei promemoria specifici continua a usare `process_due_inci
 
 Gli audit `scheduler:incident_reminder_skipped` mantengono quindi destinatari, CC, identificativo promemoria, data programmata, messaggio sintetico e motivo del salto senza causare eccezioni durante il controllo manuale. La semantica di invio non cambia: per i promemoria specifici il solo blocco funzionale resta `IncidentReminder.sent_at`; `deadline_notification_state` rimane un claim tecnico anti-concorrenza e non usa slot o finestre di deduplica.
 
+
+## Aggiornamento 0.2.1-44 - Diagnostica controllo manuale promemoria e destinatari deadline
+
+Il controllo manuale dei promemoria specifici, avviato dalla sezione **Controllo promemoria specifici** della pagina **Impostazioni → Notifiche**, restituisce ora nel messaggio flash anche l'elenco sintetico dei promemoria saltati. Per ciascun promemoria vengono riportati identificativo, incidente, data programmata, testo sintetico del messaggio e motivo del salto. La stessa informazione resta registrata negli audit `scheduler:incident_reminder_skipped` tramite `reminder_id`, `reminder_scheduled_at`, `reminder_message`, destinatari, CC, ultimo errore e codice motivo.
+
+La funzione `process_due_incident_reminders()` restituisce ora anche `skipped_details`, usato solo per il feedback del pulsante manuale e per il riepilogo audit del controllo. La logica di invio dei promemoria specifici non cambia: il blocco funzionale continua a dipendere esclusivamente da `IncidentReminder.sent_at`; `deadline_notification_state` resta un claim tecnico anti-concorrenza e non interpreta slot o finestre temporali per i promemoria.
+
+Per le notifiche periodiche dei task in scadenza è stata centralizzata la risoluzione dei destinatari nelle funzioni `_deadline_recipients_for_incident()` e `_deadline_recipients_text_for_incident()`. `send_deadline_summary_email()`, `_record_deadline_notification_success()` e `upcoming_scheduled_notifications()` usano la stessa logica basata sul personale associato all'incidente con indirizzo email valorizzato. In questo modo, dopo l'invio, la sezione **Prossime notifiche schedulate** mostra i destinatari effettivi anche per gli esiti recenti già inviati; se uno stato storico non contiene `last_recipients`, il valore viene ricalcolato dall'incidente prima di mostrare la riga.

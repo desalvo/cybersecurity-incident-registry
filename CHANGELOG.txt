@@ -865,3 +865,8 @@ Notification menu and SMTP sender fix
 - Stato notifiche programmate aggiornato e committato subito dopo ogni invio o errore SMTP dello scheduler.
 - Riepilogo notifiche schedulate con colonna Stato e visualizzazione degli esiti recenti.
 - Voce Cambio password visibile e accessibile solo per login locale.
+
+0.2.1-44
+- Il controllo manuale dei promemoria specifici mostra ora nel messaggio di output quali promemoria sono stati saltati e il motivo.
+- Rafforzata la diagnostica degli audit dei promemoria specifici saltati mantenendo identificativo, incidente, data programmata, testo sintetico e motivo.
+- Centralizzata la risoluzione dei destinatari delle notifiche task in scadenza e corretta la visualizzazione degli esiti recenti nella sezione Prossime notifiche schedulate.

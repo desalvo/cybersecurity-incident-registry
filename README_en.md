@@ -442,3 +442,9 @@ The **Run reminder check now** button in the **One-off reminder check** section 
 
 The functional rule for one-off reminders is unchanged: a mail is blocked only when the related record has `incident_reminder.sent_at` set. Scheduler technical states do not introduce slots or deduplication windows for these reminders.
 
+
+### Notification and incident reminder update
+
+The **Run reminder check now** button now reports skipped incident reminders, including reminder id, incident, scheduled time, short message and reason. For incident-specific reminders the send block remains based only on `sent_at`; scheduler technical states are used only to prevent concurrent sends.
+
+The **Upcoming scheduled notifications** section now uses the same recipient resolution as deadline-task email delivery and displays the effective recipients for recently sent notifications as well.
