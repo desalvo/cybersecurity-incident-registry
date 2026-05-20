@@ -336,3 +336,8 @@ label:has(> input[type="checkbox"]) input[type="checkbox"],
 .check-list label input[type="checkbox"],
 .checkbox-list label input[type="checkbox"]{flex:0 0 auto;margin:0;align-self:center}
 .checkbox-with-help{align-items:flex-start!important}.checkbox-with-help input[type="checkbox"]{margin-top:.2rem!important}
+
+
+/* Tag documenti: la classe hidden deve prevalere sulle regole globali di allineamento checkbox. */
+.tag-selected.hidden,
+.tag-selected[hidden]{display:none!important}

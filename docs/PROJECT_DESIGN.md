@@ -1596,3 +1596,9 @@ Lo stile locale della pagina introduce le classi `incident-section-collapsible`,
 ## Aggiornamento 0.2.1-55 - Sezioni incidente e workflow guidato
 
 Nel template `incident_detail.html` la sezione **Operazioni previste** è l'unica sezione del dettaglio incidente aperta per default, mentre le altre rimangono collassate finché l'utente non le apre o non viene guidato verso di esse. Il JavaScript `makeIncidentWorkflowStepsClickable()` usa le funzioni comuni `openIncidentSection()` e `scrollToIncidentSection()` per aprire automaticamente il `<details>` di destinazione prima dello scroll. Questo vale sia per gli step che portano all'inserimento di una azione sia per gli step che richiedono la generazione/taggatura di documenti prima della notifica. L'apertura automatica viene applicata anche agli anchor iniziali presenti nell'URL, così i redirect post-operazione continuano a mostrare la sezione corretta anche se collassabile.
+
+## Aggiornamento 0.2.1-56 - Tag documenti nel dettaglio incidente
+
+Nel template `incident_detail.html` la gestione dei tag notifica associati ai documenti è stata resa robusta rispetto alle regole CSS globali introdotte per l'allineamento delle checkbox. I tag non selezionati usano sia la classe `hidden` sia l'attributo HTML `hidden`; la regola `.tag-selected.hidden, .tag-selected[hidden] { display: none !important; }` prevale sulle regole globali `label:has(> input[type="checkbox"])`, evitando che tutti i tag risultino visibili e impediscano l'aggiunta/rimozione tramite drag & drop.
+
+Il JavaScript della sezione Documenti aggiorna in modo coerente classe, attributo `hidden` e checkbox interna quando un tipo notifica viene trascinato sulla drop-zone o rimosso con il pulsante `×`. La route `update_document_notification_tags()` resta invariata: riceve solo le checkbox selezionate, valida i codici rispetto ai `NotificationType` configurati e salva la lista compatta in `Document.notification_tags`.

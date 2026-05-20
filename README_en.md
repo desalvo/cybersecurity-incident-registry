@@ -491,3 +491,6 @@ The deadline-task thread and the incident-specific reminder thread remain operat
 ### Collapsible incident detail
 
 The incident detail page is organised into collapsible sections. The main section is named **General Data**. **Expected operations** stays open by default because it drives the operational workflow; clicking a workflow step automatically opens the target section, such as **Actions** or **Form generation**, before scrolling to it.
+
+
+Document notification tags can be associated or removed through the drag-and-drop palette in the incident detail Documents section; selected tags are saved explicitly and used to preselect attachments in manual notifications.

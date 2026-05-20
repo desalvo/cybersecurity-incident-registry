@@ -213,7 +213,7 @@
             </div>
             <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tipi di notifica da associare">
               {% for nt in notification_types %}
-                <label class="tag-selected {% if nt.code not in d.notification_tag_list %}hidden{% endif %}" data-tag-code="{{ nt.code }}">
+                <label class="tag-selected {% if nt.code not in d.notification_tag_list %}hidden{% endif %}" data-tag-code="{{ nt.code }}" {% if nt.code not in d.notification_tag_list %}hidden{% endif %}>
                   <input type="checkbox" name="notification_tags" value="{{ nt.code }}" {% if nt.code in d.notification_tag_list %}checked{% endif %}>
                   {{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button>
                 </label>
@@ -283,13 +283,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const zone = form.querySelector('.tag-drop-zone');
     const empty = form.querySelector('.tag-empty');
     function refreshEmpty() {
-      const visible = form.querySelectorAll('.tag-selected:not(.hidden)').length;
+      const visible = Array.from(form.querySelectorAll('.tag-selected')).filter(function (el) { return !el.classList.contains('hidden') && !el.hidden; }).length;
       if (empty) empty.style.display = visible ? 'none' : 'inline';
     }
     refreshEmpty();
     form.querySelectorAll('.tag-chip').forEach(function (chip) {
       chip.addEventListener('dragstart', function (event) {
-        event.dataTransfer.setData('text/plain', chip.dataset.tagCode || '');
+        const code = chip.dataset.tagCode || '';
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('text/plain', code);
+        event.dataTransfer.setData('application/x-notification-tag', code);
       });
     });
     if (zone) {
@@ -297,10 +300,11 @@ document.addEventListener('DOMContentLoaded', function () {
       zone.addEventListener('dragleave', function () { zone.classList.remove('drag-over'); });
       zone.addEventListener('drop', function (event) {
         event.preventDefault(); zone.classList.remove('drag-over');
-        const code = event.dataTransfer.getData('text/plain');
+        const code = event.dataTransfer.getData('application/x-notification-tag') || event.dataTransfer.getData('text/plain');
         const item = form.querySelector('.tag-selected[data-tag-code="' + code + '"]');
         if (item) {
           item.classList.remove('hidden');
+          item.hidden = false;
           const input = item.querySelector('input');
           if (input) input.checked = true;
           refreshEmpty();
@@ -308,12 +312,15 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
     form.querySelectorAll('.tag-remove').forEach(function (button) {
-      button.addEventListener('click', function () {
+      button.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         const item = button.closest('.tag-selected');
         if (item) {
           const input = item.querySelector('input');
           if (input) input.checked = false;
           item.classList.add('hidden');
+          item.hidden = true;
           refreshEmpty();
         }
       });
@@ -323,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <style>
 .incident-section-collapsible{padding:0}.incident-section-summary{display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:1rem 1.25rem;list-style:none}.incident-section-summary::-webkit-details-marker{display:none}.incident-section-summary::before{content:"▸";font-size:1rem;transition:transform .15s ease}.incident-section-collapsible[open]>.incident-section-summary::before{transform:rotate(90deg)}.incident-section-summary h2,.incident-section-summary h3{margin:0}.incident-section-body{padding:0 1.25rem 1.25rem}.incident-section-collapsible:not([open]){margin-bottom:1rem}
-.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold}.document-tag-form button[type=submit]{margin-top:.2rem}
+.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold}.document-tag-form button[type=submit]{margin-top:.2rem}
 </style>
 
 

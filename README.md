@@ -283,7 +283,7 @@ I template moduli predefiniti basati su XML/DOCX sono stati rimossi. Dal menu **
 
 ## Aggiornamento documenti allegati
 
-Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload.
+Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload. Per ogni documento è possibile associare o rimuovere i tag dei tipi notifica tramite palette drag & drop e pulsante di rimozione; i tag selezionati vengono salvati esplicitamente e sono usati per preselezionare gli allegati nelle notifiche manuali.
 
 
 
