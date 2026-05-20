@@ -418,3 +418,7 @@ In **Admin → Incident workflows** the procedural step description is multiline
 ### Update 0.2.1-37 - Serial notification scheduler
 
 Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially. Deadline summaries keep their persistent type/window claim, while one-off reminders use `sent_at` as the only functional delivery flag and a temporary claim only for concurrency protection, so different reminders in the same period are not suppressed.
+
+## Update 0.2.1-40 - Audit for incidents skipped by the notification scheduler
+
+Whenever the notification scheduler skips an incident, a dedicated audit record is now written with the affected incident and the skip reason. Periodic deadline notifications use `scheduler:deadline_notification_skipped`; incident-specific reminders use `scheduler:incident_reminder_skipped`. Details include the scheduler source, schedule slot or planned reminder time, reason code and readable reason, so **Admin → Audit** can distinguish already-sent notifications, concurrent claims, missing recipients/SMTP errors and application exceptions.

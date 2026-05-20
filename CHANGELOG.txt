@@ -1,3 +1,9 @@
+## 0.2.1-40
+- Aggiunto audit puntuale per ogni incidente saltato dallo scheduler notifiche.
+- Le notifiche periodiche dei task in scadenza registrano `scheduler:deadline_notification_skipped` con incidente, slot, sorgente e motivo del salto.
+- I promemoria specifici registrano `scheduler:incident_reminder_skipped` con incidente, promemoria, data programmata e motivo del salto.
+- Aggiornata la documentazione progettuale e operativa.
+
 ## 0.2.1-39
 - Separato il criterio dei promemoria specifici dalla deduplica periodica delle notifiche deadline.
 - I promemoria puntuali vengono inviati solo se `incident_reminder.sent_at` è nullo; audit e stato scheduler non sostituiscono più il flag funzionale di invio.

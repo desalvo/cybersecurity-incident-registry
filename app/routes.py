@@ -177,6 +177,8 @@ def audit_detail_summary(operation_type, details):
             return f"Promemoria incidente eliminato: incidente #{data.get('incident_id','-')}, promemoria #{data.get('reminder_id','-')}"
         if op == 'scheduler:incident_reminder_sent':
             return f"Scheduler: inviato promemoria incidente #{data.get('incident_id','-')} / promemoria #{data.get('reminder_id','-')} ({short(data.get('scheduled_at')) or '-'})"
+        if op == 'scheduler:incident_reminder_skipped':
+            return f"Scheduler: saltato promemoria incidente #{data.get('incident_id','-')} / promemoria #{data.get('reminder_id','-')}: {short(data.get('reason')) or '-'}"
         if op == 'scheduler:incident_reminder_check':
             return f"Scheduler: controllo promemoria specifici, scaduti {data.get('due',0)}, inviati {data.get('sent',0)}, saltati {data.get('skipped',0)}, errori {len(data.get('errors') or [])}"
         if op == 'scheduler:deadline_notification_check':
@@ -186,6 +188,8 @@ def audit_detail_summary(operation_type, details):
             return f"Scheduler: controllo notifiche task in scadenza, slot {slot}, elementi in scadenza {due}, notifiche inviate {sent}, sorgente {short(data.get('source')) or '-'}"
         if op == 'scheduler:deadline_notification_sent':
             return f"Scheduler: notifica task in scadenza inviata. {short(raw, 220)}"
+        if op == 'scheduler:deadline_notification_skipped':
+            return f"Scheduler: saltata notifica task incidente #{data.get('incident_id','-')}: {short(data.get('reason')) or '-'}"
         if op == 'admin:audit_purge_manual':
             if data.get('mode') == 'keep_count':
                 return f"Purge manuale audit: conservati al massimo {data.get('keep_count','-')} record, eliminati {data.get('deleted',0)} record"
@@ -4198,6 +4202,26 @@ def send_incident_reminder_email(reminder):
 def _incident_reminder_notification_key(reminder_id):
     return f'incident_reminder:{int(reminder_id)}'
 
+def _audit_scheduler_notification_skip(operation_type, incident=None, incident_id=None, reason='', reason_code='', source='scheduler', **extra):
+    """Registra in audit il motivo per cui lo scheduler salta una notifica.
+
+    Ogni record include sempre l'incidente interessato, quando disponibile, e
+    una motivazione leggibile. Il dettaglio è volutamente sintetico per restare
+    compatibile con il meccanismo anti-flooding dell'audit log.
+    """
+    resolved_incident_id = incident_id or getattr(incident, 'id', None)
+    payload = {
+        'incident_id': resolved_incident_id,
+        'incident_name': getattr(incident, 'name', None),
+        'incident_reference': getattr(incident, 'reference', None),
+        'reason_code': reason_code or '',
+        'reason': reason or reason_code or 'notifica saltata dallo scheduler',
+        'source': source,
+    }
+    payload.update({k: v for k, v in extra.items() if v is not None})
+    audit_log(operation_type, json.dumps(payload, ensure_ascii=False), actor_type='scheduler')
+
+
 def _claim_incident_reminder(reminder, source='scheduler'):
     """Riserva temporaneamente un promemoria specifico prima dell'invio.
 
@@ -4289,9 +4313,29 @@ def process_due_incident_reminders(source='background_scheduler'):
         # flag, ma servono solo per tracciamento e claim anti-concorrenza.
         if reminder.sent_at:
             skipped += 1
+            _audit_scheduler_notification_skip(
+                'scheduler:incident_reminder_skipped',
+                incident=reminder.incident,
+                incident_id=reminder.incident_id,
+                reminder_id=reminder.id,
+                scheduled_at=reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+                reason_code='already_sent',
+                reason='promemoria già marcato come inviato tramite sent_at',
+                source=source,
+            )
             continue
         if not _claim_incident_reminder(reminder, source=source):
             skipped += 1
+            _audit_scheduler_notification_skip(
+                'scheduler:incident_reminder_skipped',
+                incident=reminder.incident,
+                incident_id=reminder.incident_id,
+                reminder_id=reminder.id,
+                scheduled_at=reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+                reason_code='claim_not_acquired',
+                reason='promemoria già preso in carico da un altro ciclo scheduler o invio concorrente',
+                source=source,
+            )
             continue
         ok, info = send_incident_reminder_email(reminder)
         if ok:
@@ -4305,6 +4349,16 @@ def process_due_incident_reminders(source='background_scheduler'):
             reminder.last_error = info
             skipped += 1
             _record_incident_reminder_claim_result(reminder, False, info)
+            _audit_scheduler_notification_skip(
+                'scheduler:incident_reminder_skipped',
+                incident=reminder.incident,
+                incident_id=reminder.incident_id,
+                reminder_id=reminder.id,
+                scheduled_at=reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
+                reason_code='send_failed',
+                reason=info,
+                source=source,
+            )
             errors.append(f'Promemoria {reminder.id}: {info}')
             db.session.commit()
     if due:
@@ -4374,10 +4428,30 @@ def run_deadline_notification_check(force=False, source='request'):
         if _deadline_notification_sent_in_current_window(inc.id, schedule_slot, next_schedule_slot):
             incidents_already_sent += 1
             skipped += 1
+            _audit_scheduler_notification_skip(
+                'scheduler:deadline_notification_skipped',
+                incident=inc,
+                schedule_slot=schedule_slot.isoformat(timespec='minutes'),
+                schedule_window_end=next_schedule_slot.isoformat(timespec='minutes') if next_schedule_slot else None,
+                pending_actions=len(rows),
+                reason_code='already_sent_in_window',
+                reason='notifica dello stesso tipo già inviata o già presa in carico nello slot corrente',
+                source=source,
+            )
             continue
         if not _claim_deadline_notification_slot(inc.id, schedule_slot, source=source):
             incidents_already_sent += 1
             skipped += 1
+            _audit_scheduler_notification_skip(
+                'scheduler:deadline_notification_skipped',
+                incident=inc,
+                schedule_slot=schedule_slot.isoformat(timespec='minutes'),
+                schedule_window_end=next_schedule_slot.isoformat(timespec='minutes') if next_schedule_slot else None,
+                pending_actions=len(rows),
+                reason_code='claim_not_acquired',
+                reason='notifica già presa in carico da un altro ciclo scheduler o invio concorrente',
+                source=source,
+            )
             continue
         try:
             ok, info = send_deadline_summary_email(inc, rows)
@@ -4400,12 +4474,32 @@ def run_deadline_notification_check(force=False, source='request'):
                 if 'nessun indirizzo email' in info or 'personale' in info:
                     incidents_without_recipients += 1
                 _record_deadline_notification_failure(inc.id, schedule_slot, info)
+                _audit_scheduler_notification_skip(
+                    'scheduler:deadline_notification_skipped',
+                    incident=inc,
+                    schedule_slot=schedule_slot.isoformat(timespec='minutes'),
+                    schedule_window_end=next_schedule_slot.isoformat(timespec='minutes') if next_schedule_slot else None,
+                    pending_actions=len(rows),
+                    reason_code='send_failed',
+                    reason=info,
+                    source=source,
+                )
                 errors.append(f'Incidente {inc.id}: {info}')
                 db.session.commit()
         except Exception as exc:
             current_app.logger.exception('Errore notifica scadenze incidente %s', inc.id)
             skipped += 1
             _record_deadline_notification_failure(inc.id, schedule_slot, str(exc))
+            _audit_scheduler_notification_skip(
+                'scheduler:deadline_notification_skipped',
+                incident=inc,
+                schedule_slot=schedule_slot.isoformat(timespec='minutes'),
+                schedule_window_end=next_schedule_slot.isoformat(timespec='minutes') if next_schedule_slot else None,
+                pending_actions=len(rows),
+                reason_code='exception',
+                reason=str(exc),
+                source=source,
+            )
             errors.append(f'Incidente {inc.id}: {exc}')
             db.session.commit()
 

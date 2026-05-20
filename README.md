@@ -615,3 +615,7 @@ In **Admin → Flussi operativi incidenti** la descrizione dello step procedural
 ### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
 
 Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale e un claim temporaneo solo anti-concorrenza, così promemoria diversi nello stesso periodo non vengono soppressi.
+
+## Aggiornamento 0.2.1-40 - Audit degli incidenti saltati dallo scheduler notifiche
+
+Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, claim concorrenti, assenza destinatari/errori SMTP ed eccezioni.
