@@ -12,8 +12,7 @@
     <p><strong>CC:</strong> {{ cc or 'nessuno' }}</p>
     {% if not recipient %}<p class="error">Destinatario non configurato dal template o dall’incidente: invio non disponibile.</p>{% endif %}
   {% else %}
-    <form method="get" class="form-grid notification-recipient-form">
-      <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
+    <div class="form-grid notification-recipient-form">
       {% if external_recipients %}
       <div class="wide">
         <label>Rubrica destinatari esterni</label>
@@ -28,11 +27,11 @@
         <p class="muted">Gli indirizzi nuovi digitati nei campi modificabili vengono aggiunti automaticamente alla rubrica usando il Riferimento dell’incidente come nome predefinito.</p>
       </div>
       {% endif %}
-      <div><label>Destinatario</label><input id="recipient-input" name="recipient" type="email" value="{{ recipient }}" list="external-recipients" {% if recipient_locked %}readonly{% else %}required{% endif %}></div>
-      <div><label>CC</label><input id="cc-input" name="cc" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola" {% if cc_locked %}readonly{% endif %}></div>
+      <div><label>Destinatario</label><input id="recipient-input" name="manual_recipient" form="notification-send-form" type="email" value="{{ recipient }}" list="external-recipients" {% if recipient_locked %}readonly{% else %}required{% endif %}></div>
+      <div><label>CC</label><input id="cc-input" name="manual_cc" form="notification-send-form" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola" {% if cc_locked %}readonly{% endif %}></div>
       <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}" label="{{ r.name }}">{{ r.name }}</option>{% endfor %}</datalist>
-      <button type="submit">Aggiorna anteprima</button>
-    </form>
+      <p class="muted wide">I valori inseriti manualmente vengono usati direttamente al momento dell’invio o della conferma senza invio; non è necessario aggiornare l’anteprima.</p>
+    </div>
   {% endif %}
   <p><strong>Oggetto:</strong> {{ subject }}</p>
   <p><strong>Report PDF:</strong> {{ 'allegato perché il template contiene %REPORT%' if attach_report else 'non allegato' }}</p>
@@ -40,7 +39,7 @@
   <p><strong>Documenti:</strong> {% if needs_documents %}richiesti, perché il template contiene <code>%DOCUMENTS%</code>{% else %}non richiesti{% endif %}</p>
   <h3>Testo</h3>
   <pre class="mail-preview">{{ body }}</pre>
-  <form method="post" action="{{ url_for('main.notify_send', iid=inc.id, kind=kind) }}" class="button-row notification-send-form">
+  <form method="post" action="{{ url_for('main.notify_send', iid=inc.id, kind=kind) }}" class="button-row notification-send-form" id="notification-send-form">
     <input type="hidden" name="template_id" value="{{ template.id if template else '' }}">
     <input type="hidden" name="confirm_without_send_confirmed" value="0">
     <input type="hidden" name="recipient" value="{{ recipient }}">
@@ -70,8 +69,8 @@
     {% elif linked_template_missing_warning %}
       <p class="warning">Non è presente un documento generato dal template associato: la notifica può essere inviata senza allegati documentali.</p>
     {% endif %}
-    <button type="submit" name="send_mode" value="send" {% if admin_send_blocked or (needs_documents and not inc.documents) or not recipient %}disabled{% endif %}>Conferma e invia</button>
-    <button type="submit" name="send_mode" value="confirm_without_send" class="secondary" {% if (needs_documents and not inc.documents) or not recipient %}disabled{% endif %}>Conferma senza inviare</button>
+    <button type="submit" name="send_mode" value="send" {% if admin_send_blocked or (needs_documents and not inc.documents) %}disabled{% endif %}>Conferma e invia</button>
+    <button type="submit" name="send_mode" value="confirm_without_send" class="secondary" {% if (needs_documents and not inc.documents) %}disabled{% endif %}>Conferma senza inviare</button>
     <a class="button secondary" href="{{ url_for('main.incident_detail', iid=inc.id) }}">Annulla</a>
   </form>
 </div>
@@ -95,8 +94,12 @@
   if(sendForm){
     sendForm.addEventListener('submit', function(event){
       const mode = event.submitter && event.submitter.name === 'send_mode' ? event.submitter.value : 'send';
-      const recipient = (sendForm.querySelector('input[name="recipient"]')?.value || '{{ recipient|e }}').trim();
-      const cc = (sendForm.querySelector('input[name="cc"]')?.value || '{{ cc|e }}').trim();
+      const recipientHidden = sendForm.querySelector('input[name="recipient"]');
+      const ccHidden = sendForm.querySelector('input[name="cc"]');
+      if(recipientInput && recipientHidden && !recipientInput.readOnly) recipientHidden.value = recipientInput.value.trim();
+      if(ccInput && ccHidden && !ccInput.readOnly) ccHidden.value = ccInput.value.trim();
+      const recipient = (recipientHidden?.value || '{{ recipient|e }}').trim();
+      const cc = (ccHidden?.value || '{{ cc|e }}').trim();
       const recipientConfirmed = sendForm.querySelector('input[name="recipient_confirmed"]');
       const withoutSendConfirmed = sendForm.querySelector('input[name="confirm_without_send_confirmed"]');
       let message;

@@ -3318,6 +3318,23 @@ def split_addresses(value):
     return [x.strip() for x in value.replace(';', ',').split(',') if x.strip()]
 
 
+def is_valid_email_address(value):
+    """Validate a single mailbox address for notification delivery fields.
+
+    The application accepts plain e-mail addresses in recipient/CC fields;
+    display-name forms are intentionally not accepted in manual notification
+    delivery fields so that SMTP envelope validation remains predictable.
+    """
+    email = (value or '').strip()
+    if not email or any(ch.isspace() for ch in email):
+        return False
+    return re.match(r'^[^@\s,;<>]+@[^@\s,;<>]+\.[^@\s,;<>]+$', email) is not None
+
+
+def invalid_email_addresses(value):
+    return [addr for addr in split_addresses(value) if not is_valid_email_address(addr)]
+
+
 def validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email):
     """Validate the incident default recipient e-mail fields.
 
@@ -3327,6 +3344,8 @@ def validate_incident_recipient_email_fields(reference_value, recipient_value, r
     at least a human-readable Reference or Recipient name associated with it.
     """
     email = (recipient_email or '').strip()
+    if email and not is_valid_email_address(email):
+        return 'Il campo E-mail Destinatario deve contenere un indirizzo e-mail valido.'
     if email and not ((reference_value or '').strip() or (recipient_value or '').strip()):
         return 'Se viene indicata l’E-mail Destinatario è obbligatorio compilare anche Riferimento o Destinatario.'
     return ''
@@ -3389,14 +3408,28 @@ def resolve_template_notification_addresses(template, kind, inc, ntype, form=Non
     args = args or {}
     recipient_editable = bool(getattr(template, 'recipient_editable', True))
     cc_editable = bool(getattr(template, 'cc_editable', True))
+
+    def _submitted_value(field):
+        # Nei submit di invio/conferma la preview può contenere valori digitati
+        # manualmente non ancora ricalcolati. Questi campi hanno priorità sui
+        # valori hidden generati all'apertura dell'anteprima.
+        manual_field = f'manual_{field}'
+        if hasattr(form, 'get') and form.get(manual_field) is not None:
+            return form.get(manual_field)
+        if hasattr(form, 'get') and form.get(field) is not None:
+            return form.get(field)
+        if hasattr(args, 'get') and args.get(field) is not None:
+            return args.get(field)
+        return None
+
     if recipient_editable:
-        recipient = (form.get('recipient') if hasattr(form, 'get') and form.get('recipient') is not None else args.get('recipient') if hasattr(args, 'get') else None)
+        recipient = _submitted_value('recipient')
         if recipient is None:
             recipient = _template_configured_address(template, kind, inc, ntype, 'recipient')
     else:
         recipient = _template_configured_address(template, kind, inc, ntype, 'recipient')
     if cc_editable:
-        cc = (form.get('cc') if hasattr(form, 'get') and form.get('cc') is not None else args.get('cc') if hasattr(args, 'get') else None)
+        cc = _submitted_value('cc')
         if cc is None:
             cc = _template_configured_address(template, kind, inc, ntype, 'cc')
     else:
@@ -5358,7 +5391,15 @@ def notify_send(iid, kind):
     tmpl = get_notification_template(kind, template_id)
     recipient, cc = resolve_template_notification_addresses(tmpl, kind, inc, ntype, form=request.form)
     if not split_addresses(recipient):
-        flash('Specificare o configurare almeno un destinatario per questa notifica.', 'error')
+        flash('Invio bloccato: specificare almeno un destinatario per questa notifica.', 'error')
+        return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
+    invalid_recipients = invalid_email_addresses(recipient)
+    if invalid_recipients:
+        flash('Invio bloccato: destinatario non valido: ' + ', '.join(invalid_recipients), 'error')
+        return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
+    invalid_cc = invalid_email_addresses(cc)
+    if invalid_cc:
+        flash('Invio bloccato: indirizzo CC non valido: ' + ', '.join(invalid_cc), 'error')
         return redirect(url_for('main.notify_preview', iid=iid, kind=kind, template_id=tmpl.id, recipient=recipient, cc=cc))
     names_by_email = {}
     rec_name = (request.form.get('recipient_name') or '').strip()

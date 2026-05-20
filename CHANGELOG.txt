@@ -1,3 +1,21 @@
+0.2.1-63 - Validazione sintassi E-mail Destinatario negli incidenti
+- Il campo E-mail Destinatario viene validato sempre lato server nelle form di creazione e modifica incidente.
+- La stessa validazione è applicata ai Modelli incidente.
+- Il salvataggio viene bloccato con messaggio esplicito se il valore non è un singolo indirizzo e-mail valido.
+- Aggiornata tutta la documentazione.
+
+0.2.1-62 - Valori manuali destinatario/CC usati senza aggiornare anteprima
+- Le notifiche manuali usano direttamente, al momento del submit, i valori digitati nei campi modificabili di Destinatario e CC.
+- Non è più necessario premere “Aggiorna anteprima” per propagare destinatario o CC manuali all’invio o alla conferma senza invio.
+- La validazione server-side continua a richiedere almeno un destinatario effettivo e indirizzi e-mail validi.
+
+
+## 0.2.1-61
+- Corretto il flusso di invio delle notifiche manuali: l’invio viene respinto con messaggio esplicito se il destinatario è vuoto.
+- Se il template consente la modifica manuale del destinatario, l’indirizzo digitato in anteprima viene propagato al POST e consente l’invio quando è una e-mail valida.
+- Aggiunta validazione server-side del formato e-mail per destinatario e CC delle notifiche manuali.
+- Aggiornata la documentazione utente, amministrativa e progettuale.
+
 0.2.1-60
 - La form degli incidenti e i modelli incidente possono caricare Riferimento, Destinatario ed E-mail Destinatario dalla rubrica dei destinatari esterni.
 - Se viene salvata una nuova E-mail Destinatario non presente in rubrica, viene aggiunta automaticamente usando come nome Destinatario o Riferimento.
