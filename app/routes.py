@@ -3409,6 +3409,17 @@ def resolve_template_notification_addresses(template, kind, inc, ntype, form=Non
     recipient_editable = bool(getattr(template, 'recipient_editable', True))
     cc_editable = bool(getattr(template, 'cc_editable', True))
 
+    def _cc_enabled_in_submit():
+        # La checkbox dell'anteprima invia cc_enabled_present per distinguere
+        # un submit reale dalla semplice apertura GET. Se la checkbox viene
+        # deselezionata, il CC non deve essere considerato anche se il template
+        # ha un valore predefinito.
+        if not hasattr(form, 'get') or form.get('cc_enabled_present') is None:
+            return True
+        if hasattr(form, 'getlist'):
+            return '1' in form.getlist('cc_enabled')
+        return form.get('cc_enabled') == '1'
+
     def _submitted_value(field):
         # Nei submit di invio/conferma la preview può contenere valori digitati
         # manualmente non ancora ricalcolati. Questi campi hanno priorità sui
@@ -3428,7 +3439,9 @@ def resolve_template_notification_addresses(template, kind, inc, ntype, form=Non
             recipient = _template_configured_address(template, kind, inc, ntype, 'recipient')
     else:
         recipient = _template_configured_address(template, kind, inc, ntype, 'recipient')
-    if cc_editable:
+    if not _cc_enabled_in_submit():
+        cc = ''
+    elif cc_editable:
         cc = _submitted_value('cc')
         if cc is None:
             cc = _template_configured_address(template, kind, inc, ntype, 'cc')

@@ -1,3 +1,7 @@
+0.2.1-67 - Manual notification CC enable switch
+- Manual notification previews now include a “Use CC for this notification” checkbox, enabled by default.
+- When disabled, the CC field is hidden and ignored for both real sending and “Confirm without sending”.
+
 0.2.1-66 - Prefilled CC preview and manual clearing
 - Manual notification previews prefill editable CC with the template default when present.
 - If the operator clears the CC field before confirmation, sending ignores CC and proceeds without copied recipients.
@@ -510,11 +514,11 @@ Document notification tags can be associated or removed through the drag-and-dro
 
 ## External recipients and manual notifications
 
-Incident forms and incident templates can load Reference, Recipient or Recipient e-mail from the external recipient address book. The Recipient e-mail field syntax is always validated server-side when creating or editing incidents and when saving incident templates: values that are not a single valid e-mail address block saving with an explicit error message. New recipient e-mail addresses saved on incidents are automatically added to the address book using the Recipient name or the Reference as fallback. Manual notifications always require at least one effective recipient: if the recipient is empty, the send action is rejected server-side with an explicit error message. If the template allows manual recipient editing, the operator can type a valid e-mail address directly in the preview and send without preconfiguring it in the template. Editable manual recipient and CC fields typed in the preview are read directly when the form is submitted, for both real delivery and confirmation without sending, after the usual operator confirmation.
+Incident forms and incident templates can load Reference, Recipient or Recipient e-mail from the external recipient address book. The Recipient e-mail field syntax is always validated server-side when creating or editing incidents and when saving incident templates: values that are not a single valid e-mail address block saving with an explicit error message. New recipient e-mail addresses saved on incidents are automatically added to the address book using the Recipient name or the Reference as fallback. Manual notifications always require at least one effective recipient: if the recipient is empty, the send action is rejected server-side with an explicit error message. If the template allows manual recipient editing, the operator can type a valid e-mail address directly in the preview and send without preconfiguring it in the template. Editable manual recipient and CC fields typed in the preview are read directly when the form is submitted, for both real delivery and confirmation without sending, after the usual operator confirmation. The preview also includes a “Use CC for this notification” checkbox, enabled by default; when disabled, the CC field is hidden and ignored by the submit.
 
 
 ### Manual notification sending from preview
-Editable manual recipient and CC fields typed in the preview are read directly when the form is submitted, for both real delivery and confirmation without sending, after the usual operator confirmation.
+Editable manual recipient and CC fields typed in the preview are read directly when the form is submitted, for both real delivery and confirmation without sending, after the usual operator confirmation. The preview also includes a “Use CC for this notification” checkbox, enabled by default; when disabled, the CC field is hidden and ignored by the submit.
 
 
-Manual notification CC precedence: when CC is editable and left empty in the preview, the empty manual value overrides any template default CC, so the email is sent without CC.
+Manual notification CC precedence: when CC is editable and left empty in the preview, the empty manual value overrides any template default CC, so the email is sent without CC. The CC can also be disabled explicitly through the preview checkbox; in that case it is hidden and ignored for real sending and confirmation without sending.

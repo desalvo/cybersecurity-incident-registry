@@ -28,7 +28,8 @@
       </div>
       {% endif %}
       <div><label>Destinatario</label><input id="recipient-input" name="manual_recipient" form="notification-send-form" type="email" value="{{ recipient }}" list="external-recipients" {% if recipient_locked %}readonly{% else %}required{% endif %}></div>
-      <div><label>CC</label><input id="cc-input" name="manual_cc" form="notification-send-form" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola" {% if cc_locked %}readonly{% endif %}></div>
+      <div class="wide"><label class="checkbox-inline"><input id="cc-enabled-input" name="cc_enabled" value="1" form="notification-send-form" type="checkbox" checked> Usa CC per questa notifica</label><input type="hidden" name="cc_enabled_present" value="1" form="notification-send-form"></div>
+      <div id="cc-field-wrapper"><label>CC</label><input id="cc-input" name="manual_cc" form="notification-send-form" value="{{ cc }}" list="external-recipients" placeholder="opzionale, separare più indirizzi con virgola" {% if cc_locked %}readonly{% endif %}></div>
       <datalist id="external-recipients">{% for r in external_recipients %}<option value="{{ r.email }}" label="{{ r.name }}">{{ r.name }}</option>{% endfor %}</datalist>
     </div>
   {% endif %}
@@ -78,6 +79,15 @@
   const picker = document.getElementById('recipient-picker');
   const recipientInput = document.getElementById('recipient-input');
   const ccInput = document.getElementById('cc-input');
+  const ccEnabledInput = document.getElementById('cc-enabled-input');
+  const ccFieldWrapper = document.getElementById('cc-field-wrapper');
+  function ccIsEnabled(){ return !ccEnabledInput || ccEnabledInput.checked; }
+  function refreshCcVisibility(){
+    if(ccFieldWrapper) ccFieldWrapper.style.display = ccIsEnabled() ? '' : 'none';
+    if(ccInput) ccInput.disabled = !ccIsEnabled();
+  }
+  if(ccEnabledInput) ccEnabledInput.addEventListener('change', refreshCcVisibility);
+  refreshCcVisibility();
   function selectedEmail(){ return picker && picker.value ? picker.value.trim() : ''; }
   function appendAddress(input, email){
     if(!input || !email) return;
@@ -88,7 +98,7 @@
   const useTo = document.getElementById('use-recipient-picker');
   const useCc = document.getElementById('use-cc-picker');
   if(useTo) useTo.addEventListener('click', function(){ const email = selectedEmail(); if(email && recipientInput) recipientInput.value = email; });
-  if(useCc) useCc.addEventListener('click', function(){ appendAddress(ccInput, selectedEmail()); });
+  if(useCc) useCc.addEventListener('click', function(){ if(ccEnabledInput) ccEnabledInput.checked = true; refreshCcVisibility(); appendAddress(ccInput, selectedEmail()); });
   const sendForm = document.querySelector('.notification-send-form');
   if(sendForm){
     sendForm.addEventListener('submit', function(event){
@@ -99,9 +109,12 @@
       // I campi manuali hanno comunque l'attributo form=notification-send-form,
       // ma i campi hidden mantengono coerenti conferma, redirect e fallback server-side.
       if(recipientInput && recipientHidden && !recipientInput.readOnly && !recipientInput.disabled) recipientHidden.value = recipientInput.value.trim();
-      if(ccInput && ccHidden && !ccInput.readOnly && !ccInput.disabled) ccHidden.value = ccInput.value.trim();
+      if(ccHidden){
+        if(!ccIsEnabled()) ccHidden.value = '';
+        else if(ccInput && !ccInput.readOnly && !ccInput.disabled) ccHidden.value = ccInput.value.trim();
+      }
       const recipient = (recipientHidden?.value || '{{ recipient|e }}').trim();
-      const cc = (ccHidden?.value || '{{ cc|e }}').trim();
+      const cc = ccIsEnabled() ? (ccHidden?.value || '{{ cc|e }}').trim() : '';
       const recipientConfirmed = sendForm.querySelector('input[name="recipient_confirmed"]');
       const withoutSendConfirmed = sendForm.querySelector('input[name="confirm_without_send_confirmed"]');
       let message;

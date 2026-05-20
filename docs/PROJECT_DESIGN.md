@@ -1638,3 +1638,7 @@ Nelle notifiche manuali/non schedulate, la pagina di anteprima continua a mostra
 ## Aggiornamento 0.2.1-65 - Precedenza CC manuale vuoto
 
 Nelle notifiche manuali, quando il template consente la modifica del campo CC, il valore digitato manualmente resta prevalente; se il campo CC viene svuotato dall’operatore, tale valore vuoto annulla il default del template e la mail viene inviata senza CC. Dalla versione 0.2.1-66 l’anteprima precompila nuovamente il campo CC con il valore di default del template, quando presente, lasciando comunque al submit la priorità al valore manuale effettivo.
+
+## Aggiornamento 0.2.1-67 - Abilitazione esplicita del CC in anteprima
+
+Nell’anteprima delle notifiche manuali il template `notification_preview.html` mostra ora la checkbox **Usa CC per questa notifica**, abilitata per default. La checkbox è associata al form di invio tramite `cc_enabled` e `cc_enabled_present`: quando viene deselezionata il client nasconde il campo CC, lo disabilita e copia nel submit un valore CC vuoto. La funzione `resolve_template_notification_addresses()` riconosce il submit dell’anteprima e, se `cc_enabled` non è attivo, forza il CC a stringa vuota prima di ogni validazione e invio. Il comportamento vale sia per l’invio reale sia per `confirm_without_send`, mantenendo la conferma operatore e la validazione server-side come fonte autoritativa.
