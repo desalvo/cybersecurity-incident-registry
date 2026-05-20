@@ -436,3 +436,9 @@ The **Notifications → Settings** page now ends with a **One-off reminder check
 For one-off reminders, the functional delivery block remains only `incident_reminder.sent_at`: schedule slots, windows or periods are not used. The technical claim in `deadline_notification_state` only prevents two concurrent cycles from sending the same reminder at the same time.
 
 When a reminder is skipped, either by the scheduler or by the manual button, the `scheduler:incident_reminder_skipped` audit record includes the incident, reminder id, scheduled date/time, shortened message, configured recipients/CC, last available error, check source, reason code and human-readable reason.
+## Update 0.2.1-43 - One-off reminder check fix
+
+The **Run reminder check now** button in the **One-off reminder check** section no longer accesses a non-existing `IncidentReminder` model attribute. Effective recipients are resolved from the people linked to the incident, as in SMTP delivery, and the same logic is reused when writing audit records for skipped reminders.
+
+The functional rule for one-off reminders is unchanged: a mail is blocked only when the related record has `incident_reminder.sent_at` set. Scheduler technical states do not introduce slots or deduplication windows for these reminders.
+

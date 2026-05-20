@@ -4167,7 +4167,7 @@ def _reminder_body(reminder, now=None):
 
 def send_incident_reminder_email(reminder):
     inc = reminder.incident
-    recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()}) if inc else []
+    recipients = _incident_reminder_recipients(reminder)
     if not recipients:
         return False, 'nessun indirizzo email nel personale associato all incidente'
     host = setting_value('smtp_host')
@@ -4202,6 +4202,19 @@ def send_incident_reminder_email(reminder):
 def _incident_reminder_notification_key(reminder_id):
     return f'incident_reminder:{int(reminder_id)}'
 
+def _incident_reminder_recipients(reminder):
+    """Restituisce i destinatari effettivi di un promemoria specifico.
+
+    IncidentReminder non persiste una colonna ``recipient_emails``: i
+    destinatari sono ricavati dal personale associato all'incidente, mentre i
+    CC sono memorizzati nel promemoria. Questa funzione centralizza la logica
+    usata sia per l'invio sia per gli audit, evitando accessi ad attributi non
+    presenti nel modello.
+    """
+    inc = reminder.incident if reminder else None
+    return sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()}) if inc else []
+
+
 def _reminder_audit_details(reminder):
     """Dettagli stabili del promemoria specifico per audit e diagnostica."""
     if not reminder:
@@ -4209,12 +4222,13 @@ def _reminder_audit_details(reminder):
     message = (reminder.message or '').strip()
     if len(message) > 240:
         message = message[:237] + '...'
+    recipients = _incident_reminder_recipients(reminder)
     return {
         'reminder_id': reminder.id,
         'reminder_scheduled_at': reminder.scheduled_at.isoformat(timespec='seconds') if reminder.scheduled_at else None,
         'reminder_sent_at': reminder.sent_at.isoformat(timespec='seconds') if reminder.sent_at else None,
         'reminder_message': message,
-        'reminder_recipient_emails': reminder.recipient_emails or '',
+        'reminder_recipient_emails': ', '.join(recipients),
         'reminder_cc_emails': reminder.cc_emails or '',
         'reminder_last_error': reminder.last_error or '',
     }

@@ -1,3 +1,9 @@
+## 0.2.1-43
+- Corretto il controllo manuale dei promemoria specifici: gli audit non accedono più a un attributo inesistente `IncidentReminder.recipient_emails`.
+- Centralizzata la risoluzione dei destinatari dei promemoria specifici dal personale associato all’incidente, riutilizzata da invio e audit.
+- Confermato che il blocco funzionale dei promemoria specifici resta basato solo su `incident_reminder.sent_at`, senza slot o finestre di invio.
+- Documentazione aggiornata.
+
 ## 0.2.1-42
 - Aggiunta nella pagina Notifiche → Impostazioni una sezione finale dedicata al controllo manuale dei promemoria specifici dei singoli incidenti.
 - Il pulsante manuale esegue `process_due_incident_reminders(source='manual_button')` e mostra inviati, saltati, scaduti verificati ed eventuali errori.

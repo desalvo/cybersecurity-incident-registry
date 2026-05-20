@@ -633,3 +633,9 @@ La pagina **Notifiche → Impostazioni** include alla fine una sezione **Control
 Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. Il claim tecnico in `deadline_notification_state` evita soltanto che due cicli concorrenti inviino contemporaneamente lo stesso promemoria.
 
 Quando un promemoria viene saltato, sia dallo scheduler sia dal pulsante manuale, l'audit `scheduler:incident_reminder_skipped` riporta incidente, identificativo promemoria, data programmata, messaggio sintetico, destinatari/CC configurati, ultimo errore disponibile, sorgente del controllo, codice motivo e descrizione leggibile del motivo.
+## Aggiornamento 0.2.1-43 - Correzione controllo promemoria specifici
+
+Il pulsante **Esegui controllo promemoria ora** nella sezione **Controllo promemoria specifici** non accede più a un attributo inesistente del modello `IncidentReminder`. I destinatari effettivi sono ricavati dal personale associato all’incidente, come già avviene per l’invio SMTP, e la stessa logica viene riutilizzata per compilare gli audit dei promemoria saltati.
+
+Per i promemoria specifici resta invariata la regola funzionale: una mail viene bloccata solo se il relativo record ha `incident_reminder.sent_at` valorizzato. Gli stati tecnici dello scheduler non introducono slot o finestre di deduplica per questi promemoria.
+
