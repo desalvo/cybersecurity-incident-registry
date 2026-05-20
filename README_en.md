@@ -1,3 +1,7 @@
+0.2.1-66 - Prefilled CC preview and manual clearing
+- Manual notification previews prefill editable CC with the template default when present.
+- If the operator clears the CC field before confirmation, sending ignores CC and proceeds without copied recipients.
+
 # cybersecurity-incident-registry
 
 

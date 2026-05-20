@@ -1,3 +1,7 @@
+## Aggiornamento 0.2.1-66 - Anteprima CC precompilata e svuotamento manuale
+
+L'anteprima delle notifiche manuali torna a valorizzare il campo CC modificabile con il default configurato nel template, quando presente. La risoluzione in invio resta basata sui campi effettivamente inviati dalla form: `manual_cc`, anche se vuoto, ha priorità sul valore configurato del template. In questo modo l'operatore vede il default proposto, può confermarlo senza ulteriori operazioni oppure svuotarlo consapevolmente prima della conferma per inviare senza CC. Il comportamento vale sia per l'invio effettivo sia per la conferma senza invio.
+
 # Documentazione progettuale
 
 ## Baseline progettuale 0.2.1 - build 2026051901
@@ -1628,9 +1632,9 @@ Il template `notification_preview.html` associa i campi manuali `manual_recipien
 
 ## Aggiornamento 0.2.1-64 - Campi manuali acquisiti al submit notifiche
 
-Nelle notifiche manuali/non schedulate, la pagina di anteprima continua a mostrare i campi Destinatario e CC solo quando il template li rende modificabili. Al submit della form, sia per `send_mode=send` sia per `send_mode=confirm_without_send`, il client copia tutti i campi modificabili presenti nell’anteprima nei campi hidden del form di invio e il server dà priorità ai valori `manual_recipient` e `manual_cc` ricevuti nella POST. La validazione server-side resta autorevole: destinatario obbligatorio, formato e-mail valido e conferma esplicita tramite `recipient_confirmed=1`/`confirm_without_send_confirmed=1` dove applicabile. La form non richiede né suggerisce più il ricalcolo dell’anteprima per propagare i valori manuali. Dal momento che i campi manuali sono prevalenti, se il CC è modificabile e resta vuoto al submit, il valore vuoto annulla l’eventuale CC predefinito configurato sul template: l’invio prosegue senza CC.
+Nelle notifiche manuali/non schedulate, la pagina di anteprima continua a mostrare i campi Destinatario e CC solo quando il template li rende modificabili. Al submit della form, sia per `send_mode=send` sia per `send_mode=confirm_without_send`, il client copia tutti i campi modificabili presenti nell’anteprima nei campi hidden del form di invio e il server dà priorità ai valori `manual_recipient` e `manual_cc` ricevuti nella POST. La validazione server-side resta autorevole: destinatario obbligatorio, formato e-mail valido e conferma esplicita tramite `recipient_confirmed=1`/`confirm_without_send_confirmed=1` dove applicabile. La form non richiede né suggerisce più il ricalcolo dell’anteprima per propagare i valori manuali. Dal momento che i campi manuali sono prevalenti, se il CC è modificabile e viene svuotato al submit, il valore vuoto annulla l’eventuale CC predefinito configurato sul template: l’invio prosegue senza CC.
 
 
 ## Aggiornamento 0.2.1-65 - Precedenza CC manuale vuoto
 
-Nelle notifiche manuali, quando il template consente la modifica del campo CC, l’anteprima non precompila automaticamente il CC con il valore di default del template. Il valore digitato manualmente resta prevalente; se il campo CC viene lasciato vuoto, tale valore vuoto annulla il default del template e la mail viene inviata senza CC. I redirect da validazione possono comunque riproporre il CC esplicitamente inserito dall’operatore.
+Nelle notifiche manuali, quando il template consente la modifica del campo CC, il valore digitato manualmente resta prevalente; se il campo CC viene svuotato dall’operatore, tale valore vuoto annulla il default del template e la mail viene inviata senza CC. Dalla versione 0.2.1-66 l’anteprima precompila nuovamente il campo CC con il valore di default del template, quando presente, lasciando comunque al submit la priorità al valore manuale effettivo.

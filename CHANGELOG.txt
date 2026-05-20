@@ -1,3 +1,8 @@
+0.2.1-66 - Anteprima CC precompilata e svuotamento manuale
+- Ripristinata la precompilazione del campo CC modificabile con il default del template in anteprima.
+- Mantenuta la prevalenza del valore manuale al submit: se l'operatore svuota il CC, l'invio procede senza CC.
+- Aggiornata la documentazione.
+
 0.2.1-65 - Precedenza del CC manuale vuoto nelle notifiche
 - Quando il campo CC è compilabile manualmente in anteprima, il campo lasciato vuoto prevale sull’eventuale CC predefinito del template.
 - L’anteprima non inserisce automaticamente il CC di default nei campi modificabili, evitando invii con CC non confermati esplicitamente.

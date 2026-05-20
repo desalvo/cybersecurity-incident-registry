@@ -5352,12 +5352,9 @@ def notify_preview(iid, kind):
     recipient, cc = resolve_template_notification_addresses(tmpl, kind, inc, ntype, args=request.args)
     recipient_locked = not bool(getattr(tmpl, 'recipient_editable', True))
     cc_locked = not bool(getattr(tmpl, 'cc_editable', True))
-    # Se il CC è compilabile manualmente, l'eventuale default del template non
-    # deve essere applicato automaticamente in fase di invio: prevale sempre
-    # l'immissione manuale. In anteprima quindi il campo resta vuoto salvo
-    # valore esplicitamente riportato da una validazione/redirect.
-    if not cc_locked and request.args.get('cc') is None:
-        cc = ''
+    # L'anteprima mostra il CC predefinito del template, se configurato.
+    # Al submit, però, il campo manuale presente nella form ha priorità: se
+    # l'operatore lo svuota esplicitamente viene inviato senza CC.
     address_editable = not recipient_locked or not cc_locked
     subject = notification_subject(kind, inc, tmpl.id)
     needs_documents = notification_needs_documents(kind, tmpl.id)
