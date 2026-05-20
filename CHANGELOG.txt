@@ -1,3 +1,10 @@
+0.2.1-47
+- Separato il controllo automatico dei promemoria specifici in un thread dedicato.
+- L'intervallo del thread promemoria è configurabile da Impostazioni notifiche, default 60 secondi.
+- Ogni ciclo del controllo promemoria specifici produce un audit, anche senza promemoria scaduti.
+- La pagina Admin -> Stato mostra thread, intervallo e ultima esecuzione del controllo promemoria specifici.
+- Documentazione aggiornata.
+
 ## 0.2.1-45
 - Rimossa la “presa in carico” tecnica come motivo bloccante per l'invio dei promemoria specifici.
 - I promemoria specifici vengono valutati solo tramite `incident_reminder.sent_at`: se è nullo sono inviabili, se è valorizzato sono già inviati.

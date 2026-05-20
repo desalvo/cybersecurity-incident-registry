@@ -4408,30 +4408,23 @@ def _record_scheduler_cycle(kind, result=None, started_at=None, ended_at=None, s
 
 
 def run_scheduler_services_cycle(source='background_scheduler'):
-    """Run every scheduler service independently.
+    """Esegue il solo controllo delle notifiche periodiche task.
 
-    I promemoria specifici devono essere controllati ad ogni ciclo del thread,
-    anche quando il controllo deadline è disabilitato o genera un errore. Per
-    questo i due controlli sono separati: un problema sulle notifiche task in
-    scadenza non impedisce l'invio dei promemoria specifici già scaduti.
+    I promemoria specifici sono gestiti da un thread separato, con intervallo
+    configurabile dalle impostazioni notifiche, per rendere visibile e
+    indipendente il loro ciclo operativo.
     """
-    summary = {}
-    for kind, func in (
-        ('deadline_notifications', lambda: run_deadline_notification_check(force=False, source=source)),
-        ('incident_reminders', lambda: process_due_incident_reminders(source=source)),
-    ):
-        started = application_now()
-        try:
-            result = func()
-            summary[kind] = result
-            _record_scheduler_cycle(kind, result=result, started_at=started, ended_at=application_now(), status='ok')
-        except Exception as exc:
-            db.session.rollback()
-            current_app.logger.exception('Ciclo scheduler %s non completato', kind)
-            result = {'source': source, 'errors': [str(exc)], 'executed': False}
-            summary[kind] = result
-            _record_scheduler_cycle(kind, result=result, started_at=started, ended_at=application_now(), status='error', error=str(exc))
-    return summary
+    started = application_now()
+    try:
+        result = run_deadline_notification_check(force=False, source=source)
+        _record_scheduler_cycle('deadline_notifications', result=result, started_at=started, ended_at=application_now(), status='ok')
+        return {'deadline_notifications': result}
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Ciclo scheduler deadline_notifications non completato')
+        result = {'source': source, 'errors': [str(exc)], 'executed': False}
+        _record_scheduler_cycle('deadline_notifications', result=result, started_at=started, ended_at=application_now(), status='error', error=str(exc))
+        return {'deadline_notifications': result}
 
 
 def scheduler_service_status():
@@ -4452,11 +4445,15 @@ def scheduler_service_status():
         'timezone': application_timezone_name(),
         'thread_started': _deadline_scheduler_started,
         'thread_name': 'cir-deadline-notification-scheduler',
+        'reminder_thread_started': _incident_reminder_scheduler_started,
+        'reminder_thread_name': 'cir-incident-reminder-scheduler',
+        'reminder_poll_seconds': incident_reminder_poll_seconds(),
         'enabled_by_env': os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() not in {'0', 'false', 'no'},
         'poll_seconds': poll_seconds,
         'last_heartbeat_at': setting_value('scheduler_last_heartbeat_at', '-'),
         'deadline': _scheduler_json_setting('scheduler_status_deadline_notifications', {}),
         'reminders': _scheduler_json_setting('scheduler_status_incident_reminders', {}),
+        'last_incident_reminder_check_at': (_scheduler_json_setting('scheduler_status_incident_reminders', {}) or {}).get('ended_at') or '-',
         'deadline_schedule': format_deadline_schedule_info(),
         'backup': {
             'thread_started': _backup_scheduler_started,
@@ -4556,11 +4553,11 @@ def process_due_incident_reminders(source='background_scheduler'):
             )
             errors.append(f'Promemoria {reminder.id}: {info}')
             db.session.commit()
-    if due:
-        audit_log('scheduler:incident_reminder_check', json.dumps({'source': source, 'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors[:10], 'skipped_details': skipped_details[:20]}, ensure_ascii=False), actor_type='scheduler')
-        purge_audit_logs()
-        db.session.commit()
-    return {'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors, 'skipped_details': skipped_details}
+    result = {'source': source, 'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors, 'skipped_details': skipped_details, 'executed': True}
+    audit_log('scheduler:incident_reminder_check', json.dumps({**result, 'errors': errors[:10], 'skipped_details': skipped_details[:20]}, ensure_ascii=False), actor_type='scheduler')
+    purge_audit_logs()
+    db.session.commit()
+    return result
 
 def run_deadline_notification_check(force=False, source='request'):
     """Controlla e invia le notifiche periodiche dei task in scadenza.
@@ -4748,11 +4745,22 @@ def maybe_run_deadline_notification_check():
 
 
 _deadline_scheduler_started = False
+_incident_reminder_scheduler_started = False
 _deadline_scheduler_lock = threading.Lock()
+_incident_reminder_scheduler_lock = threading.Lock()
 _scheduler_mail_send_lock = threading.Lock()
 _CIR_SCHEDULER_LOCK_ID = 47110021
+_CIR_REMINDER_SCHEDULER_LOCK_ID = 47110022
 
-def _try_database_scheduler_lock():
+def incident_reminder_poll_seconds():
+    """Intervallo configurabile del thread dei promemoria specifici."""
+    try:
+        value = int(setting_value('notification_incident_reminder_poll_seconds', '60') or '60')
+    except (TypeError, ValueError):
+        value = 60
+    return max(10, value)
+
+def _try_database_scheduler_lock(lock_id=_CIR_SCHEDULER_LOCK_ID):
     """Acquire a PostgreSQL advisory lock for multi-replica deployments.
 
     Gunicorn workers and Kubernetes replicas can all start the in-process
@@ -4764,17 +4772,17 @@ def _try_database_scheduler_lock():
     if not str(db.engine.url).startswith('postgresql'):
         return True
     try:
-        return bool(db.session.execute(text('SELECT pg_try_advisory_lock(:lock_id)'), {'lock_id': _CIR_SCHEDULER_LOCK_ID}).scalar())
+        return bool(db.session.execute(text('SELECT pg_try_advisory_lock(:lock_id)'), {'lock_id': lock_id}).scalar())
     except Exception:
         db.session.rollback()
         current_app.logger.exception('Impossibile acquisire il lock PostgreSQL dello scheduler')
         return False
 
-def _release_database_scheduler_lock():
+def _release_database_scheduler_lock(lock_id=_CIR_SCHEDULER_LOCK_ID):
     if not str(db.engine.url).startswith('postgresql'):
         return
     try:
-        db.session.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': _CIR_SCHEDULER_LOCK_ID})
+        db.session.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id})
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -4831,6 +4839,56 @@ def start_deadline_notification_scheduler(app):
             time.sleep(poll_seconds)
 
     t = threading.Thread(target=loop, name='cir-deadline-notification-scheduler', daemon=True)
+    t.start()
+
+
+def start_incident_reminder_scheduler(app):
+    """Avvia il thread dedicato ai promemoria specifici degli incidenti."""
+    global _incident_reminder_scheduler_started
+    if _incident_reminder_scheduler_started:
+        return
+    if os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() in {'0', 'false', 'no'}:
+        app.logger.info('Scheduler promemoria specifici disabilitato da CIR_ENABLE_DEADLINE_SCHEDULER')
+        return
+    if app.debug and os.environ.get('WERKZEUG_RUN_MAIN') == 'false':
+        return
+    _incident_reminder_scheduler_started = True
+
+    def loop():
+        app.logger.info('Scheduler promemoria specifici avviato')
+        while True:
+            poll_seconds = incident_reminder_poll_seconds()
+            if not _incident_reminder_scheduler_lock.acquire(blocking=False):
+                time.sleep(poll_seconds)
+                continue
+            db_lock_acquired = False
+            started = None
+            try:
+                with app.app_context():
+                    started = application_now()
+                    db_lock_acquired = _try_database_scheduler_lock(_CIR_REMINDER_SCHEDULER_LOCK_ID)
+                    if db_lock_acquired:
+                        result = process_due_incident_reminders(source='background_reminder_scheduler')
+                        _record_scheduler_cycle('incident_reminders', result=result, started_at=started, ended_at=application_now(), status='ok')
+            except Exception as exc:
+                try:
+                    with app.app_context():
+                        db.session.rollback()
+                        app.logger.exception('Scheduler promemoria specifici non completato')
+                        _record_scheduler_cycle('incident_reminders', result={'source': 'background_reminder_scheduler', 'errors': [str(exc)], 'executed': False}, started_at=started or application_now(), ended_at=application_now(), status='error', error=str(exc))
+                except Exception:
+                    app.logger.exception('Aggiornamento stato scheduler promemoria non completato')
+            finally:
+                if db_lock_acquired:
+                    try:
+                        with app.app_context():
+                            _release_database_scheduler_lock(_CIR_REMINDER_SCHEDULER_LOCK_ID)
+                    except Exception:
+                        app.logger.exception('Rilascio lock scheduler promemoria non completato')
+                _incident_reminder_scheduler_lock.release()
+            time.sleep(poll_seconds)
+
+    t = threading.Thread(target=loop, name='cir-incident-reminder-scheduler', daemon=True)
     t.start()
 
 
@@ -4916,7 +4974,7 @@ def admin_status():
 @login_required
 def notification_settings():
     if not can_admin(): return redirect(url_for('main.index'))
-    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_subject_template','notification_deadline_body_template']
+    keys = ['csirt_email','dpo_email','csirt_cc','dpo_cc','smtp_host','smtp_port','smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','smtp_username','smtp_password','smtp_default_sender','notification_deadline_enabled','notification_deadline_email_enabled','notification_deadline_schedule_mode','notification_deadline_cron_times','notification_deadline_interval_hours','notification_deadline_interval_minutes','notification_deadline_subject_template','notification_deadline_body_template','notification_incident_reminder_poll_seconds']
     checkbox_keys = {'smtp_use_tls','smtp_use_ssl','smtp_auth_enabled','notification_deadline_enabled','notification_deadline_email_enabled'}
     if request.method == 'POST':
         action = request.form.get('action', 'save')
@@ -4981,6 +5039,7 @@ def notification_settings():
         'notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0',
         'notification_deadline_subject_template': default_deadline_subject_template(),
         'notification_deadline_body_template': default_deadline_body_template(),
+        'notification_incident_reminder_poll_seconds': '60',
     }
     settings = {k: setting_value(k, defaults.get(k,'')) for k in keys}
     preview_subject, preview_body = sample_deadline_preview()

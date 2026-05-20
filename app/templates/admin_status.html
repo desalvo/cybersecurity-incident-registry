@@ -6,11 +6,15 @@
   <dl class="meta-list">
     <dt>Ora applicativa</dt><dd>{{ status.now }}</dd>
     <dt>Fuso orario applicativo</dt><dd>{{ status.timezone }}</dd>
-    <dt>Thread scheduler</dt><dd>{{ 'avviato' if status.thread_started else 'non avviato' }}</dd>
-    <dt>Nome thread</dt><dd>{{ status.thread_name }}</dd>
+    <dt>Thread scheduler task</dt><dd>{{ 'avviato' if status.thread_started else 'non avviato' }}</dd>
+    <dt>Nome thread task</dt><dd>{{ status.thread_name }}</dd>
+    <dt>Thread scheduler promemoria specifici</dt><dd>{{ 'avviato' if status.reminder_thread_started else 'non avviato' }}</dd>
+    <dt>Nome thread promemoria</dt><dd>{{ status.reminder_thread_name }}</dd>
     <dt>Scheduler abilitato da ambiente</dt><dd>{{ 'sì' if status.enabled_by_env else 'no' }}</dd>
-    <dt>Intervallo poll</dt><dd>{{ status.poll_seconds }} secondi</dd>
+    <dt>Intervallo poll task</dt><dd>{{ status.poll_seconds }} secondi</dd>
+    <dt>Intervallo poll promemoria specifici</dt><dd>{{ status.reminder_poll_seconds }} secondi</dd>
     <dt>Ultimo heartbeat registrato</dt><dd>{{ status.last_heartbeat_at or '-' }}</dd>
+    <dt>Ultima esecuzione controllo promemoria specifici</dt><dd>{{ status.last_incident_reminder_check_at or '-' }}</dd>
   </dl>
 </div>
 

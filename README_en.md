@@ -458,3 +458,7 @@ For incident-specific reminders, a technical claim held by another scheduler cyc
 The scheduler thread now runs both deadline-task notification checks and incident-specific reminder checks on every cycle. The two checks are independent: an error or disabled deadline-task check no longer prevents due, unsent incident-specific reminders from being processed. Incident-specific reminders still use only `incident_reminder.sent_at` as the functional send guard: empty means eligible, populated means already sent.
 
 A new **Admin → Control and audit → Status** page shows the complete application service status: notification scheduler thread, backup scheduler, heartbeat, poll interval, timezone, last cycles for deadline tasks and specific reminders, last results, errors, operational counters and configured schedule details.
+
+### Incident-specific reminder scheduler
+
+Incident-specific reminders are checked by a separate thread from the periodic deadline-task notification scheduler. The interval is configurable in **Settings → Notifications**, defaulting to 60 seconds. Every reminder check writes an audit record, even when no due reminders are found. The **Admin → Status** page reports the thread status, configured interval and date/time of the last incident-specific reminder check.

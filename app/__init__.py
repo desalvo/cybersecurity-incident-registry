@@ -84,11 +84,12 @@ def create_app():
         except Exception:
             data['modules_menu_visible'] = False
         return data
-    from .routes import bp, start_deadline_notification_scheduler, start_backup_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
+    from .routes import bp, start_deadline_notification_scheduler, start_incident_reminder_scheduler, start_backup_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
     with app.app_context():
         wait_db(db)
         bootstrap(app)
     start_deadline_notification_scheduler(app)
+    start_incident_reminder_scheduler(app)
     start_backup_scheduler(app)
     return app
 
