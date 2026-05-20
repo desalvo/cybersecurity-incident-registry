@@ -32,7 +32,76 @@
   <h4>Raccomandazioni selezionate</h4>
   <ul>{% for r in inc.recommendations %}<li>{{ r.text }}</li>{% else %}<li class="muted">Nessuna raccomandazione selezionata.</li>{% endfor %}</ul>
 </div>
-<div class="card" id="incident-actions"><h3>Azioni</h3>{% for category,m in section_messages('incident-actions', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.add_action',iid=inc.id)}}" class="form-grid" enctype="multipart/form-data" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><div><label>Data e ora</label><div class="inline-field"><input name="when_at" id="new-action-when-at" type="datetime-local" value="{{ default_action_when }}" required><button type="button" class="secondary small" id="refresh-action-time" title="Aggiorna a data e ora correnti">↻</button></div><p class="muted">Precompilata al caricamento della form con il fuso orario {{ application_timezone }}. Usa il pulsante ↻ per aggiornare al momento corrente.</p></div><div><label>Persona</label><input name="person_name" value="{{current_user.name}}"></div><div><label>Label</label><select name="label_id" id="new-action-label-id">{% for l in action_labels %}<option value="{{l.id}}">{{l.value}}</option>{% endfor %}</select></div><div class="wide"><label>Descrizione opzionale</label><textarea name="description"></textarea></div><div class="wide"><label>Conseguenze associate all’azione</label><textarea name="consequence_text" placeholder="Descrivere eventuali conseguenze specifiche prodotte o rilevate con questa azione"></textarea></div><div class="wide"><label>Allegati dell’azione</label><input type="file" name="action_files" multiple><p class="muted">È possibile allegare uno o più file a questa azione.</p></div><button>Aggiungi azione</button></form>{% endif %}<table class="table"><tr><th>Data</th><th>Label</th><th>Persona</th><th>Descrizione</th><th>Conseguenze</th><th>Exportable</th><th>Allegati</th><th>Azioni</th></tr>{% for a in inc.actions %}<tr><td>{% if current_user.role in ['admin','writer'] %}<input type="datetime-local" name="when_at" value="{{ a.when_at.strftime('%Y-%m-%dT%H:%M') if a.when_at else '' }}" form="action-update-{{a.id}}" required>{% else %}{{a.when_at}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<form id="action-update-{{a.id}}" method="post" action="{{url_for('main.update_action',aid=a.id)}}" class="stacked-inline-form" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><select name="label_id">{% for l in action_labels %}<option value="{{l.id}}" {% if a.label_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select>{% else %}{{a.label.value if a.label else ''}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<input name="person_name" value="{{a.person_name or ''}}">{% else %}{{a.person_name}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<textarea name="description">{{a.description or ''}}</textarea>{% else %}{{a.description or ''}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<textarea name="consequence_text">{{a.consequence_text or ''}}</textarea>{% else %}{{a.consequence_text or ''}}{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<label><input type="checkbox" name="exportable" value="1" {% if a.exportable %}checked{% endif %}> sì</label>{% else %}{{ 'sì' if a.exportable else 'no' }}{% endif %}</td><td>{% if a.attachments %}<ul class="compact-list">{% for att in a.attachments %}<li><a href="{{url_for('main.download_action_attachment',att_id=att.id)}}">{{att.filename}}</a>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.del_action_attachment',att_id=att.id)}}" onsubmit="return confirm('Cancellare questo allegato dell’azione?')" class="inline-form" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><button class="link-danger" type="submit">elimina</button></form>{% endif %}</li>{% endfor %}</ul>{% else %}<span class="muted">nessuno</span>{% endif %}</td><td>{% if current_user.role in ['admin','writer'] %}<button type="submit" class="secondary">Salva</button></form><form method="post" action="{{url_for('main.del_action',aid=a.id)}}" onsubmit="return confirm('Cancellare questa azione?')" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><button class="danger">Elimina</button></form>{% endif %}</td></tr>{% endfor %}</table></div>
+<div class="card" id="incident-actions"><h3>Azioni</h3>{% for category,m in section_messages('incident-actions', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.add_action',iid=inc.id)}}" class="form-grid" enctype="multipart/form-data" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><div><label>Data e ora</label><div class="inline-field"><input name="when_at" id="new-action-when-at" type="datetime-local" value="{{ default_action_when }}" required><button type="button" class="secondary small" id="refresh-action-time" title="Aggiorna a data e ora correnti">↻</button></div><p class="muted">Precompilata al caricamento della form con il fuso orario {{ application_timezone }}. Usa il pulsante ↻ per aggiornare al momento corrente.</p></div><div><label>Persona</label><input name="person_name" value="{{current_user.name}}"></div><div><label>Label</label><select name="label_id" id="new-action-label-id">{% for l in action_labels %}<option value="{{l.id}}">{{l.value}}</option>{% endfor %}</select></div><div class="wide"><label>Descrizione opzionale</label><textarea name="description"></textarea></div><div class="wide"><label>Conseguenze associate all’azione</label><textarea name="consequence_text" placeholder="Descrivere eventuali conseguenze specifiche prodotte o rilevate con questa azione"></textarea></div><div class="wide"><label>Allegati dell’azione</label><input type="file" name="action_files" multiple><p class="muted">È possibile allegare uno o più file a questa azione.</p></div><button>Aggiungi azione</button></form>{% endif %}<div class="incident-action-list">
+{% for a in inc.actions %}
+  <article class="incident-action-card">
+    {% if current_user.role in ['admin','writer'] %}
+    <form id="action-update-{{a.id}}" method="post" action="{{url_for('main.update_action',aid=a.id)}}" class="incident-action-edit-form" data-scroll-anchor="incident-actions">
+      <input type="hidden" name="scroll_anchor" value="incident-actions">
+      <div class="incident-action-card-header">
+        <div class="incident-action-main-meta">
+          <label>Data e ora</label>
+          <input type="datetime-local" name="when_at" value="{{ a.when_at.strftime('%Y-%m-%dT%H:%M') if a.when_at else '' }}" required>
+        </div>
+        <div class="incident-action-main-meta">
+          <label>Label</label>
+          <select name="label_id">{% for l in action_labels %}<option value="{{l.id}}" {% if a.label_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select>
+        </div>
+        <div class="incident-action-main-meta">
+          <label>Persona</label>
+          <input name="person_name" value="{{a.person_name or ''}}">
+        </div>
+      </div>
+      <div class="incident-action-card-body">
+        <div class="incident-action-field">
+          <label>Descrizione</label>
+          <textarea name="description" placeholder="Descrizione opzionale">{{a.description or ''}}</textarea>
+        </div>
+        <div class="incident-action-field">
+          <label>Conseguenze</label>
+          <textarea name="consequence_text" placeholder="Conseguenze associate all’azione">{{a.consequence_text or ''}}</textarea>
+        </div>
+      </div>
+      <div class="incident-action-card-footer">
+        <label class="checkbox-inline"><input type="checkbox" name="exportable" value="1" {% if a.exportable %}checked{% endif %}> <span>Exportable</span></label>
+        <button type="submit" class="secondary">Salva modifiche</button>
+      </div>
+    </form>
+    {% else %}
+      <div class="incident-action-card-header readonly">
+        <div><strong>{{ a.when_at.strftime('%d/%m/%Y %H:%M') if a.when_at else 'Data non impostata' }}</strong></div>
+        <div><span class="badge">{{a.label.value if a.label else 'Senza label'}}</span></div>
+        <div class="muted">{{a.person_name or 'Persona non indicata'}}</div>
+      </div>
+      <div class="incident-action-readonly-grid">
+        <div><strong>Descrizione</strong><p>{{a.description or '—'}}</p></div>
+        <div><strong>Conseguenze</strong><p>{{a.consequence_text or '—'}}</p></div>
+        <div><strong>Exportable</strong><p>{{ 'sì' if a.exportable else 'no' }}</p></div>
+      </div>
+    {% endif %}
+    <div class="incident-action-attachments">
+      <strong>Allegati</strong>
+      {% if a.attachments %}
+        <ul class="compact-list">
+        {% for att in a.attachments %}
+          <li><a href="{{url_for('main.download_action_attachment',att_id=att.id)}}">{{att.filename}}</a>{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.del_action_attachment',att_id=att.id)}}" onsubmit="return confirm('Cancellare questo allegato dell’azione?')" class="inline-form" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><button class="link-danger" type="submit">elimina</button></form>{% endif %}</li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <span class="muted">nessuno</span>
+      {% endif %}
+    </div>
+    {% if current_user.role in ['admin','writer'] %}
+    <form method="post" action="{{url_for('main.del_action',aid=a.id)}}" onsubmit="return confirm('Cancellare questa azione?')" class="incident-action-delete-form" data-scroll-anchor="incident-actions">
+      <input type="hidden" name="scroll_anchor" value="incident-actions">
+      <button class="danger">Elimina azione</button>
+    </form>
+    {% endif %}
+  </article>
+{% else %}
+  <div class="empty-card muted">Nessuna azione registrata.</div>
+{% endfor %}
+</div></div>
 <div class="card" id="incident-reminders">
   <h3>Promemoria specifici</h3>
   {% for category,m in section_messages('incident-reminders', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}

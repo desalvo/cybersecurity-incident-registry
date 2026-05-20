@@ -135,9 +135,13 @@ Ogni azione appartiene a un incidente e contiene:
 - label azione
 - allegati multipli opzionali
 
-Il campo persona è precompilato con il nome dell'utente loggato ma può essere modificato. È possibile modificare o cancellare le azioni, se l'utente ha permessi di scrittura. Le azioni sono ordinate cronologicamente.
+Il campo persona è precompilato con il nome dell'utente loggato ma può essere modificato. È possibile modificare o cancellare le azioni, se l'utente ha permessi di scrittura. Le azioni sono ordinate cronologicamente e sono mostrate nella pagina incidente come schede leggibili, non come una tabella compressa: ogni scheda separa data/ora, label, persona, descrizione, conseguenze, allegati e comandi di salvataggio/cancellazione.
 
 Le notifiche generano automaticamente un'azione associata alla label configurata nel template usato. L'azione automatica include nella descrizione mittente, destinatari e CC. Inoltre viene generato e allegato all'azione un PDF con il testo della mail inviata.
+
+### 4.3.1 Allineamento checkbox
+
+Lo stile globale dell'interfaccia applica un allineamento coerente alle checkbox e al testo associato tramite classi dedicate e selettori CSS per le label che contengono checkbox. Le form amministrative, le liste di selezione e i flag inline mantengono quindi il controllo e la descrizione sulla stessa linea visuale, con gestione responsive su schermi stretti.
 
 ### 4.4 Documenti
 

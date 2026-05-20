@@ -171,7 +171,12 @@ Nelle pagine di anteprima delle notifiche manuali/non schedulate è disponibile 
 
 ### Modifica data e ora delle azioni
 
-Nella sezione **Azioni** del dettaglio incidente, gli utenti con permessi di scrittura possono modificare direttamente anche la data e ora di ciascuna azione esistente, oltre a label, persona, descrizione, conseguenze e flag exportable.
+Nella sezione **Azioni** del dettaglio incidente, la timeline è presentata con schede distinte per ciascuna azione, in modo da mantenere separati metadati, descrizione, conseguenze, allegati e comandi operativi. Gli utenti con permessi di scrittura possono modificare direttamente anche la data e ora di ciascuna azione esistente, oltre a label, persona, descrizione, conseguenze e flag exportable.
+
+
+### Leggibilità form e checkbox
+
+Le checkbox dell’applicazione sono allineate in modo coerente con il testo associato, incluse le opzioni inline, le liste di selezione e i flag presenti nelle schede di modifica. Questo evita disallineamenti visuali tra controllo e label su desktop, mobile e pagine amministrative.
 
 ## Aiuto
 
@@ -289,7 +294,7 @@ Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per 
 
 Nella configurazione dei moduli PDF, tra i **Campi database incidenti**, sono disponibili anche i campi calcolati dinamicamente `awareness_date` (**Data venuta a conoscenza**) e `awareness_time` (**Ora venuta a conoscenza**). I due valori sono ricavati dalla prima azione cronologica dell’incidente la cui label contiene “informazione iniziale”. Se l’azione non è presente, il campo compilato resta vuoto.
 
-Il campo derivato `measures_adopted` include solo le azioni marcate come **exportable**. Per ogni azione esportabile la stringa compilata mostra prima il testo dell’azione, composto da label ed eventuale descrizione, e poi la data e ora dell’azione nel formato `YYYY-MM-DD HH:MM`. Il valore iniziale del flag sulle nuove azioni deriva dal campo **Esportabile per default** configurato sulla label azione in **Admin → Liste configurabili**; in assenza di label configurata resta il fallback sulle parole chiave storiche “notifica”, “comunicazione”, “informazione iniziale”, “analisi” o “conclusione”. Il flag può essere modificato dalla tabella Azioni nel dettaglio dell’incidente.
+Il campo derivato `measures_adopted` include solo le azioni marcate come **exportable**. Per ogni azione esportabile la stringa compilata mostra prima il testo dell’azione, composto da label ed eventuale descrizione, e poi la data e ora dell’azione nel formato `YYYY-MM-DD HH:MM`. Il valore iniziale del flag sulle nuove azioni deriva dal campo **Esportabile per default** configurato sulla label azione in **Admin → Liste configurabili**; in assenza di label configurata resta il fallback sulle parole chiave storiche “notifica”, “comunicazione”, “informazione iniziale”, “analisi” o “conclusione”. Il flag può essere modificato dalla lista a schede Azioni nel dettaglio dell’incidente.
 
 ## Avvisi procedurali
 

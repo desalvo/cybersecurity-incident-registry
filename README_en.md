@@ -147,7 +147,7 @@ Manual/non-scheduled notification preview pages now include a **Confirm without 
 
 ### Editing action date and time
 
-In the **Actions** section of the incident detail page, users with write permissions can now edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
+In the **Actions** section of the incident detail page, the timeline is now displayed as separate readable cards for each action, keeping metadata, description, consequences, attachments and commands visually separated. Users with write permissions can edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
 
 ## Incidents and action lifecycle
 
@@ -208,6 +208,11 @@ The web interface and the user and administrator documentation are available in 
 The Italian package README remains `README.md`. The English counterpart is `README_en.md`. Both files must be kept aligned whenever functional, configuration or deployment documentation changes. Operational requests may continue to be provided in Italian; the corresponding English UI and documentation text must be updated at the same time.
 
 The package also includes `docs/PROJECT_DESIGN.md`, which describes the logical architecture, data model, application flows, authorization rules, notification system, export/reporting functions and a complete textual specification for rebuilding the application while preserving the current build features.
+
+
+### Form readability and checkboxes
+
+Application checkboxes are consistently aligned with their associated text, including inline options, selection lists and edit-card flags. This prevents visual misalignment between the control and label on desktop, mobile and administration pages.
 
 ## Help
 

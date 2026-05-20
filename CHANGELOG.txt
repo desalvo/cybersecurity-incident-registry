@@ -1,3 +1,9 @@
+0.2.1-51
+- La sezione Azioni del dettaglio incidente usa ora schede leggibili per ogni azione, con metadati, descrizione, conseguenze, allegati e comandi separati.
+- Confermata la modifica di data e ora delle azioni esistenti nel nuovo layout a schede.
+- Uniformato l’allineamento delle checkbox con il testo associato in tutta l’interfaccia.
+- Documentazione aggiornata.
+
 0.2.1-50
 - Aggiunto nelle notifiche manuali/non schedulate il pulsante “Conferma senza inviare”, con conferma esplicita lato browser e controllo server-side: l’azione viene registrata e viene prodotto il PDF del testo, ma nessuna email viene trasmessa.
 - La conferma senza invio usa la stessa validazione di template, destinatari e documenti della notifica ordinaria, ma non richiede la disponibilità effettiva del server SMTP.
