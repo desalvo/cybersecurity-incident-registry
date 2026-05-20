@@ -1,3 +1,9 @@
+0.2.1-70
+- Configurazione moduli: aggiunta associazione drag & drop tra template PDF e tag di tipo notifica.
+- I documenti generati da un template ereditano per default solo i tag configurati direttamente sul template modulo.
+- Aggiunta colonna FormTemplateConfig.notification_tags con migrazione idempotente.
+- Documentazione aggiornata.
+
 0.2.1-67 - Checkbox uso CC nelle notifiche manuali
 - Aggiunta in anteprima la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se disabilitata, il campo CC viene nascosto e ignorato per invio reale e conferma senza invio.

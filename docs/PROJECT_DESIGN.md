@@ -1294,9 +1294,11 @@ La pagina di anteprima delle notifiche manuali con destinatario libero riceve la
 
 ## Aggiornamento 0.2.1 - Tag automatici dei documenti generati
 
-La conferma dei moduli PDF generati dall'incidente ora determina i tag di notifica da applicare al documento partendo dai template di notifica manuali che hanno `linked_form_template_name` uguale al template modulo usato per la generazione. La funzione `notification_tags_for_generated_form_template()` restituisce i codici dei tipi di notifica abilitati, rimuove i duplicati e viene invocata durante `confirm_generated_forms()` prima del salvataggio del nuovo record `Document`.
+La configurazione dei moduli PDF conserva in `FormTemplateConfig.notification_tags` l'elenco compatto dei codici dei tipi di notifica associati al template. L'interfaccia `modules_configuration.html` mostra i tipi di notifica con il nome leggibile del tipo e consente l'associazione tramite drag and drop, riutilizzando lo stesso paradigma della lista Documenti dell'incidente.
 
-Il campo `Document.notification_tags`, già introdotto per il tagging multiplo degli allegati, viene quindi valorizzato automaticamente anche per i documenti generati. La preselezione in invio notifica continua a usare `auto_selected_notification_documents()`, che combina tag del documento e template modulo collegato, lasciando invariata la possibilità per l'utente di modificare manualmente gli allegati.
+Durante `confirm_generated_forms()` la funzione `notification_tags_for_generated_form_template()` legge esclusivamente i tag configurati sul template modulo usato per la generazione e li applica al nuovo record `Document`. Non vengono più derivati tag impliciti dai template di notifica manuale collegati al modulo: i documenti generati hanno per default solo i tag associati direttamente al template modulo. La preselezione degli allegati in anteprima notifica continua a usare `auto_selected_notification_documents()`, che considera i tag del documento e l'eventuale collegamento esplicito del template di notifica al modulo, lasciando comunque modificabile la selezione finale.
+
+La migrazione idempotente aggiunge la colonna `form_template_config.notification_tags` ai database esistenti. Full export/import include automaticamente il campo perché serializza tutte le colonne SQLAlchemy del modello corrente.
 
 Metadati runtime aggiornati: versione `0.2.1`, build `2026051901`.
 
@@ -1665,3 +1667,7 @@ Questa copertura rende l'archivio idoneo a riprodurre completamente la directory
 ## Aggiornamento 0.2.1-69 - Markdown e colori negli step workflow
 
 I riquadri degli step nella sezione **Operazioni previste** renderizzano ora la descrizione operativa con il filtro Jinja `workflow_markdown`. Il rendering supporta Markdown sicuro per titoli, elenchi, grassetto, corsivo, codice inline, link Markdown e URL automatici. Il testo colorato usa una sintassi controllata `{color:nome}testo{/color}` o `{color:#RRGGBB}testo{/color}`; l'HTML libero resta escapato. Il template `incident_detail.html` usa un contenitore `<div class="workflow-step-description workflow-markdown">` per permettere contenuti multi-paragrafo e liste, mentre `style.css` definisce la resa compatta dentro le card del workflow. La documentazione utente e amministrativa include esempi di Markdown e colori.
+
+## Aggiornamento 0.2.1-70 - Tag notifica configurabili sui template modulo
+
+Ogni template PDF configurato in **Moduli → Configurazione** può avere uno o più tag di tipo notifica associati tramite drag and drop. I tag sono presentati con il nome del tipo notifica e salvati nel campo `FormTemplateConfig.notification_tags` come codici tecnici stabili. Quando un PDF viene generato da quel template, il record `Document` creato eredita solo tali tag, senza derivazioni automatiche dai template di notifica manuale.

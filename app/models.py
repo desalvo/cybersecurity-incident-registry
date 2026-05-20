@@ -344,8 +344,22 @@ class FormTemplateConfig(db.Model):
     template_name=db.Column(db.String(255), nullable=False, unique=True, index=True)
     font_family=db.Column(db.String(40), nullable=False, default='Helvetica')
     font_size=db.Column(db.Integer, nullable=False, default=10)
+    notification_tags=db.Column(db.Text, default='', nullable=False)
     created_at=db.Column(db.DateTime, default=datetime.utcnow)
     updated_at=db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def notification_tag_list(self):
+        raw = self.notification_tags or ''
+        return [x.strip() for x in raw.split(',') if x.strip()]
+
+    def set_notification_tags(self, values):
+        seen = []
+        for value in values or []:
+            code = str(value or '').strip()
+            if code and code not in seen:
+                seen.append(code)
+        self.notification_tags = ','.join(seen)
 
     @staticmethod
     def normalize_font_family(value):

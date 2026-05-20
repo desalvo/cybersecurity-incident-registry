@@ -361,6 +361,13 @@ def run_schema_migrations(app):
                     conn.execute(text('ALTER TABLE incident_template ADD COLUMN recipient_email VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident_template.recipient_email added')
 
+        if 'form_template_config' in tables:
+            cols = {c['name'] for c in inspector.get_columns('form_template_config')}
+            if 'notification_tags' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE form_template_config ADD COLUMN notification_tags TEXT NOT NULL DEFAULT ''"))
+                app.logger.info('Schema migration applied: form_template_config.notification_tags added')
+
         if 'notification_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('notification_template')}
             if 'action_label_id' not in cols:

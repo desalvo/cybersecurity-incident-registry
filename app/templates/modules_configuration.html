@@ -123,7 +123,7 @@
         <input type="hidden" name="template_name" value="{{ tmpl.name }}">
         <button type="submit" class="danger">Cancella template</button>
       </form>
-      <form method="post">
+      <form method="post" class="template-tag-form">
         <input type="hidden" name="action" value="save_mapping">
         <input type="hidden" name="template_name" value="{{ tmpl.name }}">
         {% set cfg = template_configs.get(tmpl.name) if template_configs else none %}
@@ -144,6 +144,27 @@
             </div>
           </div>
         </section>
+        <section class="subcard compact-card">
+          <h3>Tag notifiche predefiniti per i documenti generati</h3>
+          <p class="muted">Trascina uno o più tipi notifica nel riquadro del template. I documenti generati da questo template avranno per default solo questi tag; i tag possono poi essere modificati nella sezione Documenti dell’incidente.</p>
+          {% if notification_type_tags %}
+          <div class="tag-palette" aria-label="Tipi notifica disponibili">
+            {% for nt in notification_type_tags %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}">{{ nt.label }}</span>{% endfor %}
+          </div>
+          <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tipi di notifica da associare al template">
+            {% for nt in notification_type_tags %}
+              <label class="tag-selected {% if not cfg or nt.code not in cfg.notification_tag_list %}hidden{% endif %}" data-tag-code="{{ nt.code }}" {% if not cfg or nt.code not in cfg.notification_tag_list %}hidden{% endif %}>
+                <input type="checkbox" name="template_notification_tags" value="{{ nt.code }}" {% if cfg and nt.code in cfg.notification_tag_list %}checked{% endif %}>
+                {{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button>
+              </label>
+            {% endfor %}
+            <span class="muted tag-empty">Nessun tag. Trascina qui un tipo notifica.</span>
+          </div>
+          {% else %}
+            <p class="muted">Nessun tipo notifica configurato.</p>
+          {% endif %}
+        </section>
+
         <div class="dnd-config-grid">
           <section class="dnd-source-panel">
             <h3>Campi database incidenti</h3>
@@ -177,4 +198,59 @@
     </section>
   {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.template-tag-form').forEach(function (form) {
+    const zone = form.querySelector('.tag-drop-zone');
+    const empty = form.querySelector('.tag-empty');
+    function refreshEmpty() {
+      const visible = Array.from(form.querySelectorAll('.tag-selected')).filter(function (el) { return !el.classList.contains('hidden') && !el.hidden; }).length;
+      if (empty) empty.style.display = visible ? 'none' : 'inline';
+    }
+    refreshEmpty();
+    form.querySelectorAll('.tag-chip').forEach(function (chip) {
+      chip.addEventListener('dragstart', function (event) {
+        const code = chip.dataset.tagCode || '';
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('application/x-notification-tag', code);
+        event.dataTransfer.setData('text/plain', code);
+      });
+    });
+    if (zone) {
+      zone.addEventListener('dragover', function (event) { event.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function () { zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function (event) {
+        event.preventDefault(); zone.classList.remove('drag-over');
+        const code = event.dataTransfer.getData('application/x-notification-tag') || event.dataTransfer.getData('text/plain');
+        const item = form.querySelector('.tag-selected[data-tag-code="' + code + '"]');
+        if (item) {
+          item.classList.remove('hidden');
+          item.hidden = false;
+          const input = item.querySelector('input');
+          if (input) input.checked = true;
+          refreshEmpty();
+        }
+      });
+    }
+    form.querySelectorAll('.tag-remove').forEach(function (button) {
+      button.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const item = button.closest('.tag-selected');
+        if (item) {
+          const input = item.querySelector('input');
+          if (input) input.checked = false;
+          item.classList.add('hidden');
+          item.hidden = true;
+          refreshEmpty();
+        }
+      });
+    });
+  });
+});
+</script>
+<style>
+.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold}
+</style>
 {% endblock %}

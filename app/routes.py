@@ -3245,25 +3245,34 @@ def notification_needs_documents(kind, template_id=None):
 
 
 
-def notification_tags_for_generated_form_template(template_name):
-    """Return notification type codes linked to a generated PDF form template.
+def notification_type_tag_options(enabled_only=False):
+    """Return notification-type tags available for document/form-template mapping.
 
-    When an incident document is produced from a configured PDF form, it must
-    inherit the notification tags of every manual notification template that is
-    linked to that form template. This keeps the document automatically eligible
-    for preselection during the corresponding incident notification flow while
-    still allowing the operator to change the final attachment selection.
+    Tags are stored by notification type code for stability, while the UI shows
+    the human-readable notification type name/label.
     """
+    return notification_type_records(enabled_only=enabled_only)
+
+
+def notification_tags_for_form_template_config(template_name):
+    """Return the configured default notification-type tags for a form template."""
     if not template_name:
         return []
-    rows = NotificationTemplate.query.filter_by(linked_form_template_name=template_name).all()
-    seen = []
-    enabled_kinds = set(notification_type_map().keys())
-    for row in rows:
-        code = (row.kind or '').strip()
-        if code and code in enabled_kinds and code not in seen:
-            seen.append(code)
-    return seen
+    cfg = FormTemplateConfig.query.filter_by(template_name=Path(template_name).stem).first()
+    if cfg:
+        valid = {t.code for t in notification_type_tag_options(enabled_only=False)}
+        return [code for code in cfg.notification_tag_list if code in valid]
+    return []
+
+
+def notification_tags_for_generated_form_template(template_name):
+    """Return default notification tags for a generated PDF form document.
+
+    Generated documents inherit only the tags explicitly associated with the PDF
+    form template in Admin -> Moduli. Notification-template links are not used as
+    implicit tags anymore, so each form template controls its own document tags.
+    """
+    return notification_tags_for_form_template_config(template_name)
 
 def documents_generated_from_template(inc, template_name):
     if not template_name:
@@ -7002,6 +7011,7 @@ def modules_configuration():
     if not can_admin():
         return redirect(url_for('main.index'))
     templates = list_templates()
+    notification_type_tags = notification_type_tag_options(enabled_only=False)
     preview = None
     if request.method == 'POST':
         action = request.form.get('action', 'save_mapping')
@@ -7033,7 +7043,7 @@ def modules_configuration():
                 }
                 selected = request.args.get('template') or (templates[0].name if templates else '')
                 current_mappings = {m.template_field:m.db_field for m in FormFieldMapping.query.filter_by(template_name=selected).all()} if selected else {}
-                return render_template('modules_configuration.html', templates=templates, selected=selected, db_fields=available_incident_fields(), mappings=current_mappings, template_configs={t.name:get_template_config(t.name) for t in templates}, preview=preview)
+                return render_template('modules_configuration.html', templates=templates, selected=selected, db_fields=available_incident_fields(), mappings=current_mappings, template_configs={t.name:get_template_config(t.name) for t in templates}, notification_type_tags=notification_type_tags, preview=preview)
             except Exception as exc:
                 current_app.logger.exception('Analisi PDF template fallita')
                 flash(f'Analisi del PDF fallita: {exc}', 'error')
@@ -7177,6 +7187,8 @@ def modules_configuration():
             request.form.get('font_family', 'Helvetica'),
             request.form.get('font_size', 10),
         )
+        valid_template_tags = {t.code for t in notification_type_tag_options(enabled_only=False)}
+        cfg.set_notification_tags([code for code in request.form.getlist('template_notification_tags') if code in valid_template_tags])
         db.session.add(cfg)
         FormFieldMapping.query.filter_by(template_name=template_name).delete()
         allowed_db_fields = {name for name, _ in available_incident_fields()}
@@ -7193,7 +7205,7 @@ def modules_configuration():
     current_mappings = {}
     if selected:
         current_mappings = {m.template_field:m.db_field for m in FormFieldMapping.query.filter_by(template_name=selected).all()}
-    return render_template('modules_configuration.html', templates=templates, selected=selected, db_fields=available_incident_fields(), mappings=current_mappings, template_configs={t.name:get_template_config(t.name) for t in templates}, preview=preview)
+    return render_template('modules_configuration.html', templates=templates, selected=selected, db_fields=available_incident_fields(), mappings=current_mappings, template_configs={t.name:get_template_config(t.name) for t in templates}, notification_type_tags=notification_type_tags, preview=preview)
 
 @bp.route('/incident/<int:iid>/forms/generate', methods=['POST'])
 @login_required
