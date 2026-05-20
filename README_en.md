@@ -468,3 +468,9 @@ Incident-specific reminders are checked by a separate thread from the periodic d
 - Fixed the dedicated incident-reminder thread: incident links in emails no longer depend on a Flask request context.
 - Added a configurable poll interval for deadline-task checks, default 60 seconds.
 - Admin → Status now shows colored dots for active/inactive threads and latest scheduler cycles.
+
+### Notes 0.2.1-49
+
+Fixed `RuntimeError: Working outside of application context` in scheduler threads. Configurable automatic-check intervals are now read from the `setting` table only inside `app.app_context()`, while diagnostic calls outside an application context use a safe fallback.
+
+The deadline-task thread and the incident-specific reminder thread remain operationally separated and keep reporting status, heartbeat and last results on **Admin → Status**, with colored dot indicators showing whether threads are currently active.

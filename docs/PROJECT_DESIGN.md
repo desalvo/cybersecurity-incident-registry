@@ -1561,3 +1561,12 @@ Il controllo dei promemoria specifici è separato dallo scheduler delle notifich
 - L’intervallo di poll del thread dei task in scadenza è configurabile da **Impostazioni → Notifiche** tramite `notification_deadline_poll_seconds`, con default 60 secondi e minimo applicativo 10 secondi.
 - L’intervallo di poll dei promemoria specifici resta configurabile separatamente tramite `notification_incident_reminder_poll_seconds`, con default 60 secondi.
 - La pagina **Admin → Stato** mostra lo stato attivo/non attivo dei thread scheduler task, promemoria specifici e backup con indicatori a pallino colorato, oltre all’esito degli ultimi cicli e all’ultima esecuzione dei promemoria specifici.
+
+
+### Aggiornamento 0.2.1-49 - Contesto applicativo dei thread scheduler
+
+I thread di background degli scheduler non devono usare proxy Flask-SQLAlchemy, `current_app`, `Setting.query`, `db.session` o funzioni che li richiamano fuori da un contesto applicativo Flask. Per evitare il RuntimeError `Working outside of application context`, la lettura degli intervalli configurabili (`notification_deadline_poll_seconds` e `notification_incident_reminder_poll_seconds`) viene ora eseguita all'interno di `with app.app_context():` nel ciclo dei thread.
+
+La funzione comune di lettura degli intervalli applica inoltre un fallback sicuro quando viene invocata da codice diagnostico privo di contesto applicativo. Il fallback non sostituisce la configurazione salvata in database durante il normale funzionamento, ma impedisce che pagine di stato, log o chiamate tecniche facciano terminare il thread.
+
+Il thread `cir-deadline-notification-scheduler` e il thread `cir-incident-reminder-scheduler` restano separati, serializzati con lock di processo e lock advisory PostgreSQL quando disponibile. La pagina **Admin → Stato** continua a mostrare heartbeat, ultimi cicli e indicatori visuali di attività dei thread.

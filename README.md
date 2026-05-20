@@ -665,3 +665,9 @@ I promemoria specifici degli incidenti sono controllati da un thread separato ri
 - Corretto il controllo promemoria specifici in thread: i link incidente nelle mail non dipendono più da un request context Flask.
 - Aggiunto intervallo configurabile per il controllo automatico dei task in scadenza, default 60 secondi.
 - La pagina Admin → Stato mostra pallini colorati per thread attivi/non attivi e per gli ultimi cicli scheduler.
+
+### Note 0.2.1-49
+
+Corretto il problema `RuntimeError: Working outside of application context` nei thread scheduler. Gli intervalli configurabili dei controlli automatici vengono letti dalla tabella `setting` solo all'interno di `app.app_context()`, mentre le eventuali chiamate diagnostiche fuori contesto usano un fallback sicuro.
+
+Il thread dei task in scadenza e il thread dei promemoria specifici mantengono la separazione operativa e continuano a registrare stato, heartbeat e risultati nella pagina **Admin → Stato**, con indicatori a pallino colorato per mostrare se i thread sono attivi.

@@ -1,3 +1,9 @@
+0.2.1-49
+- Corretto il RuntimeError "Working outside of application context" nei thread scheduler: la lettura degli intervalli configurabili avviene ora sempre dentro app.app_context(), con fallback sicuro.
+- Rafforzati i thread deadline e promemoria specifici affinché non accedano a Setting, db.session o proxy Flask fuori dal contesto applicativo.
+- Confermati gli indicatori della pagina Admin -> Stato per thread attivi/non attivi e ultimi cicli scheduler.
+- Documentazione aggiornata.
+
 0.2.1-48
 - Corretto il crash del thread dei promemoria specifici dovuto alla generazione di URL con url_for fuori da un request context: i link incidente usano ora application_external_url e percorso stabile.
 - Aggiunta configurazione dell’intervallo di poll per i task in scadenza, default 60 secondi, nella pagina Impostazioni notifiche.

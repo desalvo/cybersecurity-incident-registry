@@ -3,7 +3,7 @@ from pathlib import Path
 from email.message import EmailMessage
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g, has_app_context
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_, and_, text
@@ -4757,22 +4757,33 @@ _scheduler_mail_send_lock = threading.Lock()
 _CIR_SCHEDULER_LOCK_ID = 47110021
 _CIR_REMINDER_SCHEDULER_LOCK_ID = 47110022
 
+def _scheduler_poll_seconds_setting(key, default=60):
+    """Legge un intervallo scheduler solo quando esiste un app context.
+
+    I thread di background non devono accedere a ``Setting.query`` o ad altri
+    proxy Flask-SQLAlchemy fuori da ``app.app_context()``: in caso contrario
+    Werkzeug solleva ``RuntimeError: Working outside of application context``.
+    Il fallback consente anche a chiamate diagnostiche fuori contesto di non
+    interrompere il thread.
+    """
+    try:
+        if has_app_context():
+            value = int(setting_value(key, str(default)) or str(default))
+        else:
+            value = int(os.getenv(key.upper(), str(default)) or str(default))
+    except (TypeError, ValueError, RuntimeError):
+        value = default
+    return max(10, value)
+
+
 def incident_reminder_poll_seconds():
     """Intervallo configurabile del thread dei promemoria specifici."""
-    try:
-        value = int(setting_value('notification_incident_reminder_poll_seconds', '60') or '60')
-    except (TypeError, ValueError):
-        value = 60
-    return max(10, value)
+    return _scheduler_poll_seconds_setting('notification_incident_reminder_poll_seconds', 60)
 
 
 def deadline_scheduler_poll_seconds():
     """Intervallo configurabile del thread dei task in scadenza."""
-    try:
-        value = int(setting_value('notification_deadline_poll_seconds', '60') or '60')
-    except (TypeError, ValueError):
-        value = 60
-    return max(10, value)
+    return _scheduler_poll_seconds_setting('notification_deadline_poll_seconds', 60)
 
 def _try_database_scheduler_lock(lock_id=_CIR_SCHEDULER_LOCK_ID):
     """Acquire a PostgreSQL advisory lock for multi-replica deployments.
@@ -4822,10 +4833,12 @@ def start_deadline_notification_scheduler(app):
     _deadline_scheduler_started = True
 
     def loop():
-        poll_seconds = deadline_scheduler_poll_seconds()
+        with app.app_context():
+            poll_seconds = deadline_scheduler_poll_seconds()
         app.logger.info('Scheduler notifiche task in scadenza avviato con poll=%ss', poll_seconds)
         while True:
-            poll_seconds = deadline_scheduler_poll_seconds()
+            with app.app_context():
+                poll_seconds = deadline_scheduler_poll_seconds()
             if not _deadline_scheduler_lock.acquire(blocking=False):
                 time.sleep(poll_seconds)
                 continue
@@ -4833,9 +4846,8 @@ def start_deadline_notification_scheduler(app):
             try:
                 with app.app_context():
                     db_lock_acquired = _try_database_scheduler_lock()
-                    if not db_lock_acquired:
-                        continue
-                    run_scheduler_services_cycle(source='background_scheduler')
+                    if db_lock_acquired:
+                        run_scheduler_services_cycle(source='background_scheduler')
             except Exception:
                 try:
                     with app.app_context():
@@ -4873,7 +4885,8 @@ def start_incident_reminder_scheduler(app):
     def loop():
         app.logger.info('Scheduler promemoria specifici avviato')
         while True:
-            poll_seconds = incident_reminder_poll_seconds()
+            with app.app_context():
+                poll_seconds = incident_reminder_poll_seconds()
             if not _incident_reminder_scheduler_lock.acquire(blocking=False):
                 time.sleep(poll_seconds)
                 continue
