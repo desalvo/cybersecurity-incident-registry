@@ -143,6 +143,9 @@ Le notifiche generano automaticamente un'azione associata alla label configurata
 
 Lo stile globale dell'interfaccia applica un allineamento coerente alle checkbox e al testo associato tramite classi dedicate e selettori CSS per le label che contengono checkbox. Le form amministrative, le liste di selezione e i flag inline mantengono quindi il controllo e la descrizione sulla stessa linea visuale, con gestione responsive su schermi stretti.
 
+
+La lista delle azioni nel dettaglio incidente è resa come riquadri separati basati su `<details>/<summary>`, collassati per default. Il summary contiene le informazioni minime per orientare l'operatore (data/ora, label, persona e stato exportable), mentre il contenuto espanso mantiene form di modifica, allegati, descrizione, conseguenze e comandi di cancellazione. Questa scelta riduce l'ingombro della pagina nei casi con molte azioni senza rimuovere la possibilità di modifica puntuale.
+
 ### 4.4 Documenti
 
 Gli incidenti supportano allegati multipli. Ogni documento conserva:

@@ -147,7 +147,7 @@ Manual/non-scheduled notification preview pages now include a **Confirm without 
 
 ### Editing action date and time
 
-In the **Actions** section of the incident detail page, the timeline is now displayed as separate readable cards for each action, keeping metadata, description, consequences, attachments and commands visually separated. Users with write permissions can edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
+In the **Actions** section of the incident detail page, the timeline is now displayed as one separate collapsible box per action, collapsed by default to keep the page compact. The header shows date/time, label, person and exportable status; expanding the box shows metadata, description, consequences, attachments and operational commands. Users with write permissions can edit the date and time of each existing action, in addition to label, person, description, consequences and exportable flag.
 
 ## Incidents and action lifecycle
 

@@ -34,7 +34,15 @@
 </div>
 <div class="card" id="incident-actions"><h3>Azioni</h3>{% for category,m in section_messages('incident-actions', flashed_messages) %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endfor %}{% if current_user.role in ['admin','writer'] %}<form method="post" action="{{url_for('main.add_action',iid=inc.id)}}" class="form-grid" enctype="multipart/form-data" data-scroll-anchor="incident-actions"><input type="hidden" name="scroll_anchor" value="incident-actions"><div><label>Data e ora</label><div class="inline-field"><input name="when_at" id="new-action-when-at" type="datetime-local" value="{{ default_action_when }}" required><button type="button" class="secondary small" id="refresh-action-time" title="Aggiorna a data e ora correnti">↻</button></div><p class="muted">Precompilata al caricamento della form con il fuso orario {{ application_timezone }}. Usa il pulsante ↻ per aggiornare al momento corrente.</p></div><div><label>Persona</label><input name="person_name" value="{{current_user.name}}"></div><div><label>Label</label><select name="label_id" id="new-action-label-id">{% for l in action_labels %}<option value="{{l.id}}">{{l.value}}</option>{% endfor %}</select></div><div class="wide"><label>Descrizione opzionale</label><textarea name="description"></textarea></div><div class="wide"><label>Conseguenze associate all’azione</label><textarea name="consequence_text" placeholder="Descrivere eventuali conseguenze specifiche prodotte o rilevate con questa azione"></textarea></div><div class="wide"><label>Allegati dell’azione</label><input type="file" name="action_files" multiple><p class="muted">È possibile allegare uno o più file a questa azione.</p></div><button>Aggiungi azione</button></form>{% endif %}<div class="incident-action-list">
 {% for a in inc.actions %}
-  <article class="incident-action-card">
+  <details class="incident-action-card incident-action-collapsible">
+    <summary class="incident-action-summary">
+      <span class="incident-action-summary-main">
+        <strong>{{ a.when_at.strftime('%d/%m/%Y %H:%M') if a.when_at else 'Data non impostata' }}</strong>
+        <span class="badge">{{a.label.value if a.label else 'Senza label'}}</span>
+      </span>
+      <span class="incident-action-summary-meta">{{a.person_name or 'Persona non indicata'}} · {{ 'exportable' if a.exportable else 'non exportable' }}</span>
+    </summary>
+    <div class="incident-action-collapsible-body">
     {% if current_user.role in ['admin','writer'] %}
     <form id="action-update-{{a.id}}" method="post" action="{{url_for('main.update_action',aid=a.id)}}" class="incident-action-edit-form" data-scroll-anchor="incident-actions">
       <input type="hidden" name="scroll_anchor" value="incident-actions">
@@ -97,7 +105,8 @@
       <button class="danger">Elimina azione</button>
     </form>
     {% endif %}
-  </article>
+    </div>
+  </details>
 {% else %}
   <div class="empty-card muted">Nessuna azione registrata.</div>
 {% endfor %}

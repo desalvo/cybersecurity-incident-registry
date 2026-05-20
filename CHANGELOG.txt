@@ -1,3 +1,4 @@
+- La lista Azioni del dettaglio incidente usa ora riquadri separati collassabili, chiusi per default, con intestazione riepilogativa e dettagli espandibili.
 0.2.1-51
 - La sezione Azioni del dettaglio incidente usa ora schede leggibili per ogni azione, con metadati, descrizione, conseguenze, allegati e comandi separati.
 - Confermata la modifica di data e ora delle azioni esistenti nel nuovo layout a schede.
