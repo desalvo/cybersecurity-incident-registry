@@ -105,11 +105,11 @@
 
 <div class="card">
   <h2>Prossime notifiche schedulate</h2>
-  <p class="muted">Riepilogo ordinato per ora delle notifiche previste nelle prossime 24 ore, calcolate nel fuso applicativo e comprensive di destinatari e tipo notifica.</p>
+  <p class="muted">Riepilogo ordinato per ora delle notifiche previste nelle prossime 24 ore e degli esiti recenti, calcolate nel fuso applicativo e comprensive di destinatari, tipo notifica e stato.</p>
   {% if upcoming_notifications %}
     <table class="table compact-table">
       <thead>
-        <tr><th>Ora prevista</th><th>Tipo notifica</th><th>Incidente</th><th>Destinatari</th></tr>
+        <tr><th>Ora prevista</th><th>Tipo notifica</th><th>Incidente</th><th>Destinatari</th><th>Stato</th></tr>
       </thead>
       <tbody>
         {% for item in upcoming_notifications %}
@@ -118,6 +118,7 @@
             <td>{{ item.type }}</td>
             <td>{% if item.incident %}<a href="{{ url_for('main.incident_detail', iid=item.incident.id) }}">{{ item.incident_label }}</a>{% else %}{{ item.incident_label }}{% endif %}</td>
             <td>{{ item.recipients }}</td>
+            <td>{{ item.status or 'programmata' }}{% if item.status_at_text %}<br><small>{{ item.status_at_text }}</small>{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>

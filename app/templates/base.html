@@ -61,7 +61,7 @@
     <div class="dropdown">
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-settings">Impostazioni</button>
       <div id="menu-settings" class="dropdown-content" role="menu" aria-label="Impostazioni">
-        <a role="menuitem" href="{{ url_for('main.change_password') }}">Cambio password</a>
+        {% if current_user.auth_provider == 'local' and not current_user.is_ldap %}<a role="menuitem" href="{{ url_for('main.change_password') }}">Cambio password</a>{% endif %}
         <a role="menuitem" href="{{ url_for('main.mfa_settings') }}">Multi-factor authentication</a>
         {% if current_user.role=='admin' %}<a role="menuitem" href="{{ url_for('main.notification_settings') }}">Notifiche</a>{% endif %}
         {% if current_user.role=='writer' %}<a role="menuitem" href="{{ url_for('main.settings_external_recipients') }}">Destinatari esterni</a>{% endif %}

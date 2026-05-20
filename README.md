@@ -604,10 +604,14 @@ Le variazioni di versione sono raccolte in `CHANGELOG.txt` e nella pagina **Aiut
 
 ## Aggiornamento 0.2.1-35 - Scheduler notifiche, anti-flooding e timezone
 
-Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker, replica o controllo opportunistico tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
+Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker o replica tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
 
 Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono interpretati nella timezone applicativa configurata in **Admin → Altre configurazioni**. Gli intervalli regolari partono sempre dalla mezzanotte del giorno corrente in tale timezone, non dall'avvio del container o del processo.
 
 ### Descrizioni workflow e URL cliccabili
 
 In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente gli URL `http://` e `https://` presenti nel testo degli step sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+
+### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
+
+Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza, con claim persistente prima dell'invio sia per i riepiloghi task in scadenza sia per i promemoria specifici, evitando copie contemporanee della stessa mail o dello stesso tipo nello stesso periodo.

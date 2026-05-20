@@ -2723,7 +2723,7 @@ def admin_user_delete(uid):
 @bp.route('/settings/password',methods=['GET','POST'])
 @login_required
 def change_password():
-    if current_user.is_ldap or getattr(current_user, 'auth_provider', 'local') == 'sso': flash('Cambio password non disponibile per utenti LDAP/SSO','error'); return redirect(url_for('main.index'))
+    if current_user.is_ldap or getattr(current_user, 'auth_provider', 'local') != 'local': flash('Cambio password disponibile solo per utenti con login locale','error'); return redirect(url_for('main.index'))
     if request.method=='POST':
         if request.form['new_password']!=request.form['new_password2']: flash('Le password non coincidono','error')
         elif not verify_password(current_user.password_hash,request.form['old_password']): flash('Password attuale errata','error')
@@ -3738,16 +3738,19 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
     horizon = now + timedelta(hours=hours)
     rows = []
 
-    # Promemoria puntuali già schedulati sui singoli incidenti.
+    # Promemoria puntuali sui singoli incidenti: include quelli futuri e
+    # quelli appena inviati/falliti, così la pagina aggiorna lo stato dopo il
+    # ciclo scheduler senza far sparire immediatamente la riga operativa.
+    recent_start = now - timedelta(hours=hours)
     reminders = IncidentReminder.query.filter(
-        IncidentReminder.sent_at.is_(None),
-        IncidentReminder.scheduled_at >= now,
+        IncidentReminder.scheduled_at >= recent_start,
         IncidentReminder.scheduled_at <= horizon,
     ).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).limit(limit).all()
     for rem in reminders:
         inc = rem.incident
         people_recipients = sorted({(p.email or '').strip() for p in (inc.people or []) if (p.email or '').strip()}) if inc else []
         cc = _split_email_list(rem.cc_emails)
+        status = 'inviata' if rem.sent_at else ('errore: ' + rem.last_error if rem.last_error else 'programmata')
         rows.append({
             'scheduled_at': rem.scheduled_at,
             'scheduled_at_text': format_application_datetime(rem.scheduled_at, include_timezone=True),
@@ -3756,6 +3759,8 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
             'incident': inc,
             'incident_label': f'#{inc.id} - {inc.name}' if inc else f'#{rem.incident_id}',
             'source': 'promemoria',
+            'status': status,
+            'status_at_text': format_application_datetime(rem.sent_at, include_timezone=True) if rem.sent_at else '',
         })
 
     # Slot futuri del riepilogo task in scadenza. Per ogni slot si mostrano gli
@@ -3784,12 +3789,38 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
                     'recipients': ', '.join(recipients) or 'nessun destinatario disponibile',
                     'incident': inc,
                     'incident_label': f'#{inc.id} - {inc.name}',
-                    'source': 'scheduler scadenze',
+                    'source': 'deadline',
+                    'status': 'programmata',
+                    'status_at_text': '',
                 })
                 if len(rows) >= limit:
                     break
             slot_cursor = slot + timedelta(minutes=1)
 
+    # Aggiunge gli esiti recenti delle notifiche deadline già inviate o fallite,
+    # usando il registro persistente anti-flooding.
+    recent_states = DeadlineNotificationState.query.filter(
+        DeadlineNotificationState.notification_type == 'deadline_summary',
+        DeadlineNotificationState.last_schedule_slot >= recent_start,
+        DeadlineNotificationState.last_schedule_slot <= now,
+    ).order_by(DeadlineNotificationState.last_schedule_slot.desc()).limit(limit).all()
+    existing_keys = {(r.get('source'), getattr(r.get('incident'), 'id', None), r.get('scheduled_at')) for r in rows}
+    for state in recent_states:
+        inc = state.incident if hasattr(state, 'incident') else Incident.query.get(state.incident_id)
+        key = ('deadline', state.incident_id, state.last_schedule_slot)
+        if key in existing_keys:
+            continue
+        rows.append({
+            'scheduled_at': state.last_schedule_slot or state.last_success_at or now,
+            'scheduled_at_text': format_application_datetime(state.last_schedule_slot or state.last_success_at or now, include_timezone=True),
+            'type': 'Task in scadenza',
+            'recipients': state.last_recipients or 'nessun destinatario disponibile',
+            'incident': inc,
+            'incident_label': f'#{inc.id} - {inc.name}' if inc else f'#{state.incident_id}',
+            'source': 'deadline',
+            'status': 'inviata' if int(state.send_count or 0) > 0 else ('errore' if state.last_details else 'in corso'),
+            'status_at_text': format_application_datetime(state.last_success_at, include_timezone=True) if state.last_success_at else '',
+        })
     rows.sort(key=lambda r: (r['scheduled_at'], r['type'], r['incident_label']))
     return rows[:limit]
 
@@ -4090,15 +4121,16 @@ def send_deadline_summary_email(inc, pending_rows):
     except ValueError:
         return False, 'porta SMTP non valida'
     smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
-    with smtp_cls(host, port, timeout=20) as smtp:
-        if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
-            smtp.starttls()
-        if setting_value('smtp_auth_enabled', '0') == '1':
-            username = setting_value('smtp_username')
-            if not username:
-                return False, 'autenticazione SMTP abilitata senza username'
-            smtp.login(username, setting_value('smtp_password') or '')
-        smtp.send_message(msg)
+    with _scheduler_mail_send_lock:
+        with smtp_cls(host, port, timeout=20) as smtp:
+            if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
+                smtp.starttls()
+            if setting_value('smtp_auth_enabled', '0') == '1':
+                username = setting_value('smtp_username')
+                if not username:
+                    return False, 'autenticazione SMTP abilitata senza username'
+                smtp.login(username, setting_value('smtp_password') or '')
+            smtp.send_message(msg)
     return True, ', '.join(recipients)
 
 
@@ -4151,16 +4183,71 @@ def send_incident_reminder_email(reminder):
     except ValueError:
         return False, 'porta SMTP non valida'
     smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
-    with smtp_cls(host, port, timeout=20) as smtp:
-        if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
-            smtp.starttls()
-        if setting_value('smtp_auth_enabled', '0') == '1':
-            username = setting_value('smtp_username')
-            if not username:
-                return False, 'autenticazione SMTP abilitata senza username'
-            smtp.login(username, setting_value('smtp_password') or '')
-        smtp.send_message(msg)
+    with _scheduler_mail_send_lock:
+        with smtp_cls(host, port, timeout=20) as smtp:
+            if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
+                smtp.starttls()
+            if setting_value('smtp_auth_enabled', '0') == '1':
+                username = setting_value('smtp_username')
+                if not username:
+                    return False, 'autenticazione SMTP abilitata senza username'
+                smtp.login(username, setting_value('smtp_password') or '')
+            smtp.send_message(msg)
     return True, ', '.join(recipients + cc_list)
+
+def _incident_reminder_notification_key(reminder_id):
+    return f'incident_reminder:{int(reminder_id)}'
+
+def _claim_incident_reminder(reminder, source='scheduler'):
+    """Riserva un promemoria prima dell'invio per evitare invii paralleli.
+
+    Il claim usa la stessa tabella persistente delle notifiche deadline con
+    chiave unica per promemoria. Viene scritto prima dell'apertura SMTP: se un
+    secondo ciclo vede lo stesso promemoria già riservato, non invia.
+    """
+    if not reminder or not reminder.id:
+        return False
+    key = _incident_reminder_notification_key(reminder.id)
+    now = application_now()
+    schedule_slot = reminder.scheduled_at or now
+    try:
+        existing = DeadlineNotificationState.query.filter_by(notification_key=key).first()
+        if existing:
+            return False
+        state = DeadlineNotificationState(
+            notification_key=key,
+            notification_type='incident_reminder',
+            incident_id=reminder.incident_id,
+            last_success_at=now,
+            last_schedule_slot=schedule_slot,
+            last_recipients='',
+            last_details=f'promemoria in invio; sorgente {source}',
+            send_count=0,
+        )
+        db.session.add(state)
+        db.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        return False
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Claim promemoria incidente non completato per promemoria %s', getattr(reminder, 'id', '-'))
+        return False
+
+def _record_incident_reminder_claim_result(reminder, ok, info=''):
+    if not reminder or not reminder.id:
+        return
+    state = DeadlineNotificationState.query.filter_by(notification_key=_incident_reminder_notification_key(reminder.id)).first()
+    if state:
+        state.notification_type = 'incident_reminder'
+        state.incident_id = reminder.incident_id
+        state.last_success_at = application_now()
+        state.last_schedule_slot = reminder.scheduled_at
+        state.last_recipients = info if ok else ''
+        state.last_details = ('Promemoria inviato' if ok else f'Promemoria non inviato: {info}')
+        state.send_count = 1 if ok else 0
+        state.updated_at = datetime.utcnow()
 
 def _audit_has_reminder_sent(reminder_id):
     pattern = f'"reminder_id": {int(reminder_id)}'
@@ -4176,17 +4263,25 @@ def process_due_incident_reminders(source='background_scheduler'):
             reminder.sent_at = now
             reminder.last_error = ''
             skipped += 1
+            db.session.commit()
+            continue
+        if not _claim_incident_reminder(reminder, source=source):
+            skipped += 1
             continue
         ok, info = send_incident_reminder_email(reminder)
         if ok:
             reminder.sent_at = now
             reminder.last_error = ''
             sent += 1
+            _record_incident_reminder_claim_result(reminder, True, info)
             audit_log('scheduler:incident_reminder_sent', json.dumps({'reminder_id': reminder.id, 'incident_id': reminder.incident_id, 'scheduled_at': reminder.scheduled_at.isoformat(timespec='seconds'), 'recipients': info, 'source': source}, ensure_ascii=False), actor_type='scheduler')
+            db.session.commit()
         else:
             reminder.last_error = info
             skipped += 1
+            _record_incident_reminder_claim_result(reminder, False, info)
             errors.append(f'Promemoria {reminder.id}: {info}')
+            db.session.commit()
     if due:
         audit_log('scheduler:incident_reminder_check', json.dumps({'source': source, 'due': len(due), 'sent': sent, 'skipped': skipped, 'errors': errors[:10]}, ensure_ascii=False), actor_type='scheduler')
         purge_audit_logs()
@@ -4274,17 +4369,20 @@ def run_deadline_notification_check(force=False, source='request'):
                     f'Incidente {inc.id}; slot {_deadline_slot_label(schedule_slot)}; destinatari {info}; sorgente {source}',
                     actor_type='scheduler',
                 )
+                db.session.commit()
             else:
                 skipped += 1
                 if 'nessun indirizzo email' in info or 'personale' in info:
                     incidents_without_recipients += 1
                 _record_deadline_notification_failure(inc.id, schedule_slot, info)
                 errors.append(f'Incidente {inc.id}: {info}')
+                db.session.commit()
         except Exception as exc:
             current_app.logger.exception('Errore notifica scadenze incidente %s', inc.id)
             skipped += 1
             _record_deadline_notification_failure(inc.id, schedule_slot, str(exc))
             errors.append(f'Incidente {inc.id}: {exc}')
+            db.session.commit()
 
     if not force:
         # Campo informativo per la pagina Notifiche: non viene più usato come
@@ -4320,34 +4418,19 @@ def run_deadline_notification_check(force=False, source='request'):
 
 @bp.before_app_request
 def maybe_run_deadline_notification_check():
-    # Esecuzione leggera opportunistica: il controllo reale parte solo se è
-    # abilitato e se l'intervallo configurato è trascorso. Usa lo stesso lock
-    # dello scheduler di background per evitare mail duplicate quando più poll
-    # o richieste arrivano nello stesso intervallo.
-    try:
-        if request.endpoint and request.endpoint.startswith('static'):
-            return
-        if not _deadline_scheduler_lock.acquire(blocking=False):
-            return
-        db_lock_acquired = False
-        try:
-            db_lock_acquired = _try_database_scheduler_lock()
-            if not db_lock_acquired:
-                return
-            run_deadline_notification_check(force=False, source='request_hook')
-            process_due_incident_reminders(source='request_hook')
-        finally:
-            if db_lock_acquired:
-                _release_database_scheduler_lock()
-            _deadline_scheduler_lock.release()
-    except Exception:
-        db.session.rollback()
-        current_app.logger.exception('Controllo automatico scadenze azioni non completato')
+    # Lo scheduler automatico non viene più eseguito dalle richieste HTTP.
+    # In passato l'hook opportunistico poteva sovrapporsi al thread di
+    # background o moltiplicarsi su più worker, producendo invii simultanei.
+    # Le mail schedulate sono ora gestite solo dal thread dedicato avviato in
+    # start_deadline_notification_scheduler(); il pulsante manuale resta
+    # disponibile dalla pagina Admin → Notifiche.
+    return
 
 
 
 _deadline_scheduler_started = False
 _deadline_scheduler_lock = threading.Lock()
+_scheduler_mail_send_lock = threading.Lock()
 _CIR_SCHEDULER_LOCK_ID = 47110021
 
 def _try_database_scheduler_lock():
@@ -4381,11 +4464,10 @@ def _release_database_scheduler_lock():
 def start_deadline_notification_scheduler(app):
     """Avvia il controllo periodico automatico delle notifiche in scadenza.
 
-    Il controllo precedente era solo opportunistico e partiva durante le
-    richieste web: se l'applicazione restava inattiva, nessuna notifica veniva
-    inviata allo scadere dell'intervallo. Questo thread interno esegue il poll
-    indipendentemente dal traffico web. La funzione resta idempotente per
-    evitare avvii duplicati nello stesso processo.
+    Le notifiche schedulate vengono gestite esclusivamente da questo thread
+    interno, indipendente dal traffico web. La funzione resta idempotente per
+    evitare avvii duplicati nello stesso processo; nei deployment PostgreSQL
+    il lock advisory serializza l'esecuzione fra worker o repliche.
     """
     global _deadline_scheduler_started
     if _deadline_scheduler_started:

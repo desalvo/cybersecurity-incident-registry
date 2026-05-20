@@ -407,10 +407,14 @@ Version changes are collected in `CHANGELOG.txt` and in **Help → Release notes
 
 ## Update 0.2.1-35 - Notification scheduler, anti-flooding and time zone
 
-Scheduled notifications for maximum-time tasks are now more robust against simultaneous duplicate sends. Before sending, the scheduler persistently claims the notification slot for each incident; if another worker, replica or opportunistic request check tries to send the same notification in the same interval, the send is skipped. Each scheduler cycle also cleans up stale notification states left by deleted incidents.
+Scheduled notifications for maximum-time tasks are now more robust against simultaneous duplicate sends. Before sending, the scheduler persistently claims the notification slot for each incident; if another worker or replica tries to send the same notification in the same interval, the send is skipped. Each scheduler cycle also cleans up stale notification states left by deleted incidents.
 
 All schedules, cron times and maximum-task intervals are interpreted in the application time zone configured under **Admin → Other configurations**. Regular intervals always start from midnight of the current day in that time zone, not from container or process startup time.
 
 ### Workflow step descriptions and clickable URLs
 
 In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
+
+### Update 0.2.1-37 - Serial notification scheduler
+
+Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially, with a persistent pre-send claim for both deadline summaries and one-off reminders, preventing simultaneous copies of the same email or of the same notification type within the same period.

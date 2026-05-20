@@ -1,3 +1,10 @@
+## 0.2.1-37
+- Scheduler notifiche: rimosso l'invio opportunistico dalle richieste web; le notifiche schedulate vengono inviate solo dal thread dedicato.
+- Serializzato l'invio SMTP delle mail schedulate tramite lock applicativo, così deadline e promemoria vengono inviati uno alla volta.
+- Aggiunto claim persistente anche per i promemoria specifici incidente, prima dell'apertura SMTP, per evitare copie contemporanee dello stesso messaggio.
+- Rafforzata la deduplica per tipo/periodo usando la tabella deadline_notification_state anche per i promemoria.
+- Aggiornata la documentazione progettuale sul meccanismo anti-flooding dello scheduler.
+
 0.2.1-36a
 - Rimossi i banner di versione dalle guide operative README.md e README_en.md.
 - Estratto il filtro Jinja linkify_text in app/text_filters.py e registrato dall’app factory.
@@ -48,7 +55,7 @@
 
 0.2.1-26 - Riepilogo notifiche schedulate e anti-flooding
 - Aggiunto in Impostazioni → Notifiche il riepilogo delle notifiche schedulate nelle prossime 24 ore, ordinate per ora e con destinatari/tipo notifica.
-- Il controllo opportunistico da richiesta web usa gli stessi lock dello scheduler di background per evitare invii multipli nello stesso intervallo.
+- Il controllo automatico da richiesta web è stato disabilitato: lo scheduler dedicato è l’unica sorgente degli invii automatici.
 - Documentazione italiana e inglese aggiornata.
 
 0.2.1-25 - Conferma destinatario notifiche manuali
@@ -822,3 +829,8 @@ Notification menu and SMTP sender fix
 - Gli URL `http://` e `https://` presenti nelle descrizioni mostrate nella pagina del singolo incidente sono cliccabili.
 - Il click sui link non modifica il comportamento generale del riquadro dello step, che continua ad avviare il percorso guidato del workflow.
 - Documentazione utente, amministrativa e progettuale aggiornata in italiano e inglese.
+
+0.2.1-38
+- Stato notifiche programmate aggiornato e committato subito dopo ogni invio o errore SMTP dello scheduler.
+- Riepilogo notifiche schedulate con colonna Stato e visualizzazione degli esiti recenti.
+- Voce Cambio password visibile e accessibile solo per login locale.
