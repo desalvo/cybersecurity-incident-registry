@@ -216,15 +216,23 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
     Se l'ultimo record audit ha lo stesso tipo, utente, origine e dettagli
     sintetici, viene incrementato repeat_count invece di inserire una nuova
     riga. Ogni blocco viene comunque chiuso a 100 occorrenze: la 101-esima
-    occorrenza crea una nuova riga e riparte da 1. In questo modo messaggi
-    identici salvo data/ora vengono collassati senza perdere la frequenza.
+    occorrenza crea una nuova riga e riparte da 1.
+
+    La INSERT viene forzata con ``flush()`` dentro questa funzione: così un
+    eventuale disallineamento della sequence PostgreSQL di ``audit_log`` viene
+    intercettato subito, riallineato e ritentato qui, invece di esplodere più
+    tardi al ``commit()`` del chiamante, come accadeva col pulsante manuale
+    "Esegui controllo ora".
     """
     user_id, username, resolved_actor_type = audit_actor(actor_type)
     op = (operation_type or 'operazione')[:120]
     summarized_details = audit_detail_summary(operation_type, details)[:1000]
     now = datetime.utcnow()
     try:
-        last = AuditLog.query.order_by(AuditLog.id.desc()).first()
+        # Evita che una precedente riga AuditLog ancora pendente venga
+        # autoflushata dalla SELECT prima del riallineamento della sequence.
+        with db.session.no_autoflush:
+            last = AuditLog.query.order_by(AuditLog.id.desc()).first()
         if (last and last.operation_type == op and last.username == username
                 and last.actor_type == resolved_actor_type
                 and (last.details or '') == summarized_details
@@ -238,46 +246,37 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
             return last
     except Exception:
         current_app.logger.exception('Collasso audit non completato; inserisco un nuovo record')
+
+    def _new_log():
+        return AuditLog(
+            occurred_at=now,
+            operation_type=op,
+            username=username,
+            user_id=user_id,
+            actor_type=resolved_actor_type,
+            details=summarized_details,
+            repeat_count=1,
+        )
+
     try:
         align_table_sequence('audit_log')
     except Exception:
         current_app.logger.exception('Riallineamento sequenza audit non completato')
-    log = AuditLog(
-        occurred_at=now,
-        operation_type=op,
-        username=username,
-        user_id=user_id,
-        actor_type=resolved_actor_type,
-        details=summarized_details,
-        repeat_count=1,
-    )
+    log = _new_log()
     db.session.add(log)
+    try:
+        db.session.flush([log])
+    except IntegrityError as exc:
+        if 'audit_log_pkey' not in str(exc):
+            raise
+        db.session.rollback()
+        current_app.logger.warning('Sequence audit_log disallineata; riallineo e reinserisco il record audit')
+        align_table_sequence('audit_log')
+        log = _new_log()
+        db.session.add(log)
+        db.session.flush([log])
     if commit:
-        try:
-            db.session.commit()
-        except IntegrityError as exc:
-            # Dopo full import/restore o cancellazioni massive, PostgreSQL può
-            # avere la sequence di audit_log disallineata e generare
-            # duplicate key value violates unique constraint "audit_log_pkey".
-            # In questo caso riallineiamo fuori transazione e riproviamo solo
-            # il record audit; l'operazione applicativa chiamante dovrà essere
-            # ripetuta dall'utente se era nella stessa transazione rollbackata.
-            db.session.rollback()
-            if 'audit_log_pkey' not in str(exc):
-                raise
-            current_app.logger.warning('Sequence audit_log disallineata; riallineo e reinserisco il record audit')
-            align_table_sequence('audit_log')
-            log = AuditLog(
-                occurred_at=now,
-                operation_type=op,
-                username=username,
-                user_id=user_id,
-                actor_type=resolved_actor_type,
-                details=summarized_details,
-                repeat_count=1,
-            )
-            db.session.add(log)
-            db.session.commit()
+        db.session.commit()
     return log
 
 def audit_operation_name():
@@ -4236,7 +4235,6 @@ def _claim_incident_reminder(reminder, source='scheduler'):
         return False
     key = _incident_reminder_notification_key(reminder.id)
     now = application_now()
-    schedule_slot = reminder.scheduled_at or now
     claim_timeout = timedelta(minutes=10)
     try:
         existing = DeadlineNotificationState.query.filter_by(notification_key=key).first()
@@ -4255,7 +4253,7 @@ def _claim_incident_reminder(reminder, source='scheduler'):
             existing.notification_type = 'incident_reminder'
             existing.incident_id = reminder.incident_id
             existing.last_success_at = now
-            existing.last_schedule_slot = schedule_slot
+            existing.last_schedule_slot = None
             existing.last_recipients = ''
             existing.last_details = f'promemoria in invio; sorgente {source}'
             existing.send_count = 0
@@ -4267,7 +4265,7 @@ def _claim_incident_reminder(reminder, source='scheduler'):
             notification_type='incident_reminder',
             incident_id=reminder.incident_id,
             last_success_at=now,
-            last_schedule_slot=schedule_slot,
+            last_schedule_slot=None,
             last_recipients='',
             last_details=f'promemoria in invio; sorgente {source}',
             send_count=0,
@@ -4291,7 +4289,7 @@ def _record_incident_reminder_claim_result(reminder, ok, info=''):
         state.notification_type = 'incident_reminder'
         state.incident_id = reminder.incident_id
         state.last_success_at = application_now()
-        state.last_schedule_slot = reminder.scheduled_at
+        state.last_schedule_slot = None
         state.last_recipients = info if ok else ''
         state.last_details = ('Promemoria inviato' if ok else f'Promemoria non inviato: {info}')
         state.send_count = 1 if ok else 0
@@ -4376,6 +4374,11 @@ def run_deadline_notification_check(force=False, source='request'):
     oppure quando vengono inviate notifiche, evitando rumore dai poll tecnici.
     """
     now = application_now()
+    if force or source == 'manual_button':
+        try:
+            align_all_table_sequences()
+        except Exception:
+            current_app.logger.exception('Riallineamento sequence prima del controllo scadenze non completato')
     schedule_slot, next_schedule_slot = deadline_schedule_window(now)
     stale_states_removed = cleanup_stale_deadline_notification_states()
 

@@ -422,3 +422,9 @@ Scheduled notifications are no longer sent from the web-request hook: automatic 
 ## Update 0.2.1-40 - Audit for incidents skipped by the notification scheduler
 
 Whenever the notification scheduler skips an incident, a dedicated audit record is now written with the affected incident and the skip reason. Periodic deadline notifications use `scheduler:deadline_notification_skipped`; incident-specific reminders use `scheduler:incident_reminder_skipped`. Details include the scheduler source, schedule slot or planned reminder time, reason code and readable reason, so **Admin → Audit** can distinguish already-sent notifications, concurrent claims, missing recipients/SMTP errors and application exceptions.
+
+## Update 0.2.1-41 - Manual deadline check and one-off reminders
+
+The **Run check now** button in the **Action deadline check** section now realigns PostgreSQL sequences before execution, and audit-log insertion immediately handles possible `audit_log_pkey` collisions. The manual check no longer fails at commit time after import/restore operations or when a sequence is out of sync.
+
+For incident-specific one-off reminders, the functional delivery block is based only on `incident_reminder.sent_at`: when it is set the reminder is not sent again, when it is empty the reminder can be sent or retried. The technical claim in `deadline_notification_state` remains only a temporary concurrency guard for the same reminder record and no longer uses delivery slots/windows.

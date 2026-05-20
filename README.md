@@ -619,3 +619,9 @@ Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: 
 ## Aggiornamento 0.2.1-40 - Audit degli incidenti saltati dallo scheduler notifiche
 
 Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, claim concorrenti, assenza destinatari/errori SMTP ed eccezioni.
+
+## Aggiornamento 0.2.1-41 - Controllo manuale scadenze e promemoria specifici
+
+Il pulsante **Esegui controllo ora** nella sezione **Controllo scadenze azioni** riallinea preventivamente le sequence PostgreSQL e l'inserimento dei record audit gestisce subito eventuali collisioni `audit_log_pkey`. In questo modo il controllo manuale non fallisce più al commit quando il database proviene da import/restore o da sequence non allineate.
+
+Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. Il claim tecnico in `deadline_notification_state` resta solo una protezione temporanea contro invii contemporanei dello stesso record e non usa più slot/finestra di invio.
