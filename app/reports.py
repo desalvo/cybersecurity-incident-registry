@@ -17,8 +17,10 @@ except Exception:
 import matplotlib.pyplot as plt
 try:
     from .models import Setting
+    from .consequences import incident_consequence_list
 except Exception:
     Setting=None
+    incident_consequence_list=None
 
 def _setting_value(key, default=''):
     if not Setting:
@@ -27,17 +29,9 @@ def _setting_value(key, default=''):
     return obj.value if obj and obj.value is not None else default
 
 def _incident_consequences(inc):
-    explicit=[a.consequence_text.strip() for a in sorted(inc.actions, key=lambda x: x.when_at) if getattr(a, 'consequence_text', None) and a.consequence_text.strip()]
-    if explicit:
-        return explicit
-    cats=[(c.value or '').lower() for c in inc.categories]
-    data=[(d.value or '').lower() for d in inc.data_types]
-    out=[]
-    if any('credential' in c or 'credenzial' in c for c in cats) or any('password' in d for d in data): out.append('Possibile compromissione di credenziali e accessi non autorizzati.')
-    if any('phishing' in c for c in cats): out.append('Possibile esposizione a messaggi fraudolenti o furto di informazioni.')
-    if any('spam' in c for c in cats): out.append('Possibile impatto sulla reputazione dei servizi e comunicazioni indesiderate.')
-    if inc.personal_data or any('dati personali' in d for d in data): out.append('Possibile rischio per diritti e libertà degli interessati.')
-    return out or ['Conseguenze da valutare.']
+    if incident_consequence_list:
+        return incident_consequence_list(inc)
+    return ['Conseguenze da valutare.']
 
 def _incident_measures(inc):
     rows=[]

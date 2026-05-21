@@ -1046,9 +1046,21 @@ Notification menu and SMTP sender fix
 - Aggiunta migrazione idempotente per aggiornare template già presenti nel database e sostituire anche l'etichetta testuale "Dati personali:".
 
 2026-05-21 - Placeholder raccomandazioni nelle notifiche manuali
-- Aggiunto il placeholder %RECOMMENDATION% ai template di notifica manuale.
+- Aggiunto il placeholder %RECOMMENDATIONS% ai template di notifica manuale.
 - Il valore corrisponde alla lista delle raccomandazioni dell’incidente, la stessa origine dati del campo recommendations usato nella compilazione automatica dei moduli.
 
 2026-05-21 - Manual notification recommendations placeholder
-- Added %RECOMMENDATION% to manual notification templates.
+- Added %RECOMMENDATIONS% to manual notification templates.
 - The value is the incident recommendation list, using the same data source as the recommendations field used by automatic form filling.
+
+2026-05-21 - Placeholder notifiche e conseguenze configurabili
+- Corretto il placeholder delle raccomandazioni da %RECOMMENDATION% a %RECOMMENDATIONS%; i template esistenti vengono migrati automaticamente.
+- Aggiunto il placeholder %APP_INFO% con nome applicazione, versione e build.
+- Il campo consequences dei moduli unisce conseguenze automatiche configurabili e conseguenze specificate nelle azioni.
+- Aggiunta in Admin -> Altre configurazioni una sezione per abilitare e personalizzare le regole di costruzione delle conseguenze automatiche.
+
+2026-05-21 - Notification placeholders and configurable consequences
+- Corrected the recommendations placeholder from %RECOMMENDATION% to %RECOMMENDATIONS%; existing templates are migrated automatically.
+- Added %APP_INFO% with application name, version and build.
+- The form field consequences now combines configurable automatic consequences with consequences explicitly entered on incident actions.
+- Added an Admin -> Other configurations section to enable and customize automatic consequence rules.

@@ -132,7 +132,7 @@ From **Notifications**, an administrator can configure:
 
 The global **CSIRT email**, **CSIRT CC**, **DPO email** and **DPO CC** settings have been removed: those addresses must be defined in the relevant templates through a fixed value, the incident Recipient email, the incident creator, manual entry or the external recipients address book.
 
-Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%RECOMMENDATION%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
+Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%RECOMMENDATIONS%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%`, `%APP_INFO%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
 
 ### Automatic action deadline reminders
 
@@ -342,7 +342,7 @@ Manual or automatic incident closing is now blocked when active procedural warni
 
 The **Admin → Audit** page now uses pagination. The default number of records per page can be configured in **Admin → Other settings** through **Audit records per page**, with default 20 and maximum 100. The top of the Audit page shows the current total number of audit records, the filtered record count and the currently selected interval.
 
-For manual/non-scheduled incident notifications, the direct link to the specific incident page is inserted only when the template contains the `%INCIDENT_URL%` placeholder. Deadline-task templates continue to support `%incident_url%` separately. General templates also support `%MEASURES_ADOPTED%` (list of countermeasures adopted so far in the incident), `%RECOMMENDATION%` (list of recommendations for affected data subjects, same value as the form field `recommendations`), `%SITE%` (structure name configured in Admin → Structure) and `%STATISTICS%`, which requests the generated statistics PDF attachment at send time.
+For manual/non-scheduled incident notifications, the direct link to the specific incident page is inserted only when the template contains the `%INCIDENT_URL%` placeholder. Deadline-task templates continue to support `%incident_url%` separately. General templates also support `%MEASURES_ADOPTED%` (list of countermeasures adopted so far in the incident), `%RECOMMENDATIONS%` (list of recommendations for affected data subjects, same value as the form field `recommendations`), `%SITE%` (structure name configured in Admin → Structure) and `%STATISTICS%`, which requests the generated statistics PDF attachment at send time.
 
 ### Update 0.1.0-107
 
@@ -551,3 +551,9 @@ The `export.json` manifest includes `files.persistent_files`, covering files und
 The historical incident checkbox backed by `personal_data` is now shown in forms as **Risk to rights and freedoms**. The same wording is used in workflow configuration for the corresponding condition; the technical token remains `personal_data` for compatibility with existing databases and exports.
 
 The automatic deadline notification placeholders `%pending_actions%` and `%pending_actions_count%` are now computed only from workflow steps applicable to the specific incident. Workflow conditions, including risk to rights and freedoms, severity and affected data, are therefore respected by scheduled emails as well.
+
+### Notification placeholders and configurable consequences
+
+In manual notification templates the correct recommendations placeholder is `%RECOMMENDATIONS%`; database templates still containing `%RECOMMENDATION%` are migrated automatically. `%APP_INFO%` is also available and expands to application name, version and build.
+
+The `consequences` field used by fillable forms is built by combining configured automatic consequences and consequences explicitly entered on incident actions. The automatic logic is configurable from **Admin → Other configurations → Automatic consequence logic**, where rules can be enabled/disabled and their text customized.

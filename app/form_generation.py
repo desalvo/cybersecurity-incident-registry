@@ -33,6 +33,7 @@ from pypdf.generic import NameObject, DictionaryObject, TextStringObject, Number
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
+from .consequences import incident_consequences_text
 from .models import db, Incident, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, Setting
 
 # I campi compilabili dei modelli DOCX sono identificati esclusivamente
@@ -1481,21 +1482,7 @@ def save_template_xml(template_name: str, xml_content: str, source_docx_bytes: b
 
 
 def incident_consequences(inc: Incident) -> str:
-    explicit=[a.consequence_text.strip() for a in sorted(inc.actions, key=lambda x: x.when_at or datetime.min) if getattr(a, 'consequence_text', None) and a.consequence_text.strip()]
-    if explicit:
-        return '\n'.join(explicit)
-    cats=[(c.value or '').lower() for c in inc.categories]
-    data=[(d.value or '').lower() for d in inc.data_types]
-    out=[]
-    if any('credential' in c or 'credenzial' in c for c in cats) or any('password' in d for d in data):
-        out.append('Possibile compromissione di credenziali, accessi non autorizzati e necessità di rotazione password.')
-    if any('phishing' in c for c in cats):
-        out.append('Possibile esposizione a messaggi fraudolenti, furto di informazioni o propagazione dell’attacco.')
-    if any('spam' in c for c in cats):
-        out.append('Possibile ricezione o invio di comunicazioni indesiderate e impatto sulla reputazione dei servizi.')
-    if inc.personal_data or any('dati personali' in d for d in data):
-        out.append('Possibile rischio per diritti e libertà degli interessati.')
-    return '\n'.join(out) if out else 'Conseguenze da valutare sulla base dell’analisi dell’incidente.'
+    return incident_consequences_text(inc)
 
 def incident_measures(inc: Incident) -> str:
     lines=[]

@@ -34,6 +34,27 @@
       <p class="muted">Con <strong>Automatica dal browser</strong> l'applicazione mostra l'italiano per locale italiano e l'inglese per tutti gli altri locale. Le documentazioni utente e amministratore sono mantenute in entrambe le lingue.</p>
     </div>
 
+
+    <div class="wide">
+      <h3>Logica conseguenze automatiche</h3>
+      <p class="muted">Configura le regole che alimentano il campo moduli <code>consequences</code>. Le conseguenze specificate nelle singole azioni dell’incidente vengono sempre aggiunte alla lista, dopo quelle automatiche.</p>
+    </div>
+    {% for rule in consequence_rules %}
+    <div class="wide consequence-rule-box">
+      <label class="checkbox-inline">
+        <input type="checkbox" name="{{ rule.enabled_key }}" value="1" {% if rule.enabled %}checked{% endif %}>
+        <span>Abilita regola {{ rule.code|replace('_', ' ') }}</span>
+      </label>
+      <textarea name="{{ rule.text_key }}" rows="2">{{ rule.text }}</textarea>
+      <p class="muted">Testo inserito fra le conseguenze quando la regola risulta applicabile.</p>
+    </div>
+    {% endfor %}
+    <div class="wide">
+      <label>Testo fallback conseguenze</label>
+      <textarea name="consequence_fallback_text" rows="2">{{ consequence_fallback_text or '' }}</textarea>
+      <p class="muted">Usato solo quando nessuna regola automatica è applicabile e non sono presenti conseguenze nelle azioni.</p>
+    </div>
+
     <div class="wide">
       <label>Ritenzione audit log</label>
       <div class="retention-grid">

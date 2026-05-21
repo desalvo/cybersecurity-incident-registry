@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
+<section class="doc-section"><h2>0.2.1-76 - Placeholders and configurable consequences</h2><ul><li>Corrected the placeholder to <code>%RECOMMENDATIONS%</code> with automatic migration from <code>%RECOMMENDATION%</code>.</li><li>Added <code>%APP_INFO%</code> with application name, version and build.</li><li>The <code>consequences</code> field now combines configurable automatic consequences with consequences entered on actions.</li><li>Added the <strong>Automatic consequence logic</strong> section under Admin → Other configurations.</li></ul></section>
+
 <section class="doc-section"><h2>0.2.1-73 - Risk to rights and freedoms</h2><p>The Personal data checkbox has been renamed to Risk to rights and freedoms. The matching workflow condition uses the same label, and deadline-task notifications compute %pending_actions% and %pending_actions_count% only from workflow steps applicable to the specific incident.</p></section>
 
 <section class="doc-section"><h2>0.2.1-72 - Markdown font sizes and procedural warnings</h2><ul><li>Workflow steps support controlled font sizes with <code>{size:large}text{/size}</code> and <code>{size:14px}text{/size}</code>.</li><li>Procedural warnings use the same safe Markdown renderer as workflow steps.</li><li>Each procedural warning also shows the associated task name.</li><li>Documentation updated.</li></ul></section>
@@ -75,5 +77,5 @@
 <section class="doc-section"><h2>0.1.0-124</h2><ul><li>Light grey SSO buttons on the login page.</li><li>Shared SSO logo storage with centralized upload and per-profile selection.</li><li>Default Google, Facebook and Apple logos.</li><li>Full export/import extended to all SSO logos.</li></ul></section>
 <section class="doc-section"><h2>0.2.1-4.1</h2><ul><li>User documentation: SSO access integrated into the Access chapter and expanded from the user perspective.</li><li>Administrator documentation: shared SSO/OAuth2 logos integrated into the SSO profile chapter and expanded with persistent-storage, export/import and removal guidance.</li><li>Incident detail figure updated to keep the main-card text inside its frame.</li></ul></section>
 
-<section class="doc-section"><h2>0.2.1-75 - Manual notification recommendation placeholder</h2><ul><li>Added <code>%RECOMMENDATION%</code> to manual notification templates.</li><li>The value matches the recommendations selected on the incident, using the same data source as the <code>recommendations</code> field used by fillable forms.</li><li>Documentation updated.</li></ul></section>
+<section class="doc-section"><h2>0.2.1-75 - Manual notification recommendation placeholder</h2><ul><li>Added <code>%RECOMMENDATIONS%</code> to manual notification templates.</li><li>The value matches the recommendations selected on the incident, using the same data source as the <code>recommendations</code> field used by fillable forms.</li><li>Documentation updated.</li></ul></section>
 {% endblock %}

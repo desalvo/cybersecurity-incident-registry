@@ -18,6 +18,7 @@ from .models import *
 from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
 from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields, incident_measures
+from .consequences import incident_consequence_list, configured_consequence_rules
 bp=Blueprint('main',__name__)
 
 
@@ -2970,7 +2971,8 @@ NOTIFICATION_FIELDS = [
     ('%EXTERNAL_URL%', 'URL esterna dell’applicazione configurata in Admin → Altre configurazioni'),
     ('%INCIDENT_URL%', 'Link diretto all’incidente'),
     ('%MEASURES_ADOPTED%', 'lista delle contromisure adottate finora nell’incidente'),
-    ('%RECOMMENDATION%', 'lista delle raccomandazioni da fornire agli interessati, stesso valore del campo recommendations dei moduli'),
+    ('%RECOMMENDATIONS%', 'lista delle raccomandazioni da fornire agli interessati, stesso valore del campo recommendations dei moduli'),
+    ('%APP_INFO%', 'nome dell’applicazione e versione'),
     ('%SITE%', 'nome della struttura dove si è verificato l’incidente'),
     ('%RESP%', 'Nome responsabile configurato in Admin → Dati responsabile'),
     ('%RESP_EMAIL%', 'Email responsabile configurata in Admin → Dati responsabile'),
@@ -3096,6 +3098,16 @@ def set_setting_value(key, value):
     s.value = value or ''
     db.session.merge(s)
 
+def app_info_label():
+    info = current_app.config.get('APP_INFO', {}) if has_app_context() else {}
+    name = info.get('name') or 'Cybersecurity Incident Registry'
+    version = info.get('version') or ''
+    build = info.get('build') or ''
+    suffix = f" {version}" if version else ''
+    if build:
+        suffix += f" (build {build})"
+    return f"{name}{suffix}"
+
 def notification_label_value(kind):
     if kind == 'csirt':
         return '04-comunicazione allo CSIRT'
@@ -3212,7 +3224,8 @@ def render_notification_text(template, inc, selected_documents=None):
         '%ACTIONS%': actions,
         '%STATUS%': inc.status or '',
         '%MEASURES_ADOPTED%': incident_measures(inc) or '[nessuna misura adottata registrata]',
-        '%RECOMMENDATION%': '\n'.join([r.text for r in inc.recommendations]) or '[nessuna raccomandazione selezionata]',
+        '%RECOMMENDATIONS%': '\n'.join([r.text for r in inc.recommendations]) or '[nessuna raccomandazione selezionata]',
+        '%APP_INFO%': app_info_label(),
         '%SITE%': setting_value('structure_name', '') or '',
         '%RESP%': setting_value('security_responsible_name', '') or '',
         '%RESP_EMAIL%': setting_value('security_responsible_email', '') or '',
@@ -7604,13 +7617,16 @@ def admin_ssl():
 def admin_other_configurations():
     if not can_admin():
         return redirect(url_for('main.index'))
-    keys = ['privacy_authority_non_notification_reason', 'documentation_location', 'application_external_url', 'application_timezone', 'interface_language']
+    keys = ['privacy_authority_non_notification_reason', 'documentation_location', 'application_external_url', 'application_timezone', 'interface_language', 'consequence_fallback_text']
     retention_keys = ['audit_retention_months_part', 'audit_retention_days_part', 'audit_retention_hours_part', 'audit_retention_minutes_part']
     if request.method == 'POST':
         for key in keys:
             set_setting_value(key, request.form.get(key, ''))
         for key in retention_keys:
             set_setting_value(key, str(_bounded_int(request.form.get(key, '0'), 0, 0, 120 if key == 'audit_retention_months_part' else 3650 if key == 'audit_retention_days_part' else 23 if key == 'audit_retention_hours_part' else 59)))
+        for rule in configured_consequence_rules():
+            set_setting_value(rule['enabled_key'], '1' if request.form.get(rule['enabled_key']) else '0')
+            set_setting_value(rule['text_key'], request.form.get(rule['text_key'], rule['default_text']))
         # Mantiene aggiornata anche la chiave storica per compatibilità con archivi precedenti.
         set_setting_value('audit_retention_months', str(_bounded_int(request.form.get('audit_retention_months_part', '6'), 6, 0, 120)))
         db.session.commit()
@@ -7625,24 +7641,12 @@ def admin_other_configurations():
         interface_language=setting_value('interface_language', 'auto') or 'auto',
         audit_retention_parts=audit_retention_parts(),
         audit_retention_label=audit_retention_label(),
+        consequence_rules=configured_consequence_rules(),
+        consequence_fallback_text=setting_value('consequence_fallback_text', 'Conseguenze da valutare sulla base dell’analisi dell’incidente.'),
     )
 
 def incident_consequences(inc):
-    explicit=[a.consequence_text.strip() for a in sorted(inc.actions, key=lambda x: x.when_at or datetime.min) if getattr(a, 'consequence_text', None) and a.consequence_text.strip()]
-    if explicit:
-        return explicit
-    cats=[(c.value or '').lower() for c in inc.categories]
-    data=[(d.value or '').lower() for d in inc.data_types]
-    out=[]
-    if any('credential' in c or 'credenzial' in c for c in cats) or any('password' in d for d in data):
-        out.append('Possibile compromissione di credenziali, accessi non autorizzati e necessità di rotazione password.')
-    if any('phishing' in c for c in cats):
-        out.append('Possibile esposizione a messaggi fraudolenti, furto di informazioni o propagazione dell’attacco.')
-    if any('spam' in c for c in cats):
-        out.append('Possibile ricezione o invio di comunicazioni indesiderate e impatto sulla reputazione dei servizi.')
-    if inc.personal_data or any('dati personali' in d for d in data):
-        out.append('Possibile rischio per diritti e libertà degli interessati.')
-    return out or ['Conseguenze da valutare sulla base dell’analisi dell’incidente.']
+    return incident_consequence_list(inc)
 
 def incident_measures(inc):
     lines=[]
