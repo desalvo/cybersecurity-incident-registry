@@ -777,7 +777,7 @@ def workflow_step_key(step):
 def workflow_condition_token_label(token):
     token=(token or '').strip()
     if token == 'personal_data':
-        return 'Dati personali'
+        return 'Rischio per diritti e libertà'
     if token.startswith('severity:'):
         try:
             lab=ConfigLabel.query.get(int(token.split(':',1)[1]))
@@ -2951,7 +2951,7 @@ def ldap_settings():
 NOTIFICATION_FIELDS = [
     ('%DATA%', 'Tipo di dati interessati nell’incidente'),
     ('%CATEGORIES%', 'Categorie dell’incidente'),
-    ('%PERSONAL_DATA%', 'Frase esplicativa sul coinvolgimento di dati personali'),
+    ('%PERSONAL_DATA%', 'Frase esplicativa sul rischio per diritti e libertà'),
     ('%REPORT%', 'Allega il report PDF aggiornato e inserisce un riferimento nel testo'),
     ('%STATISTICS%', 'Allega alla notifica il Report con le statistiche in formato PDF'),
     ('%NAME%', 'Nome dell’incidente'),
@@ -2986,7 +2986,7 @@ Data e ora di inizio: %START%
 Data e ora di fine: %END%
 Dati interessati: %DATA%
 Categorie: %CATEGORIES%
-Dati personali: %PERSONAL_DATA%
+Rischio per diritti e libertà: %PERSONAL_DATA%
 
 Descrizione:
 %DESCRIPTION%
@@ -3010,7 +3010,7 @@ Data e ora di inizio: %START%
 Data e ora di fine: %END%
 Dati interessati: %DATA%
 Categorie: %CATEGORIES%
-Dati personali: %PERSONAL_DATA%
+Rischio per diritti e libertà: %PERSONAL_DATA%
 
 Descrizione:
 %DESCRIPTION%
@@ -3035,7 +3035,7 @@ Data e ora di inizio: %START%
 Data e ora di fine: %END%
 Dati interessati: %DATA%
 Categorie: %CATEGORIES%
-Dati personali: %PERSONAL_DATA%
+Rischio per diritti e libertà: %PERSONAL_DATA%
 
 Descrizione:
 %DESCRIPTION%
@@ -3173,7 +3173,7 @@ def render_notification_text(template, inc, selected_documents=None):
     categories = ', '.join([x.value for x in inc.categories]) or 'nessuna categoria indicata'
     start = inc.start_at.strftime('%d/%m/%Y %H:%M') if inc.start_at else ''
     end = inc.end_at.strftime('%d/%m/%Y %H:%M') if inc.end_at else 'non disponibile'
-    personal = 'Sono presenti dati personali coinvolti.' if inc.personal_data else 'Non risultano dati personali coinvolti.'
+    personal = 'È presente un rischio per diritti e libertà degli interessati.' if inc.personal_data else 'Non risulta un rischio per diritti e libertà degli interessati.'
     docs = selected_documents if selected_documents is not None else list(inc.documents)
     documents = ', '.join([d.filename for d in docs]) or '[nessun documento selezionato]'
     actions_rows = sorted(list(inc.actions), key=lambda a: (a.when_at or datetime.min, a.id or 0))
@@ -4066,21 +4066,34 @@ def pending_deadline_actions_for_incident(inc, now=None):
     # La presenza di personale non deve influire sulla ricerca delle azioni
     # mancanti: i task in scadenza devono essere rilevati e conteggiati anche
     # quando l'invio email verrà poi saltato per assenza di destinatari.
-    # In questo modo scheduler, audit e diagnostica mostrano correttamente gli
-    # incidenti con scadenze pendenti.
+    #
+    # La lista dei placeholder %pending_actions% e %pending_actions_count%
+    # deve rispettare il workflow effettivamente applicabile all'incidente:
+    # gli step con condizioni non soddisfatte, ad esempio rischio per diritti
+    # e libertà, gravità o dati interessati, non devono essere notificati.
     if not start:
         return []
-    done_label_ids = {a.label_id for a in (inc.actions or []) if a.label_id}
-    labels_q = ConfigLabel.query.filter(
-        ConfigLabel.kind == 'action_label',
-        ConfigLabel.max_completion_hours.isnot(None),
-        ConfigLabel.max_completion_hours > 0,
-    ).order_by(ConfigLabel.value).all()
+    action_counts = {}
+    for action in (inc.actions or []):
+        if action.label_id:
+            action_counts[action.label_id] = action_counts.get(action.label_id, 0) + 1
+    used_counts = {}
     rows = []
-    for lab in labels_q:
-        if lab.id in done_label_ids:
+    for step in workflow_steps_for_incident(inc):
+        lab = step.action_label
+        if not lab:
             continue
-        due_at = start + timedelta(hours=int(lab.max_completion_hours or 0))
+        max_hours = int(getattr(lab, 'max_completion_hours', 0) or 0)
+        if max_hours <= 0:
+            continue
+        label_id = int(lab.id)
+        used = used_counts.get(label_id, 0)
+        total = action_counts.get(label_id, 0)
+        done = used < total
+        if done:
+            used_counts[label_id] = used + 1
+            continue
+        due_at = start + timedelta(hours=max_hours)
         remaining = due_at - now
         total_seconds = int(remaining.total_seconds())
         sign = '' if total_seconds >= 0 else '-'
@@ -4089,12 +4102,15 @@ def pending_deadline_actions_for_incident(inc, now=None):
         minutes = (total_seconds % 3600) // 60
         rows.append({
             'label': lab,
+            'step': step,
+            'step_id': step.id,
+            'task_name': lab.value,
+            'workflow_description': step.description or '',
             'due_at': due_at,
             'remaining_text': f'{sign}{hours}h {minutes:02d}m',
             'expired': remaining.total_seconds() < 0,
         })
     return rows
-
 
 DEADLINE_NOTIFICATION_PLACEHOLDERS = [
     ('%incident_id%', 'ID interno dell’incidente'),
@@ -4104,8 +4120,8 @@ DEADLINE_NOTIFICATION_PLACEHOLDERS = [
     ('%incident_description%', 'Descrizione dell’incidente'),
     ('%initial_information_at%', 'Data e ora della prima informazione iniziale'),
     ('%recipients%', 'Destinatari della notifica'),
-    ('%pending_actions%', 'Elenco puntato delle azioni mancanti con scadenza e tempo rimanente'),
-    ('%pending_actions_count%', 'Numero di azioni mancanti soggette a tempo massimo'),
+    ('%pending_actions%', 'Elenco puntato degli step workflow applicabili mancanti con scadenza e tempo rimanente'),
+    ('%pending_actions_count%', 'Numero di step workflow applicabili mancanti soggetti a tempo massimo'),
     ('%generated_at%', 'Data e ora di generazione del messaggio'),
     ('%application_name%', 'Nome dell’applicazione'),
     ('%external_url%', 'URL esterna dell’applicazione configurata in Admin → Altre configurazioni'),
@@ -4139,7 +4155,11 @@ def build_deadline_pending_actions_text(pending_rows):
     lines = []
     for row in pending_rows or []:
         lab = row['label']
-        label_text = lab.description or lab.value
+        step = row.get('step')
+        label_text = (row.get('workflow_description') or (lab.description or lab.value))
+        task_name = row.get('task_name') or lab.value
+        if step and label_text != task_name:
+            label_text = f'{label_text} ({task_name})'
         lines.append(f'- {label_text} | scadenza {format_application_datetime(row["due_at"])} | tempo rimanente {row["remaining_text"]}')
     return '\n'.join(lines) if lines else '- Nessuna azione mancante'
 
@@ -7609,7 +7629,7 @@ def incident_consequences(inc):
     if any('spam' in c for c in cats):
         out.append('Possibile ricezione o invio di comunicazioni indesiderate e impatto sulla reputazione dei servizi.')
     if inc.personal_data or any('dati personali' in d for d in data):
-        out.append('Possibile coinvolgimento di dati personali con impatti sui diritti e le libertà degli interessati.')
+        out.append('Possibile rischio per diritti e libertà degli interessati.')
     return out or ['Conseguenze da valutare sulla base dell’analisi dell’incidente.']
 
 def incident_measures(inc):

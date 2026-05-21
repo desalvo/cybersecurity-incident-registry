@@ -3,7 +3,7 @@
   {% set selected = selected or [] %}
   <div class="workflow-condition-picker" data-condition-picker>
     <div class="condition-palette" aria-label="Condizioni disponibili">
-      <span class="condition-chip" draggable="true" data-token="personal_data">Dati personali</span>
+      <span class="condition-chip" draggable="true" data-token="personal_data">Rischio per diritti e libertà</span>
       {% for sev in severities %}<span class="condition-chip" draggable="true" data-token="severity:{{sev.id}}">Gravità: {{sev.value}}</span>{% endfor %}
       {% for dt in data_types %}<span class="condition-chip" draggable="true" data-token="data_type:{{dt.id}}">Dati interessati: {{dt.value}}</span>{% endfor %}
     </div>
@@ -11,7 +11,7 @@
       <span class="muted condition-placeholder">Trascina qui le condizioni. Vuoto = sempre applicabile.</span>
     </div>
     <div class="condition-hidden">
-      <label class="condition-selected" data-token="personal_data"><input type="checkbox" name="{{name}}" value="personal_data" {% if 'personal_data' in selected %}checked{% endif %}> Dati personali <button type="button" class="link-button condition-remove">×</button></label>
+      <label class="condition-selected" data-token="personal_data"><input type="checkbox" name="{{name}}" value="personal_data" {% if 'personal_data' in selected %}checked{% endif %}> Rischio per diritti e libertà <button type="button" class="link-button condition-remove">×</button></label>
       {% for sev in severities %}<label class="condition-selected" data-token="severity:{{sev.id}}"><input type="checkbox" name="{{name}}" value="severity:{{sev.id}}" {% if ('severity:' ~ sev.id) in selected %}checked{% endif %}> Gravità: {{sev.value}} <button type="button" class="link-button condition-remove">×</button></label>{% endfor %}
       {% for dt in data_types %}<label class="condition-selected" data-token="data_type:{{dt.id}}"><input type="checkbox" name="{{name}}" value="data_type:{{dt.id}}" {% if ('data_type:' ~ dt.id) in selected %}checked{% endif %}> Dati interessati: {{dt.value}} <button type="button" class="link-button condition-remove">×</button></label>{% endfor %}
     </div>

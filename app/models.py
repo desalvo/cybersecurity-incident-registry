@@ -77,7 +77,7 @@ class IncidentWorkflowStep(db.Model):
             if item and item not in values:
                 values.append(item)
         # Compatibilita' con il vecchio flag: gli step gia' marcati
-        # "solo dati personali" continuano a comportarsi come prima.
+        # "solo rischio per diritti e libertà" continuano a comportarsi come prima.
         if getattr(self, 'personal_data_only', False) and 'personal_data' not in values:
             values.insert(0, 'personal_data')
         return values

@@ -220,7 +220,7 @@ def available_incident_fields() -> List[Tuple[str, str]]:
         ('recipient_email', 'E-mail Destinatario'),
         ('description', 'Descrizione'),
         ('severity', 'Gravità'),
-        ('personal_data', 'Dati personali'),
+        ('personal_data', 'Rischio per diritti e libertà'),
         ('data_subjects_count', 'Numero di interessati'),
         ('data_volume', 'Volume dati'),
         ('start_at', 'Data e ora inizio'),
@@ -278,7 +278,7 @@ def incident_value(inc: Incident, field_name: str) -> str:
     if field_name == 'recipient_email': return getattr(inc, 'recipient_email', '') or ''
     if field_name == 'description': return inc.description or ''
     if field_name == 'severity': return inc.severity.value if inc.severity else ''
-    if field_name == 'personal_data': return 'Sono presenti dati personali coinvolti.' if inc.personal_data else 'Non risultano dati personali coinvolti.'
+    if field_name == 'personal_data': return 'È presente un rischio per diritti e libertà degli interessati.' if inc.personal_data else 'Non risulta un rischio per diritti e libertà degli interessati.'
     if field_name == 'data_subjects_count': return inc.data_subjects_count or ''
     if field_name == 'data_volume': return inc.data_volume or ''
     if field_name == 'start_at': return fmt(inc.start_at)
@@ -1492,7 +1492,7 @@ def incident_consequences(inc: Incident) -> str:
     if any('spam' in c for c in cats):
         out.append('Possibile ricezione o invio di comunicazioni indesiderate e impatto sulla reputazione dei servizi.')
     if inc.personal_data or any('dati personali' in d for d in data):
-        out.append('Possibile coinvolgimento di dati personali con impatti sui diritti e le libertà degli interessati.')
+        out.append('Possibile rischio per diritti e libertà degli interessati.')
     return '\n'.join(out) if out else 'Conseguenze da valutare sulla base dell’analisi dell’incidente.'
 
 def incident_measures(inc: Incident) -> str:

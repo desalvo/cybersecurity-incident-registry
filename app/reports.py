@@ -36,7 +36,7 @@ def _incident_consequences(inc):
     if any('credential' in c or 'credenzial' in c for c in cats) or any('password' in d for d in data): out.append('Possibile compromissione di credenziali e accessi non autorizzati.')
     if any('phishing' in c for c in cats): out.append('Possibile esposizione a messaggi fraudolenti o furto di informazioni.')
     if any('spam' in c for c in cats): out.append('Possibile impatto sulla reputazione dei servizi e comunicazioni indesiderate.')
-    if inc.personal_data or any('dati personali' in d for d in data): out.append('Possibile coinvolgimento di dati personali.')
+    if inc.personal_data or any('dati personali' in d for d in data): out.append('Possibile rischio per diritti e libertà degli interessati.')
     return out or ['Conseguenze da valutare.']
 
 def _incident_measures(inc):
@@ -248,7 +248,7 @@ def incident_pdf(inc):
     index_rows=[['Indice sintetico'],['Sintesi'],['Descrizione'],['Categorie e dati interessati'],['Conseguenze derivate'],['Misure adottate'],['Raccomandazioni'],['Personale coinvolto'],['Azioni intraprese'],['Grafico azioni nel tempo'],['Documenti']]
     story += [Paragraph('Indice sintetico', styles['section-heading']), wrap_table(index_rows, small, widths=[17.5*cm]), Spacer(1,0.25*cm)]
 
-    meta=[['Campo','Valore'],['Nome',inc.name],['Riferimento',inc.reference or ''],['Compilatore',inc.creator_name],['Email compilatore',inc.creator_email],['Gravità',inc.severity.value if inc.severity else ''],['Stato',inc.status],['Periodo',_format_incident_period(inc)],['Durata',_format_incident_duration(inc) or ''],['Dati personali','Sì' if inc.personal_data else 'No'], ['Numero interessati', getattr(inc, 'data_subjects_count', '') or ''], ['Volume dati', getattr(inc, 'data_volume', '') or ''], ['Titolare',_setting_value('security_owner_name')], ['Ruolo titolare',_setting_value('security_owner_role')], ['Struttura',_setting_value('structure_name')], ['Responsabile',_setting_value('security_responsible_name')], ['Email responsabile',_setting_value('security_responsible_email')], ['Telefono responsabile',_setting_value('security_responsible_phone','-')], ['Funzione responsabile',_setting_value('security_responsible_function')]]
+    meta=[['Campo','Valore'],['Nome',inc.name],['Riferimento',inc.reference or ''],['Compilatore',inc.creator_name],['Email compilatore',inc.creator_email],['Gravità',inc.severity.value if inc.severity else ''],['Stato',inc.status],['Periodo',_format_incident_period(inc)],['Durata',_format_incident_duration(inc) or ''],['Rischio per diritti e libertà','Sì' if inc.personal_data else 'No'], ['Numero interessati', getattr(inc, 'data_subjects_count', '') or ''], ['Volume dati', getattr(inc, 'data_volume', '') or ''], ['Titolare',_setting_value('security_owner_name')], ['Ruolo titolare',_setting_value('security_owner_role')], ['Struttura',_setting_value('structure_name')], ['Responsabile',_setting_value('security_responsible_name')], ['Email responsabile',_setting_value('security_responsible_email')], ['Telefono responsabile',_setting_value('security_responsible_phone','-')], ['Funzione responsabile',_setting_value('security_responsible_function')]]
     _add_section(story, 'Sintesi', wrap_table(meta, small), styles)
     _add_section(story, 'Descrizione', P(inc.description,body), styles)
     _add_section(story, 'Categorie e dati interessati', wrap_table([['Categorie',', '.join(x.value for x in inc.categories)],['Dati interessati',', '.join(x.value for x in inc.data_types)]], small), styles)
@@ -395,7 +395,7 @@ def statistics_pdf(periods):
     small = ParagraphStyle('stats-small', parent=styles['BodyText'], fontSize=7, leading=8)
     body = ParagraphStyle('stats-body', parent=styles['BodyText'], fontSize=9, leading=11)
     story = [Paragraph('Report statistiche incidenti', styles['Title']), Spacer(1, 0.25*cm)]
-    story.append(Paragraph('Il report aggrega gli incidenti per finestra temporale e usa categorie, dati interessati, gravità, stato, dati personali, compilatore, azioni, documenti e durata dove disponibili.', body))
+    story.append(Paragraph('Il report aggrega gli incidenti per finestra temporale e usa categorie, dati interessati, gravità, stato, rischio per diritti e libertà, compilatore, azioni, documenti e durata dove disponibili.', body))
     story.append(Spacer(1, 0.35*cm))
     summary_rows = [['Finestra', 'Incidenti', 'Durata media (ore)', 'Azioni', 'Documenti']]
     for p in periods:
@@ -428,7 +428,7 @@ def statistics_pdf(periods):
             ('Incidenti per dati interessati', p['data_types']),
             ('Incidenti per gravità', p['severity']),
             ('Incidenti per stato', p['status']),
-            ('Incidenti con dati personali', p['personal_data']),
+            ('Incidenti con rischio per diritti e libertà', p['personal_data']),
             ('Incidenti per compilatore', p['creators']),
             ('Azioni per label', p['action_labels']),
         ]:

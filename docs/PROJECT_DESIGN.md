@@ -97,7 +97,7 @@ L'utente locale `admin` viene creato automaticamente solo se assente. La passwor
 
 ### Help contestuale nella scheda incidente
 
-La pagina di modifica/visualizzazione del singolo incidente mostra icone informative accanto ai campi principali della scheda. I tooltip sono disponibili anche da tastiera tramite focus e chiariscono il significato operativo di nome, riferimento, destinatario, descrizione, gravità, stato, data/ora inizio, data/ora fine, dati personali, silenziamento notifiche deadline, numero interessati e volume dati.
+La pagina di modifica/visualizzazione del singolo incidente mostra icone informative accanto ai campi principali della scheda. I tooltip sono disponibili anche da tastiera tramite focus e chiariscono il significato operativo di nome, riferimento, destinatario, descrizione, gravità, stato, data/ora inizio, data/ora fine, rischio per diritti e libertà, silenziamento notifiche deadline, numero interessati e volume dati.
 
 Questi testi sono parte della documentazione procedurale perché distinguono esplicitamente il periodo della violazione dalla data/ora di venuta a conoscenza, gestita tramite l’azione di informazione iniziale, e dalla conclusione amministrativa dell’incidente.
 
@@ -109,7 +109,7 @@ Ogni incidente registra:
 - descrizione
 - gravità
 - tipi di dati interessati, multipli
-- flag dati personali sì/no
+- flag rischio per diritti e libertà sì/no
 - data e ora di inizio
 - data e ora di fine opzionale
 - categorie multiple
@@ -412,7 +412,7 @@ Nel testo delle mail di notifica sono disponibili:
 
 - `%DATA%`: tipo di dati interessati nell'incidente
 - `%CATEGORIES%`: categorie dell'incidente
-- `%PERSONAL_DATA%`: frase esplicativa sulla presenza di dati personali
+- `%PERSONAL_DATA%`: frase esplicativa sulla presenza di rischio per diritti e libertà
 - `%REPORT%`: report PDF automatico dell'incidente; se presente, il PDF viene allegato
 - `%NAME%`: nome dell'incidente
 - `%OPERATOR%`: nome dell'utente che invia la mail
@@ -489,8 +489,8 @@ Nel dettaglio di ogni incidente devono comparire avvisi evidenti:
 
 - se manca l'azione `04-comunicazione allo CSIRT`, indicare che la procedura prevede la notifica allo CSIRT
 - se manca l'azione `05-comunicazione al DPO`, indicare che la procedura prevede la notifica al DPO
-- se dati personali è sì e manca `06-comunicazione al Garante della Privacy`, indicare che la procedura prevede la notifica al Garante
-- se manca `07-notifica all’utente`, indicare che la notifica all’utente è richiesta e deve essere registrata nella lista delle azioni effettuate; il controllo è sempre attivo, indipendentemente dal flag dati personali
+- se rischio per diritti e libertà è sì e manca `06-comunicazione al Garante della Privacy`, indicare che la procedura prevede la notifica al Garante
+- se manca `07-notifica all’utente`, indicare che la notifica all’utente è richiesta e deve essere registrata nella lista delle azioni effettuate; il controllo è sempre attivo, indipendentemente dal flag rischio per diritti e libertà
 
 La stessa logica è centralizzata e riutilizzata nella pagina principale: ogni incidente con almeno un avviso procedurale pendente viene marcato nella lista con un simbolo di pericolo accanto al nome e un tooltip riepilogativo. Nel template `incident_detail.html` la sezione degli avvisi procedurali è posizionata immediatamente dopo la scheda principale dell’incidente, prima delle sezioni informative e operative, così che gli operatori vedano subito le attività procedurali da completare.
 
@@ -534,7 +534,7 @@ Statistiche richieste:
 - numero incidenti per categoria
 - numero incidenti per tipo di dati interessati
 - durata media, calcolata sul tempo tra prima azione e conclusione
-- aggregazioni disponibili su gravità, stato, dati personali, personale, compilatore, azioni e label ove possibile
+- aggregazioni disponibili su gravità, stato, rischio per diritti e libertà, personale, compilatore, azioni e label ove possibile
 
 È disponibile download PDF delle statistiche con grafici a barre e a torta.
 
@@ -631,11 +631,11 @@ L'applicazione deve essere una web app Flask servita in produzione con Gunicorn,
 
 Implementa autenticazione locale e LDAP. L'utente locale admin deve essere creato solo se assente, chiamarsi admin e avere password iniziale configurabile via variabile d'ambiente `ADMIN_INITIAL_PASSWORD`; in produzione non deve essere un valore debole o predefinito. Non resettare mai la password admin ai riavvii. Usa hashing password senza limite bcrypt a 72 byte, per esempio PBKDF2-SHA256, con eventuale compatibilità legacy sicura. Gli utenti LDAP appena visti al login devono essere creati con ruolo disabled. Ruoli: admin, writer, reader, operator, disabled. Admin accede a tutto, writer legge/scrive, reader legge tutto, operator legge solo i propri incidenti, disabled non accede.
 
-Crea un modello Incident con: creatore nome/email presi dall'utente loggato e non modificabili; nome; riferimento opzionale; descrizione; gravità configurabile; tipi di dati interessati multipli configurabili; flag dati personali; data/ora inizio; data/ora fine opzionale; categorie multiple configurabili; personale coinvolto multiplo; stato aperto/in lavorazione/chiuso; documenti allegati multipli; azioni multiple. La lista incidenti deve mostrare nome, intervallo inizio/fine, compilatore, personale, stato, durata tra prima azione registrata e conclusione dell'incidente; tutte le colonne ordinabili; conteggio totale filtrato o totale visibile. Supporta ricerca per data, parola chiave e label. Supporta clonazione incidente da lista e dettaglio. Supporta cancellazione incidenti con conferma e solo per utenti con permesso di scrittura/admin.
+Crea un modello Incident con: creatore nome/email presi dall'utente loggato e non modificabili; nome; riferimento opzionale; descrizione; gravità configurabile; tipi di dati interessati multipli configurabili; flag rischio per diritti e libertà; data/ora inizio; data/ora fine opzionale; categorie multiple configurabili; personale coinvolto multiplo; stato aperto/in lavorazione/chiuso; documenti allegati multipli; azioni multiple. La lista incidenti deve mostrare nome, intervallo inizio/fine, compilatore, personale, stato, durata tra prima azione registrata e conclusione dell'incidente; tutte le colonne ordinabili; conteggio totale filtrato o totale visibile. Supporta ricerca per data, parola chiave e label. Supporta clonazione incidente da lista e dettaglio. Supporta cancellazione incidenti con conferma e solo per utenti con permesso di scrittura/admin.
 
 Crea azioni con data/ora, descrizione opzionale, persona precompilata con utente corrente ma modificabile, label azione configurabile, allegati multipli. Le azioni devono essere modificabili/cancellabili con conferma e permessi. Non assegnare mai manualmente ID: lascia generare al DB e riallinea sequence PostgreSQL all'avvio e dopo import.
 
-Crea liste configurabili per gravità, dati interessati, categorie, label azioni e personale. I valori iniziali includono gravità molto bassa, bassa, media, alta, critica; dati password e dati personali; categorie furto di credenziali, phishing, SPAM, altro; label azioni 01-informazione iniziale, 02-analisi, 03-blocco, 04-comunicazione allo CSIRT, 05-comunicazione al DPO, 06-comunicazione al Garante della Privacy, 07-notifica all'utente, 08-conclusione. Le liste configurabili sono raggruppate per categoria/tipo. Permetti aggiunta e cancellazione inserendo solo il nome della label nella sezione corretta; la cancellazione rimuove i riferimenti dagli incidenti. La gestione anagrafica personale richiede solo nome ed email, senza Categoria/Gruppo. Nei form incidente usa drag & drop per categorie, dati interessati, personale e raccomandazioni, con destinazioni adiacenti alle sorgenti e label raggruppate per tipo dove applicabile. Le checkbox devono usare uno stile compatto per non aumentare eccessivamente l’ingombro delle tabelle e dei pannelli amministrativi.
+Crea liste configurabili per gravità, dati interessati, categorie, label azioni e personale. I valori iniziali includono gravità molto bassa, bassa, media, alta, critica; dati password e rischio per diritti e libertà; categorie furto di credenziali, phishing, SPAM, altro; label azioni 01-informazione iniziale, 02-analisi, 03-blocco, 04-comunicazione allo CSIRT, 05-comunicazione al DPO, 06-comunicazione al Garante della Privacy, 07-notifica all'utente, 08-conclusione. Le liste configurabili sono raggruppate per categoria/tipo. Permetti aggiunta e cancellazione inserendo solo il nome della label nella sezione corretta; la cancellazione rimuove i riferimenti dagli incidenti. La gestione anagrafica personale richiede solo nome ed email, senza Categoria/Gruppo. Nei form incidente usa drag & drop per categorie, dati interessati, personale e raccomandazioni, con destinazioni adiacenti alle sorgenti e label raggruppate per tipo dove applicabile. Le checkbox devono usare uno stile compatto per non aumentare eccessivamente l’ingombro delle tabelle e dei pannelli amministrativi.
 
 Implementa logo applicativo caricato da admin, mostrato nella barra superiore e nella login con altezza massima 2 cm. Menu accessibili con tastiera, ARIA, focus visibile, dropdown leggibili e z-index corretto. UI responsive/mobile con menu compatto, lista incidenti a schede e form touch-friendly. Login centrata e senza informazioni sull'admin di default. Redirigi alla login se non autenticato. Mostra nome utente corrente a destra nella barra.
 
@@ -649,7 +649,7 @@ Placeholder template: %DATA%, %CATEGORIES%, %PERSONAL_DATA%, %REPORT%, %NAME%, %
 
 SMTP: impostazioni nel menu Impostazioni/Notifiche con campi host, porta, TLS/SSL, autenticazione opzionale, username, password e mittente SMTP predefinito obbligatorio se autenticazione abilitata. Non sono presenti impostazioni globali per destinatari o CC CSIRT/DPO: questi valori sono configurati nei template di notifica manuale. Test invio mail verso indirizzo specificato, disponibile anche ad admin. Se auth SMTP è abilitata e mittente/utente default è configurato, tutte le mail usano l'identità SMTP default.
 
-Nel dettaglio incidente mostra avvisi evidenti se manca azione 04 CSIRT, se manca 05 DPO e, se dati personali è sì, se manca 06 Garante Privacy.
+Nel dettaglio incidente mostra avvisi evidenti se manca azione 04 CSIRT, se manca 05 DPO e, se rischio per diritti e libertà è sì, se manca 06 Garante Privacy.
 
 Report: PDF incidente professionale con sezioni, titoli, tabelle wrappate/font piccolo, personale ordinato per nome, grafico azioni nel tempo con label completa. Report menu Statistiche con statistiche per finestra ricercata, ultima settimana, ultimo mese, ultimi 3 mesi, ultimi 6 mesi, ultimo anno: incidenti per categoria, dati interessati, durata media e aggregazioni da tutte le informazioni disponibili. Visualizza grafici a barre e torta e permetti download PDF statistiche dettagliato.
 
@@ -1389,7 +1389,7 @@ L’inserimento degli step nei flussi operativi usa un riallineamento preventivo
 
 ## Versione 0.2.1 - Estensione workflow di default
 
-Il bootstrap del workflow di default usa ora la sequenza: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Comunicazione al Garante, Comunicazione all’utente, Conclusione. Lo step Comunicazione al Garante viene creato con `personal_data_only=True`, quindi resta configurabile nel workflow ma viene considerato tra le operazioni previste solo per incidenti in cui è indicato il coinvolgimento di dati personali.
+Il bootstrap del workflow di default usa ora la sequenza: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Comunicazione al Garante, Comunicazione all’utente, Conclusione. Lo step Comunicazione al Garante viene creato con `personal_data_only=True`, quindi resta configurabile nel workflow ma viene considerato tra le operazioni previste solo per incidenti in cui è indicato il coinvolgimento di rischio per diritti e libertà.
 
 Per installazioni già esistenti, `ensure_default_workflow_required_steps()` aggiunge in modo conservativo i due step mancanti al flusso di default senza cancellare o riscrivere personalizzazioni amministrative; se uno step verso il Garante è già presente, il flag `personal_data_only` viene riallineato a vero.
 
@@ -1451,10 +1451,10 @@ Action labels support the `global_check` automatic operation, configured by drag
 
 
 ## Versione 0.2.1-32 - Condizioni workflow estese
-Gli step dei flussi operativi supportano ora condizioni multiple memorizzate nel campo `IncidentWorkflowStep.conditions`. Le condizioni disponibili sono `personal_data`, `severity:<id>` e `data_type:<id>`. La valutazione è con logica AND: lo step è incluso nelle operazioni previste solo se non ha condizioni oppure tutte le condizioni sono soddisfatte dall’incidente. La UI amministrativa usa un selettore drag & drop compatto per ridurre lo spazio occupato.
+Gli step dei flussi operativi supportano ora condizioni multiple memorizzate nel campo `IncidentWorkflowStep.conditions`. Le condizioni disponibili sono `personal_data` (mostrata come “Rischio per diritti e libertà”), `severity:<id>` e `data_type:<id>`. La valutazione è con logica AND: lo step è incluso nelle operazioni previste solo se non ha condizioni oppure tutte le condizioni sono soddisfatte dall’incidente. La UI amministrativa usa un selettore drag & drop compatto per ridurre lo spazio occupato.
 
 ## Version 0.2.1-32 - Extended workflow conditions
-Operational workflow steps now support multiple conditions stored in `IncidentWorkflowStep.conditions`. Available conditions are `personal_data`, `severity:<id>` and `data_type:<id>`. Evaluation uses AND logic: a step is included in expected operations only when it has no conditions or all conditions are satisfied by the incident. The administrative UI uses a compact drag-and-drop selector to reduce page space.
+Operational workflow steps now support multiple conditions stored in `IncidentWorkflowStep.conditions`. Available conditions are `personal_data` (shown as “Risk to rights and freedoms”), `severity:<id>` and `data_type:<id>`. Evaluation uses AND logic: a step is included in expected operations only when it has no conditions or all conditions are satisfied by the incident. The administrative UI uses a compact drag-and-drop selector to reduce page space.
 
 
 ## Versione 0.2.1-33 - Pulizia versione e documentazione
@@ -1678,3 +1678,15 @@ Ogni template PDF configurato in **Moduli → Configurazione** può avere uno o 
 ## Aggiornamento 0.2.1-71 - Rimozione tag dai template modulo
 
 Nel template `modules_configuration.html` i tag notifica selezionati per un template modulo sono resi come chip non più basati su `<label>`, ma su contenitori dedicati con checkbox nascosta e pulsante `×`. Il pulsante imposta la checkbox a non selezionata, applica `hidden`/classe `hidden` al chip e aggiorna il messaggio di stato vuoto. Al submit, `routes.py` continua a leggere `request.form.getlist('template_notification_tags')`: l'assenza del valore rimosso nel POST aggiorna `FormTemplateConfig.notification_tags` con l'insieme effettivamente rimasto selezionato. In questo modo l'amministratore può aggiungere e rimuovere tag nello stesso flusso drag & drop e i documenti generati successivamente ereditano solo i tag ancora associati al template.
+
+### 0.2.1-73 - Rischio per diritti e libertà e pending actions condizionate
+
+Il campo booleano storico `Incident.personal_data` resta invariato a livello di schema per compatibilità con database, export/import e template esistenti, ma l’interfaccia lo presenta come **Rischio per diritti e libertà**. La condizione workflow tecnica `personal_data` resta invariata nel database, ma viene visualizzata come **Rischio per diritti e libertà** nella configurazione dei flussi operativi e nei dettagli delle condizioni.
+
+La funzione `pending_deadline_actions_for_incident()` non costruisce più `%pending_actions%` partendo da tutte le label azione con `max_completion_hours`. Il calcolo usa ora `workflow_steps_for_incident(inc)` e quindi include solo gli step realmente applicabili allo specifico incidente, dopo la valutazione delle condizioni workflow su rischio per diritti e libertà, gravità e dati interessati. Gli step con tempo massimo già completati dalle azioni registrate non compaiono nella lista; `%pending_actions_count%` è il conteggio della stessa lista filtrata.
+
+### 0.2.1-73 - Risk to rights and freedoms and conditioned pending actions
+
+The historical boolean field `Incident.personal_data` is kept unchanged at schema level for compatibility with existing databases, export/import and templates, but the UI now presents it as **Risk to rights and freedoms**. The technical workflow condition `personal_data` is also kept unchanged in the database, but it is displayed as **Risk to rights and freedoms** in workflow configuration and condition details.
+
+`pending_deadline_actions_for_incident()` no longer builds `%pending_actions%` from every action label with `max_completion_hours`. It now uses `workflow_steps_for_incident(inc)`, so only workflow steps actually applicable to the specific incident are included, after evaluating workflow conditions for risk to rights and freedoms, severity and affected data. Completed timed steps are excluded; `%pending_actions_count%` is the count of the same filtered list.

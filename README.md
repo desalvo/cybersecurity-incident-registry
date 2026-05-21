@@ -323,7 +323,7 @@ L’applicazione include inoltre un logo pittorico statico che rappresenta un cy
 
 ## Aggiornamenti funzionali su azioni, label, categorie, moduli e dati incidente
 
-Le azioni dell’incidente includono ora anche il campo **Conseguenze associate all’azione**, modificabile dal dettaglio incidente insieme a persona, label, descrizione e flag `exportable`. Le conseguenze esplicite inserite sulle azioni sono usate nei report e nei moduli quando viene richiesto il campo derivato delle conseguenze; in assenza di testi specifici resta disponibile la derivazione automatica basata su categorie, dati interessati e dati personali.
+Le azioni dell’incidente includono ora anche il campo **Conseguenze associate all’azione**, modificabile dal dettaglio incidente insieme a persona, label, descrizione e flag `exportable`. Le conseguenze esplicite inserite sulle azioni sono usate nei report e nei moduli quando viene richiesto il campo derivato delle conseguenze; in assenza di testi specifici resta disponibile la derivazione automatica basata su categorie, dati interessati e rischio per diritti e libertà.
 
 In **Admin → Liste configurabili** le sezioni sono visualizzate in verticale, una sotto l’altra, per migliorare la leggibilità dei campi modificabili e delle descrizioni estese.
 
@@ -731,3 +731,9 @@ Nella form degli incidenti e nei modelli incidente è possibile caricare Riferim
 Il full export contiene l'intero stato applicativo necessario a riprodurre l'installazione corrente: dump JSON di tutte le tabelle applicative, relazioni many-to-many, configurazioni, utenti, ruoli, MFA, audit, notifiche, modelli incidente, template notifiche, promemoria, scheduler, documenti, allegati azione, template PDF dei moduli, loghi, certificati SSL caricati dall'applicazione e snapshot dei volumi persistenti operativi.
 
 Nel manifest `export.json` la sezione `files.persistent_files` elenca anche i file presenti nei volumi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`, così l'export resta ripristinabile anche se un file operativo non è più referenziato direttamente da un singolo record. L'import completo ricrea il database e ripristina i file nelle directory applicative corrispondenti.
+
+### 0.2.1-73 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
+
+La checkbox storica dell’incidente relativa a `personal_data` è ora mostrata nelle form come **Rischio per diritti e libertà**. La stessa denominazione è usata nella configurazione dei workflow per la condizione corrispondente; il token tecnico resta `personal_data` per compatibilità con database ed esportazioni esistenti.
+
+I placeholder delle notifiche automatiche per task in scadenza `%pending_actions%` e `%pending_actions_count%` sono calcolati solo sugli step del workflow applicabili allo specifico incidente. Le condizioni impostate nel workflow, inclusi rischio per diritti e libertà, gravità e dati interessati, vengono quindi rispettate anche nelle email schedulate.

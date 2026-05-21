@@ -19,7 +19,7 @@
     <div class="wide"><label>Descrizione incidente</label><textarea name="incident_description">{{t.incident_description if t else ''}}</textarea></div>
     <div><label>Gravità</label><select name="severity_id"><option value="">-</option>{% for l in severities %}<option value="{{l.id}}" {% if t and t.severity_id==l.id %}selected{% endif %}>{{l.value}}</option>{% endfor %}</select></div>
     <div><label>Stato</label><select name="status">{% for st in ['aperto','in lavorazione','chiuso'] %}<option {% if t and t.status==st %}selected{% endif %}>{{st}}</option>{% endfor %}</select></div>
-    <div><label><input type="checkbox" name="personal_data" {% if t and t.personal_data %}checked{% endif %}> Dati personali</label></div>
+    <div><label><input type="checkbox" name="personal_data" {% if t and t.personal_data %}checked{% endif %}> Rischio per diritti e libertà</label></div>
     <div><label>Numero interessati</label><input name="data_subjects_count" value="{{t.data_subjects_count if t and t.data_subjects_count else ''}}"></div>
     <div class="wide"><label>Volume dati</label><textarea name="data_volume">{{t.data_volume if t and t.data_volume else ''}}</textarea></div>
     {% include 'dnd_fields.html' %}
@@ -39,7 +39,7 @@
 </div>
 <div class="card">
   <h3>Modelli configurati</h3>
-  <table class="table"><tr><th>Nome</th><th>Descrizione</th><th>Dati personali</th><th>Azioni</th></tr>{% for model in templates %}<tr><td>{{model.name}}</td><td>{{model.description}}</td><td>{{'sì' if model.personal_data else 'no'}}</td><td><a class="button secondary" href="{{ url_for('main.admin_incident_templates', edit=model.id) }}">Modifica</a> <a class="button" href="{{ url_for('main.incident_new', template_id=model.id) }}">Usa</a><form method="post" class="inline-form" onsubmit="return confirm('Cancellare il modello?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{model.id}}"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="4" class="muted">Nessun modello configurato.</td></tr>{% endfor %}</table>
+  <table class="table"><tr><th>Nome</th><th>Descrizione</th><th>Rischio per diritti e libertà</th><th>Azioni</th></tr>{% for model in templates %}<tr><td>{{model.name}}</td><td>{{model.description}}</td><td>{{'sì' if model.personal_data else 'no'}}</td><td><a class="button secondary" href="{{ url_for('main.admin_incident_templates', edit=model.id) }}">Modifica</a> <a class="button" href="{{ url_for('main.incident_new', template_id=model.id) }}">Usa</a><form method="post" class="inline-form" onsubmit="return confirm('Cancellare il modello?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{model.id}}"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="4" class="muted">Nessun modello configurato.</td></tr>{% endfor %}</table>
 </div>
 
 <script>

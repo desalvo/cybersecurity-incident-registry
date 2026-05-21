@@ -191,7 +191,7 @@
 - Ricontrollata la documentazione IT/EN e progettuale rispetto agli ultimi sviluppi su workflow, condizioni e operazioni automatiche.
 
 0.2.1-32
-- Estese le condizioni degli step workflow: dati personali, gravità e dati interessati.
+- Estese le condizioni degli step workflow: rischio per diritti e libertà, gravità e dati interessati.
 - Associazione condizioni tramite drag & drop compatto nella gestione workflow.
 - Valutazione step solo quando tutte le condizioni configurate sono soddisfatte.
 
@@ -244,7 +244,7 @@
 
 ## 0.2.1
 - Aggiunto flag personal_data_only sugli step dei flussi operativi.
-- Gli step condizionali sono considerati solo per incidenti con dati personali.
+- Gli step condizionali sono considerati solo per incidenti con rischio per diritti e libertà.
 - Aggiunta notifica email best-effort all admin quando LDAP/SSO crea utenti disabled.
 - Aggiornata documentazione italiana e inglese.
 
@@ -343,7 +343,7 @@
 
 0.2.1-126
 - Aggiunte icone informative con help online nei campi principali della pagina dettaglio incidente.
-- I tooltip spiegano nome, riferimento, destinatario, descrizione, gravità, stato, date/ore della violazione, dati personali, silenziamento notifiche deadline, numero interessati e volume dati.
+- I tooltip spiegano nome, riferimento, destinatario, descrizione, gravità, stato, date/ore della violazione, rischio per diritti e libertà, silenziamento notifiche deadline, numero interessati e volume dati.
 - Aggiornate documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
 - Added contextual online help icons to the main fields of the incident detail page and updated bilingual documentation.
 
@@ -588,7 +588,7 @@ Versione 0.110-68
 - Aggiornata la documentazione utente e progettuale.
 
 2026-05-17 - Avviso procedurale notifica utente sempre attivo
-- Nel dettaglio incidente l’avviso per la notifica all’utente viene mostrato quando nella lista delle azioni effettuate non risulta un’azione di notifica all’utente, indipendentemente dal flag Dati personali.
+- Nel dettaglio incidente l’avviso per la notifica all’utente viene mostrato quando nella lista delle azioni effettuate non risulta un’azione di notifica all’utente, indipendentemente dal flag Rischio per diritti e libertà.
 - Il controllo riconosce la notifica all’utente anche da descrizioni o label contenenti i termini “notifica” e “utente”, gestendo sia apostrofo tipografico sia apostrofo semplice.
 - Aggiornata la documentazione utente e progettuale.
 
@@ -648,7 +648,7 @@ Update: Notifiche menu visibility restricted to admin users.
 
 2026-05-16 - procedural-notification-alerts
 - Aggiunti avvisi evidenti nel dettaglio incidente quando mancano le azioni di notifica CSIRT/DPO.
-- Aggiunto avviso per notifica al Garante Privacy quando l’incidente coinvolge dati personali e manca la relativa azione.
+- Aggiunto avviso per notifica al Garante Privacy quando l’incidente coinvolge rischio per diritti e libertà e manca la relativa azione.
 
 Full export/import fix
 - Export completo include tutte le tabelle applicative: incidenti completi, azioni, documenti, personale, label, configurazioni, utenti e relazioni.
@@ -729,7 +729,7 @@ Notification menu and SMTP sender fix
 2026-05-16 - Statistiche PDF avanzate
 - Aggiunto export PDF dalla pagina Report > Statistiche.
 - Il PDF include finestra ricercata, ultima settimana, ultimo mese, ultimi 3 mesi, ultimi 6 mesi e ultimo anno.
-- Inseriti riepiloghi aggregati, tabelle, grafici a barre e grafici a torta per categorie, dati interessati, gravità, stato, dati personali, compilatore e label delle azioni.
+- Inseriti riepiloghi aggregati, tabelle, grafici a barre e grafici a torta per categorie, dati interessati, gravità, stato, rischio per diritti e libertà, compilatore e label delle azioni.
 - Aggiunto filtro temporale nella pagina Statistiche e pulsante per scaricare il PDF.
 
 2026-05-17 - Dati titolare/responsabile e raccomandazioni
@@ -752,7 +752,7 @@ Notification menu and SMTP sender fix
 - Separati nella form incidente i campi data e ora per inizio e fine.
 - Aggiunte colonne start_date/start_time/end_date/end_time e migrazione automatica dai valori legacy start_at/end_at.
 - Aggiunti i nuovi campi granulari ai mapping dei moduli PDF.
-- Gli avvisi procedurali segnalano anche la mancata azione “07-notifica all’utente” quando l’incidente coinvolge dati personali.
+- Gli avvisi procedurali segnalano anche la mancata azione “07-notifica all’utente” quando l’incidente coinvolge rischio per diritti e libertà.
 - Aggiornata la documentazione utente e progettuale.
 
 
@@ -1030,3 +1030,9 @@ Notification menu and SMTP sender fix
 - Aggiunto rendering Markdown sicuro per le descrizioni degli step workflow nella pagina incidente.
 - Aggiunta sintassi controllata per testo colorato negli step: {color:red}testo{/color} e {color:#RRGGBB}testo{/color}.
 - Aggiornata la documentazione utente, amministrativa e progettuale con esempi di Markdown e colori.
+
+0.2.1-73
+- Rinominata in interfaccia la checkbox “Dati personali” in “Rischio per diritti e libertà”.
+- Rinominata la condizione workflow `personal_data` in “Rischio per diritti e libertà”, mantenendo invariato il token tecnico per compatibilità.
+- I placeholder delle notifiche deadline `%pending_actions%` e `%pending_actions_count%` considerano ora solo gli step workflow applicabili allo specifico incidente, rispettando condizioni di rischio, gravità e dati interessati.
+- Aggiornata la documentazione completa.
