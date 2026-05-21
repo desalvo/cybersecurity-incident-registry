@@ -557,3 +557,10 @@ The automatic deadline notification placeholders `%pending_actions%` and `%pendi
 In manual notification templates the correct recommendations placeholder is `%RECOMMENDATIONS%`; database templates still containing `%RECOMMENDATION%` are migrated automatically. `%APP_INFO%` is also available and expands to application name, version and build.
 
 The `consequences` field used by fillable forms is built by combining configured automatic consequences and consequences explicitly entered on incident actions. The automatic logic is configurable from **Admin → Other configurations → Automatic consequence logic**, where rules can be enabled/disabled, their text and conditions can be changed, and rules can be added or removed. Conditions can refer to incident category, affected data type, severity, status, risk to rights and freedoms and other textual incident fields. In manual notification previews, documents generated from a linked form template are never preselected unless they also carry the matching notification tag.
+
+
+### Single workflow import/export
+
+**Admin → Incident workflows** includes an **Import / Export workflow** section. Export lets administrators select the default workflow or a category-specific workflow and displays a JSON structure preview before the download is confirmed. The package includes steps, conditions, referenced labels, required notification types, linked notification templates, linked form templates and the configuration needed to reuse that workflow.
+
+During import the JSON file is analysed first: new elements are created, while existing elements with different values are shown in a difference table. The administrator must explicitly confirm each overwrite with a checkbox; non-confirmed elements are left unchanged.

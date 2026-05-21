@@ -744,3 +744,10 @@ I placeholder delle notifiche automatiche per task in scadenza `%pending_actions
 Nei template di notifica manuale il placeholder corretto per le raccomandazioni è `%RECOMMENDATIONS%`; i template già presenti nel database che contengono `%RECOMMENDATION%` vengono aggiornati automaticamente in migrazione. È disponibile anche `%APP_INFO%`, valorizzato con nome applicazione, versione e build.
 
 Il campo `consequences` usato per la compilazione dei moduli viene costruito sommando le conseguenze automatiche configurate e le conseguenze eventualmente indicate nelle azioni dell’incidente. La logica automatica è configurabile da **Admin → Altre configurazioni → Logica conseguenze automatiche**, dove è possibile abilitare/disabilitare le regole, modificarne testo e condizioni, aggiungere nuove regole e rimuovere quelle non più necessarie. Le condizioni possono riferirsi a categoria, tipo di dato, gravità, stato, rischio per diritti e libertà e altri campi testuali dell’incidente. Nell’anteprima delle notifiche manuali i documenti generati da un template associato non vengono preselezionati automaticamente se non hanno anche il tag notifica appropriato.
+
+
+### Import/export singoli workflow
+
+Da **Admin → Flussi operativi incidenti** è disponibile una sezione **Import / Export workflow**. L’export consente di selezionare il flusso di default o il workflow di una specifica categoria e mostra prima una anteprima della struttura JSON da confermare. Il pacchetto include step, condizioni, label usate, tipi di notifica richiesti, template di notifica collegati, template modulo collegati e configurazioni necessarie al riuso del workflow.
+
+In fase di import il file JSON viene prima analizzato: gli elementi nuovi saranno creati, mentre per ogni elemento già esistente con valori diversi viene mostrata una tabella delle differenze. L’amministratore deve confermare esplicitamente, tramite checkbox, ogni singolo valore/elemento che verrebbe sovrascritto; gli elementi non confermati vengono mantenuti invariati.

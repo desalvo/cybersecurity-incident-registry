@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Anteprima export workflow</h2>
+  <p class="muted">Verifica la struttura dell’export prima di scaricarlo. Il pacchetto include lo specifico workflow, label, tipi di notifica, template collegati e configurazioni dei moduli necessarie all’utilizzo.</p>
+  <div class="stats-grid">
+    <div><strong>Ambito</strong><br>{{ payload.workflow.scope }}</div>
+    <div><strong>Categoria</strong><br>{{ payload.workflow.category.value if payload.workflow.category else 'Flusso di default' }}</div>
+    <div><strong>Step</strong><br>{{ payload.workflow.steps|length }}</div>
+    <div><strong>Label</strong><br>{{ payload.dependencies.labels|length }}</div>
+    <div><strong>Tipi notifica</strong><br>{{ payload.dependencies.notification_types|length }}</div>
+    <div><strong>Template notifica</strong><br>{{ payload.dependencies.notification_templates|length }}</div>
+    <div><strong>Template modulo</strong><br>{{ payload.dependencies.form_templates|length }}</div>
+  </div>
+  <details open>
+    <summary>Struttura JSON dell’export</summary>
+    <pre class="json-preview">{{ payload_json }}</pre>
+  </details>
+  <form method="post" action="{{ url_for('main.admin_incident_workflow_export_download') }}" onsubmit="return confirm('Confermi il download dell’export del workflow visualizzato?');">
+    <input type="hidden" name="category_id" value="{{ category_id or '' }}">
+    <button>Conferma e scarica export</button>
+    <a class="button secondary" href="{{ url_for('main.admin_incident_workflows') }}">Annulla</a>
+  </form>
+</div>
+<style>.json-preview{white-space:pre-wrap;max-height:34rem;overflow:auto;border:1px solid var(--border,#ddd);padding:1rem;border-radius:.5rem}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.75rem;margin:1rem 0}.stats-grid>div{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}</style>
+{% endblock %}

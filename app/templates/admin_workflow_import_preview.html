@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Anteprima import workflow</h2>
+  <p class="muted">Verifica struttura e differenze. Gli elementi nuovi saranno creati automaticamente. Per ogni elemento esistente con valori diversi, seleziona esplicitamente se sovrascrivere.</p>
+  <div class="stats-grid">
+    <div><strong>Ambito</strong><br>{{ payload.workflow.scope }}</div>
+    <div><strong>Categoria</strong><br>{{ payload.workflow.category.value if payload.workflow.category else 'Flusso di default' }}</div>
+    <div><strong>Step</strong><br>{{ payload.workflow.steps|length }}</div>
+    <div><strong>Differenze</strong><br>{{ diffs|length }}</div>
+  </div>
+  <form method="post" action="{{ url_for('main.admin_incident_workflow_import_apply') }}" onsubmit="return confirm('Confermi l’import del workflow con le sovrascritture selezionate?');">
+    <input type="hidden" name="payload_b64" value="{{ payload_b64 }}">
+    {% if diffs %}
+      <h3>Elementi che verrebbero sovrascritti</h3>
+      <div class="diff-list">
+      {% for diff in diffs %}
+        <section class="diff-card">
+          <label class="checkbox-row"><input type="checkbox" name="overwrite_key" value="{{ diff.key }}"> Sovrascrivi: <strong>{{ diff.title }}</strong></label>
+          <table>
+            <thead><tr><th>Campo</th><th>Valore attuale</th><th>Valore importato</th></tr></thead>
+            <tbody>{% for field, values in diff.changes.items() %}<tr><td>{{ field }}</td><td><pre>{{ values.old }}</pre></td><td><pre>{{ values.new }}</pre></td></tr>{% endfor %}</tbody>
+          </table>
+        </section>
+      {% endfor %}
+      </div>
+    {% else %}
+      <p class="success">Nessun valore esistente verrebbe sovrascritto.</p>
+    {% endif %}
+    <details>
+      <summary>Struttura JSON importata</summary>
+      <pre class="json-preview">{{ payload_json }}</pre>
+    </details>
+    <button>Conferma import</button>
+    <a class="button secondary" href="{{ url_for('main.admin_incident_workflows') }}">Annulla</a>
+  </form>
+</div>
+<style>.json-preview{white-space:pre-wrap;max-height:28rem;overflow:auto;border:1px solid var(--border,#ddd);padding:1rem;border-radius:.5rem}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.75rem;margin:1rem 0}.stats-grid>div,.diff-card{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.diff-list{display:grid;gap:.8rem}.diff-card table{width:100%;border-collapse:collapse}.diff-card th,.diff-card td{border-top:1px solid var(--border,#ddd);vertical-align:top;text-align:left;padding:.35rem}.diff-card pre{white-space:pre-wrap;margin:0}.checkbox-row{display:flex;gap:.4rem;align-items:center}</style>
+{% endblock %}

@@ -22,6 +22,29 @@
   <h2>Flussi operativi incidenti</h2>
   <p class="muted">Definisci le azioni previste per categoria. Uno step è considerato solo se non ha condizioni oppure se tutte le condizioni associate sono verificate nell’incidente. Le condizioni si assegnano trascinando i chip nello spazio dello step.</p>
 </div>
+
+<div class="card">
+  <h3>Import / Export workflow</h3>
+  <p class="muted">Esporta un singolo workflow con le sue dipendenze operative, oppure importa una definizione verificando prima struttura e differenze.</p>
+  <div class="workflow-transfer-grid">
+    <form method="post" action="{{ url_for('main.admin_incident_workflow_export_preview') }}">
+      <h4>Export workflow</h4>
+      <label>Workflow da esportare</label>
+      <select name="category_id">
+        <option value="">Flusso di default</option>
+        {% for c in categories %}<option value="{{c.id}}">Categoria: {{c.value}}</option>{% endfor %}
+      </select>
+      <button>Visualizza struttura export</button>
+    </form>
+    <form method="post" action="{{ url_for('main.admin_incident_workflow_import_preview') }}" enctype="multipart/form-data">
+      <h4>Import workflow</h4>
+      <label>File JSON workflow</label>
+      <input type="file" name="workflow_file" accept="application/json,.json" required>
+      <button>Analizza import</button>
+    </form>
+  </div>
+</div>
+
 <div class="card">
   <h3>Aggiungi passo</h3>
   <form method="post" class="form-grid">
@@ -90,6 +113,6 @@
 })();
 </script>
 <style>
-.condition-palette,.condition-dropzone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-dropzone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over{outline:2px solid currentColor}.condition-hidden{display:none}.condition-selected{cursor:default}.condition-selected input{display:none}.condition-remove{padding:0 .2rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 10rem 16rem;margin-top:.5rem}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options{grid-template-columns:1fr}}
+.condition-palette,.condition-dropzone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-dropzone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over{outline:2px solid currentColor}.condition-hidden{display:none}.condition-selected{cursor:default}.condition-selected input{display:none}.condition-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 10rem 16rem;margin-top:.5rem}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
 </style>
 {% endblock %}

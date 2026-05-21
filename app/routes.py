@@ -2171,6 +2171,368 @@ def update_document_notification_tags(did):
     section_flash(f'Tag notifiche aggiornati per {d.filename}', 'incident-documents', 'success')
     return incident_detail_redirect(d.incident_id, 'incident-documents')
 
+
+
+def _workflow_scope_label(category_id):
+    if category_id:
+        lab = ConfigLabel.query.get(category_id)
+        return lab.value if lab else str(category_id)
+    return 'default'
+
+
+def _workflow_label_payload(label):
+    if not label:
+        return None
+    return {
+        'kind': label.kind,
+        'group': label.group or 'default',
+        'value': label.value,
+        'description': label.description or '',
+        'max_completion_hours': label.max_completion_hours or 0,
+        'default_exportable': bool(label.default_exportable),
+        'automatic_operations': label.automatic_operations or '',
+    }
+
+
+def _workflow_notification_type_payload(nt):
+    if not nt:
+        return None
+    return {
+        'code': nt.code,
+        'label': nt.label,
+        'description': nt.description or '',
+        'enabled': bool(nt.enabled),
+    }
+
+
+def _workflow_template_payload(tpl):
+    if not tpl:
+        return None
+    return {
+        'kind': tpl.kind,
+        'name': tpl.name,
+        'subject': tpl.subject or '',
+        'body': tpl.body or '',
+        'linked_form_template_name': tpl.linked_form_template_name or '',
+        'action_label': _workflow_label_payload(tpl.action_label),
+        'recipient_source': tpl.recipient_source or 'type_default',
+        'recipient_value': tpl.recipient_value or '',
+        'recipient_editable': bool(tpl.recipient_editable),
+        'recipient_external_allowed': bool(tpl.recipient_external_allowed),
+        'cc_source': tpl.cc_source or 'type_default',
+        'cc_value': tpl.cc_value or '',
+        'cc_editable': bool(tpl.cc_editable),
+        'cc_external_allowed': bool(tpl.cc_external_allowed),
+        'is_default': bool(tpl.is_default),
+    }
+
+
+def _workflow_form_template_payload(template_name):
+    if not template_name:
+        return None
+    cfg = FormTemplateConfig.query.filter_by(template_name=template_name).first()
+    binary = FormTemplateBinary.query.filter_by(template_name=template_name).first()
+    payload = {'template_name': template_name}
+    if cfg:
+        payload.update({
+            'font_family': cfg.font_family,
+            'font_size': cfg.font_size,
+            'notification_tags': cfg.notification_tag_list,
+        })
+    if binary and binary.pdf_data:
+        payload['binary'] = {
+            'filename': binary.filename,
+            'pdf_base64': base64.b64encode(binary.pdf_data).decode('ascii'),
+        }
+    return payload
+
+
+def build_workflow_export_payload(category_id=None):
+    category_id = int(category_id) if category_id else None
+    steps = IncidentWorkflowStep.query.filter_by(category_id=category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    label_map = {}
+    notification_type_map = {}
+    template_map = {}
+    form_template_map = {}
+
+    def add_label(label):
+        data = _workflow_label_payload(label)
+        if data:
+            label_map[f"{data['kind']}::{data['value']}"] = data
+
+    category_label = ConfigLabel.query.get(category_id) if category_id else None
+    add_label(category_label)
+    exported_steps = []
+    for step in steps:
+        add_label(step.action_label)
+        for token in step.condition_tokens():
+            if ':' in token:
+                kind, sid = token.split(':', 1)
+                if kind in {'severity', 'data_type'}:
+                    lab = ConfigLabel.query.get(int(sid)) if sid.isdigit() else None
+                    add_label(lab)
+        nt = NotificationType.query.filter_by(code=step.required_notification_type).first() if step.required_notification_type else None
+        if nt:
+            notification_type_map[nt.code] = _workflow_notification_type_payload(nt)
+            templates = NotificationTemplate.query.filter_by(kind=nt.code).order_by(NotificationTemplate.name).all()
+            for tpl in templates:
+                template_map[f"{tpl.kind}::{tpl.name}"] = _workflow_template_payload(tpl)
+                if tpl.action_label:
+                    add_label(tpl.action_label)
+                if tpl.linked_form_template_name:
+                    ft = _workflow_form_template_payload(tpl.linked_form_template_name)
+                    if ft:
+                        form_template_map[tpl.linked_form_template_name] = ft
+        exported_steps.append({
+            'position': step.position,
+            'action_label': _workflow_label_payload(step.action_label),
+            'description': step.description or '',
+            'conditions': step.condition_tokens(),
+            'required': bool(step.required),
+            'requires_notification': bool(step.requires_notification),
+            'required_notification_type': step.required_notification_type or '',
+        })
+    return {
+        'format': 'cybersecurity-incident-registry.workflow.v1',
+        'exported_at': datetime.utcnow().isoformat() + 'Z',
+        'application': {'name': APP_NAME if 'APP_NAME' in globals() else 'Cybersecurity Incident Registry', 'version': APP_VERSION if 'APP_VERSION' in globals() else ''},
+        'workflow': {
+            'scope': 'category' if category_label else 'default',
+            'category': _workflow_label_payload(category_label),
+            'steps': exported_steps,
+        },
+        'dependencies': {
+            'labels': list(label_map.values()),
+            'notification_types': list(notification_type_map.values()),
+            'notification_templates': list(template_map.values()),
+            'form_templates': list(form_template_map.values()),
+        },
+    }
+
+
+def _payload_label_name(data):
+    return f"{data.get('kind','')}::{data.get('value','')}"
+
+
+def workflow_import_diff(payload):
+    diffs = []
+    labels_data = (payload.get('dependencies') or {}).get('labels') or []
+    for lab in labels_data:
+        cur = ConfigLabel.query.filter_by(kind=lab.get('kind'), value=lab.get('value')).first()
+        if cur:
+            changes = {}
+            for field in ['group','description','max_completion_hours','default_exportable','automatic_operations']:
+                old = getattr(cur, field)
+                new = lab.get(field)
+                if field == 'default_exportable': old = bool(old); new = bool(new)
+                if field == 'max_completion_hours': old = old or 0; new = new or 0
+                if old != new:
+                    changes[field] = {'old': old, 'new': new}
+            if changes:
+                diffs.append({'key': f"label::{lab.get('kind')}::{lab.get('value')}", 'type': 'label', 'title': f"Label {lab.get('kind')} / {lab.get('value')}", 'changes': changes})
+    for nt in (payload.get('dependencies') or {}).get('notification_types') or []:
+        cur = NotificationType.query.filter_by(code=nt.get('code')).first()
+        if cur:
+            changes={}
+            for field in ['label','description','enabled']:
+                old=getattr(cur, field); new=nt.get(field)
+                if field=='enabled': old=bool(old); new=bool(new)
+                if old != new: changes[field]={'old':old,'new':new}
+            if changes:
+                diffs.append({'key': f"notification_type::{nt.get('code')}", 'type':'notification_type', 'title': f"Tipo notifica {nt.get('code')}", 'changes': changes})
+    for ft in (payload.get('dependencies') or {}).get('form_templates') or []:
+        cur = FormTemplateConfig.query.filter_by(template_name=ft.get('template_name')).first()
+        if cur:
+            changes = {}
+            incoming_tags = ','.join(ft.get('notification_tags') or [])
+            comparable = {'font_family': cur.font_family, 'font_size': cur.font_size, 'notification_tags': ','.join(cur.notification_tag_list)}
+            incoming = {'font_family': FormTemplateConfig.normalize_font_family(ft.get('font_family')), 'font_size': FormTemplateConfig.normalize_font_size(ft.get('font_size')), 'notification_tags': incoming_tags}
+            for field, new_value in incoming.items():
+                if comparable[field] != new_value:
+                    changes[field] = {'old': comparable[field], 'new': new_value}
+            existing_binary = FormTemplateBinary.query.filter_by(template_name=ft.get('template_name')).first()
+            if existing_binary and (ft.get('binary') or {}).get('pdf_base64'):
+                changes.setdefault('binary_pdf', {'old': existing_binary.filename, 'new': (ft.get('binary') or {}).get('filename')})
+            if changes:
+                diffs.append({'key': f"form_template::{ft.get('template_name')}", 'type': 'form_template', 'title': f"Template modulo {ft.get('template_name')}", 'changes': changes})
+    for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
+        cur = NotificationTemplate.query.filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        if cur:
+            changes={}
+            for field in ['subject','body','linked_form_template_name','recipient_source','recipient_value','recipient_editable','recipient_external_allowed','cc_source','cc_value','cc_editable','cc_external_allowed','is_default']:
+                old=getattr(cur, field); new=tpl.get(field)
+                if field.endswith('_editable') or field.endswith('_allowed') or field=='is_default': old=bool(old); new=bool(new)
+                if (old or '') != (new or ''):
+                    changes[field]={'old': old, 'new': new}
+            if changes:
+                diffs.append({'key': f"notification_template::{tpl.get('kind')}::{tpl.get('name')}", 'type':'notification_template', 'title': f"Template notifica {tpl.get('kind')} / {tpl.get('name')}", 'changes': changes})
+    wf = payload.get('workflow') or {}
+    cat = wf.get('category') or None
+    category_id = None
+    if cat:
+        existing_cat = ConfigLabel.query.filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
+        category_id = existing_cat.id if existing_cat else None
+    existing_steps = IncidentWorkflowStep.query.filter_by(category_id=category_id).all() if (wf.get('scope') == 'default' or category_id) else []
+    existing_map = {}
+    for st in existing_steps:
+        key = f"{st.position}::{st.action_label.value if st.action_label else st.action_label_id}"
+        existing_map[key] = st
+    for st in wf.get('steps') or []:
+        al = st.get('action_label') or {}
+        key = f"{st.get('position',0)}::{al.get('value','')}"
+        cur = existing_map.get(key)
+        if cur:
+            changes={}
+            comparable = {
+                'description': cur.description or '',
+                'conditions': ','.join(cur.condition_tokens()),
+                'required': bool(cur.required),
+                'requires_notification': bool(cur.requires_notification),
+                'required_notification_type': cur.required_notification_type or '',
+            }
+            incoming = {
+                'description': st.get('description') or '',
+                'conditions': ','.join(st.get('conditions') or []),
+                'required': bool(st.get('required')),
+                'requires_notification': bool(st.get('requires_notification')),
+                'required_notification_type': st.get('required_notification_type') or '',
+            }
+            for k,v in incoming.items():
+                if comparable[k] != v:
+                    changes[k]={'old': comparable[k], 'new': v}
+            if changes:
+                diffs.append({'key': f"workflow_step::{key}", 'type':'workflow_step', 'title': f"Step {st.get('position')} / {al.get('value','')}", 'changes': changes})
+    return diffs
+
+
+def _upsert_config_label(data, allow_overwrite):
+    lab = ConfigLabel.query.filter_by(kind=data.get('kind'), value=data.get('value')).first()
+    if not lab:
+        lab = ConfigLabel(kind=data.get('kind'), value=data.get('value'))
+        db.session.add(lab)
+    elif not allow_overwrite:
+        return lab
+    lab.group = data.get('group') or 'default'
+    lab.description = data.get('description') or ''
+    lab.max_completion_hours = int(data.get('max_completion_hours') or 0)
+    lab.default_exportable = bool(data.get('default_exportable'))
+    lab.automatic_operations = data.get('automatic_operations') or ''
+    return lab
+
+
+def apply_workflow_import(payload, overwrite_keys):
+    overwrite_keys = set(overwrite_keys or [])
+    created = updated = skipped = 0
+    label_cache = {}
+    for lab_data in (payload.get('dependencies') or {}).get('labels') or []:
+        key = f"label::{lab_data.get('kind')}::{lab_data.get('value')}"
+        exists = ConfigLabel.query.filter_by(kind=lab_data.get('kind'), value=lab_data.get('value')).first()
+        lab = _upsert_config_label(lab_data, (not exists) or key in overwrite_keys)
+        label_cache[(lab.kind, lab.value)] = lab
+        if exists and key not in overwrite_keys:
+            skipped += 1
+        elif exists:
+            updated += 1
+        else:
+            created += 1
+    db.session.flush()
+    for nt in (payload.get('dependencies') or {}).get('notification_types') or []:
+        key=f"notification_type::{nt.get('code')}"
+        obj=NotificationType.query.filter_by(code=nt.get('code')).first()
+        exists=bool(obj)
+        if not obj:
+            obj=NotificationType(code=nt.get('code'))
+            db.session.add(obj)
+        if (not exists) or key in overwrite_keys:
+            obj.label=nt.get('label') or nt.get('code')
+            obj.description=nt.get('description') or ''
+            obj.enabled=bool(nt.get('enabled'))
+            created += 0 if exists else 1; updated += 1 if exists else 0
+        else:
+            skipped += 1
+    db.session.flush()
+    for ft in (payload.get('dependencies') or {}).get('form_templates') or []:
+        name=ft.get('template_name')
+        if not name: continue
+        key=f"form_template::{name}"
+        cfg=FormTemplateConfig.query.filter_by(template_name=name).first()
+        exists=bool(cfg)
+        if not cfg:
+            cfg=FormTemplateConfig(template_name=name); db.session.add(cfg); created += 1
+        if (not exists) or key in overwrite_keys:
+            cfg.font_family=FormTemplateConfig.normalize_font_family(ft.get('font_family'))
+            cfg.font_size=FormTemplateConfig.normalize_font_size(ft.get('font_size'))
+            cfg.set_notification_tags(ft.get('notification_tags') or [])
+            bin_data=(ft.get('binary') or {})
+            if bin_data.get('pdf_base64'):
+                binary=FormTemplateBinary.query.filter_by(template_name=name).first()
+                if not binary:
+                    binary=FormTemplateBinary(template_name=name, filename=bin_data.get('filename') or name); db.session.add(binary)
+                binary.filename=bin_data.get('filename') or binary.filename
+                binary.pdf_data=base64.b64decode(bin_data.get('pdf_base64'))
+            if exists: updated += 1
+        elif exists:
+            skipped += 1
+    db.session.flush()
+    for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
+        key=f"notification_template::{tpl.get('kind')}::{tpl.get('name')}"
+        obj=NotificationTemplate.query.filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        exists=bool(obj)
+        if not obj:
+            obj=NotificationTemplate(kind=tpl.get('kind'), name=tpl.get('name')); db.session.add(obj)
+        if (not exists) or key in overwrite_keys:
+            obj.subject=tpl.get('subject') or ''
+            obj.body=tpl.get('body') or ''
+            obj.linked_form_template_name=tpl.get('linked_form_template_name') or None
+            obj.recipient_source=tpl.get('recipient_source') or 'manual'
+            obj.recipient_value=tpl.get('recipient_value') or ''
+            obj.recipient_editable=bool(tpl.get('recipient_editable'))
+            obj.recipient_external_allowed=bool(tpl.get('recipient_external_allowed'))
+            obj.cc_source=tpl.get('cc_source') or 'manual'
+            obj.cc_value=tpl.get('cc_value') or ''
+            obj.cc_editable=bool(tpl.get('cc_editable'))
+            obj.cc_external_allowed=bool(tpl.get('cc_external_allowed'))
+            obj.is_default=bool(tpl.get('is_default'))
+            al=tpl.get('action_label') or {}
+            if al.get('kind') and al.get('value'):
+                label=ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
+                obj.action_label_id=label.id if label else None
+            created += 0 if exists else 1; updated += 1 if exists else 0
+        else:
+            skipped += 1
+    db.session.flush()
+    wf=payload.get('workflow') or {}
+    cat=wf.get('category') or None
+    category_id=None
+    if cat:
+        category=ConfigLabel.query.filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
+        category_id=category.id if category else None
+    existing = IncidentWorkflowStep.query.filter_by(category_id=category_id).all()
+    existing_map = {f"{st.position}::{st.action_label.value if st.action_label else st.action_label_id}": st for st in existing}
+    for st in wf.get('steps') or []:
+        al=st.get('action_label') or {}
+        label=ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
+        if not label:
+            continue
+        key_short=f"{st.get('position',0)}::{al.get('value','')}"
+        key=f"workflow_step::{key_short}"
+        obj=existing_map.get(key_short)
+        exists=bool(obj)
+        if not obj:
+            obj=IncidentWorkflowStep(category_id=category_id, action_label_id=label.id, position=int(st.get('position') or 0)); db.session.add(obj)
+        if (not exists) or key in overwrite_keys:
+            obj.action_label_id=label.id
+            obj.description=st.get('description') or ''
+            obj.set_condition_tokens(st.get('conditions') or [])
+            obj.required=bool(st.get('required'))
+            obj.requires_notification=bool(st.get('requires_notification'))
+            obj.required_notification_type=st.get('required_notification_type') or None
+            created += 0 if exists else 1; updated += 1 if exists else 0
+        else:
+            skipped += 1
+    db.session.commit()
+    return {'created': created, 'updated': updated, 'skipped': skipped}
+
 @bp.route('/admin/incident-workflows',methods=['GET','POST'])
 @login_required
 def admin_incident_workflows():
@@ -2244,6 +2606,60 @@ def admin_incident_workflow_delete(sid):
     if not can_admin(): return redirect(url_for('main.index'))
     step=IncidentWorkflowStep.query.get_or_404(sid)
     db.session.delete(step); db.session.commit(); flash('Passo del flusso eliminato','info')
+    return redirect(url_for('main.admin_incident_workflows'))
+
+
+@bp.route('/admin/incident-workflows/export/preview', methods=['POST'])
+@login_required
+def admin_incident_workflow_export_preview():
+    if not can_admin(): return redirect(url_for('main.index'))
+    category_id = request.form.get('category_id', type=int)
+    payload = build_workflow_export_payload(category_id)
+    return render_template('admin_workflow_export_preview.html', payload=payload, payload_json=json.dumps(payload, ensure_ascii=False, indent=2), category_id=category_id)
+
+@bp.route('/admin/incident-workflows/export/download', methods=['POST'])
+@login_required
+def admin_incident_workflow_export_download():
+    if not can_admin(): return redirect(url_for('main.index'))
+    category_id = request.form.get('category_id', type=int)
+    payload = build_workflow_export_payload(category_id)
+    name = _workflow_scope_label(category_id).replace(' ', '_').replace('/', '_')
+    data = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
+    return send_file(io.BytesIO(data), as_attachment=True, download_name=f'workflow_{name}.json', mimetype='application/json')
+
+@bp.route('/admin/incident-workflows/import/preview', methods=['POST'])
+@login_required
+def admin_incident_workflow_import_preview():
+    if not can_admin(): return redirect(url_for('main.index'))
+    uploaded = request.files.get('workflow_file')
+    if not uploaded or not uploaded.filename:
+        flash('Selezionare un file JSON di workflow da importare', 'error')
+        return redirect(url_for('main.admin_incident_workflows'))
+    try:
+        raw = uploaded.read()
+        payload = json.loads(raw.decode('utf-8'))
+    except Exception as exc:
+        flash(f'File workflow non valido: {exc}', 'error')
+        return redirect(url_for('main.admin_incident_workflows'))
+    if payload.get('format') != 'cybersecurity-incident-registry.workflow.v1':
+        flash('Formato export workflow non riconosciuto', 'error')
+        return redirect(url_for('main.admin_incident_workflows'))
+    diffs = workflow_import_diff(payload)
+    encoded = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode('utf-8')).decode('ascii')
+    return render_template('admin_workflow_import_preview.html', payload=payload, payload_json=json.dumps(payload, ensure_ascii=False, indent=2), payload_b64=encoded, diffs=diffs)
+
+@bp.route('/admin/incident-workflows/import/apply', methods=['POST'])
+@login_required
+def admin_incident_workflow_import_apply():
+    if not can_admin(): return redirect(url_for('main.index'))
+    try:
+        payload = json.loads(base64.b64decode(request.form.get('payload_b64') or '').decode('utf-8'))
+    except Exception as exc:
+        flash(f'Payload import workflow non valido: {exc}', 'error')
+        return redirect(url_for('main.admin_incident_workflows'))
+    overwrite_keys = request.form.getlist('overwrite_key')
+    result = apply_workflow_import(payload, overwrite_keys)
+    flash(f"Workflow importato. Creati: {result['created']}; aggiornati: {result['updated']}; ignorati: {result['skipped']}.", 'success')
     return redirect(url_for('main.admin_incident_workflows'))
 
 @bp.route('/admin/labels',methods=['GET','POST'])

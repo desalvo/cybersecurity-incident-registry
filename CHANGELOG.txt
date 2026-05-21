@@ -1,3 +1,8 @@
+0.2.1-78
+- Aggiunto import/export mirato dei singoli workflow con anteprima struttura JSON.
+- L’import workflow mostra le differenze e richiede conferma selettiva per le sovrascritture.
+- Il pacchetto workflow include label, tipi notifica, template notifica e template modulo collegati.
+
 0.2.1-77 - Regole conseguenze dinamiche e preselezione documenti
 - Anteprima notifiche manuali: i documenti generati da template associati non vengono preselezionati se non hanno il tag notifica appropriato.
 - Admin → Altre configurazioni: la logica delle conseguenze automatiche è modificabile tramite regole dinamiche con condizioni configurabili.
