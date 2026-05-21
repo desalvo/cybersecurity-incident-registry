@@ -412,7 +412,11 @@ Nel testo delle mail di notifica sono disponibili:
 
 - `%DATA%`: tipo di dati interessati nell'incidente
 - `%CATEGORIES%`: categorie dell'incidente
-- `%PERSONAL_DATA%`: frase esplicativa sulla presenza di rischio per diritti e libertà
+- `%RISK_RIGHTS_FREEDOM%`: frase esplicativa sulla presenza di rischio per diritti e libertà
+- `%RESP%`: nome responsabile configurato in **Admin → Dati responsabile**
+- `%RESP_EMAIL%`: email responsabile configurata in **Admin → Dati responsabile**
+- `%DIRECTOR%`: nome del titolare configurato in **Admin → Dati titolare**
+- `%DIRECTOR_ROLE%`: ruolo del titolare configurato in **Admin → Dati titolare**
 - `%REPORT%`: report PDF automatico dell'incidente; se presente, il PDF viene allegato
 - `%NAME%`: nome dell'incidente
 - `%OPERATOR%`: nome dell'utente che invia la mail
@@ -645,7 +649,7 @@ Implementa LDAP configurabile con server URI, base DN, bind DN/password opzional
 
 Implementa notifiche. Menu Notifiche visibile solo admin e protetto lato backend. Gestisci tipi di notifica CRUD con codice, label, descrizione e abilitazione; i tipi servono solo a raggruppare i template e non contengono configurazioni destinatario/CC. Gestisci template di notifica CRUD, aggiunta da voce separata, modifica, cancellazione, clonazione; associa ogni template a tipo notifica e a label azione. I template utente non devono essere cancellati al riavvio. Mostra elenco placeholder disponibili. Fornisci esempi per notifica utente, CSIRT e DPO. La configurazione di destinatario e CC delle notifiche manuali è presente solo nei singoli template.
 
-Placeholder template: %DATA%, %CATEGORIES%, %PERSONAL_DATA%, %REPORT%, %NAME%, %OPERATOR%, %START%, %END%, %DESCRIPTION%, %REFERENCE%, %CREATOR%, %CREATOR_EMAIL%, %DOCUMENTS%, %STATUS%, %ACTIONS%. %REPORT% allega automaticamente il PDF report incidente. %DOCUMENTS% richiede scelta dei documenti e blocca invio se nessun documento è selezionato o presente. %ACTIONS% diventa lista cronologica azioni con data/ora. Prima di inviare mostra sempre anteprima. La risoluzione di destinatario e CC è configurata nei singoli template: ogni template definisce sorgente automatica, modificabilità in anteprima e uso della rubrica destinatari esterni. L’invio manuale viene sempre validato lato server: almeno un destinatario deve essere presente; gli indirizzi destinatario e CC devono avere formato e-mail valido; quando il template consente la modifica manuale, il valore digitato in anteprima prevale sul valore automatico e abilita l’invio se valido, anche senza aggiornare/ricalcolare l’anteprima prima del submit. Se un template ha label azione associata, dopo invio crea automaticamente azione con quella label, descrizione con mittente/destinatari/cc e allega un PDF con testo esatto della mail inviata. Nascondi controlli invio notifiche nel dettaglio incidente se utente corrente è admin.
+Placeholder template: %DATA%, %CATEGORIES%, %RISK_RIGHTS_FREEDOM%, %REPORT%, %NAME%, %OPERATOR%, %START%, %END%, %DESCRIPTION%, %REFERENCE%, %CREATOR%, %CREATOR_EMAIL%, %DOCUMENTS%, %STATUS%, %ACTIONS%, %RESP%, %RESP_EMAIL%, %DIRECTOR%, %DIRECTOR_ROLE%. %REPORT% allega automaticamente il PDF report incidente. %DOCUMENTS% richiede scelta dei documenti e blocca invio se nessun documento è selezionato o presente. %ACTIONS% diventa lista cronologica azioni con data/ora. Prima di inviare mostra sempre anteprima. La risoluzione di destinatario e CC è configurata nei singoli template: ogni template definisce sorgente automatica, modificabilità in anteprima e uso della rubrica destinatari esterni. L’invio manuale viene sempre validato lato server: almeno un destinatario deve essere presente; gli indirizzi destinatario e CC devono avere formato e-mail valido; quando il template consente la modifica manuale, il valore digitato in anteprima prevale sul valore automatico e abilita l’invio se valido, anche senza aggiornare/ricalcolare l’anteprima prima del submit. Se un template ha label azione associata, dopo invio crea automaticamente azione con quella label, descrizione con mittente/destinatari/cc e allega un PDF con testo esatto della mail inviata. Nascondi controlli invio notifiche nel dettaglio incidente se utente corrente è admin.
 
 SMTP: impostazioni nel menu Impostazioni/Notifiche con campi host, porta, TLS/SSL, autenticazione opzionale, username, password e mittente SMTP predefinito obbligatorio se autenticazione abilitata. Non sono presenti impostazioni globali per destinatari o CC CSIRT/DPO: questi valori sono configurati nei template di notifica manuale. Test invio mail verso indirizzo specificato, disponibile anche ad admin. Se auth SMTP è abilitata e mittente/utente default è configurato, tutte le mail usano l'identità SMTP default.
 
@@ -711,7 +715,8 @@ Quando un utente genera un modulo da un incidente, l’applicazione apre il PDF 
 
 I campi database disponibili per la mappatura includono ora anche:
 
-- `security_owner_role`, ruolo del titolare della sicurezza configurato in **Admin → Dati titolare**;
+- `security_owner_role`, ruolo del titolare configurato in **Admin → Dati titolare**;
+- `security_owner_email`, email del titolare configurata in **Admin → Dati titolare**;
 - `structure`, nome della struttura configurato in **Admin → Struttura**.
 
 Questi si aggiungono ai dati già disponibili per titolare, responsabile, conseguenze, misure adottate e raccomandazioni.
@@ -731,6 +736,7 @@ L’applicazione mantiene in tabella `setting` le informazioni globali relative 
 
 - `security_owner_name`
 - `security_owner_role`
+- `security_owner_email`
 - `structure_name`
 - `security_responsible_name`
 - `security_responsible_email`

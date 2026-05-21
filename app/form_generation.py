@@ -241,8 +241,9 @@ def available_incident_fields() -> List[Tuple[str, str]]:
         ('awareness_time', 'Ora venuta a conoscenza'),
         ('documents', 'Documenti allegati'),
         ('created_at', 'Data creazione record'),
-        ('security_owner', 'Titolare della sicurezza'),
+        ('security_owner', 'Titolare'),
         ('security_owner_role', 'Ruolo titolare'),
+        ('security_owner_email', 'Email titolare'),
         ('structure', 'Struttura'),
         ('security_responsible', 'Responsabile della sicurezza'),
         ('security_responsible_email', 'Email responsabile'),
@@ -312,6 +313,7 @@ def incident_value(inc: Incident, field_name: str) -> str:
     if field_name == 'created_at': return fmt(inc.created_at)
     if field_name == 'security_owner': return (Setting.query.get('security_owner_name').value if Setting.query.get('security_owner_name') else '')
     if field_name == 'security_owner_role': return (Setting.query.get('security_owner_role').value if Setting.query.get('security_owner_role') else '')
+    if field_name == 'security_owner_email': return (Setting.query.get('security_owner_email').value if Setting.query.get('security_owner_email') else '')
     if field_name == 'structure': return (Setting.query.get('structure_name').value if Setting.query.get('structure_name') else '')
     if field_name == 'security_responsible': return (Setting.query.get('security_responsible_name').value if Setting.query.get('security_responsible_name') else '')
     if field_name == 'security_responsible_email': return (Setting.query.get('security_responsible_email').value if Setting.query.get('security_responsible_email') else '')

@@ -161,7 +161,7 @@ Dal menu **Notifiche** un amministratore può configurare:
 
 Le impostazioni globali **Email CSIRT**, **CC CSIRT**, **Email DPO** e **CC DPO** non sono più presenti: i relativi indirizzi vanno definiti nei template tramite valore fisso, e-mail del Destinatario dell’incidente, compilatore o compilazione manuale/rubrica esterna.
 
-Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%PERSONAL_DATA%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%STATISTICS%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
+Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
 
 ### Promemoria automatici scadenze azioni
 
@@ -253,8 +253,9 @@ I template PDF sono conservati nella directory persistente `FORM_TEMPLATE_DIR` e
 
 Oltre ai dati dell’incidente, nei mapping dei moduli sono disponibili anche:
 
-- `security_owner`: nome del titolare della sicurezza, configurato in **Admin → Dati titolare**;
-- `security_owner_role`: ruolo del titolare della sicurezza, configurato in **Admin → Dati titolare**;
+- `security_owner`: nome del titolare, configurato in **Admin → Dati titolare**;
+- `security_owner_role`: ruolo del titolare, configurato in **Admin → Dati titolare**;
+- `security_owner_email`: email del titolare, configurata in **Admin → Dati titolare**;
 - `structure`: nome della struttura, configurato in **Admin → Struttura**;
 - i dati del responsabile della sicurezza configurati in **Admin → Dati responsabile**.
 

@@ -1814,6 +1814,7 @@ def incident_detail(iid):
         recommendations_max_per_incident=recommendations_limit(),
         owner_name=setting_value('security_owner_name'),
         owner_role=setting_value('security_owner_role'),
+        owner_email=setting_value('security_owner_email'),
         structure_name=setting_value('structure_name'),
         responsible_name=setting_value('security_responsible_name'),
         responsible_email=setting_value('security_responsible_email'),
@@ -2367,9 +2368,10 @@ def admin_security_owner():
     if request.method=='POST':
         set_setting_value('security_owner_name', request.form.get('security_owner_name','').strip())
         set_setting_value('security_owner_role', request.form.get('security_owner_role','').strip())
+        set_setting_value('security_owner_email', request.form.get('security_owner_email','').strip())
         db.session.commit(); flash('Dati titolare salvati','success')
         return redirect(url_for('main.admin_security_owner'))
-    return render_template('admin_security_owner.html', owner_name=setting_value('security_owner_name'), owner_role=setting_value('security_owner_role'))
+    return render_template('admin_security_owner.html', owner_name=setting_value('security_owner_name'), owner_role=setting_value('security_owner_role'), owner_email=setting_value('security_owner_email'))
 
 @bp.route('/admin/structure',methods=['GET','POST'])
 @login_required
@@ -2951,7 +2953,7 @@ def ldap_settings():
 NOTIFICATION_FIELDS = [
     ('%DATA%', 'Tipo di dati interessati nell’incidente'),
     ('%CATEGORIES%', 'Categorie dell’incidente'),
-    ('%PERSONAL_DATA%', 'Frase esplicativa sul rischio per diritti e libertà'),
+    ('%RISK_RIGHTS_FREEDOM%', 'Frase esplicativa sul rischio per diritti e libertà'),
     ('%REPORT%', 'Allega il report PDF aggiornato e inserisce un riferimento nel testo'),
     ('%STATISTICS%', 'Allega alla notifica il Report con le statistiche in formato PDF'),
     ('%NAME%', 'Nome dell’incidente'),
@@ -2969,6 +2971,10 @@ NOTIFICATION_FIELDS = [
     ('%INCIDENT_URL%', 'Link diretto all’incidente'),
     ('%MEASURES_ADOPTED%', 'lista delle contromisure adottate finora nell’incidente'),
     ('%SITE%', 'nome della struttura dove si è verificato l’incidente'),
+    ('%RESP%', 'Nome responsabile configurato in Admin → Dati responsabile'),
+    ('%RESP_EMAIL%', 'Email responsabile configurata in Admin → Dati responsabile'),
+    ('%DIRECTOR%', 'Nome del titolare configurato in Admin → Dati titolare'),
+    ('%DIRECTOR_ROLE%', 'Ruolo del titolare configurato in Admin → Dati titolare'),
 ]
 
 DEFAULT_NOTIFICATION_SUBJECTS = {
@@ -2986,7 +2992,7 @@ Data e ora di inizio: %START%
 Data e ora di fine: %END%
 Dati interessati: %DATA%
 Categorie: %CATEGORIES%
-Rischio per diritti e libertà: %PERSONAL_DATA%
+Rischio per diritti e libertà: %RISK_RIGHTS_FREEDOM%
 
 Descrizione:
 %DESCRIPTION%
@@ -3010,7 +3016,7 @@ Data e ora di inizio: %START%
 Data e ora di fine: %END%
 Dati interessati: %DATA%
 Categorie: %CATEGORIES%
-Rischio per diritti e libertà: %PERSONAL_DATA%
+Rischio per diritti e libertà: %RISK_RIGHTS_FREEDOM%
 
 Descrizione:
 %DESCRIPTION%
@@ -3035,7 +3041,7 @@ Data e ora di inizio: %START%
 Data e ora di fine: %END%
 Dati interessati: %DATA%
 Categorie: %CATEGORIES%
-Rischio per diritti e libertà: %PERSONAL_DATA%
+Rischio per diritti e libertà: %RISK_RIGHTS_FREEDOM%
 
 Descrizione:
 %DESCRIPTION%
@@ -3190,7 +3196,7 @@ def render_notification_text(template, inc, selected_documents=None):
     replacements = {
         '%DATA%': data_types,
         '%CATEGORIES%': categories,
-        '%PERSONAL_DATA%': personal,
+        '%RISK_RIGHTS_FREEDOM%': personal,
         '%REPORT%': '[report PDF allegato]',
         '%NAME%': inc.name or '',
         '%OPERATOR%': current_user.name or current_user.username or '',
@@ -3206,6 +3212,10 @@ def render_notification_text(template, inc, selected_documents=None):
         '%STATUS%': inc.status or '',
         '%MEASURES_ADOPTED%': incident_measures(inc) or '[nessuna misura adottata registrata]',
         '%SITE%': setting_value('structure_name', '') or '',
+        '%RESP%': setting_value('security_responsible_name', '') or '',
+        '%RESP_EMAIL%': setting_value('security_responsible_email', '') or '',
+        '%DIRECTOR%': setting_value('security_owner_name', '') or '',
+        '%DIRECTOR_ROLE%': setting_value('security_owner_role', '') or '',
         '%STATISTICS%': '[report statistiche allegato]',
         '%EXTERNAL_URL%': setting_value('application_external_url', 'http://localhost:8000') or 'http://localhost:8000',
         '%INCIDENT_URL%': incident_absolute_url(inc),

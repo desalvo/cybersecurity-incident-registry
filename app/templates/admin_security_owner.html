@@ -4,12 +4,16 @@
   <h2>Dati titolare</h2>
   <form method="post" class="form-grid">
     <div>
-      <label>Nome del titolare della sicurezza</label>
+      <label>Nome del titolare</label>
       <input name="security_owner_name" value="{{ owner_name or '' }}">
     </div>
     <div>
-      <label>Ruolo del titolare della sicurezza</label>
+      <label>Ruolo del titolare</label>
       <input name="security_owner_role" value="{{ owner_role or '' }}" placeholder="es. Titolare del trattamento, Responsabile struttura...">
+    </div>
+    <div>
+      <label>Email del titolare</label>
+      <input name="security_owner_email" type="email" value="{{ owner_email or '' }}" placeholder="email titolare">
     </div>
     <div class="form-actions full-width"><button>Salva</button></div>
   </form>

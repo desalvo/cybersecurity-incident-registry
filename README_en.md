@@ -132,7 +132,7 @@ From **Notifications**, an administrator can configure:
 
 The global **CSIRT email**, **CSIRT CC**, **DPO email** and **DPO CC** settings have been removed: those addresses must be defined in the relevant templates through a fixed value, the incident Recipient email, the incident creator, manual entry or the external recipients address book.
 
-Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%PERSONAL_DATA%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
+Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
 
 ### Automatic action deadline reminders
 
@@ -177,7 +177,7 @@ When a document is generated from a PDF template, it receives by default only th
 
 The full export includes PDF templates both as physical files and as persistent binary copies in the database, together with field mappings, configured notification tags and detected PDF field metadata. A template PDF can be replaced only if the new PDF contains exactly the same fillable AcroForm fields as the previous one; in that case the template name, field mapping, configured font and size are preserved.
 
-Available PDF mapping fields include incident data, granular date/time fields, administrative data such as security owner, security owner role, structure and security responsible information, and the calculated fields derived from the first initial-information action.
+Available PDF mapping fields include incident data, granular date/time fields, administrative data such as controller, controller role, controller email, structure and security responsible information, and the calculated fields derived from the first initial-information action.
 
 ## Full export and import
 

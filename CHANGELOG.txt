@@ -1036,3 +1036,11 @@ Notification menu and SMTP sender fix
 - Rinominata la condizione workflow `personal_data` in “Rischio per diritti e libertà”, mantenendo invariato il token tecnico per compatibilità.
 - I placeholder delle notifiche deadline `%pending_actions%` e `%pending_actions_count%` considerano ora solo gli step workflow applicabili allo specifico incidente, rispettando condizioni di rischio, gravità e dati interessati.
 - Aggiornata la documentazione completa.
+
+
+2026-05-21 - Dati titolare e placeholder rischio diritti/libertà
+- Aggiunto il campo Email del titolare in Admin -> Dati titolare.
+- Rinominati i campi della pagina Dati titolare in Nome del titolare e Ruolo del titolare.
+- Sostituito il placeholder %PERSONAL_DATA% con %RISK_RIGHTS_FREEDOM% nei template di notifica.
+- Aggiunti i placeholder %RESP%, %RESP_EMAIL%, %DIRECTOR% e %DIRECTOR_ROLE%.
+- Aggiunta migrazione idempotente per aggiornare template già presenti nel database e sostituire anche l'etichetta testuale "Dati personali:".
