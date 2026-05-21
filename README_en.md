@@ -1,8 +1,8 @@
-0.2.1-67 - Manual notification CC enable switch
+0.3.0-1 - Manual notification CC enable switch
 - Manual notification previews now include a “Use CC for this notification” checkbox, enabled by default.
 - When disabled, the CC field is hidden and ignored for both real sending and “Confirm without sending”.
 
-0.2.1-66 - Prefilled CC preview and manual clearing
+0.3.0-1 - Prefilled CC preview and manual clearing
 - Manual notification previews prefill editable CC with the template default when present.
 - If the operator clears the CC field before confirmation, sending ignores CC and proceeds without copied recipients.
 
@@ -15,9 +15,9 @@ Flask/Gunicorn application for a cybersecurity incident registry backed by Postg
 
 ## Application state
 
-The operational documentation describes the current state of platform 0.2.1, build 2026051901. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
+The operational documentation describes the current state of platform 0.3.0-1, build 2026052101. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
 
-## Production hardening build 2026051901
+## Production hardening build 2026052101
 
 This build introduces an application security baseline for production use:
 
@@ -110,8 +110,8 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.2.1
-- Build: 2026051901
+- Version: 0.3.0-1
+- Build: 2026052101
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 The information is visible from **Info → Application** and can be configured through the environment variables `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
@@ -430,7 +430,7 @@ User and administrator documentation has been reorganised into clearer chapters 
 Version changes are collected in `CHANGELOG.txt` and in **Help → Release notes** inside the application. Operational guides keep only current usage instructions.
 
 
-## Update 0.2.1-35 - Notification scheduler, anti-flooding and time zone
+## Update 0.3.0-1 - Notification scheduler, anti-flooding and time zone
 
 Scheduled notifications for maximum-time tasks are now more robust against simultaneous duplicate sends. Before sending, the scheduler persistently claims the notification slot for each incident; if another worker or replica tries to send the same notification in the same interval, the send is skipped. Each scheduler cycle also cleans up stale notification states left by deleted incidents.
 
@@ -454,28 +454,28 @@ Supported examples:
 
 Colour syntax is `{color:colour-name}text{/color}` or `{color:#RRGGBB}text{/color}`. Font-size syntax is `{size:small|normal|large|x-large|xx-large}text{/size}` or `{size:8px..32px}text{/size}`. The same Markdown renderer is also used for procedural warnings, which now show the associated task name. Free HTML markup is escaped.
 
-### Update 0.2.1-37 - Serial notification scheduler
+### Update 0.3.0-1 - Serial notification scheduler
 
 Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially. Deadline summaries keep their persistent type/window claim, while one-off reminders use `sent_at` as the only functional delivery flag and a temporary claim only for concurrency protection, so different reminders in the same period are not suppressed.
 
-## Update 0.2.1-40 - Audit for incidents skipped by the notification scheduler
+## Update 0.3.0-1 - Audit for incidents skipped by the notification scheduler
 
 Whenever the notification scheduler skips an incident, a dedicated audit record is now written with the affected incident and the skip reason. Periodic deadline notifications use `scheduler:deadline_notification_skipped`; incident-specific reminders use `scheduler:incident_reminder_skipped`. Details include the scheduler source, schedule slot or planned reminder time, reason code and readable reason, so **Admin → Audit** can distinguish already-sent notifications, concurrent claims, missing recipients/SMTP errors and application exceptions.
 
-## Update 0.2.1-41 - Manual deadline check and one-off reminders
+## Update 0.3.0-1 - Manual deadline check and one-off reminders
 
 The **Run check now** button in the **Action deadline check** section now realigns PostgreSQL sequences before execution, and audit-log insertion immediately handles possible `audit_log_pkey` collisions. The manual check no longer fails at commit time after import/restore operations or when a sequence is out of sync.
 
 For incident-specific one-off reminders, the functional delivery block is based only on `incident_reminder.sent_at`: when it is set the reminder is not sent again, when it is empty the reminder can be sent or retried. The technical claim in `deadline_notification_state` remains only a temporary concurrency guard for the same reminder record and no longer uses delivery slots/windows.
 
-## Update 0.2.1-42 - Manual one-off reminder check
+## Update 0.3.0-1 - Manual one-off reminder check
 
 The **Notifications → Settings** page now ends with a **One-off reminder check** section and a **Run reminder check now** button. The manual check immediately processes due one-off reminders configured on individual incidents, using the same serialised logic as the automatic scheduler.
 
 For one-off reminders, the functional delivery block remains only `incident_reminder.sent_at`: schedule slots, windows or periods are not used. The technical claim in `deadline_notification_state` only prevents two concurrent cycles from sending the same reminder at the same time.
 
 When a reminder is skipped, either by the scheduler or by the manual button, the `scheduler:incident_reminder_skipped` audit record includes the incident, reminder id, scheduled date/time, shortened message, configured recipients/CC, last available error, check source, reason code and human-readable reason.
-## Update 0.2.1-43 - One-off reminder check fix
+## Update 0.3.0-1 - One-off reminder check fix
 
 The **Run reminder check now** button in the **One-off reminder check** section no longer accesses a non-existing `IncidentReminder` model attribute. Effective recipients are resolved from the people linked to the incident, as in SMTP delivery, and the same logic is reused when writing audit records for skipped reminders.
 
@@ -488,11 +488,11 @@ The **Run reminder check now** button now reports skipped incident reminders, in
 
 The **Upcoming scheduled notifications** section now uses the same recipient resolution as deadline-task email delivery and displays the effective recipients for recently sent notifications as well.
 
-### Update 0.2.1-45 - Specific reminders are not blocked by technical claims
+### Update 0.3.0-1 - Specific reminders are not blocked by technical claims
 
 For incident-specific reminders, a technical claim held by another scheduler cycle or by a concurrent manual check is no longer a functional blocking reason. Delivery is decided only by `incident_reminder.sent_at`: when it is empty the reminder can be sent, when it is set the reminder is already considered sent. Concurrency is handled by atomically rechecking the reminder record, while `deadline_notification_state` remains diagnostic only and does not use slots or windows.
 
-### Update 0.2.1-46 - Reminder scheduler and service status page
+### Update 0.3.0-1 - Reminder scheduler and service status page
 
 The scheduler thread now runs both deadline-task notification checks and incident-specific reminder checks on every cycle. The two checks are independent: an error or disabled deadline-task check no longer prevents due, unsent incident-specific reminders from being processed. Incident-specific reminders still use only `incident_reminder.sent_at` as the functional send guard: empty means eligible, populated means already sent.
 
@@ -502,13 +502,13 @@ A new **Admin → Control and audit → Status** page shows the complete applica
 
 Incident-specific reminders are checked by a separate thread from the periodic deadline-task notification scheduler. The interval is configurable in **Settings → Notifications**, defaulting to 60 seconds. Every reminder check writes an audit record, even when no due reminders are found. The **Admin → Status** page reports the thread status, configured interval and date/time of the last incident-specific reminder check.
 
-### Notes 0.2.1-48
+### Notes 0.3.0-1
 
 - Fixed the dedicated incident-reminder thread: incident links in emails no longer depend on a Flask request context.
 - Added a configurable poll interval for deadline-task checks, default 60 seconds.
 - Admin → Status now shows colored dots for active/inactive threads and latest scheduler cycles.
 
-### Notes 0.2.1-49
+### Notes 0.3.0-1
 
 Fixed `RuntimeError: Working outside of application context` in scheduler threads. Configurable automatic-check intervals are now read from the `setting` table only inside `app.app_context()`, while diagnostic calls outside an application context use a safe fallback.
 
@@ -546,7 +546,7 @@ The full export contains the complete application state required to reproduce th
 
 The `export.json` manifest includes `files.persistent_files`, covering files under `uploads`, `form_templates`, `custom_logos`, `sso_logos`, and `ssl`. This makes the archive restorable even when an operational file is not directly referenced by a single database record. Full import recreates the database and restores the files into the corresponding application directories.
 
-### 0.2.1-73 - Risk to rights and freedoms and workflow-aware deadline notifications
+### 0.3.0-1 - Risk to rights and freedoms and workflow-aware deadline notifications
 
 The historical incident checkbox backed by `personal_data` is now shown in forms as **Risk to rights and freedoms**. The same wording is used in workflow configuration for the corresponding condition; the technical token remains `personal_data` for compatibility with existing databases and exports.
 
@@ -564,3 +564,9 @@ The `consequences` field used by fillable forms is built by combining configured
 **Admin → Incident workflows** includes an **Import / Export workflow** section. Export lets administrators select the default workflow or a category-specific workflow and displays a JSON structure preview before the download is confirmed. The package includes steps, conditions, referenced labels, required notification types, linked notification templates, linked form templates and the configuration needed to reuse that workflow.
 
 During import the JSON file is analysed first: new elements are created, while existing elements with different values are shown in a difference table. The administrator must explicitly confirm each overwrite with a checkbox; non-confirmed elements are left unchanged.
+
+### AI Chatbot plugin
+
+The **Admin → Plugins** menu can enable the optional **AI Chatbot** plugin, disabled by default. The plugin provides a support chat for application features, operating instructions and security incident procedures.
+
+Supported engines: ChatGPT, Claude, Gemini, Ollama and Perplexity. Each engine has its own configuration, but only one engine can be active at a time. The chatbot uses the project documentation as built-in knowledge and can be enriched by uploading additional procedural documents to the plugin knowledge base.

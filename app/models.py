@@ -10,6 +10,19 @@ incident_recommendations=db.Table('incident_recommendations', db.Column('inciden
 class Setting(db.Model): key=db.Column(db.String(100),primary_key=True); value=db.Column(db.Text,default='')
 
 
+class AIChatbotDocument(db.Model):
+    id=db.Column(db.Integer, primary_key=True)
+    title=db.Column(db.String(255), nullable=False)
+    filename=db.Column(db.String(255), nullable=False)
+    original_filename=db.Column(db.String(255), nullable=False)
+    content_type=db.Column(db.String(120), default='')
+    size_bytes=db.Column(db.Integer, default=0)
+    extracted_text=db.Column(db.Text, default='')
+    uploaded_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    uploaded_by_id=db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    uploaded_by=db.relationship('User', foreign_keys=[uploaded_by_id])
+
+
 class AuditLog(db.Model):
     id=db.Column(db.Integer, primary_key=True)
     occurred_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)

@@ -1,8 +1,8 @@
-0.2.1-67 - Abilitazione CC in anteprima notifiche manuali
+0.3.0-1 - Abilitazione CC in anteprima notifiche manuali
 - Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.
 
-0.2.1-66 - Anteprima CC precompilata e svuotamento manuale
+0.3.0-1 - Anteprima CC precompilata e svuotamento manuale
 - L’anteprima delle notifiche manuali precompila il CC modificabile con il default del template, se presente.
 - Se l’operatore svuota il campo CC prima della conferma, l’invio ignora il CC e procede senza destinatari in copia.
 
@@ -15,9 +15,9 @@ Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
 ## Stato applicativo
 
-La documentazione operativa descrive lo stato corrente della piattaforma 0.2.1, build 2026051901. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+La documentazione operativa descrive lo stato corrente della piattaforma 0.3.0-1, build 2026052101. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
-## Hardening produzione build 2026051901
+## Hardening produzione build 2026052101
 
 Questa build introduce una baseline di sicurezza applicativa per l'uso in produzione:
 
@@ -138,8 +138,8 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.2.1
-- Build: 2026051901
+- Versione: 0.3.0-1
+- Build: 2026052101
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 Le informazioni sono visibili da **Info → Applicazione** e configurabili via variabili d’ambiente `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
@@ -627,7 +627,7 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 Le variazioni di versione sono raccolte in `CHANGELOG.txt` e nella pagina **Aiuto → Note di rilascio** dell’applicazione. Le guide operative mantengono solo le istruzioni d’uso correnti.
 
 
-## Aggiornamento 0.2.1-35 - Scheduler notifiche, anti-flooding e timezone
+## Aggiornamento 0.3.0-1 - Scheduler notifiche, anti-flooding e timezone
 
 Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker o replica tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
 
@@ -651,28 +651,28 @@ Esempi supportati:
 
 La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. La sintassi dimensione ammessa è `{size:small|normal|large|x-large|xx-large}testo{/size}` oppure `{size:8px..32px}testo{/size}`. Lo stesso rendering Markdown viene usato anche negli avvisi procedurali, che mostrano inoltre il nome del task associato. Il markup HTML libero viene escapato.
 
-### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
+### Aggiornamento 0.3.0-1 - Scheduler notifiche seriale
 
 Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale; la concorrenza viene gestita con lock/rivalutazione del record, senza saltare l’invio perché il promemoria risulta preso in carico da un altro ciclo.
 
-## Aggiornamento 0.2.1-40 - Audit degli incidenti saltati dallo scheduler notifiche
+## Aggiornamento 0.3.0-1 - Audit degli incidenti saltati dallo scheduler notifiche
 
 Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, assenza destinatari/errori SMTP, promemoria già marcati come inviati ed eccezioni.
 
-## Aggiornamento 0.2.1-41 - Controllo manuale scadenze e promemoria specifici
+## Aggiornamento 0.3.0-1 - Controllo manuale scadenze e promemoria specifici
 
 Il pulsante **Esegui controllo ora** nella sezione **Controllo scadenze azioni** riallinea preventivamente le sequence PostgreSQL e l'inserimento dei record audit gestisce subito eventuali collisioni `audit_log_pkey`. In questo modo il controllo manuale non fallisce più al commit quando il database proviene da import/restore o da sequence non allineate.
 
 Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. `deadline_notification_state` resta solo diagnostica; la protezione anti-concorrenza avviene sul record del promemoria e non introduce slot/finestra né un motivo di salto “già preso in carico”.
 
-## Aggiornamento 0.2.1-42 - Controllo manuale promemoria specifici
+## Aggiornamento 0.3.0-1 - Controllo manuale promemoria specifici
 
 La pagina **Notifiche → Impostazioni** include alla fine una sezione **Controllo promemoria specifici** con il pulsante **Esegui controllo promemoria ora**. Il controllo manuale elabora subito i promemoria specifici dei singoli incidenti già scaduti e non ancora inviati, usando la stessa logica serializzata dello scheduler automatico.
 
 Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. La concorrenza viene risolta bloccando/rivalutando il record del promemoria: un ciclo concorrente non blocca funzionalmente l’invio, ma attende l’esito e poi vede `sent_at` valorizzato.
 
 Quando un promemoria viene saltato, sia dallo scheduler sia dal pulsante manuale, l'audit `scheduler:incident_reminder_skipped` riporta incidente, identificativo promemoria, data programmata, messaggio sintetico, destinatari/CC configurati, ultimo errore disponibile, sorgente del controllo, codice motivo e descrizione leggibile del motivo.
-## Aggiornamento 0.2.1-43 - Correzione controllo promemoria specifici
+## Aggiornamento 0.3.0-1 - Correzione controllo promemoria specifici
 
 Il pulsante **Esegui controllo promemoria ora** nella sezione **Controllo promemoria specifici** non accede più a un attributo inesistente del modello `IncidentReminder`. I destinatari effettivi sono ricavati dal personale associato all’incidente, come già avviene per l’invio SMTP, e la stessa logica viene riutilizzata per compilare gli audit dei promemoria saltati.
 
@@ -685,11 +685,11 @@ Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i p
 
 La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinatari dell'invio delle notifiche per task in scadenza e mostra i destinatari effettivi anche per le notifiche già inviate di recente.
 
-### Aggiornamento 0.2.1-45 - Promemoria specifici senza blocco da presa in carico
+### Aggiornamento 0.3.0-1 - Promemoria specifici senza blocco da presa in carico
 
 Per i promemoria specifici la presa in carico tecnica da parte di un altro ciclo scheduler o di un controllo manuale concorrente non è più un motivo di blocco. L'invio viene deciso solo dal campo `incident_reminder.sent_at`: se è vuoto il promemoria è inviabile, se è valorizzato è già considerato inviato. La concorrenza viene gestita rivalutando atomicamente il record del promemoria, mentre `deadline_notification_state` resta solo diagnostico e non usa slot o finestre.
 
-### Aggiornamento 0.2.1-46 - Scheduler promemoria e pagina Stato servizi
+### Aggiornamento 0.3.0-1 - Scheduler promemoria e pagina Stato servizi
 
 Il thread scheduler esegue ad ogni ciclo sia il controllo delle notifiche periodiche dei task in scadenza sia il controllo dei promemoria specifici. I due controlli sono indipendenti: un errore o una disabilitazione del controllo dei task in scadenza non impedisce più l'elaborazione dei promemoria specifici già scaduti e non inviati. Per i promemoria specifici resta valido il solo criterio funzionale `incident_reminder.sent_at`: se è vuoto il promemoria viene considerato inviabile, se è valorizzato non viene reinviato.
 
@@ -699,13 +699,13 @@ Nel menu **Admin → Controllo e audit** è disponibile la nuova voce **Stato**,
 
 I promemoria specifici degli incidenti sono controllati da un thread separato rispetto allo scheduler delle notifiche periodiche dei task in scadenza. L'intervallo è configurabile da **Impostazioni → Notifiche**, sezione **Promemoria automatici scadenze azioni**, con default 60 secondi. Ogni esecuzione del controllo promemoria produce un record di audit, anche quando non sono presenti promemoria scaduti. La pagina **Admin → Stato** riporta lo stato del thread, l'intervallo configurato e data/ora dell'ultima esecuzione del controllo sui promemoria specifici.
 
-### Note 0.2.1-48
+### Note 0.3.0-1
 
 - Corretto il controllo promemoria specifici in thread: i link incidente nelle mail non dipendono più da un request context Flask.
 - Aggiunto intervallo configurabile per il controllo automatico dei task in scadenza, default 60 secondi.
 - La pagina Admin → Stato mostra pallini colorati per thread attivi/non attivi e per gli ultimi cicli scheduler.
 
-### Note 0.2.1-49
+### Note 0.3.0-1
 
 Corretto il problema `RuntimeError: Working outside of application context` nei thread scheduler. Gli intervalli configurabili dei controlli automatici vengono letti dalla tabella `setting` solo all'interno di `app.app_context()`, mentre le eventuali chiamate diagnostiche fuori contesto usano un fallback sicuro.
 
@@ -733,7 +733,7 @@ Il full export contiene l'intero stato applicativo necessario a riprodurre l'ins
 
 Nel manifest `export.json` la sezione `files.persistent_files` elenca anche i file presenti nei volumi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`, così l'export resta ripristinabile anche se un file operativo non è più referenziato direttamente da un singolo record. L'import completo ricrea il database e ripristina i file nelle directory applicative corrispondenti.
 
-### 0.2.1-73 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
+### 0.3.0-1 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
 
 La checkbox storica dell’incidente relativa a `personal_data` è ora mostrata nelle form come **Rischio per diritti e libertà**. La stessa denominazione è usata nella configurazione dei workflow per la condizione corrispondente; il token tecnico resta `personal_data` per compatibilità con database ed esportazioni esistenti.
 
@@ -751,3 +751,9 @@ Il campo `consequences` usato per la compilazione dei moduli viene costruito som
 Da **Admin → Flussi operativi incidenti** è disponibile una sezione **Import / Export workflow**. L’export consente di selezionare il flusso di default o il workflow di una specifica categoria e mostra prima una anteprima della struttura JSON da confermare. Il pacchetto include step, condizioni, label usate, tipi di notifica richiesti, template di notifica collegati, template modulo collegati e configurazioni necessarie al riuso del workflow.
 
 In fase di import il file JSON viene prima analizzato: gli elementi nuovi saranno creati, mentre per ogni elemento già esistente con valori diversi viene mostrata una tabella delle differenze. L’amministratore deve confermare esplicitamente, tramite checkbox, ogni singolo valore/elemento che verrebbe sovrascritto; gli elementi non confermati vengono mantenuti invariati.
+
+### Plugin AI Chatbot
+
+Il menu **Admin → Plugins** permette di attivare il plugin opzionale **AI Chatbot**, disattivato per default. Il plugin fornisce una chat di supporto sulle funzionalità dell’applicazione, sulle operazioni e sulle procedure per gli incidenti di sicurezza.
+
+Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha configurazione separata, ma solo uno può essere attivo alla volta. Il chatbot usa la documentazione progettuale dell’applicazione e può essere arricchito caricando documenti procedurali aggiuntivi nella knowledge base del plugin.

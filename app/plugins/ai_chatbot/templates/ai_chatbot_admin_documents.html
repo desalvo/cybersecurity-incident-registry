@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>Documenti AI Chatbot</h2>
+  <p class="muted">Caricare documenti testuali, Markdown o altri file procedurali. I file testuali vengono indicizzati come contesto del chatbot; i binari vengono conservati come riferimento.</p>
+  <form method="post" enctype="multipart/form-data" class="stacked-form">
+    <label for="title">Titolo</label>
+    <input id="title" name="title" placeholder="Titolo procedura">
+    <label for="document">Documento</label>
+    <input id="document" name="document" type="file" required>
+    <button type="submit" class="btn primary">Carica documento</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Documenti caricati</h3>
+  {% if docs %}
+  <table class="table compact-table">
+    <thead><tr><th>Titolo</th><th>File</th><th>Dimensione</th><th>Caricato il</th><th>Testo indicizzato</th><th>Azioni</th></tr></thead>
+    <tbody>
+      {% for doc in docs %}
+      <tr>
+        <td>{{ doc.title }}</td>
+        <td>{{ doc.original_filename }}</td>
+        <td>{{ doc.size_bytes }} byte</td>
+        <td>{{ doc.uploaded_at }}</td>
+        <td>{% if doc.extracted_text %}sì{% else %}no{% endif %}</td>
+        <td><form method="post" action="{{ url_for('ai_chatbot.admin_document_delete', doc_id=doc.id) }}" onsubmit="return confirm('Rimuovere il documento dal chatbot?')"><button class="btn danger" type="submit">Elimina</button></form></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p>Nessun documento caricato.</p>{% endif %}
+</section>
+{% endblock %}

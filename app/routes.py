@@ -6373,6 +6373,7 @@ def _full_export_persistent_file_manifest():
         'custom_logos': current_app.config.get('LOGO_DIR') or '/data/logo',
         'sso_logos': str(sso_logo_storage_dir()),
         'ssl': str(ssl_storage_dir()),
+        'ai_chatbot_docs': current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs',
     }
     return {
         name: _safe_relative_file_entries(path, f'files/persistent/{name}')
@@ -6386,6 +6387,7 @@ def _add_persistent_files_to_archive(archive, persistent_manifest):
         'custom_logos': current_app.config.get('LOGO_DIR') or '/data/logo',
         'sso_logos': str(sso_logo_storage_dir()),
         'ssl': str(ssl_storage_dir()),
+        'ai_chatbot_docs': current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs',
     }
     added = set()
     for group, files in (persistent_manifest or {}).items():
@@ -6409,6 +6411,7 @@ def _restore_persistent_files_from_archive(archive, persistent_manifest):
         'custom_logos': current_app.config.get('LOGO_DIR') or '/data/logo',
         'sso_logos': str(sso_logo_storage_dir()),
         'ssl': str(ssl_storage_dir()),
+        'ai_chatbot_docs': current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs',
     }
     restored = 0
     for group, files in (persistent_manifest or {}).items():

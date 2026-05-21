@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>AI Chatbot</h2>
+  <p class="muted">Assistente per funzionalità dell’applicazione, operazioni e procedure sugli incidenti di sicurezza. Motore attivo: <strong>{{ engine }}</strong>.</p>
+  <form method="post" class="stacked-form">
+    <label for="question">Domanda</label>
+    <textarea id="question" name="question" rows="6" required placeholder="Esempio: come preparo una notifica manuale all’utente?">{{ question }}</textarea>
+    <button type="submit" class="btn primary">Invia domanda</button>
+  </form>
+</section>
+{% if answer %}
+<section class="card">
+  <h3>Risposta</h3>
+  <div class="pre-wrap">{{ answer }}</div>
+</section>
+{% endif %}
+{% endblock %}
