@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
-{% block content %}
+{% block content %}<section class="doc-section"><h2>0.2.1-77 - Regole conseguenze e documenti notifiche</h2><ul><li>L’anteprima delle notifiche manuali preseleziona solo documenti con tag notifica coerente, anche se generati da template associati.</li><li>La logica delle conseguenze automatiche in Admin → Altre configurazioni consente ora di aggiungere, rimuovere e modificare regole, testo e condizioni.</li><li>Le condizioni possono usare categoria, tipo di dato, gravità, stato, rischio per diritti/libertà e campi testuali.</li><li>Documentazione aggiornata.</li></ul></section>
+
+
 <section class="doc-section"><h2>0.2.1-76 - Placeholder e conseguenze configurabili</h2><ul><li>Corretto il placeholder in <code>%RECOMMENDATIONS%</code> con migrazione automatica da <code>%RECOMMENDATION%</code>.</li><li>Aggiunto <code>%APP_INFO%</code> con nome applicazione, versione e build.</li><li>Il campo <code>consequences</code> unisce ora conseguenze automatiche configurabili e conseguenze indicate nelle azioni.</li><li>Aggiunta la sezione <strong>Logica conseguenze automatiche</strong> in Admin → Altre configurazioni.</li></ul></section>
 
 <section class="doc-section"><h2>0.2.1-73 - Rischio per diritti e libertà</h2><p>La checkbox Dati personali è stata rinominata in Rischio per diritti e libertà. La condizione workflow corrispondente usa la stessa etichetta e le notifiche dei task in scadenza calcolano %pending_actions% e %pending_actions_count% solo sugli step applicabili allo specifico incidente.</p></section>

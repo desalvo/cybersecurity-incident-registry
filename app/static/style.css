@@ -352,3 +352,11 @@ label:has(> input[type="checkbox"]) input[type="checkbox"],
 .workflow-markdown code { padding: .05rem .25rem; border-radius: .25rem; background: rgba(0,0,0,.08); }
 .workflow-markdown-color { font-weight: inherit; }
 .workflow-markdown-size { font-weight: inherit; }
+
+.consequence-rules-editor { display: grid; gap: 1rem; }
+.consequence-rule-box { border: 1px solid var(--border, #d0d7de); border-radius: 10px; padding: 1rem; background: var(--card-bg, #fff); }
+.rule-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+.condition-list { display: grid; gap: .5rem; margin: .35rem 0; }
+.condition-row { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(180px, 2fr) auto; gap: .5rem; align-items: center; }
+.compact-grid { gap: .75rem; }
+@media (max-width: 760px) { .condition-row { grid-template-columns: 1fr; } .rule-toolbar { align-items: flex-start; flex-direction: column; } }

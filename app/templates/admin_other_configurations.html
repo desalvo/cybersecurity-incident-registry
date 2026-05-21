@@ -37,24 +37,80 @@
 
     <div class="wide">
       <h3>Logica conseguenze automatiche</h3>
-      <p class="muted">Configura le regole che alimentano il campo moduli <code>consequences</code>. Le conseguenze specificate nelle singole azioni dell’incidente vengono sempre aggiunte alla lista, dopo quelle automatiche.</p>
+      <p class="muted">Configura, aggiungi, rimuovi e riordina le regole che alimentano il campo moduli <code>consequences</code>. Le conseguenze specificate nelle singole azioni dell’incidente vengono sempre aggiunte alla lista, dopo quelle automatiche.</p>
+      <p class="muted">Condizioni disponibili: categoria incidente, tipo di dato, gravità, stato, rischio per diritti e libertà oppure altri campi testuali dell’incidente. I valori multipli si separano con virgola.</p>
     </div>
-    {% for rule in consequence_rules %}
-    <div class="wide consequence-rule-box">
-      <label class="checkbox-inline">
-        <input type="checkbox" name="{{ rule.enabled_key }}" value="1" {% if rule.enabled %}checked{% endif %}>
-        <span>Abilita regola {{ rule.code|replace('_', ' ') }}</span>
-      </label>
-      <textarea name="{{ rule.text_key }}" rows="2">{{ rule.text }}</textarea>
-      <p class="muted">Testo inserito fra le conseguenze quando la regola risulta applicabile.</p>
+    <div class="wide consequence-rules-editor" id="consequence-rules-editor">
+      {% for rule in consequence_rules %}
+      <div class="consequence-rule-box" data-rule-index="{{ loop.index0 }}">
+        <div class="rule-toolbar">
+          <label class="checkbox-inline">
+            <input type="checkbox" name="consequence_rule_enabled" value="{{ loop.index0 }}" {% if rule.enabled %}checked{% endif %}>
+            <span>Abilita</span>
+          </label>
+          <button type="button" class="secondary small remove-consequence-rule">Rimuovi regola</button>
+        </div>
+        <div class="form-grid compact-grid">
+          <div>
+            <label>Codice regola</label>
+            <input name="consequence_rule_code" value="{{ rule.code }}" placeholder="es. phishing">
+          </div>
+          <div>
+            <label>Applicazione condizioni</label>
+            <select name="consequence_rule_condition_mode">
+              <option value="all" {% if rule.condition_mode != 'any' %}selected{% endif %}>Tutte le condizioni</option>
+              <option value="any" {% if rule.condition_mode == 'any' %}selected{% endif %}>Almeno una condizione</option>
+            </select>
+          </div>
+          <div class="wide">
+            <label>Testo conseguenza</label>
+            <textarea name="consequence_rule_text" rows="2">{{ rule.text }}</textarea>
+          </div>
+        </div>
+        <div class="rule-conditions">
+          <label>Condizioni della regola</label>
+          <div class="condition-list">
+            {% for cond in rule.conditions %}
+            <div class="condition-row">
+              <select class="condition-field" data-name="consequence_rule_condition_field">
+                {% set f = cond.field %}
+                <option value="category" {% if f == 'category' %}selected{% endif %}>Categoria incidente</option>
+                <option value="data_type" {% if f == 'data_type' %}selected{% endif %}>Tipo di dato</option>
+                <option value="severity" {% if f == 'severity' %}selected{% endif %}>Gravità</option>
+                <option value="status" {% if f == 'status' %}selected{% endif %}>Stato</option>
+                <option value="risk_rights_freedom" {% if f == 'risk_rights_freedom' %}selected{% endif %}>Rischio per diritti e libertà</option>
+                <option value="reference" {% if f == 'reference' %}selected{% endif %}>Riferimento</option>
+                <option value="recipient" {% if f == 'recipient' %}selected{% endif %}>Destinatario</option>
+              </select>
+              <select class="condition-operator" data-name="consequence_rule_condition_operator">
+                {% set op = cond.operator %}
+                <option value="contains_any" {% if op == 'contains_any' %}selected{% endif %}>contiene uno fra</option>
+                <option value="equals_any" {% if op == 'equals_any' %}selected{% endif %}>uguale a uno fra</option>
+                <option value="not_contains_any" {% if op == 'not_contains_any' %}selected{% endif %}>non contiene</option>
+                <option value="not_equals_any" {% if op == 'not_equals_any' %}selected{% endif %}>diverso da</option>
+                <option value="is_true" {% if op == 'is_true' %}selected{% endif %}>vero/sì</option>
+                <option value="is_false" {% if op == 'is_false' %}selected{% endif %}>falso/no</option>
+                <option value="is_empty" {% if op == 'is_empty' %}selected{% endif %}>vuoto</option>
+                <option value="is_not_empty" {% if op == 'is_not_empty' %}selected{% endif %}>non vuoto</option>
+              </select>
+              <input class="condition-value" data-name="consequence_rule_condition_value" value="{{ cond.value }}" placeholder="valori separati da virgola">
+              <button type="button" class="secondary small remove-condition">×</button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="secondary small add-condition">Aggiungi condizione</button>
+        </div>
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
+    <div class="wide">
+      <button type="button" class="secondary" id="add-consequence-rule">Aggiungi regola conseguenza</button>
+    </div>
     <div class="wide">
       <label>Testo fallback conseguenze</label>
       <textarea name="consequence_fallback_text" rows="2">{{ consequence_fallback_text or '' }}</textarea>
       <p class="muted">Usato solo quando nessuna regola automatica è applicabile e non sono presenti conseguenze nelle azioni.</p>
     </div>
-
     <div class="wide">
       <label>Ritenzione audit log</label>
       <div class="retention-grid">
@@ -80,4 +136,78 @@
     <button class="admin-config-save-button">Salva configurazione</button>
   </form>
 </div>
+
+<script>
+(function(){
+  const editor = document.getElementById('consequence-rules-editor');
+  const addRuleButton = document.getElementById('add-consequence-rule');
+  if (!editor || !addRuleButton) return;
+  function optionHtml(selected){
+    const fields = [['category','Categoria incidente'],['data_type','Tipo di dato'],['severity','Gravità'],['status','Stato'],['risk_rights_freedom','Rischio per diritti e libertà'],['reference','Riferimento'],['recipient','Destinatario']];
+    return fields.map(([v,t]) => `<option value="${v}" ${v===selected?'selected':''}>${t}</option>`).join('');
+  }
+  function operatorHtml(selected){
+    const ops = [['contains_any','contiene uno fra'],['equals_any','uguale a uno fra'],['not_contains_any','non contiene'],['not_equals_any','diverso da'],['is_true','vero/sì'],['is_false','falso/no'],['is_empty','vuoto'],['is_not_empty','non vuoto']];
+    return ops.map(([v,t]) => `<option value="${v}" ${v===selected?'selected':''}>${t}</option>`).join('');
+  }
+  function renumber(){
+    editor.querySelectorAll('.consequence-rule-box').forEach((rule, idx) => {
+      rule.dataset.ruleIndex = idx;
+      const enabled = rule.querySelector('input[name="consequence_rule_enabled"]');
+      if (enabled) enabled.value = String(idx);
+      rule.querySelectorAll('[data-name]').forEach(input => input.removeAttribute('name'));
+    });
+  }
+  function addHidden(form, name, value){
+    const h = document.createElement('input');
+    h.type = 'hidden';
+    h.className = 'condition-hidden';
+    h.name = name;
+    h.value = value;
+    form.appendChild(h);
+  }
+  function prepareSubmit(){
+    const form = editor.closest('form');
+    if (!form) return;
+    form.querySelectorAll('.condition-hidden').forEach(x => x.remove());
+    editor.querySelectorAll('.condition-row').forEach(row => {
+      const rule = row.closest('.consequence-rule-box');
+      const idx = rule ? rule.dataset.ruleIndex : '0';
+      const field = row.querySelector('.condition-field')?.value || '';
+      const op = row.querySelector('.condition-operator')?.value || '';
+      const value = row.querySelector('.condition-value')?.value || '';
+      addHidden(form, 'consequence_rule_condition_field', idx + ':' + field);
+      addHidden(form, 'consequence_rule_condition_operator', idx + ':' + op);
+      addHidden(form, 'consequence_rule_condition_value', idx + ':' + value);
+    });
+  }
+  function addCondition(rule, field='category', op='contains_any', value=''){
+    const list = rule.querySelector('.condition-list');
+    const row = document.createElement('div');
+    row.className = 'condition-row';
+    row.innerHTML = `<select class="condition-field" data-name="consequence_rule_condition_field">${optionHtml(field)}</select><select class="condition-operator" data-name="consequence_rule_condition_operator">${operatorHtml(op)}</select><input class="condition-value" data-name="consequence_rule_condition_value" value="${value}" placeholder="valori separati da virgola"><button type="button" class="secondary small remove-condition">×</button>`;
+    list.appendChild(row);
+    renumber();
+  }
+  function addRule(){
+    const idx = editor.querySelectorAll('.consequence-rule-box').length;
+    const rule = document.createElement('div');
+    rule.className = 'consequence-rule-box';
+    rule.dataset.ruleIndex = idx;
+    rule.innerHTML = `<div class="rule-toolbar"><label class="checkbox-inline"><input type="checkbox" name="consequence_rule_enabled" value="${idx}" checked><span>Abilita</span></label><button type="button" class="secondary small remove-consequence-rule">Rimuovi regola</button></div><div class="form-grid compact-grid"><div><label>Codice regola</label><input name="consequence_rule_code" value="nuova_regola_${idx+1}" placeholder="es. phishing"></div><div><label>Applicazione condizioni</label><select name="consequence_rule_condition_mode"><option value="all" selected>Tutte le condizioni</option><option value="any">Almeno una condizione</option></select></div><div class="wide"><label>Testo conseguenza</label><textarea name="consequence_rule_text" rows="2"></textarea></div></div><div class="rule-conditions"><label>Condizioni della regola</label><div class="condition-list"></div><button type="button" class="secondary small add-condition">Aggiungi condizione</button></div>`;
+    editor.appendChild(rule);
+    addCondition(rule);
+  }
+  editor.addEventListener('click', function(e){
+    if (e.target.classList.contains('remove-consequence-rule')) { e.target.closest('.consequence-rule-box').remove(); renumber(); }
+    if (e.target.classList.contains('add-condition')) { addCondition(e.target.closest('.consequence-rule-box')); }
+    if (e.target.classList.contains('remove-condition')) { e.target.closest('.condition-row').remove(); renumber(); }
+  });
+  addRuleButton.addEventListener('click', addRule);
+  const form = editor.closest('form');
+  if (form) form.addEventListener('submit', prepareSubmit);
+  renumber();
+})();
+</script>
+
 {% endblock %}

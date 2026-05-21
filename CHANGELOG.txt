@@ -1,3 +1,9 @@
+0.2.1-77 - Regole conseguenze dinamiche e preselezione documenti
+- Anteprima notifiche manuali: i documenti generati da template associati non vengono preselezionati se non hanno il tag notifica appropriato.
+- Admin → Altre configurazioni: la logica delle conseguenze automatiche è modificabile tramite regole dinamiche con condizioni configurabili.
+- È possibile aggiungere, rimuovere e modificare regole e condizioni senza modificare il codice.
+- Documentazione aggiornata.
+
 0.2.1-72 - Markdown dimensioni e avvisi procedurali
 - Gli step workflow supportano anche dimensioni font controllate con {size:large}testo{/size} e {size:14px}testo{/size}.
 - Gli avvisi procedurali usano lo stesso rendering Markdown sicuro degli step workflow.

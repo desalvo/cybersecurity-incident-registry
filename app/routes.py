@@ -18,7 +18,7 @@ from .models import *
 from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
 from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields, incident_measures
-from .consequences import incident_consequence_list, configured_consequence_rules
+from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
 bp=Blueprint('main',__name__)
 
 
@@ -3320,9 +3320,10 @@ def auto_selected_notification_documents(inc, template, kind=None):
     for doc in documents_tagged_for_notification(inc, kind):
         if doc.id not in seen:
             selected.append(doc); seen.add(doc.id)
-    for doc in documents_generated_from_template(inc, getattr(template, 'linked_form_template_name', None)):
-        if doc.id not in seen:
-            selected.append(doc); seen.add(doc.id)
+    # Generated documents linked to the notification template are not selected
+    # implicitly anymore: they must carry the notification tag matching this
+    # notification kind. This avoids attaching generated forms for the wrong
+    # communication type.
     return selected
 
 def get_external_recipients():
@@ -5435,7 +5436,7 @@ def notify_preview(iid, kind):
     auto_document_ids = {d.id for d in auto_documents}
     linked_template_missing_warning = bool(tmpl.linked_form_template_name and not auto_documents)
     if linked_template_missing_warning:
-        flash(f'Warning: non è presente nell’incidente alcun documento generato dal template associato "{tmpl.linked_form_template_name}". È comunque possibile selezionare altri documenti e inviare la notifica.', 'warning')
+        flash(f'Warning: non è presente nell’incidente alcun documento generato dal template associato "{tmpl.linked_form_template_name}" con tag notifica "{kind}". I documenti generati non taggati non vengono preselezionati automaticamente.', 'warning')
     if needs_documents and not inc.documents:
         flash('Il template contiene %DOCUMENTS%, ma non sono presenti documenti allegati all’incidente. Invio bloccato.', 'error')
     external_recipients = get_external_recipients() if address_editable and (getattr(tmpl, 'recipient_external_allowed', True) or getattr(tmpl, 'cc_external_allowed', True)) else []
@@ -7624,9 +7625,7 @@ def admin_other_configurations():
             set_setting_value(key, request.form.get(key, ''))
         for key in retention_keys:
             set_setting_value(key, str(_bounded_int(request.form.get(key, '0'), 0, 0, 120 if key == 'audit_retention_months_part' else 3650 if key == 'audit_retention_days_part' else 23 if key == 'audit_retention_hours_part' else 59)))
-        for rule in configured_consequence_rules():
-            set_setting_value(rule['enabled_key'], '1' if request.form.get(rule['enabled_key']) else '0')
-            set_setting_value(rule['text_key'], request.form.get(rule['text_key'], rule['default_text']))
+        set_setting_value('consequence_rules_json', serialize_consequence_rules_from_form(request.form))
         # Mantiene aggiornata anche la chiave storica per compatibilità con archivi precedenti.
         set_setting_value('audit_retention_months', str(_bounded_int(request.form.get('audit_retention_months_part', '6'), 6, 0, 120)))
         db.session.commit()
