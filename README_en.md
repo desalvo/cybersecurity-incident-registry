@@ -436,9 +436,9 @@ Scheduled notifications for maximum-time tasks are now more robust against simul
 
 All schedules, cron times and maximum-task intervals are interpreted in the application time zone configured under **Admin → Other configurations**. Regular intervals always start from midnight of the current day in that time zone, not from container or process startup time.
 
-### Workflow step descriptions, Markdown and colours
+### Workflow step descriptions, Markdown, colours and font sizes
 
-In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, workflow step text is rendered with a safe Markdown subset: bold, italic, inline code, headings, unordered/ordered lists and links. `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
+In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, workflow step text is rendered with a safe Markdown subset: bold, italic, inline code, headings, unordered/ordered lists, links and controlled font sizes. `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
 
 Supported examples:
 
@@ -448,9 +448,11 @@ Supported examples:
 - Open the [internal ticket](https://example.org/ticket)
 {color:red}Warning: critical activity{/color}
 {color:#0b7285}Informational note in a custom colour{/color}
+{size:large}Large text{/size}
+{size:14px}14-pixel text{/size}
 ```
 
-Colour syntax is `{color:colour-name}text{/color}` or `{color:#RRGGBB}text{/color}`. Free HTML markup is escaped.
+Colour syntax is `{color:colour-name}text{/color}` or `{color:#RRGGBB}text{/color}`. Font-size syntax is `{size:small|normal|large|x-large|xx-large}text{/size}` or `{size:8px..32px}text{/size}`. The same Markdown renderer is also used for procedural warnings, which now show the associated task name. Free HTML markup is escaped.
 
 ### Update 0.2.1-37 - Serial notification scheduler
 

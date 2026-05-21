@@ -1807,6 +1807,7 @@ def incident_detail(iid):
         has_privacy_authority_notification=procedural_status['has_privacy_authority_notification'],
         has_user_notification=procedural_status['has_user_notification'],
         procedural_warnings=procedural_status['warnings'],
+        procedural_warning_steps=procedural_status['warning_steps'],
         notification_types=notification_type_records(),
         form_templates=list_templates(),
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),

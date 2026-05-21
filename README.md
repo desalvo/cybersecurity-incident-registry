@@ -632,9 +632,9 @@ Le notifiche schedulate per task con tempo massimo sono state rese più robuste 
 
 Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono interpretati nella timezone applicativa configurata in **Admin → Altre configurazioni**. Gli intervalli regolari partono sempre dalla mezzanotte del giorno corrente in tale timezone, non dall'avvio del container o del processo.
 
-### Descrizioni workflow, Markdown e colori
+### Descrizioni workflow, Markdown, colori e dimensioni
 
-In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati e link. Gli URL `http://` e `https://` presenti nel testo sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati, link e dimensioni font controllate. Gli URL `http://` e `https://` presenti nel testo sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
 
 Esempi supportati:
 
@@ -644,9 +644,11 @@ Esempi supportati:
 - Aprire il ticket [interno](https://example.org/ticket)
 {color:red}Attenzione: attività critica{/color}
 {color:#0b7285}Nota informativa in colore personalizzato{/color}
+{size:large}Testo grande{/size}
+{size:14px}Testo a 14 pixel{/size}
 ```
 
-La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. Il markup HTML libero viene escapato.
+La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. La sintassi dimensione ammessa è `{size:small|normal|large|x-large|xx-large}testo{/size}` oppure `{size:8px..32px}testo{/size}`. Lo stesso rendering Markdown viene usato anche negli avvisi procedurali, che mostrano inoltre il nome del task associato. Il markup HTML libero viene escapato.
 
 ### Aggiornamento 0.2.1-37 - Scheduler notifiche seriale
 

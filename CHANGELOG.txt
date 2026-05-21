@@ -1,3 +1,9 @@
+0.2.1-72 - Markdown dimensioni e avvisi procedurali
+- Gli step workflow supportano anche dimensioni font controllate con {size:large}testo{/size} e {size:14px}testo{/size}.
+- Gli avvisi procedurali usano lo stesso rendering Markdown sicuro degli step workflow.
+- Ogni avviso procedurale mostra il nome del task associato.
+- Documentazione aggiornata.
+
 0.2.1-71 - Rimozione tag dai template modulo
 - Configurazione moduli: i tag di tipo notifica associati ai template PDF possono essere rimossi con il pulsante × del chip selezionato.
 - Il salvataggio persiste correttamente anche la rimozione dei tag, lasciando i documenti futuri con il solo insieme aggiornato dei tag del template.

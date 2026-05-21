@@ -1484,7 +1484,9 @@ La pianificazione cron/intervallo è calcolata con `application_now()` e quindi 
 
 Workflow step descriptions are stored as text, capped at 500 characters at the application boundary, and rendered with the dedicated `workflow_markdown` Jinja filter. The filter escapes raw HTML and supports a deliberately limited Markdown subset: headings, unordered/ordered lists, bold, italic, inline code, Markdown links and automatic `http://`/`https://` links with `target="_blank"` and `rel="noopener noreferrer"`. Click handling on workflow cards ignores clicks originating from links, preserving both link navigation and the existing guided workflow card behaviour.
 
-Controlled coloured text is supported with the application-specific syntax `{color:red}text{/color}` or `{color:#0b7285}text{/color}`. Only colour names and hexadecimal colours matching the validation pattern are emitted in the inline style; unsupported colour expressions are ignored while the text content remains visible. This avoids enabling arbitrary raw HTML while still allowing administrators to visually highlight workflow instructions.
+Controlled coloured text is supported with the application-specific syntax `{color:red}text{/color}` or `{color:#0b7285}text{/color}`. Controlled font sizes are supported with `{size:small}text{/size}`, `{size:large}text{/size}` or pixel values in the allowed range such as `{size:14px}text{/size}`. Only colour names/hexadecimal colours and size values matching the validation patterns are emitted in inline styles; unsupported expressions are ignored while the text content remains visible. This avoids enabling arbitrary raw HTML or CSS while still allowing administrators to visually highlight workflow instructions.
+
+Procedural warnings use the same `workflow_markdown` renderer as workflow step cards and show the associated task name before the rendered warning text. This keeps warning text consistent with the workflow instructions while making clear which task must still be completed.
 
 Example accepted workflow description:
 
@@ -1666,7 +1668,7 @@ Questa copertura rende l'archivio idoneo a riprodurre completamente la directory
 
 ## Aggiornamento 0.2.1-69 - Markdown e colori negli step workflow
 
-I riquadri degli step nella sezione **Operazioni previste** renderizzano ora la descrizione operativa con il filtro Jinja `workflow_markdown`. Il rendering supporta Markdown sicuro per titoli, elenchi, grassetto, corsivo, codice inline, link Markdown e URL automatici. Il testo colorato usa una sintassi controllata `{color:nome}testo{/color}` o `{color:#RRGGBB}testo{/color}`; l'HTML libero resta escapato. Il template `incident_detail.html` usa un contenitore `<div class="workflow-step-description workflow-markdown">` per permettere contenuti multi-paragrafo e liste, mentre `style.css` definisce la resa compatta dentro le card del workflow. La documentazione utente e amministrativa include esempi di Markdown e colori.
+I riquadri degli step nella sezione **Operazioni previste** renderizzano ora la descrizione operativa con il filtro Jinja `workflow_markdown`. Il rendering supporta Markdown sicuro per titoli, elenchi, grassetto, corsivo, codice inline, link Markdown, URL automatici, colori e dimensioni font controllate. Il testo colorato usa una sintassi controllata `{color:nome}testo{/color}` o `{color:#RRGGBB}testo{/color}`; la dimensione usa `{size:large}testo{/size}` o valori pixel ammessi come `{size:14px}testo{/size}`. L'HTML libero resta escapato. Il template `incident_detail.html` usa contenitori `workflow-markdown` sia per gli step sia per gli avvisi procedurali; questi ultimi mostrano anche il nome del task associato. `style.css` definisce la resa compatta dentro le card del workflow e negli avvisi. La documentazione utente e amministrativa include esempi di Markdown, colori e dimensioni.
 
 ## Aggiornamento 0.2.1-70 - Tag notifica configurabili sui template modulo
 

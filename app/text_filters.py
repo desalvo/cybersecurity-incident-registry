@@ -4,6 +4,7 @@ from markupsafe import Markup, escape
 
 
 _ALLOWED_COLOR_RE = re.compile(r"^(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?|[a-zA-Z][a-zA-Z0-9_-]{0,30})$")
+_ALLOWED_SIZE_RE = re.compile(r"^(small|normal|large|x-large|xx-large|[8-9]px|[1-2][0-9]px|3[0-2]px|0\.[8-9]em|1(?:\.[0-9])?em|2(?:\.0)?em)$", re.IGNORECASE)
 _URL_RE = re.compile(r"(https?://[^\s<]+)", re.IGNORECASE)
 
 
@@ -69,7 +70,16 @@ def _apply_inline_markdown(text):
             return body
         return f'<span class="workflow-markdown-color" style="color: {color};">{body}</span>'
 
-    return re.sub(r"\{color:([^}]+)\}(.+?)\{/color\}", color_repl, text, flags=re.IGNORECASE | re.DOTALL)
+    def size_repl(match):
+        size = match.group(1).strip().lower()
+        body = match.group(2)
+        if not _ALLOWED_SIZE_RE.match(size):
+            return body
+        return f'<span class="workflow-markdown-size" style="font-size: {size};">{body}</span>'
+
+    text = re.sub(r"\{color:([^}]+)\}(.+?)\{/color\}", color_repl, text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"\{size:([^}]+)\}(.+?)\{/size\}", size_repl, text, flags=re.IGNORECASE | re.DOTALL)
+    return text
 
 
 
@@ -91,8 +101,9 @@ def workflow_markdown(value):
     """Render workflow step descriptions with safe Markdown and controlled colors.
 
     Supported syntax is intentionally limited to headings, unordered/ordered
-    lists, bold, italic, inline code, Markdown links, auto-linked http(s) URLs
-    and color spans using {color:red}text{/color} or {color:#c00}text{/color}.
+    lists, bold, italic, inline code, Markdown links, auto-linked http(s) URLs,
+    color spans using {color:red}text{/color} or {color:#c00}text{/color}
+    and size spans using {size:large}text{/size} or {size:14px}text{/size}.
     Raw HTML is escaped.
     """
     raw = "" if value is None else str(value)
