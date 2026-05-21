@@ -161,7 +161,7 @@ Dal menu **Notifiche** un amministratore può configurare:
 
 Le impostazioni globali **Email CSIRT**, **CC CSIRT**, **Email DPO** e **CC DPO** non sono più presenti: i relativi indirizzi vanno definiti nei template tramite valore fisso, e-mail del Destinatario dell’incidente, compilatore o compilazione manuale/rubrica esterna.
 
-Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
+Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%RECOMMENDATION%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
 
 ### Promemoria automatici scadenze azioni
 
@@ -539,7 +539,7 @@ La chiusura manuale o automatica di un incidente viene impedita quando sono anco
 
 La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
 
-Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
+Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%RECOMMENDATION%` (lista delle raccomandazioni da fornire agli interessati, stesso valore del campo `recommendations` dei moduli), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
 
 ### Aggiornamento 0.1.0-107
 

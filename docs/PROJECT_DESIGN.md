@@ -430,6 +430,7 @@ Nel testo delle mail di notifica sono disponibili:
 - `%STATUS%`: stato incidente
 - `%ACTIONS%`: lista cronologica delle azioni con data e ora
 - `%MEASURES_ADOPTED%`: lista delle contromisure adottate finora nell'incidente, calcolata dalla stessa origine dati del campo `measures_adopted` usato per la compilazione dei moduli
+- `%RECOMMENDATION%`: lista delle raccomandazioni da fornire agli interessati, calcolata dalla stessa origine dati del campo `recommendations` usato per la compilazione automatica dei moduli
 - `%INCIDENT_URL%`: link diretto all'incidente; nelle notifiche manuali/non schedulate il link viene inserito solo se questo placeholder è presente nel template
 - `%SITE%`: nome della struttura dove si è verificato l'incidente, letto dalla configurazione **Admin → Struttura**
 - `%STATISTICS%`: richiede l'allegato del report statistiche in PDF
@@ -1155,7 +1156,7 @@ La chiusura manuale o automatica di un incidente viene impedita quando sono anco
 
 La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
 
-Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
+Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%RECOMMENDATION%` (lista delle raccomandazioni da fornire agli interessati), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
 
 ## Aggiornamento 0.1.0-107 / Update 0.1.0-107
 
@@ -1278,7 +1279,7 @@ La vista `Admin → Utenti` costruisce una mappa dei backend disponibili a parti
 
 ## Aggiornamento 0.2.1-10 - Placeholder notifiche manuali e link incidente esplicito
 
-Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
+Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%RECOMMENDATION%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
 
 ## Template notifiche, moduli associati e rubrica destinatari esterni
 

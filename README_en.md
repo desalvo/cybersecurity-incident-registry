@@ -132,7 +132,7 @@ From **Notifications**, an administrator can configure:
 
 The global **CSIRT email**, **CSIRT CC**, **DPO email** and **DPO CC** settings have been removed: those addresses must be defined in the relevant templates through a fixed value, the incident Recipient email, the incident creator, manual entry or the external recipients address book.
 
-Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
+Templates support the placeholders `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%RECOMMENDATION%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%` and the other fields shown in the template configuration page. The direct incident link is inserted only through `%INCIDENT_URL%`; `%STATISTICS%` attaches the PDF statistics report.
 
 ### Automatic action deadline reminders
 
@@ -342,7 +342,7 @@ Manual or automatic incident closing is now blocked when active procedural warni
 
 The **Admin → Audit** page now uses pagination. The default number of records per page can be configured in **Admin → Other settings** through **Audit records per page**, with default 20 and maximum 100. The top of the Audit page shows the current total number of audit records, the filtered record count and the currently selected interval.
 
-For manual/non-scheduled incident notifications, the direct link to the specific incident page is inserted only when the template contains the `%INCIDENT_URL%` placeholder. Deadline-task templates continue to support `%incident_url%` separately. General templates also support `%MEASURES_ADOPTED%` (list of countermeasures adopted so far in the incident), `%SITE%` (structure name configured in Admin → Structure) and `%STATISTICS%`, which requests the generated statistics PDF attachment at send time.
+For manual/non-scheduled incident notifications, the direct link to the specific incident page is inserted only when the template contains the `%INCIDENT_URL%` placeholder. Deadline-task templates continue to support `%incident_url%` separately. General templates also support `%MEASURES_ADOPTED%` (list of countermeasures adopted so far in the incident), `%RECOMMENDATION%` (list of recommendations for affected data subjects, same value as the form field `recommendations`), `%SITE%` (structure name configured in Admin → Structure) and `%STATISTICS%`, which requests the generated statistics PDF attachment at send time.
 
 ### Update 0.1.0-107
 

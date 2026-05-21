@@ -1044,3 +1044,11 @@ Notification menu and SMTP sender fix
 - Sostituito il placeholder %PERSONAL_DATA% con %RISK_RIGHTS_FREEDOM% nei template di notifica.
 - Aggiunti i placeholder %RESP%, %RESP_EMAIL%, %DIRECTOR% e %DIRECTOR_ROLE%.
 - Aggiunta migrazione idempotente per aggiornare template già presenti nel database e sostituire anche l'etichetta testuale "Dati personali:".
+
+2026-05-21 - Placeholder raccomandazioni nelle notifiche manuali
+- Aggiunto il placeholder %RECOMMENDATION% ai template di notifica manuale.
+- Il valore corrisponde alla lista delle raccomandazioni dell’incidente, la stessa origine dati del campo recommendations usato nella compilazione automatica dei moduli.
+
+2026-05-21 - Manual notification recommendations placeholder
+- Added %RECOMMENDATION% to manual notification templates.
+- The value is the incident recommendation list, using the same data source as the recommendations field used by automatic form filling.
