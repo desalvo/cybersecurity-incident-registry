@@ -55,8 +55,8 @@ Queste tre variabili sono lette dal container `db`. L'applicazione `web` usa inv
 | Variabile | Default | Uso |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Nome visualizzato in **Info → Applicazione**. |
-| `APP_VERSION` | `0.3.0-1` | Versione applicativa visualizzata e propagata nei deploy. |
-| `APP_BUILD` | `2026052101` | Numero build visualizzato. |
+| `APP_VERSION` | `0.4.0-1` | Versione applicativa visualizzata e propagata nei deploy. |
+| `APP_BUILD` | `20260522` | Numero build visualizzato. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Autore visualizzato. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | E-mail autore visualizzata. |
 | `ADMIN_EMAIL` | `admin@example.local` | E-mail assegnata all'admin bootstrap se l'utente viene creato al primo avvio. |
@@ -82,6 +82,10 @@ I percorsi sotto `/data` non devono restare effimeri in produzione. Nel `docker-
 | `REMEMBER_COOKIE_SAMESITE` | `Lax` | Policy SameSite del cookie “remember me”. |
 | `CIR_FORCE_HSTS` | `0` | Impostare a `1` per inviare HSTS anche quando Flask non vede direttamente una richiesta HTTPS, ad esempio dietro reverse proxy TLS. |
 | `MAX_CONTENT_LENGTH` | `26214400` | Limite globale upload in byte, default 25 MiB. |
+| `LOGIN_LOCKOUT_THRESHOLD` | `5` | Numero di tentativi falliti, per coppia IP/username, dopo il quale scatta il blocco server-side. |
+| `LOGIN_LOCKOUT_WINDOW_SECONDS` | `900` | Finestra temporale in secondi entro cui contare i tentativi falliti. |
+| `LOGIN_LOCKOUT_STEP_SECONDS` | `60` | Incremento progressivo del blocco temporaneo dopo il superamento della soglia. |
+| `LOGIN_LOCKOUT_MAX_SECONDS` | `900` | Durata massima del blocco temporaneo. |
 | `FLASK_ENV` | non impostata | Se vale `production`, viene trattata come produzione anche senza `CIR_PRODUCTION=1`. |
 
 ## Scheduler notifiche e promemoria

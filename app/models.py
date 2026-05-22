@@ -34,6 +34,23 @@ class AuditLog(db.Model):
     repeat_count=db.Column(db.Integer, nullable=False, default=1)
     user=db.relationship('User', foreign_keys=[user_id])
 
+
+
+class LoginFailure(db.Model):
+    """Server-side login failure tracker for AgID-compliant account lockout.
+
+    The key is derived from client address and normalized username, so lockout
+    cannot be bypassed by deleting browser cookies or starting a new session.
+    """
+    id=db.Column(db.Integer, primary_key=True)
+    rate_key=db.Column(db.String(255), nullable=False, unique=True, index=True)
+    username=db.Column(db.String(160), nullable=False, default='', index=True)
+    ip_address=db.Column(db.String(64), nullable=False, default='', index=True)
+    failure_count=db.Column(db.Integer, nullable=False, default=0)
+    first_failure_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    last_failure_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    blocked_until=db.Column(db.DateTime, nullable=True, index=True)
+
 class User(UserMixin,db.Model):
     id=db.Column(db.Integer,primary_key=True); username=db.Column(db.String(80),nullable=False,index=True); password_hash=db.Column(db.String(255)); name=db.Column(db.String(160)); email=db.Column(db.String(255)); role=db.Column(db.String(20),default='disabled'); is_ldap=db.Column(db.Boolean,default=False); auth_provider=db.Column(db.String(80),default='local',nullable=False,index=True); external_id=db.Column(db.String(255),nullable=True,index=True); mfa_enabled=db.Column(db.Boolean,default=False,nullable=False)
     __table_args__=(db.UniqueConstraint('username','auth_provider',name='uq_user_username_auth_provider'),)

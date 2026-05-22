@@ -9,7 +9,10 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import or_, and_, text
 from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from ldap3 import Server, Connection, ALL
+from ldap3.utils.conv import escape_filter_chars
 from urllib.parse import urlencode
+from cryptography.fernet import Fernet, InvalidToken
+import hashlib
 import requests
 import threading, time
 import pyotp
@@ -23,6 +26,274 @@ bp=Blueprint('main',__name__)
 
 
 SUPPORTED_LANGUAGES = {'it', 'en'}
+
+# ---- AgID secure development hardening helpers ----
+_COMMON_PASSWORDS = {
+    'password','password1','password123','admin','admin123','administrator','changeme','change-me',
+    'qwerty','qwerty123','123456','12345678','123456789','letmein','welcome','welcome1'
+}
+_PASSWORD_RE_UPPER = re.compile(r'[A-Z]')
+_PASSWORD_RE_LOWER = re.compile(r'[a-z]')
+_PASSWORD_RE_DIGIT = re.compile(r'\d')
+_PASSWORD_RE_SPECIAL = re.compile(r'[^A-Za-z0-9]')
+_SAFE_TEXT_RE = re.compile(r'^[\w\sÀ-ÖØ-öø-ÿ.,;:!?@#%&()\[\]{}+\-=\/\\\'"’`\n\r\t]*$')
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+_ALLOWED_UPLOAD_EXTENSIONS = {'.pdf','.txt','.csv','.json','.xml','.docx','.xlsx','.png','.jpg','.jpeg','.gif','.webp'}
+_ALLOWED_UPLOAD_MAGIC = {
+    '.pdf': (b'%PDF',), '.png': (b'\x89PNG\r\n\x1a\n',), '.jpg': (b'\xff\xd8\xff',), '.jpeg': (b'\xff\xd8\xff'),
+    '.gif': (b'GIF87a', b'GIF89a'), '.docx': (b'PK\x03\x04',), '.xlsx': (b'PK\x03\x04',)
+}
+_TEXT_UPLOAD_EXTENSIONS = {'.txt','.csv','.json','.xml'}
+
+
+
+_SECRET_SETTING_KEYS = {
+    'smtp_password', 'ldap_bind_password', 'sso_client_secret',
+    'ai_chatbot_chatgpt_api_key', 'ai_chatbot_claude_api_key', 'ai_chatbot_gemini_api_key',
+    'ai_chatbot_ollama_api_key', 'ai_chatbot_perplexity_api_key', 'sso_profiles_json'
+}
+_ENC_PREFIX = 'enc:v1:'
+
+
+def _fernet():
+    raw = (os.getenv('SETTING_ENCRYPTION_KEY') or current_app.config.get('SECRET_KEY') or '').encode('utf-8')
+    key = base64.urlsafe_b64encode(hashlib.sha256(raw).digest())
+    return Fernet(key)
+
+
+def encrypt_setting_value(key, value):
+    value = '' if value is None else str(value)
+    if key not in _SECRET_SETTING_KEYS or not value or value.startswith(_ENC_PREFIX):
+        return value
+    return _ENC_PREFIX + _fernet().encrypt(value.encode('utf-8')).decode('ascii')
+
+
+def decrypt_setting_value(key, value):
+    value = '' if value is None else str(value)
+    if key not in _SECRET_SETTING_KEYS or not value.startswith(_ENC_PREFIX):
+        return value
+    try:
+        return _fernet().decrypt(value[len(_ENC_PREFIX):].encode('ascii')).decode('utf-8')
+    except InvalidToken:
+        current_app.logger.error('Impossibile decifrare il setting segreto %s', key)
+        return ''
+
+
+def store_setting_value(key, value):
+    return encrypt_setting_value(key, value)
+
+
+def validate_ldap_filter_template(template):
+    template = (template or '(uid={uid})').strip()
+    if '{uid}' not in template:
+        raise ValueError('Il filtro LDAP deve contenere il placeholder {uid}.')
+    if len(template) > 500 or any(ch in template for ch in ('\x00', '\n', '\r')):
+        raise ValueError('Filtro LDAP non valido.')
+    return template
+
+
+def make_ldap_search_filter(template, username):
+    return validate_ldap_filter_template(template).replace('{uid}', escape_filter_chars(username or ''))
+
+
+def validate_full_import_archive(archive):
+    members = archive.getmembers()
+    max_files = int(os.getenv('FULL_IMPORT_MAX_FILES', '5000'))
+    max_total = int(os.getenv('FULL_IMPORT_MAX_TOTAL_BYTES', str(250 * 1024 * 1024)))
+    max_member = int(os.getenv('FULL_IMPORT_MAX_MEMBER_BYTES', str(50 * 1024 * 1024)))
+    if len(members) > max_files:
+        raise ValueError('Archivio troppo grande: troppi file.')
+    total = 0
+    names = set()
+    for member in members:
+        name = (member.name or '').replace('\\', '/')
+        names.add(name)
+        parts = Path(name).parts
+        if member.isdir():
+            continue
+        if member.issym() or member.islnk() or member.isdev():
+            raise ValueError(f'Archivio non sicuro: entry non regolare {name}.')
+        if name.startswith('/') or '..' in parts or name.startswith('~'):
+            raise ValueError(f'Archivio non sicuro: percorso non valido {name}.')
+        if member.size < 0 or member.size > max_member:
+            raise ValueError(f'Archivio non sicuro: file troppo grande {name}.')
+        total += member.size
+        if total > max_total:
+            raise ValueError('Archivio troppo grande.')
+    if 'export.json' not in names:
+        raise ValueError('Archivio non valido: export.json mancante.')
+    return True
+
+
+def validate_password_strength(password, username='', email=''):
+    value = password or ''
+    errors = []
+    if len(value) < 12:
+        errors.append('almeno 12 caratteri')
+    if not _PASSWORD_RE_UPPER.search(value):
+        errors.append('una maiuscola')
+    if not _PASSWORD_RE_LOWER.search(value):
+        errors.append('una minuscola')
+    if not _PASSWORD_RE_DIGIT.search(value):
+        errors.append('una cifra')
+    if not _PASSWORD_RE_SPECIAL.search(value):
+        errors.append('un carattere speciale')
+    lowered = value.lower()
+    if lowered in _COMMON_PASSWORDS or 'password' in lowered or 'changeme' in lowered:
+        errors.append('non deve essere una password comune o di default')
+    for token in (username or '', email or ''):
+        token = (token or '').split('@')[0].lower().strip()
+        if token and len(token) >= 4 and token in lowered:
+            errors.append('non deve contenere username o email')
+            break
+    if errors:
+        raise ValueError('Password non conforme: richiede ' + ', '.join(dict.fromkeys(errors)) + '.')
+    return True
+
+
+def validate_text_field(value, field_name='campo', max_length=1000, required=False, allow_multiline=True):
+    value = '' if value is None else str(value)
+    if required and not value.strip():
+        raise ValueError(f'{field_name} è obbligatorio.')
+    if len(value) > max_length:
+        raise ValueError(f'{field_name} supera la lunghezza massima di {max_length} caratteri.')
+    if not allow_multiline and ('\n' in value or '\r' in value):
+        raise ValueError(f'{field_name} non può contenere più righe.')
+    if not _SAFE_TEXT_RE.match(value):
+        raise ValueError(f'{field_name} contiene caratteri non ammessi.')
+    return value
+
+
+def validate_email_field(value, field_name='email', required=False):
+    value = (value or '').strip()
+    if required and not value:
+        raise ValueError(f'{field_name} è obbligatoria.')
+    if value and (len(value) > 255 or not _EMAIL_RE.match(value)):
+        raise ValueError(f'{field_name} non valida.')
+    return value
+
+
+def validate_upload_file(file_storage, allowed_extensions=None, max_size=None):
+    if not file_storage or not getattr(file_storage, 'filename', ''):
+        raise ValueError('File mancante.')
+    filename = secure_filename(file_storage.filename)
+    if not filename:
+        raise ValueError('Nome file non valido.')
+    ext = Path(filename).suffix.lower()
+    allowed = allowed_extensions or _ALLOWED_UPLOAD_EXTENSIONS
+    if ext not in allowed:
+        raise ValueError(f'Estensione file non consentita: {ext or "senza estensione"}.')
+    pos = file_storage.stream.tell()
+    head = file_storage.stream.read(8192)
+    file_storage.stream.seek(0, os.SEEK_END)
+    size = file_storage.stream.tell()
+    file_storage.stream.seek(pos)
+    limit = max_size or int(current_app.config.get('MAX_CONTENT_LENGTH') or (25 * 1024 * 1024))
+    if size > limit:
+        raise ValueError('File troppo grande.')
+    if ext in _ALLOWED_UPLOAD_MAGIC and not any(head.startswith(m) for m in _ALLOWED_UPLOAD_MAGIC[ext]):
+        raise ValueError('Il contenuto del file non corrisponde all’estensione dichiarata.')
+    if ext in _TEXT_UPLOAD_EXTENSIONS:
+        sample = head.decode('utf-8', errors='ignore')
+        if '\x00' in sample:
+            raise ValueError('Il file testuale contiene byte non validi.')
+    return filename
+
+
+def save_validated_upload(file_storage, destination_dir, allowed_extensions=None):
+    name = validate_upload_file(file_storage, allowed_extensions=allowed_extensions)
+    stored = str(uuid.uuid4()) + '_' + name
+    target = os.path.abspath(os.path.join(destination_dir, stored))
+    base = os.path.abspath(destination_dir)
+    if not target.startswith(base + os.sep):
+        raise ValueError('Percorso file non valido.')
+    file_storage.save(target)
+    try:
+        os.chmod(target, 0o600)
+    except OSError:
+        pass
+    return name, stored
+
+
+def _client_ip_for_rate_limit():
+    # In deployment il proxy deve sanificare X-Forwarded-For; qui prendiamo il
+    # primo valore per mantenere stabile la chiave anche dietro reverse proxy.
+    return (request.headers.get('X-Forwarded-For', request.remote_addr or '')
+            .split(',')[0].strip())[:64]
+
+
+def login_rate_limit_key(username):
+    ip = _client_ip_for_rate_limit()
+    normalized_user = (username or '').strip().lower()[:160]
+    digest = hashlib.sha256(f'{ip}:{normalized_user}'.encode('utf-8')).hexdigest()
+    return digest
+
+
+def _login_lockout_policy():
+    threshold = _bounded_int(os.getenv('LOGIN_LOCKOUT_THRESHOLD'), 5, 2, 50)
+    window_seconds = _bounded_int(os.getenv('LOGIN_LOCKOUT_WINDOW_SECONDS'), 900, 60, 86400)
+    max_block_seconds = _bounded_int(os.getenv('LOGIN_LOCKOUT_MAX_SECONDS'), 900, 60, 86400)
+    step_seconds = _bounded_int(os.getenv('LOGIN_LOCKOUT_STEP_SECONDS'), 60, 10, 3600)
+    return threshold, window_seconds, max_block_seconds, step_seconds
+
+
+def _prune_login_failures(now=None):
+    now = now or datetime.utcnow()
+    try:
+        cutoff = now - timedelta(days=7)
+        LoginFailure.query.filter(LoginFailure.last_failure_at < cutoff).delete(synchronize_session=False)
+    except Exception:
+        current_app.logger.debug('Cleanup login failure non completato', exc_info=True)
+
+
+def login_is_blocked(username):
+    entry = LoginFailure.query.filter_by(rate_key=login_rate_limit_key(username)).first()
+    if not entry or not entry.blocked_until:
+        return False, 0
+    now = datetime.utcnow()
+    if entry.blocked_until <= now:
+        return False, 0
+    return True, max(0, int((entry.blocked_until - now).total_seconds()))
+
+
+def register_login_failure(username):
+    key = login_rate_limit_key(username)
+    now = datetime.utcnow()
+    threshold, window_seconds, max_block_seconds, step_seconds = _login_lockout_policy()
+    entry = LoginFailure.query.filter_by(rate_key=key).first()
+    if not entry:
+        entry = LoginFailure(rate_key=key, username=(username or '').strip()[:160], ip_address=_client_ip_for_rate_limit(), failure_count=0, first_failure_at=now)
+        db.session.add(entry)
+    if (now - (entry.first_failure_at or now)).total_seconds() > window_seconds:
+        entry.failure_count = 0
+        entry.first_failure_at = now
+        entry.blocked_until = None
+    entry.username = (username or '').strip()[:160]
+    entry.ip_address = _client_ip_for_rate_limit()
+    entry.failure_count = int(entry.failure_count or 0) + 1
+    entry.last_failure_at = now
+    if entry.failure_count >= threshold:
+        seconds = min(max_block_seconds, step_seconds * (entry.failure_count - threshold + 1))
+        entry.blocked_until = now + timedelta(seconds=seconds)
+    try:
+        _prune_login_failures(now)
+        db.session.commit()
+        audit_log('security:login_failure', {'username': username, 'path': request.path, 'count': entry.failure_count}, actor_type='anonymous', commit=True)
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Registrazione server-side del login failure non completata')
+
+
+def clear_login_failures(username):
+    try:
+        entry = LoginFailure.query.filter_by(rate_key=login_rate_limit_key(username)).first()
+        if entry:
+            db.session.delete(entry)
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Pulizia server-side login failure non completata')
+
 
 def configured_language_mode():
     value = setting_value('interface_language', 'auto') if 'Setting' in globals() else 'auto'
@@ -719,9 +990,7 @@ def save_action_attachment_file(file_storage, action):
     """Salva un file allegato a una azione e registra il metadato."""
     if not file_storage or not file_storage.filename:
         return None
-    name = secure_filename(file_storage.filename)
-    stored = str(uuid.uuid4()) + '_' + name
-    file_storage.save(os.path.join(current_app.config['UPLOAD_DIR'], stored))
+    name, stored = save_validated_upload(file_storage, current_app.config['UPLOAD_DIR'])
     att = ActionAttachment(action_id=action.id, filename=name, stored_name=stored)
     db.session.add(att)
     return att
@@ -978,11 +1247,16 @@ def mfa_required_for(user):
     return bool(user and getattr(user, 'mfa_enabled', False) and getattr(user, 'auth_provider', 'local') in ['local','ldap'] and MfaTotpToken.query.filter_by(user_id=user.id).filter(MfaTotpToken.verified_at.isnot(None)).first())
 
 def complete_login_or_mfa(user):
+    clear_login_failures(user.username)
     if mfa_required_for(user):
         session['mfa_user_id'] = user.id
         session['mfa_next'] = request.args.get('next') or url_for('main.index')
         return redirect(url_for('main.mfa_verify'))
+    session.clear()
     login_user(user)
+    session.permanent = True
+    session['last_activity'] = time.time()
+    audit_log('security:login_success', {'username': user.username, 'auth_provider': user.auth_provider}, actor_type='user', commit=True)
     return redirect(request.args.get('next') or url_for('main.index'))
 
 def visible(q):
@@ -992,6 +1266,14 @@ def visible(q):
 @bp.before_request
 def block_disabled():
     g.lang = detect_interface_language()
+    if current_user.is_authenticated:
+        now = time.time()
+        timeout = int(current_app.config.get('PERMANENT_SESSION_LIFETIME') or 1800)
+        last = float(session.get('last_activity') or now)
+        if now - last > timeout:
+            audit_log('security:session_timeout', {'username': current_user.username}, actor_type='user', commit=True)
+            logout_user(); session.clear(); flash('Sessione scaduta per inattività.', 'warning'); return redirect(url_for('main.login'))
+        session['last_activity'] = now
     if session.get('mfa_user_id') and request.endpoint not in ['main.mfa_verify','main.login','main.logout','static']:
         return redirect(url_for('main.mfa_verify'))
     if current_user.is_authenticated and current_user.role=='disabled' and request.endpoint not in ['main.logout','main.login','main.sso_login','main.sso_callback']:
@@ -999,7 +1281,7 @@ def block_disabled():
 
 
 def setting_map():
-    return {row.key: row.value for row in Setting.query.all()}
+    return {row.key: decrypt_setting_value(row.key, row.value) for row in Setting.query.all()}
 
 def bool_setting(cfg, key, default=False):
     value = str(cfg.get(key, '1' if default else '') or '').strip().lower()
@@ -1079,7 +1361,7 @@ def sso_profiles(include_legacy=True):
 def save_sso_profiles(profiles):
     normalized = [_normalize_sso_profile(p, f'sso-{i+1}') for i, p in enumerate(profiles or [])]
     s = Setting.query.get('sso_profiles_json') or Setting(key='sso_profiles_json')
-    s.value = json.dumps(normalized, ensure_ascii=False, indent=2)
+    s.value = store_setting_value('sso_profiles_json', json.dumps(normalized, ensure_ascii=False, indent=2))
     db.session.merge(s)
 
 
@@ -1211,7 +1493,12 @@ def save_sso_logo_upload(file_storage):
         target_name = f'{stem}-{n}{ext}'
         target = target_dir / target_name
         n += 1
+    validate_upload_file(file_storage, allowed_extensions={'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}, max_size=2 * 1024 * 1024)
     file_storage.save(target)
+    try:
+        os.chmod(target, 0o600)
+    except OSError:
+        pass
     return f'sso/{target_name}'
 
 
@@ -1356,10 +1643,10 @@ def sso_user_from_claims(claims, cfg):
     return user
 
 def ldap_auth(username,password):
-    cfg={s.key:s.value for s in Setting.query.all()}
+    cfg=setting_map()
     uri=cfg.get('ldap_uri'); base=cfg.get('ldap_base_dn'); filt=cfg.get('ldap_user_filter') or '(uid={uid})'
     if not uri or not base: return None
-    search_filter=filt.replace('{uid}',username)
+    search_filter=make_ldap_search_filter(filt, username)
     try:
         srv=Server(uri,get_info=ALL); bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
         with Connection(srv, user=bind_dn, password=bind_pw, auto_bind=True) as c:
@@ -1374,7 +1661,13 @@ def ldap_auth(username,password):
 @bp.route('/login',methods=['GET','POST'])
 def login():
     if request.method=='POST':
-        u=request.form['username'].strip(); p=request.form['password']; user=User.query.filter_by(username=u, auth_provider='local').first()
+        u=request.form['username'].strip(); p=request.form['password']
+        blocked, remaining = login_is_blocked(u)
+        if blocked:
+            audit_log('security:login_blocked', {'username': u, 'remaining_seconds': remaining}, actor_type='anonymous', commit=True)
+            flash(f'Troppi tentativi falliti. Riprovare tra {remaining} secondi.', 'error')
+            return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled(), sso_profiles=active_sso_profiles())
+        user=User.query.filter_by(username=u, auth_provider='local').first()
         if user and not user.is_ldap and verify_password(user.password_hash,p): return complete_login_or_mfa(user)
         info=ldap_auth(u,p)
         if info:
@@ -1389,6 +1682,7 @@ def login():
                 user.name=info['name']; user.email=info['email']; user.is_ldap=True; user.auth_provider='ldap'; db.session.commit()
             if user.role=='disabled': flash('Utente LDAP registrato ma disabilitato.','error'); return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled())
             return complete_login_or_mfa(user)
+        register_login_failure(u)
         current_app.logger.warning('Errore password/login per utente %s',u); flash('Credenziali non valide.','error')
     profiles = active_sso_profiles()
     return render_template('login.html', sso=sso_settings(), sso_enabled=bool(profiles), sso_profiles=profiles)
@@ -1470,7 +1764,10 @@ def sso_callback():
         return redirect(url_for('main.login'))
 
 @bp.route('/logout')
-def logout(): logout_user(); return redirect(url_for('main.login'))
+def logout():
+    if current_user.is_authenticated:
+        audit_log('security:logout', {'username': current_user.username}, actor_type='user', commit=True)
+    logout_user(); session.clear(); return redirect(url_for('main.login'))
 
 @bp.route('/info/applicazione')
 @login_required
@@ -2132,7 +2429,7 @@ def upload(iid):
             saved = 0
             for f in request.files.getlist('files'):
                 if f.filename:
-                    name=secure_filename(f.filename); stored=str(uuid.uuid4())+'_'+name; f.save(os.path.join(current_app.config['UPLOAD_DIR'],stored)); db.session.add(Document(incident_id=iid,filename=name,stored_name=stored)); saved += 1
+                    name, stored = save_validated_upload(f, current_app.config['UPLOAD_DIR']); db.session.add(Document(incident_id=iid,filename=name,stored_name=stored)); saved += 1
             db.session.commit()
             section_flash(f'Documenti caricati: {saved}', 'incident-documents', 'success')
         except Exception as exc:
@@ -2886,13 +3183,14 @@ def admin_logo():
         if not f or not f.filename:
             flash('Selezionare un file logo','error')
         else:
-            ext=os.path.splitext(secure_filename(f.filename))[1].lower() or '.img'
-            if ext not in ['.png','.jpg','.jpeg','.gif','.webp','.svg']:
-                flash('Formato logo non supportato','error')
-            else:
+            try:
+                filename = validate_upload_file(f, allowed_extensions={'.png','.jpg','.jpeg','.gif','.webp','.svg'}, max_size=2 * 1024 * 1024)
+                ext=os.path.splitext(filename)[1].lower() or '.img'
                 os.makedirs(current_app.config['LOGO_DIR'],exist_ok=True)
                 path=os.path.join(current_app.config['LOGO_DIR'],f'logo{ext}')
                 f.save(path)
+                try: os.chmod(path, 0o600)
+                except OSError: pass
                 # rimuove eventuali vecchi logo con estensione diversa
                 for old in Path(current_app.config['LOGO_DIR']).glob('logo.*'):
                     if str(old)!=path:
@@ -2901,6 +3199,9 @@ def admin_logo():
                 setting.value=path
                 db.session.merge(setting); db.session.commit(); flash('Logo aggiornato','info')
                 return redirect(url_for('main.admin_logo'))
+            except ValueError as exc:
+                audit_log('security:invalid_upload', {'area': 'admin_logo', 'error': str(exc)}, commit=True)
+                flash(str(exc),'error')
     return render_template('admin_logo.html')
 
 
@@ -3110,7 +3411,17 @@ def admin_users():
             flash('Backend di autenticazione non valido o profilo SSO non più configurato.', 'error')
             return redirect(url_for('main.admin_users'))
         is_ldap = backend == 'ldap'
-        username = request.form['username'].strip()
+        username = validate_text_field(request.form['username'].strip(), 'Username', 80, required=True, allow_multiline=False)
+        email = validate_email_field(request.form.get('email'), 'Email')
+        name = validate_text_field(request.form.get('name') or '', 'Nome', 160, allow_multiline=False)
+        role = request.form.get('role')
+        password = request.form.get('password') or ''
+        if backend == 'local':
+            try:
+                validate_password_strength(password, username=username, email=email)
+            except ValueError as exc:
+                flash(str(exc), 'error')
+                return redirect(url_for('main.admin_users'))
         if User.query.filter_by(username=username, auth_provider=backend).first():
             flash('Esiste già un utente con la stessa combinazione username + backend.', 'error')
             return redirect(url_for('main.admin_users'))
@@ -3118,7 +3429,7 @@ def admin_users():
             align_table_sequence('user')
         except Exception:
             current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente')
-        u=User(username=username,name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(request.form.get('password','changeme')) if backend == 'local' else None)
+        u=User(username=username,name=name,email=email,role=role,is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(password) if backend == 'local' else None)
         db.session.add(u)
         try:
             db.session.commit()
@@ -3128,7 +3439,7 @@ def admin_users():
                 raise
             current_app.logger.warning('Sequence user disallineata; riallineo e riprovo la creazione utente')
             align_table_sequence('user')
-            u=User(username=username,name=request.form.get('name'),email=request.form.get('email'),role=request.form.get('role'),is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(request.form.get('password','changeme')) if backend == 'local' else None)
+            u=User(username=username,name=name,email=email,role=role,is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(password) if backend == 'local' else None)
             db.session.add(u)
             db.session.commit()
         audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
@@ -3182,7 +3493,13 @@ def change_password():
     if request.method=='POST':
         if request.form['new_password']!=request.form['new_password2']: flash('Le password non coincidono','error')
         elif not verify_password(current_user.password_hash,request.form['old_password']): flash('Password attuale errata','error')
-        else: current_user.password_hash=hash_password(request.form['new_password']); db.session.commit(); flash('Password aggiornata')
+        else:
+            try:
+                validate_password_strength(request.form['new_password'], username=current_user.username, email=current_user.email)
+            except ValueError as exc:
+                flash(str(exc), 'error')
+                return render_template('change_password.html')
+            current_user.password_hash=hash_password(request.form['new_password']); db.session.commit(); audit_log('security:password_change', {'username': current_user.username}, actor_type='user', commit=True); flash('Password aggiornata')
     return render_template('change_password.html')
 
 @bp.route('/sso-logos/<path:filename>')
@@ -3313,7 +3630,7 @@ def sso_settings_admin():
 @login_required
 def ldap_settings():
     if not can_admin(): return redirect(url_for('main.index'))
-    settings={s.key:s.value for s in Setting.query.all()}
+    settings=setting_map()
     result=None
     def form_cfg():
         cfg=dict(settings)
@@ -3325,7 +3642,7 @@ def ldap_settings():
         cfg=form_cfg()
         if action=='save':
             for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter']:
-                s=Setting.query.get(k) or Setting(key=k); s.value=cfg.get(k,''); db.session.merge(s)
+                s=Setting.query.get(k) or Setting(key=k); s.value=store_setting_value(k, cfg.get(k,'')); db.session.merge(s)
             db.session.commit(); settings=cfg; flash('Parametri LDAP salvati')
         elif action=='test_connection':
             try:
@@ -3345,7 +3662,7 @@ def ldap_settings():
                 flash('Inserire una uid da cercare','error'); result={'ok':False,'title':'Ricerca utente LDAP','error':'uid mancante'}
             else:
                 try:
-                    filt=(cfg.get('ldap_user_filter') or '(uid={uid})').replace('{uid}',uid)
+                    filt=make_ldap_search_filter(cfg.get('ldap_user_filter') or '(uid={uid})', uid)
                     srv=Server(cfg.get('ldap_uri'),get_info=ALL,connect_timeout=5)
                     bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
                     with Connection(srv,user=bind_dn,password=bind_pw,auto_bind=True) as c:
@@ -3507,11 +3824,11 @@ def get_notification_type(kind):
 
 def setting_value(key, default=''):
     s = Setting.query.get(key)
-    return s.value if s and s.value is not None else default
+    return decrypt_setting_value(key, s.value) if s and s.value is not None else default
 
 def set_setting_value(key, value):
     s = Setting.query.get(key) or Setting(key=key)
-    s.value = value or ''
+    s.value = store_setting_value(key, value or '')
     db.session.merge(s)
 
 def app_info_label():
@@ -7172,6 +7489,7 @@ def import_full():
         f.save(tmp)
         try:
             with tarfile.open(tmp, 'r:gz') as archive:
+                validate_full_import_archive(archive)
                 member = archive.getmember('export.json')
                 data = json.load(archive.extractfile(member))
                 if data.get('format') != 'cybersecurity-incident-registry-full-export':
@@ -7829,15 +8147,16 @@ def recommendations_from_form(field='recommendations'):
 
 def setting_value(key, default=''):
     s=Setting.query.get(key)
-    return s.value if s and s.value is not None else default
+    return decrypt_setting_value(key, s.value) if s and s.value is not None else default
 
 def set_setting_value(key, value):
     s=Setting.query.get(key)
+    encrypted = store_setting_value(key, value or '')
     if not s:
-        s=Setting(key=key,value=value or '')
+        s=Setting(key=key,value=encrypted)
         db.session.add(s)
     else:
-        s.value=value or ''
+        s.value=encrypted
     return s
 
 

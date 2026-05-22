@@ -11,7 +11,7 @@ minimum security baseline without adding a heavy form framework.  It provides:
 import os
 import re
 import secrets
-from flask import abort, current_app, request, session
+from flask import abort, current_app, request, session, g
 
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 WEAK_SECRET_VALUES = {"", "dev-change-me", "change-me", "changeme", "secret", "admin", "password"}
@@ -58,6 +58,24 @@ def csrf_field():
     return f'<input type="hidden" name="_csrf_token" value="{current_csrf_token()}">'
 
 
+def ensure_csp_nonce():
+    g.csp_nonce = secrets.token_urlsafe(16)
+
+
+def block_disallowed_http_methods():
+    """Reject HTTP methods that must be disabled for web security compliance."""
+    if request.method in {"TRACE", "TRACK"}:
+        current_app.logger.warning("Blocked disallowed HTTP method %s on %s", request.method, request.path)
+        try:
+            from .models import db, AuditLog
+            db.session.add(AuditLog(operation_type="security:method_blocked", username="anonymous", actor_type="anonymous", details=f"{request.method} {request.path}"[:1000]))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        abort(405, description="Metodo HTTP non consentito.")
+    return None
+
+
 def validate_csrf():
     if request.method not in UNSAFE_METHODS:
         return None
@@ -67,6 +85,12 @@ def validate_csrf():
     supplied = request.form.get("_csrf_token") or request.headers.get("X-CSRFToken") or request.headers.get("X-CSRF-Token")
     if not expected or not supplied or not secrets.compare_digest(str(expected), str(supplied)):
         current_app.logger.warning("CSRF validation failed for %s %s", request.method, request.path)
+        try:
+            from .models import db, AuditLog
+            db.session.add(AuditLog(operation_type="security:csrf_failure", username="anonymous", actor_type="anonymous", details=f"{request.method} {request.path}"[:1000]))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         abort(400, description="Richiesta non valida o scaduta: token CSRF assente o non corretto.")
     return None
 
@@ -81,10 +105,14 @@ def inject_csrf_fields(response):
         body = response.get_data(as_text=True)
     except Exception:
         return response
-    if "<form" not in body.lower():
-        return response
-    field = csrf_field()
-    body = _POST_FORM_RE.sub(lambda match: match.group(1) + field, body)
+    lower_body = body.lower()
+    if "<form" in lower_body:
+        field = csrf_field()
+        body = _POST_FORM_RE.sub(lambda match: match.group(1) + field, body)
+    nonce = getattr(g, "csp_nonce", "")
+    if nonce:
+        body = re.sub(r"<script(?![^>]*\bnonce=)", f"<script nonce=\"{nonce}\"", body, flags=re.IGNORECASE)
+        body = re.sub(r"<style(?![^>]*\bnonce=)", f"<style nonce=\"{nonce}\"", body, flags=re.IGNORECASE)
     response.set_data(body)
     response.calculate_content_length()
     return response
@@ -95,6 +123,12 @@ def add_security_headers(response):
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    nonce = getattr(g, "csp_nonce", "")
+    default_csp = (
+        f"default-src 'self'; img-src 'self' data:; style-src 'self' 'nonce-{nonce}'; "
+        f"script-src 'self' 'nonce-{nonce}'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+    )
+    response.headers.setdefault("Content-Security-Policy", os.getenv("CONTENT_SECURITY_POLICY", default_csp))
     if request.is_secure or truthy(os.getenv("CIR_FORCE_HSTS", "0")):
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
@@ -106,12 +140,15 @@ def init_security(app):
     app.config.setdefault("SESSION_COOKIE_SAMESITE", os.getenv("SESSION_COOKIE_SAMESITE", "Lax"))
     app.config.setdefault("REMEMBER_COOKIE_HTTPONLY", True)
     app.config.setdefault("REMEMBER_COOKIE_SAMESITE", os.getenv("REMEMBER_COOKIE_SAMESITE", "Lax"))
+    app.config.setdefault("PERMANENT_SESSION_LIFETIME", int(os.getenv("SESSION_IDLE_TIMEOUT_SECONDS", "1800")))
     if truthy(os.getenv("SESSION_COOKIE_SECURE", "0")) or production_mode():
         app.config["SESSION_COOKIE_SECURE"] = True
         app.config["REMEMBER_COOKIE_SECURE"] = True
     validate_production_configuration(app)
     app.jinja_env.globals["csrf_token"] = current_csrf_token
     app.jinja_env.globals["csrf_field"] = csrf_field
+    app.before_request(ensure_csp_nonce)
+    app.before_request(block_disallowed_http_methods)
     app.before_request(validate_csrf)
     app.after_request(inject_csrf_fields)
     app.after_request(add_security_headers)

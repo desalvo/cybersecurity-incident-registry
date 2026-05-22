@@ -1,4 +1,4 @@
-import os, time, shutil
+import os, time, shutil, secrets
 from flask import Flask
 from .text_filters import register_text_filters
 from sqlalchemy import text, inspect
@@ -11,7 +11,7 @@ from .consequences import default_consequence_settings
 def create_app():
     app=Flask(__name__)
     register_text_filters(app)
-    app.config['SECRET_KEY']=os.getenv('SECRET_KEY','dev-change-me')
+    app.config['SECRET_KEY']=os.getenv('SECRET_KEY') or secrets.token_urlsafe(48)
     app.config['SQLALCHEMY_DATABASE_URI']=os.getenv('DATABASE_URL','sqlite:////tmp/cir.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
     init_security(app)
@@ -23,8 +23,8 @@ def create_app():
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.3.0-1'),
-        'build': os.getenv('APP_BUILD','2026052101'),
+        'version': os.getenv('APP_VERSION','0.4.0-1'),
+        'build': os.getenv('APP_BUILD','20260522'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
@@ -629,7 +629,10 @@ def bootstrap(app):
         admin=User.query.filter_by(username='admin', auth_provider='local').first()
         if not admin:
             repair_postgres_sequences(app)
-            admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='admin', is_ldap=False, auth_provider='local', password_hash=hash_password(os.getenv('ADMIN_INITIAL_PASSWORD','adminpass')))
+            initial_password = os.getenv('ADMIN_INITIAL_PASSWORD') or secrets.token_urlsafe(18)
+            if not os.getenv('ADMIN_INITIAL_PASSWORD'):
+                app.logger.warning('ADMIN_INITIAL_PASSWORD non impostata: generata password iniziale temporanea per admin; impostarla esplicitamente prima del deploy.')
+            admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='admin', is_ldap=False, auth_provider='local', password_hash=hash_password(initial_password))
             db.session.add(admin)
         else:
             admin.role='admin'; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
