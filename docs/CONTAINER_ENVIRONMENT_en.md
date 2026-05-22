@@ -174,3 +174,15 @@ In multi-replica deployments keep PostgreSQL as the database and leave the sched
 
 ## Container backups
 The `BACKUP_DIR` variable, default `/data/backups`, identifies the local POSIX destination used by **Admin → Backup** when the local destination is selected. Mount this path on a persistent volume or PVC. The feature supports downloadable on-demand backups, local backups, S3/compatible destinations and cron-like scheduling. Scheduled backups are disabled by default and must be explicitly enabled by an administrator. S3 requires the optional `boto3` library in the image or in a derived image.
+
+## Docker entrypoint permissions
+
+The container uses `/app/docker-entrypoint.sh` as its startup command. The Dockerfile always runs `chmod 0755 /app/docker-entrypoint.sh` during the build, before switching to `USER appuser`, so the image remains startable even when the source ZIP package or extraction filesystem does not preserve Unix executable bits.
+
+When editing the script manually, check before release:
+
+```bash
+ls -l docker-entrypoint.sh
+test -x docker-entrypoint.sh
+pytest tests/test_container_packaging.py
+```

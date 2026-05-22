@@ -1,0 +1,6 @@
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[tester]	WARNING	nosec encountered (B704), but no failed test on line 150
+[json]	INFO	JSON output written to file: /mnt/data/fix_entrypoint/compliance/agid/20260522T225751Z/bandit.json

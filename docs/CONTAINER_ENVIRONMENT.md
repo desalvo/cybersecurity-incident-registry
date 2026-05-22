@@ -31,6 +31,19 @@ Per rimuovere anche i volumi, operazione distruttiva da usare solo su ambienti d
 docker compose down -v
 ```
 
+
+## Permessi dell'entrypoint Docker
+
+Il container usa `/app/docker-entrypoint.sh` come comando di avvio. Il Dockerfile esegue sempre `chmod 0755 /app/docker-entrypoint.sh` durante la build, prima del cambio a `USER appuser`, così l'immagine resta avviabile anche se il pacchetto sorgente o il sistema di estrazione ZIP non preservano il bit eseguibile.
+
+Se si modifica manualmente lo script, verificare prima del rilascio:
+
+```bash
+ls -l docker-entrypoint.sh
+test -x docker-entrypoint.sh
+pytest tests/test_container_packaging.py
+```
+
 ## Variabili obbligatorie in produzione
 
 | Variabile | Uso | Note operative |

@@ -1778,3 +1778,9 @@ La versione 0.4.0-4 rafforza la conformità alle linee guida AGID per lo svilupp
 - gli upload del plugin AI Chatbot passano dalla validazione centralizzata per estensione, dimensione e magic header;
 - gli endpoint AI sono validati prima del salvataggio e prima della chiamata: gli endpoint SaaS restano vincolati agli host ufficiali e HTTPS, mentre endpoint custom o privati richiedono opt-in esplicito tramite variabili d'ambiente;
 - il riallineamento delle sequenze PostgreSQL evita SQL dinamico per il calcolo dei massimi e usa SQLAlchemy Core con bind parameters.
+
+## Suite riproducibile di conformità AGID
+
+Il repository include una suite dedicata alla conformità AGID composta da test dinamici Flask, smoke test di sicurezza, compilazione Python, `pip check`, Bandit con soglia bloccante HIGH/MEDIUM e `pip-audit` quando l'ambiente dispone di accesso al database vulnerabilità. L'entry point è `scripts/run_agid_compliance.sh`; le evidenze sono salvate in `compliance/agid/<RUN_ID>/`. La documentazione operativa sintetica è `docs/AGID_COMPLIANCE.md`.
+
+Ogni aggiornamento futuro deve rieseguire la suite, conservare i risultati nel pacchetto e aggiornare changelog/documentazione.

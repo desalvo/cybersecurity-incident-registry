@@ -1,3 +1,8 @@
+0.4.0-4 - Fix permessi entrypoint container
+- Corretto l'avvio container quando `docker-entrypoint.sh` risulta copiato senza bit eseguibile.
+- Il Dockerfile applica esplicitamente `chmod 0755 /app/docker-entrypoint.sh` prima del passaggio all'utente non privilegiato.
+- Aggiunti test di regressione sul packaging container e aggiornata la documentazione operativa.
+
 0.4.0-4 - Compliance sviluppo sicuro
 - Rafforzata la validazione server-side per password, utenti, email, testo e upload.
 - Introdotti rate limiting login, timeout sessione, rigenerazione sessione, audit security e CSP configurabile.
@@ -1150,3 +1155,19 @@ Notification menu and SMTP sender fix
 - Aggiunta validazione server-side degli endpoint AI per ridurre il rischio SSRF: host vendor predefiniti, HTTPS per endpoint pubblici e blocco di reti private salvo esplicita configurazione amministrativa via variabili d'ambiente.
 - Rimosse query SQL dinamiche non necessarie nel riallineamento sequenze, usando SQLAlchemy Core e parametri bind.
 - Allineata la versione applicativa a 0.4.0-4 in codice, template, documentazione, Docker Compose e manifest Kubernetes.
+
+0.4.0-4 build 20260522 - AGID compliance evidence package
+- Aggiunta suite riproducibile `scripts/run_agid_compliance.sh`.
+- Aggiunti test dinamici `tests/test_agid_compliance_dynamic.py` per CSRF, TRACE/TRACK, header/cookie, lockout, audit, access control, XSS, upload e SSRF AI.
+- Aggiunti script di riepilogo e soglia Bandit.
+- Aggiunta documentazione sintetica `docs/AGID_COMPLIANCE.md`.
+- I risultati dei controlli AGID vengono salvati in `compliance/agid/<RUN_ID>/` e inclusi nel pacchetto.
+- Corretto l'hardening dei cookie di sessione: SameSite/HttpOnly vengono impostati esplicitamente anche quando Flask ha default `None`.
+
+
+Versione 0.4.0-4 - aggiornamento compliance AGID
+- Inserita suite riproducibile per i controlli di conformità AGID in `scripts/run_agid_compliance.sh`.
+- Aggiunti script di supporto per soglia Bandit e sintesi risultati.
+- Aggiunta documentazione dedicata `docs/AGID_COMPLIANCE.md`.
+- Salvate nel pacchetto le evidenze dei run in `compliance/agid/<RUN_ID>/`.
+- Aggiornate le istruzioni operative affinché ogni futuro aggiornamento riesegua e includa i risultati di compliance.

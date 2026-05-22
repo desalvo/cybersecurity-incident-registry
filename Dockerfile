@@ -37,6 +37,7 @@ RUN set -eux; \
 COPY . .
 
 RUN set -eux; \
+    chmod 0755 /app/docker-entrypoint.sh; \
     mkdir -p /data/uploads /data/logo /data/form_templates /data/ssl; \
     useradd --create-home --shell /usr/sbin/nologin appuser; \
     chown -R appuser:appuser /app /data

@@ -136,11 +136,11 @@ def add_security_headers(response):
 
 def init_security(app):
     app.config.setdefault("MAX_CONTENT_LENGTH", int(os.getenv("MAX_CONTENT_LENGTH", str(25 * 1024 * 1024))))
-    app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
-    app.config.setdefault("SESSION_COOKIE_SAMESITE", os.getenv("SESSION_COOKIE_SAMESITE", "Lax"))
-    app.config.setdefault("REMEMBER_COOKIE_HTTPONLY", True)
-    app.config.setdefault("REMEMBER_COOKIE_SAMESITE", os.getenv("REMEMBER_COOKIE_SAMESITE", "Lax"))
-    app.config.setdefault("PERMANENT_SESSION_LIFETIME", int(os.getenv("SESSION_IDLE_TIMEOUT_SECONDS", "1800")))
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "Lax") or "Lax"
+    app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+    app.config["REMEMBER_COOKIE_SAMESITE"] = os.getenv("REMEMBER_COOKIE_SAMESITE", "Lax") or "Lax"
+    app.config["PERMANENT_SESSION_LIFETIME"] = int(os.getenv("SESSION_IDLE_TIMEOUT_SECONDS", "1800"))
     if truthy(os.getenv("SESSION_COOKIE_SECURE", "0")) or production_mode():
         app.config["SESSION_COOKIE_SECURE"] = True
         app.config["REMEMBER_COOKIE_SECURE"] = True

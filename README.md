@@ -56,6 +56,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Nota container: l'immagine applica esplicitamente i permessi `0755` a `/app/docker-entrypoint.sh` durante la build. Questo evita crash OCI/crun del tipo `exists but it is not executable` anche quando il pacchetto ZIP o il filesystem sorgente non preservano i bit Unix.
+
 
 ## Variabili di ambiente e gestione container
 
@@ -796,3 +798,28 @@ Questa build applica ulteriori controlli per l'allineamento alle linee guida AGI
 ### Chiusura compliance AGID: lockout login server-side
 
 Il blocco dopo tentativi di login falliti è ora gestito server-side tramite la tabella `login_failure`, indicizzata per chiave derivata da indirizzo IP e username normalizzato. Il contatore non è più salvato nella sessione/cookie del browser e quindi non può essere aggirato eliminando i cookie o aprendo una nuova sessione. La policy è configurabile tramite variabili d'ambiente: `LOGIN_LOCKOUT_THRESHOLD`, `LOGIN_LOCKOUT_WINDOW_SECONDS`, `LOGIN_LOCKOUT_STEP_SECONDS` e `LOGIN_LOCKOUT_MAX_SECONDS`. Gli eventi continuano a essere registrati nell'audit come `security:login_failure` e `security:login_blocked`.
+
+## Suite di conformità AGID inclusa nel pacchetto
+
+Il pacchetto include una suite riproducibile per i controlli di conformità alle linee guida AGID per lo sviluppo sicuro. Eseguire:
+
+```bash
+pip install -r requirements-dev.txt
+./scripts/run_agid_compliance.sh
+```
+
+Le evidenze vengono salvate in `compliance/agid/<RUN_ID>/` con log, risultati Bandit, eventuale `pip-audit`, `summary.json` e `SUMMARY.md`. La documentazione sintetica è in `docs/AGID_COMPLIANCE.md`.
+
+Da questa versione ogni aggiornamento del progetto deve includere l'esecuzione della suite AGID e il salvataggio dei risultati nel pacchetto.
+
+
+## Verifiche AGID incluse nel pacchetto
+
+Il pacchetto include una suite riproducibile per la conformità alle Linee guida AGID per lo sviluppo sicuro. Eseguire:
+
+```bash
+pip install -r requirements-dev.txt
+./scripts/run_agid_compliance.sh
+```
+
+Le evidenze sono salvate in `compliance/agid/<RUN_ID>/` con log, risultati Bandit, sintesi JSON/Markdown e note su eventuali limitazioni ambientali. La documentazione sintetica dedicata è in `docs/AGID_COMPLIANCE.md`. Ogni aggiornamento del progetto deve rieseguire la suite e includere nel pacchetto la nuova directory dei risultati.

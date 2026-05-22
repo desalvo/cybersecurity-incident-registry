@@ -610,3 +610,28 @@ The application blocks HTTP `TRACE` and `TRACK` directly and emits `security:met
 ### AGID compliance closure: server-side login lockout
 
 Failed-login lockout is now enforced server-side through the `login_failure` table, keyed by a digest derived from client IP address and normalized username. Counters are no longer stored in the browser session/cookie, so clearing cookies or opening a new session cannot bypass the lockout. The policy can be tuned with `LOGIN_LOCKOUT_THRESHOLD`, `LOGIN_LOCKOUT_WINDOW_SECONDS`, `LOGIN_LOCKOUT_STEP_SECONDS` and `LOGIN_LOCKOUT_MAX_SECONDS`. Events continue to be audited as `security:login_failure` and `security:login_blocked`.
+
+## AGID compliance test suite included in the package
+
+The package includes a reproducible suite for AGID secure-development checks. Run:
+
+```bash
+pip install -r requirements-dev.txt
+./scripts/run_agid_compliance.sh
+```
+
+Evidence is saved under `compliance/agid/<RUN_ID>/`, including logs, Bandit output, optional `pip-audit`, `summary.json` and `SUMMARY.md`. The short dedicated documentation is available in `docs/AGID_COMPLIANCE.md`.
+
+From this release onward, every project update must run the AGID suite and keep the results in the package.
+
+
+## AGID compliance checks included in the package
+
+The package includes a reproducible suite for the AGID secure development guidelines. Run:
+
+```bash
+pip install -r requirements-dev.txt
+./scripts/run_agid_compliance.sh
+```
+
+Evidence is saved under `compliance/agid/<RUN_ID>/` with logs, Bandit results, JSON/Markdown summaries and notes for environmental limitations. The dedicated short documentation is `docs/AGID_COMPLIANCE.md`. Every project update must rerun the suite and include the new results directory in the package.

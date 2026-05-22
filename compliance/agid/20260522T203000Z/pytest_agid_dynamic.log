@@ -1,0 +1,96 @@
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /opt/pyvenv/lib/python3.13/site-packages/ldap3/utils/asn1.py:50: DeprecationWarning: tagMap is deprecated. Please use TAG_MAP instead.
+    from pyasn1.codec.ber.encoder import tagMap, typeMap, AbstractItemEncoder
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /opt/pyvenv/lib/python3.13/site-packages/ldap3/utils/asn1.py:50: DeprecationWarning: typeMap is deprecated. Please use TYPE_MAP instead.
+    from pyasn1.codec.ber.encoder import tagMap, typeMap, AbstractItemEncoder
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /opt/pyvenv/lib/python3.13/site-packages/matplotlib/_fontconfig_pattern.py:64: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'
+    prop = Group((name + Suppress("=") + comma_separated(value)) | oneOf(_CONSTANTS))
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /opt/pyvenv/lib/python3.13/site-packages/matplotlib/_fontconfig_pattern.py:85: PyparsingDeprecationWarning: 'parseString' deprecated - use 'parse_string'
+    parse = parser.parseString(pattern)
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /opt/pyvenv/lib/python3.13/site-packages/matplotlib/_fontconfig_pattern.py:89: PyparsingDeprecationWarning: 'resetCache' deprecated - use 'reset_cache'
+    parser.resetCache()
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /opt/pyvenv/lib/python3.13/site-packages/matplotlib/_mathtext.py:45: PyparsingDeprecationWarning: 'enablePackrat' deprecated - use 'enable_packrat'
+    ParserElement.enablePackrat()
+
+tests/test_agid_compliance_dynamic.py: 728 warnings
+  /mnt/data/work_agid/app/__init__.py:109: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    s=Setting.query.get(key)
+
+tests/test_agid_compliance_dynamic.py: 66 warnings
+  /mnt/data/work_agid/app/consequences.py:10: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    obj = Setting.query.get(key)
+
+tests/test_agid_compliance_dynamic.py: 172 warnings
+  /opt/pyvenv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py:3624: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/test_agid_compliance_dynamic.py: 109 warnings
+  /mnt/data/work_agid/app/routes.py:8153: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    s=Setting.query.get(key)
+
+tests/test_agid_compliance_dynamic.py: 11 warnings
+  /mnt/data/work_agid/app/routes.py:503: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_login_error_does_not_enumerate_users_and_records_audit
+tests/test_agid_compliance_dynamic.py::test_agid_admin_login_uses_server_side_lockout_model
+tests/test_agid_compliance_dynamic.py::test_agid_output_escaping_on_user_supplied_incident_name
+tests/test_agid_compliance_dynamic.py::test_agid_output_escaping_on_user_supplied_incident_name
+tests/test_agid_compliance_dynamic.py::test_agid_upload_validation_rejects_unsafe_chatbot_upload
+tests/test_agid_compliance_dynamic.py::test_agid_upload_validation_rejects_unsafe_chatbot_upload
+  /mnt/data/work_agid/app/routes.py:353: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow() - audit_retention_delta()
+
+tests/test_agid_compliance_dynamic.py: 17 warnings
+  /mnt/data/work_agid/app/routes.py:5885: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    g.audit_started_at = datetime.utcnow()
+
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+tests/test_agid_compliance_dynamic.py::test_agid_security_headers_and_cookie_flags
+  /mnt/data/work_agid/app/routes.py:8157: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    s=Setting.query.get(key)
+
+tests/test_agid_compliance_dynamic.py::test_agid_login_error_does_not_enumerate_users_and_records_audit
+  /mnt/data/work_agid/app/routes.py:261: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_agid_compliance_dynamic.py::test_agid_output_escaping_on_user_supplied_incident_name
+tests/test_agid_compliance_dynamic.py::test_agid_output_escaping_on_user_supplied_incident_name
+tests/test_agid_compliance_dynamic.py::test_agid_output_escaping_on_user_supplied_incident_name
+tests/test_agid_compliance_dynamic.py::test_agid_upload_validation_rejects_unsafe_chatbot_upload
+tests/test_agid_compliance_dynamic.py::test_agid_upload_validation_rejects_unsafe_chatbot_upload
+tests/test_agid_compliance_dynamic.py::test_agid_upload_validation_rejects_unsafe_chatbot_upload
+  /mnt/data/work_agid/app/auth.py:16: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return User.query.get(int(uid))
+
+tests/test_agid_compliance_dynamic.py::test_agid_output_escaping_on_user_supplied_incident_name
+  /opt/pyvenv/lib/python3.13/site-packages/flask_sqlalchemy/query.py:30: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    rv = self.get(ident)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 1138 warnings in 6.01s
