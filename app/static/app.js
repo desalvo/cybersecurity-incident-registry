@@ -275,12 +275,45 @@ function initAIChatbotWidget(){
   const askUrl = widget.dataset.askUrl;
   const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
+  function adjustWidgetPosition(){
+    if(!widget) return;
+    if(window.matchMedia && window.matchMedia('(max-width: 820px)').matches){
+      widget.classList.remove('collision-adjusted');
+      widget.style.removeProperty('--ai-chatbot-safe-bottom');
+      widget.style.removeProperty('--ai-chatbot-safe-right');
+      return;
+    }
+    const margin = 18;
+    const gap = 16;
+    let safeBottom = 128;
+    let safeRight = margin;
+    const cornerLogo = document.querySelector('.app-corner-logo');
+    if(cornerLogo){
+      const logoStyle = window.getComputedStyle(cornerLogo);
+      const logoVisible = logoStyle.display !== 'none' && logoStyle.visibility !== 'hidden' && cornerLogo.offsetWidth > 0 && cornerLogo.offsetHeight > 0;
+      if(logoVisible){
+        const rect = cornerLogo.getBoundingClientRect();
+        safeBottom = Math.max(safeBottom, Math.round(window.innerHeight - rect.top + gap));
+        safeRight = Math.max(margin, Math.round(window.innerWidth - rect.right + margin));
+      }
+    }
+    const maxBottom = Math.max(margin, window.innerHeight - 320);
+    safeBottom = Math.min(safeBottom, maxBottom);
+    widget.style.setProperty('--ai-chatbot-safe-bottom', safeBottom + 'px');
+    widget.style.setProperty('--ai-chatbot-safe-right', safeRight + 'px');
+    widget.classList.add('collision-adjusted');
+  }
+
   function setOpen(open){
     if(!panel) return;
+    adjustWidgetPosition();
     panel.hidden = !open;
     widget.classList.toggle('open', open);
     if(fab) fab.setAttribute('aria-expanded', open ? 'true' : 'false');
     if(mobileOpen) mobileOpen.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(open){
+      setTimeout(adjustWidgetPosition, 80);
+    }
     if(open && questionInput) setTimeout(()=>questionInput.focus(), 80);
   }
 
@@ -401,6 +434,11 @@ function initAIChatbotWidget(){
     messages.scrollTop = messages.scrollHeight;
     return node;
   }
+
+
+  adjustWidgetPosition();
+  window.addEventListener('resize', adjustWidgetPosition);
+  window.addEventListener('orientationchange', adjustWidgetPosition);
 
   if(fab) fab.addEventListener('click', ()=>setOpen(true));
   if(mobileOpen) mobileOpen.addEventListener('click', ()=>setOpen(true));

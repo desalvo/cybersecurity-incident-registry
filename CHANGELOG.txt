@@ -1,3 +1,8 @@
+0.3.0-6
+- AI Chatbot: rafforzato il posizionamento anti-collisione del widget globale.
+- Nel desktop il launcher resta preferibilmente in basso a destra sopra il logo applicativo e ricalcola automaticamente lo spazio rispetto al logo e alla viewport.
+- Aggiornata la documentazione del comportamento responsive del widget.
+
 - AI Chatbot: la finestra flottante renderizza Markdown sicuro nelle risposte, inclusi titoli, elenchi, grassetto, codice e link; HTML libero escapato.
 0.3.0-4
 - Corretto il layout del widget AI Chatbot: icona e pannello desktop non si sovrappongono più al logo applicativo decorativo.
