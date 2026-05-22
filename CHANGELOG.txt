@@ -1086,3 +1086,7 @@ Notification menu and SMTP sender fix
 - Aggiunta configurazione motori ChatGPT, Claude, Gemini, Ollama e Perplexity con singolo motore attivo.
 - Aggiunta knowledge base del chatbot basata su documentazione progettuale e documenti procedurali caricabili.
 - Aggiunti audit e full export/import per documenti e configurazioni del chatbot.
+
+
+0.3.0-1 update
+- AI Chatbot: aggiunta opzione per includere nel contesto uno snapshot sanitizzato del database corrente, escludendo dati personali, sensibili, credenziali, token, email, binari e testo potenzialmente identificativo.

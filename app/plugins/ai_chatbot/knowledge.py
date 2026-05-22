@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from flask import current_app
 from ...models import AIChatbotDocument
+from .database_context import database_context_enabled, sanitized_database_context
 
 PROJECT_FILES = [
     'docs/PROJECT_DESIGN.md',
@@ -51,12 +52,15 @@ def uploaded_knowledge(max_chars=50000):
 
 
 def build_system_context():
+    database_section = ''
+    if database_context_enabled():
+        database_section = '\n\n# Snapshot database applicativo sanitizzato\n' + sanitized_database_context()
     return (
         "Sei l'assistente interno dell'applicazione Cybersecurity Incident Registry. "
         "Rispondi in italiano, in modo operativo e prudente, usando la documentazione e le procedure fornite. "
         "Se una procedura non è documentata, dichiaralo e suggerisci di verificare con un amministratore.\n\n"
         "# Documentazione progettuale e funzionale\n" + project_knowledge() +
-        "\n\n# Procedure/documenti caricati nel plugin\n" + uploaded_knowledge()
+        "\n\n# Procedure/documenti caricati nel plugin\n" + uploaded_knowledge() + database_section
     )
 
 

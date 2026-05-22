@@ -570,3 +570,6 @@ During import the JSON file is analysed first: new elements are created, while e
 The **Admin → Plugins** menu can enable the optional **AI Chatbot** plugin, disabled by default. The plugin provides a support chat for application features, operating instructions and security incident procedures.
 
 Supported engines: ChatGPT, Claude, Gemini, Ollama and Perplexity. Each engine has its own configuration, but only one engine can be active at a time. The chatbot uses the project documentation as built-in knowledge and can be enriched by uploading additional procedural documents to the plugin knowledge base.
+
+
+AI Chatbot update: the plugin configuration now provides **Allow the AI engine to also use a sanitized snapshot of the current database**. The option is disabled by default. When enabled, the context sent to the selected engine also includes a JSON view of the current application database, filtered to exclude personal data, sensitive data, credentials, tokens, email addresses, binary attachments and free-text fields that may identify individuals.

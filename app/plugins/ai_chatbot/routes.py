@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from ...models import db, Setting, AIChatbotDocument
 from ...routes import audit_log, setting_value, set_setting_value
 from .knowledge import build_system_context, extract_text_from_upload
+from .database_context import database_context_enabled
 from .engines import get_engine, AIEngineError, ENGINE_CLASSES
 
 bp = Blueprint('ai_chatbot', __name__, url_prefix='/ai-chatbot', template_folder='templates')
@@ -38,7 +39,7 @@ def plugin_config():
             'endpoint': _get_setting(f'ai_chatbot_{name}_endpoint', ''),
             'model': _get_setting(f'ai_chatbot_{name}_model', ''),
         }
-    return {'enabled': is_enabled(), 'engine': engine, 'configs': configs}
+    return {'enabled': is_enabled(), 'engine': engine, 'configs': configs, 'include_database_context': database_context_enabled()}
 
 
 def docs_dir():
@@ -64,7 +65,7 @@ def chat():
             try:
                 engine = get_engine(cfg['engine'], cfg['configs'].get(cfg['engine'], {}))
                 answer = engine.generate([{'role':'user','content':question}], build_system_context())
-                audit_log('ai_chatbot:question', {'engine': cfg['engine'], 'question': question[:300]}, actor_type='user')
+                audit_log('ai_chatbot:question', {'engine': cfg['engine'], 'question': question[:300], 'database_context': cfg.get('include_database_context')}, actor_type='user')
                 db.session.commit()
             except AIEngineError as exc:
                 answer = f'Configurazione o motore AI non disponibile: {exc}'
@@ -90,10 +91,11 @@ def admin_plugins():
         if engine not in ENGINE_NAMES:
             engine = 'chatgpt'
         set_setting_value('ai_chatbot_engine', engine)
+        set_setting_value('ai_chatbot_include_database_context', '1' if request.form.get('ai_chatbot_include_database_context') == '1' else '0')
         for name in ENGINE_NAMES:
             for field in ('api_key','endpoint','model'):
                 set_setting_value(f'ai_chatbot_{name}_{field}', request.form.get(f'{name}_{field}') or '')
-        audit_log('ai_chatbot:plugin_config_update', {'enabled': request.form.get('plugin_ai_chatbot_enabled') == '1', 'engine': engine}, actor_type='user')
+        audit_log('ai_chatbot:plugin_config_update', {'enabled': request.form.get('plugin_ai_chatbot_enabled') == '1', 'engine': engine, 'database_context': request.form.get('ai_chatbot_include_database_context') == '1'}, actor_type='user')
         db.session.commit()
         flash('Configurazione plugin aggiornata.', 'success')
         return redirect(url_for('ai_chatbot.admin_plugins'))

@@ -1729,3 +1729,12 @@ Caratteristiche principali:
 - full export/import include anche tabella e volume persistente dei documenti del chatbot.
 
 Il chatbot è pensato per assistere gli operatori su funzionalità applicative, procedure da seguire e gestione degli incidenti di sicurezza. Se il motore selezionato non è configurato correttamente, l’interfaccia mostra un errore operativo senza bloccare l’applicazione.
+
+
+### Contesto database sanitizzato per AI Chatbot
+
+Il plugin **AI Chatbot** può essere configurato per includere nel prompt anche uno snapshot sanitizzato del database corrente. La funzione è controllata dalla setting `ai_chatbot_include_database_context`, disattivata per default e modificabile da **Admin → Plugins**.
+
+L'implementazione è isolata nel plugin, nel file `app/plugins/ai_chatbot/database_context.py`, e non richiede modifiche al core applicativo. Prima di inviare contenuti al motore AI vengono esclusi dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari, certificati, chiavi, audit dettagliati e campi testuali liberi che possono contenere informazioni identificative. Le tabelle intrinsecamente personali o binarie, come utenti, rubrica esterna, token MFA, documenti chatbot e binari dei template PDF, sono escluse o rappresentate solo con metadati non identificativi.
+
+Il contesto risultante viene aggiunto dopo documentazione progettuale e knowledge base caricata, in una sezione `Snapshot database applicativo sanitizzato`. Ogni domanda al chatbot registra nell'audit se il contesto database era abilitato.

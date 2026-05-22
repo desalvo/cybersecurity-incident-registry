@@ -1,6 +1,7 @@
 <section class="card"><h2>0.3.0-1</h2><p>Added optional AI Chatbot plugin with ChatGPT, Claude, Gemini, Ollama and Perplexity engines, document knowledge base and Admin → Plugins configuration.</p></section>
 {% extends 'base.html' %}
-{% block content %}<section class="doc-section"><h2>0.3.0-1 - Consequence rules and notification documents</h2><ul><li>Manual notification previews now preselect only documents with the matching notification tag, even when they were generated from a linked form template.</li><li>The automatic consequence logic under Admin → Other configurations can now add, remove and edit rules, text and conditions.</li><li>Conditions can use category, data type, severity, status, risk to rights/freedoms and textual fields.</li><li>Documentation updated.</li><li>Added single-workflow import/export with preview and selective overwrite confirmation.</li>
+{% block content %}<section class="doc-section"><h2>0.3.0-1 - Consequence rules and notification documents</h2><ul>
+<li>AI Chatbot: option to use a sanitized current-database snapshot, excluding personal/sensitive data, credentials, tokens, email addresses, binaries and potentially identifying free text.</li><li>Manual notification previews now preselect only documents with the matching notification tag, even when they were generated from a linked form template.</li><li>The automatic consequence logic under Admin → Other configurations can now add, remove and edit rules, text and conditions.</li><li>Conditions can use category, data type, severity, status, risk to rights/freedoms and textual fields.</li><li>Documentation updated.</li><li>Added single-workflow import/export with preview and selective overwrite confirmation.</li>
 </ul></section>
 
 

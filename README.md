@@ -757,3 +757,6 @@ In fase di import il file JSON viene prima analizzato: gli elementi nuovi sarann
 Il menu **Admin → Plugins** permette di attivare il plugin opzionale **AI Chatbot**, disattivato per default. Il plugin fornisce una chat di supporto sulle funzionalità dell’applicazione, sulle operazioni e sulle procedure per gli incidenti di sicurezza.
 
 Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha configurazione separata, ma solo uno può essere attivo alla volta. Il chatbot usa la documentazione progettuale dell’applicazione e può essere arricchito caricando documenti procedurali aggiuntivi nella knowledge base del plugin.
+
+
+Aggiornamento AI Chatbot: nella configurazione del plugin è disponibile l'opzione **Consenti al motore AI di usare anche uno snapshot sanitizzato del database corrente**. L'opzione è disattivata per default. Se abilitata, il contesto inviato al motore selezionato include anche una vista JSON del database applicativo corrente, filtrata per escludere dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari e campi di testo libero potenzialmente identificativi.
