@@ -284,11 +284,119 @@ function initAIChatbotWidget(){
     if(open && questionInput) setTimeout(()=>questionInput.focus(), 80);
   }
 
+  function escapeHTML(value){
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderInlineChatMarkdown(value){
+    return value
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/(^|\s)(https?:\/\/[^\s<]+)(?=\s|$)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+  }
+
+  function renderChatMarkdown(text){
+    const source = escapeHTML(text || '').replace(/\r\n?/g, '\n');
+    const lines = source.split('\n');
+    const out = [];
+    let paragraph = [];
+    let listType = null;
+    let inCode = false;
+    let codeLines = [];
+
+    function flushParagraph(){
+      if(paragraph.length){
+        out.push(`<p>${renderInlineChatMarkdown(paragraph.join(' '))}</p>`);
+        paragraph = [];
+      }
+    }
+    function closeList(){
+      if(listType){
+        out.push(`</${listType}>`);
+        listType = null;
+      }
+    }
+
+    lines.forEach(line=>{
+      if(/^```/.test(line.trim())){
+        if(inCode){
+          out.push(`<pre><code>${codeLines.join('\n')}</code></pre>`);
+          codeLines = [];
+          inCode = false;
+        }else{
+          flushParagraph();
+          closeList();
+          inCode = true;
+        }
+        return;
+      }
+      if(inCode){
+        codeLines.push(line);
+        return;
+      }
+      const trimmed = line.trim();
+      if(!trimmed){
+        flushParagraph();
+        closeList();
+        return;
+      }
+      const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
+      if(heading){
+        flushParagraph();
+        closeList();
+        const level = Math.min(6, Math.max(3, heading[1].length + 2));
+        out.push(`<h${level}>${renderInlineChatMarkdown(heading[2])}</h${level}>`);
+        return;
+      }
+      const bullet = /^[-*]\s+(.+)$/.exec(trimmed);
+      if(bullet){
+        flushParagraph();
+        if(listType !== 'ul'){
+          closeList();
+          out.push('<ul>');
+          listType = 'ul';
+        }
+        out.push(`<li>${renderInlineChatMarkdown(bullet[1])}</li>`);
+        return;
+      }
+      const number = /^\d+\.\s+(.+)$/.exec(trimmed);
+      if(number){
+        flushParagraph();
+        if(listType !== 'ol'){
+          closeList();
+          out.push('<ol>');
+          listType = 'ol';
+        }
+        out.push(`<li>${renderInlineChatMarkdown(number[1])}</li>`);
+        return;
+      }
+      closeList();
+      paragraph.push(trimmed);
+    });
+    if(inCode) out.push(`<pre><code>${codeLines.join('\n')}</code></pre>`);
+    flushParagraph();
+    closeList();
+    return out.join('') || '<p></p>';
+  }
+
+
   function appendMessage(text, type){
     if(!messages) return null;
     const node = document.createElement('div');
-    node.className = 'ai-chatbot-message ' + (type || 'bot');
-    node.textContent = text;
+    node.className = 'ai-chatbot-message ai-chatbot-markdown ' + (type || 'bot');
+    if((type || '').includes('pending') || (type || '').includes('error')){
+      node.textContent = text;
+    }else{
+      node.innerHTML = renderChatMarkdown(text);
+    }
     messages.appendChild(node);
     messages.scrollTop = messages.scrollHeight;
     return node;

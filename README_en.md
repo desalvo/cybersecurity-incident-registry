@@ -576,4 +576,4 @@ AI Chatbot update: the plugin configuration now provides **Allow the AI engine t
 
 ### Global AI Chatbot
 
-When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel are placed at the bottom right; on mobile the chat opens from a top button next to the menu. The panel can be minimized back to the icon without leaving the page.
+When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel remain in the bottom-right area, but they are offset to the left of the decorative application logo so they never overlap it. On mobile the chat opens from a top button next to the menu, with responsive layout rules that avoid overlapping the logo/header. The panel can be minimized back to the icon without leaving the page. The widget panel renders answers with safe Markdown: bold, italic, headings, lists, inline code/code blocks and links are formatted inside the chat, while free HTML and scripts remain escaped.

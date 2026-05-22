@@ -1,3 +1,9 @@
+- AI Chatbot: la finestra flottante renderizza Markdown sicuro nelle risposte, inclusi titoli, elenchi, grassetto, codice e link; HTML libero escapato.
+0.3.0-4
+- Corretto il layout del widget AI Chatbot: icona e pannello desktop non si sovrappongono più al logo applicativo decorativo.
+- Rafforzato il layout mobile del pulsante Chat accanto al menu per evitare sovrapposizioni con brand/logo.
+- Documentazione aggiornata.
+
 ## 0.3.0-3
 - Aggiunto widget globale AI Chatbot in ogni pagina quando il plugin è attivo.
 - Su desktop il launcher e la finestra chat sono in basso a destra; su mobile il pulsante di apertura è accanto al menu.

@@ -12,7 +12,7 @@
 {% if answer %}
 <section class="card">
   <h3>Risposta</h3>
-  <div class="pre-wrap">{{ answer }}</div>
+  <div class="pre-wrap ai-chatbot-markdown">{{ answer|workflow_markdown }}</div>
 </section>
 {% endif %}
 {% endblock %}

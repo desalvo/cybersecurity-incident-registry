@@ -763,4 +763,4 @@ Aggiornamento AI Chatbot: nella configurazione del plugin è disponibile l'opzio
 
 ### AI Chatbot globale
 
-Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra sono in basso a destra; su mobile la chat si apre con un pulsante posto in alto, accanto al menu. La finestra può essere iconizzata nuovamente senza cambiare pagina.
+Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano nell’area in basso a destra, ma sono spostate a sinistra del logo decorativo dell’applicazione per non sovrapporsi mai al logo. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice e link vengono formattati nella chat; HTML libero e script restano escapati.
