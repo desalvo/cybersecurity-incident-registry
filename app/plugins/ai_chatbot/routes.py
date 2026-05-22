@@ -1,6 +1,6 @@
 import json, os, uuid
 from pathlib import Path
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from ...models import db, Setting, AIChatbotDocument
@@ -48,6 +48,20 @@ def docs_dir():
     return path
 
 
+def _generate_chatbot_answer(question):
+    """Generate an AI Chatbot answer for both the full page and the floating widget."""
+    cfg = plugin_config()
+    engine = get_engine(cfg['engine'], cfg['configs'].get(cfg['engine'], {}))
+    answer = engine.generate([{'role': 'user', 'content': question}], build_system_context())
+    audit_log('ai_chatbot:question', {
+        'engine': cfg['engine'],
+        'question': question[:300],
+        'database_context': cfg.get('include_database_context')
+    }, actor_type='user')
+    db.session.commit()
+    return answer, cfg['engine']
+
+
 @bp.route('', methods=['GET','POST'])
 @login_required
 def chat():
@@ -63,10 +77,7 @@ def chat():
         else:
             cfg = plugin_config()
             try:
-                engine = get_engine(cfg['engine'], cfg['configs'].get(cfg['engine'], {}))
-                answer = engine.generate([{'role':'user','content':question}], build_system_context())
-                audit_log('ai_chatbot:question', {'engine': cfg['engine'], 'question': question[:300], 'database_context': cfg.get('include_database_context')}, actor_type='user')
-                db.session.commit()
+                answer, _engine_name = _generate_chatbot_answer(question)
             except AIEngineError as exc:
                 answer = f'Configurazione o motore AI non disponibile: {exc}'
                 audit_log('ai_chatbot:error', {'engine': cfg['engine'], 'error': str(exc)[:500]}, actor_type='user')
@@ -77,6 +88,31 @@ def chat():
                 audit_log('ai_chatbot:error', {'engine': cfg.get('engine'), 'error': str(exc)[:500]}, actor_type='user')
                 db.session.commit()
     return render_template('ai_chatbot_chat.html', question=question, answer=answer, engine=plugin_config()['engine'])
+
+
+@bp.route('/widget/ask', methods=['POST'])
+@login_required
+def widget_ask():
+    """AJAX endpoint used by the global floating chatbot widget."""
+    if not is_enabled():
+        return jsonify({'ok': False, 'error': 'Plugin AI Chatbot non attivo.'}), 403
+    payload = request.get_json(silent=True) or {}
+    question = (payload.get('question') or request.form.get('question') or '').strip()
+    if not question:
+        return jsonify({'ok': False, 'error': 'Inserire una domanda per il chatbot.'}), 400
+    cfg = plugin_config()
+    try:
+        answer, engine_name = _generate_chatbot_answer(question)
+        return jsonify({'ok': True, 'answer': answer, 'engine': engine_name})
+    except AIEngineError as exc:
+        audit_log('ai_chatbot:error', {'engine': cfg.get('engine'), 'error': str(exc)[:500], 'source': 'widget'}, actor_type='user')
+        db.session.commit()
+        return jsonify({'ok': False, 'error': f'Configurazione o motore AI non disponibile: {exc}'}), 503
+    except Exception as exc:
+        current_app.logger.exception('AI Chatbot widget failed')
+        audit_log('ai_chatbot:error', {'engine': cfg.get('engine'), 'error': str(exc)[:500], 'source': 'widget'}, actor_type='user')
+        db.session.commit()
+        return jsonify({'ok': False, 'error': 'Errore durante la generazione della risposta del chatbot.'}), 500
 
 
 @bp.route('/admin/plugins', methods=['GET','POST'])

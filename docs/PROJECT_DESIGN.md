@@ -1738,3 +1738,7 @@ Il plugin **AI Chatbot** può essere configurato per includere nel prompt anche 
 L'implementazione è isolata nel plugin, nel file `app/plugins/ai_chatbot/database_context.py`, e non richiede modifiche al core applicativo. Prima di inviare contenuti al motore AI vengono esclusi dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari, certificati, chiavi, audit dettagliati e campi testuali liberi che possono contenere informazioni identificative. Le tabelle intrinsecamente personali o binarie, come utenti, rubrica esterna, token MFA, documenti chatbot e binari dei template PDF, sono escluse o rappresentate solo con metadati non identificativi.
 
 Il contesto risultante viene aggiunto dopo documentazione progettuale e knowledge base caricata, in una sezione `Snapshot database applicativo sanitizzato`. Ogni domanda al chatbot registra nell'audit se il contesto database era abilitato.
+
+## AI Chatbot globale come plugin
+
+Il plugin `app/plugins/ai_chatbot` espone anche un widget globale integrato nel layout base. Quando `plugin_ai_chatbot_enabled=1` e l’utente è autenticato, `base.html` inserisce il launcher desktop in basso a destra e il pulsante mobile accanto al menu. Il submit AJAX usa l’endpoint `ai_chatbot.widget_ask`, protetto da login e CSRF, e riusa la stessa pipeline di contesto, motore AI, audit e sanitizzazione già usata dalla pagina completa del chatbot. La finestra è richiudibile/iconizzabile lato client senza perdere la pagina corrente.

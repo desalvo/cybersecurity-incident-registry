@@ -1,3 +1,9 @@
+## 0.3.0-3
+- Aggiunto widget globale AI Chatbot in ogni pagina quando il plugin è attivo.
+- Su desktop il launcher e la finestra chat sono in basso a destra; su mobile il pulsante di apertura è accanto al menu.
+- Aggiunto endpoint AJAX protetto per dialogare con il chatbot senza lasciare la pagina.
+- Documentazione aggiornata.
+
 0.3.0-1 - Aggiornamento versione applicativa
 - Versione applicativa aggiornata a 0.3.0-1.
 - Build aggiornata a 2026052101.

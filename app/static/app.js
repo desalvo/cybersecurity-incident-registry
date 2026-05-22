@@ -261,3 +261,65 @@ function makeIncidentWorkflowStepsClickable(){
   });
 }
 document.addEventListener('DOMContentLoaded', makeIncidentWorkflowStepsClickable);
+
+function initAIChatbotWidget(){
+  const widget = document.getElementById('ai-chatbot-widget');
+  if(!widget) return;
+  const panel = document.getElementById('ai-chatbot-panel');
+  const fab = document.getElementById('ai-chatbot-fab');
+  const mobileOpen = document.getElementById('ai-chatbot-mobile-open');
+  const minimize = document.getElementById('ai-chatbot-minimize');
+  const form = document.getElementById('ai-chatbot-form');
+  const questionInput = document.getElementById('ai-chatbot-question');
+  const messages = document.getElementById('ai-chatbot-messages');
+  const askUrl = widget.dataset.askUrl;
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+  function setOpen(open){
+    if(!panel) return;
+    panel.hidden = !open;
+    widget.classList.toggle('open', open);
+    if(fab) fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(mobileOpen) mobileOpen.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(open && questionInput) setTimeout(()=>questionInput.focus(), 80);
+  }
+
+  function appendMessage(text, type){
+    if(!messages) return null;
+    const node = document.createElement('div');
+    node.className = 'ai-chatbot-message ' + (type || 'bot');
+    node.textContent = text;
+    messages.appendChild(node);
+    messages.scrollTop = messages.scrollHeight;
+    return node;
+  }
+
+  if(fab) fab.addEventListener('click', ()=>setOpen(true));
+  if(mobileOpen) mobileOpen.addEventListener('click', ()=>setOpen(true));
+  if(minimize) minimize.addEventListener('click', ()=>setOpen(false));
+
+  if(form){
+    form.addEventListener('submit', async (event)=>{
+      event.preventDefault();
+      const question = (questionInput?.value || '').trim();
+      if(!question) return;
+      appendMessage(question, 'user');
+      if(questionInput) questionInput.value = '';
+      const pending = appendMessage('Sto elaborando la risposta...', 'bot pending');
+      try{
+        const response = await fetch(askUrl, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json', 'X-CSRFToken': csrf},
+          body: JSON.stringify({question})
+        });
+        const data = await response.json().catch(()=>({ok:false,error:'Risposta non valida dal server.'}));
+        if(pending) pending.remove();
+        appendMessage(data.ok ? data.answer : (data.error || 'Errore durante la risposta del chatbot.'), data.ok ? 'bot' : 'bot error');
+      }catch(err){
+        if(pending) pending.remove();
+        appendMessage('Errore di comunicazione con il chatbot.', 'bot error');
+      }
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', initAIChatbotWidget);

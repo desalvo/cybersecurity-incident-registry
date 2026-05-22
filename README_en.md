@@ -573,3 +573,7 @@ Supported engines: ChatGPT, Claude, Gemini, Ollama and Perplexity. Each engine h
 
 
 AI Chatbot update: the plugin configuration now provides **Allow the AI engine to also use a sanitized snapshot of the current database**. The option is disabled by default. When enabled, the context sent to the selected engine also includes a JSON view of the current application database, filtered to exclude personal data, sensitive data, credentials, tokens, email addresses, binary attachments and free-text fields that may identify individuals.
+
+### Global AI Chatbot
+
+When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel are placed at the bottom right; on mobile the chat opens from a top button next to the menu. The panel can be minimized back to the icon without leaving the page.

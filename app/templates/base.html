@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>cybersecurity-incident-registry</title>
   <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <script>window.CIR_LANG={{ (current_language or 'it')|tojson }};</script>
   <script src="{{ url_for('static',filename='i18n.js') }}" defer></script>
   <script src="{{ url_for('static',filename='app.js') }}" defer></script>
@@ -14,6 +15,7 @@
 <header class="topbar" role="banner">
   <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" onerror="this.style.display='none'"><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
   <button class="mobile-menu-toggle" type="button" aria-label="Apri o chiudi menu" aria-controls="main-nav" aria-expanded="false">☰ Menu</button>
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AI Chatbot">💬 Chat</button>{% endif %}
   <nav id="main-nav" class="nav" aria-label="Menu principale">
     <a href="{{ url_for('main.index') }}">Incidenti</a>
     <div class="dropdown">
@@ -133,6 +135,27 @@
   {% if request.endpoint != 'main.incident_detail' %}{% for category,m in get_flashed_messages(with_categories=true) %}{% if not category.startswith('section:') %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endif %}{% endfor %}{% endif %}
   {% block content %}{% endblock %}
 </main>
+
+{% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}
+<div id="ai-chatbot-widget" class="ai-chatbot-widget" data-ask-url="{{ url_for('ai_chatbot.widget_ask') }}" aria-live="polite">
+  <button id="ai-chatbot-fab" class="ai-chatbot-fab" type="button" aria-controls="ai-chatbot-panel" aria-expanded="false" title="Apri AI Chatbot" aria-label="Apri AI Chatbot">💬</button>
+  <section id="ai-chatbot-panel" class="ai-chatbot-panel" role="dialog" aria-label="AI Chatbot" hidden>
+    <header class="ai-chatbot-header">
+      <div><strong>AI Chatbot</strong><span>Helpdesk applicativo</span></div>
+      <button id="ai-chatbot-minimize" type="button" class="ai-chatbot-minimize" aria-label="Iconizza AI Chatbot">−</button>
+    </header>
+    <div id="ai-chatbot-messages" class="ai-chatbot-messages">
+      <div class="ai-chatbot-message bot">Ciao, posso aiutarti sulle funzionalità dell’applicazione e sulle procedure per gli incidenti di sicurezza.</div>
+    </div>
+    <form id="ai-chatbot-form" class="ai-chatbot-form">
+      <label class="sr-only" for="ai-chatbot-question">Domanda per AI Chatbot</label>
+      <textarea id="ai-chatbot-question" name="question" rows="2" placeholder="Scrivi una domanda..." required></textarea>
+      <button type="submit" class="btn primary">Invia</button>
+    </form>
+  </section>
+</div>
+{% endif %}
+
 <img class="app-corner-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry" loading="lazy">
 </body>
 </html>

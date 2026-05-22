@@ -760,3 +760,7 @@ Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha 
 
 
 Aggiornamento AI Chatbot: nella configurazione del plugin è disponibile l'opzione **Consenti al motore AI di usare anche uno snapshot sanitizzato del database corrente**. L'opzione è disattivata per default. Se abilitata, il contesto inviato al motore selezionato include anche una vista JSON del database applicativo corrente, filtrata per escludere dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari e campi di testo libero potenzialmente identificativi.
+
+### AI Chatbot globale
+
+Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra sono in basso a destra; su mobile la chat si apre con un pulsante posto in alto, accanto al menu. La finestra può essere iconizzata nuovamente senza cambiare pagina.
