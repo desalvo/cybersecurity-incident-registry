@@ -61,3 +61,27 @@ def test_login_lockout_is_server_side_model_backed():
     assert LoginFailure.__table__.c.rate_key.unique
     assert 'session.get(\'_login_failures\')' not in routes.login_is_blocked.__code__.co_names
     assert 'session.get(\'_login_failures\')' not in routes.register_login_failure.__code__.co_names
+
+
+def test_session_timeout_accepts_flask_timedelta_config(monkeypatch, tmp_path):
+    import os
+
+    base = tmp_path
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///' + str(base / 'test.db'))
+    monkeypatch.setenv('UPLOAD_DIR', str(base / 'uploads'))
+    monkeypatch.setenv('LOGO_DIR', str(base / 'logos'))
+    monkeypatch.setenv('SSO_LOGO_DIR', str(base / 'sso'))
+    monkeypatch.setenv('FORM_TEMPLATE_DIR', str(base / 'forms'))
+    monkeypatch.setenv('BACKUP_DIR', str(base / 'backups'))
+    monkeypatch.setenv('AI_CHATBOT_DOC_DIR', str(base / 'ai_docs'))
+    monkeypatch.setenv('SECRET_KEY', 'T' * 64)
+    monkeypatch.setenv('ADMIN_INITIAL_PASSWORD', 'AdminPassword123!')
+    monkeypatch.delenv('CIR_PRODUCTION', raising=False)
+
+    from app import create_app
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        response = client.get('/login')
+        assert response.status_code == 200

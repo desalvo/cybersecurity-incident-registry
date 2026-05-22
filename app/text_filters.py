@@ -147,7 +147,7 @@ def workflow_markdown(value):
             close_list()
             html.append(f"<p>{escaped}</p>")
     close_list()
-    return Markup("\n".join(html))
+    return Markup("\n".join(html))  # nosec B704
 
 
 def register_text_filters(app):

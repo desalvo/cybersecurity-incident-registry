@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g, has_app_context
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_, and_, text
+from sqlalchemy import or_, and_, text, Table, MetaData, select, func
 from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from ldap3 import Server, Connection, ALL
 from ldap3.utils.conv import escape_filter_chars
@@ -610,23 +610,19 @@ def align_table_sequence(table_name):
     safe_table = re.sub(r'[^a-zA-Z0-9_]', '', table_name or '')
     if not safe_table:
         return
-    quoted_table = f'"{safe_table}"'
     with db.engine.begin() as conn:
+        metadata = MetaData()
+        reflected = Table(safe_table, metadata, autoload_with=conn)
+        max_value = conn.execute(select(func.max(reflected.c.id))).scalar() or 0
         seq_name = conn.execute(text(
             "SELECT pg_get_serial_sequence(:table_name, 'id')"
         ), {'table_name': safe_table}).scalar()
         if not seq_name:
             return
-        safe_seq = str(seq_name).replace("'", "''")
-        conn.execute(text(
-            f"""
-            SELECT setval(
-                '{safe_seq}'::regclass,
-                GREATEST(COALESCE((SELECT MAX(id) FROM {quoted_table}), 0) + 1, 1),
-                false
-            )
-            """
-        ))
+        conn.execute(
+            text("SELECT setval(:seq_name, :next_value, false)"),
+            {"seq_name": seq_name, "next_value": max(int(max_value) + 1, 1)},
+        )
 
 
 def sequence_managed_table_names():
@@ -1268,7 +1264,11 @@ def block_disabled():
     g.lang = detect_interface_language()
     if current_user.is_authenticated:
         now = time.time()
-        timeout = int(current_app.config.get('PERMANENT_SESSION_LIFETIME') or 1800)
+        timeout_config = current_app.config.get('PERMANENT_SESSION_LIFETIME') or 1800
+        try:
+            timeout = int(timeout_config.total_seconds())
+        except AttributeError:
+            timeout = int(timeout_config)
         last = float(session.get('last_activity') or now)
         if now - last > timeout:
             audit_log('security:session_timeout', {'username': current_user.username}, actor_type='user', commit=True)
@@ -6990,7 +6990,9 @@ def admin_backups():
             if not f or not f.filename:
                 flash('Selezionare un file di backup da ripristinare.', 'error')
             else:
-                tmp = f'/tmp/{uuid.uuid4()}-restore.tar.gz'
+                tmp_file = tempfile.NamedTemporaryFile(prefix='cir-restore-', suffix='.tar.gz', delete=False)
+                tmp = tmp_file.name
+                tmp_file.close()
                 f.save(tmp)
                 try:
                     # I full backup sono compatibili con l’import completo: richiedono export.json.
@@ -7485,7 +7487,9 @@ def import_full():
             flash('Selezionare un export completo tar.gz da importare','error')
             return render_template('import_full.html')
 
-        tmp = f'/tmp/{uuid.uuid4()}-import.tar.gz'
+        tmp_file = tempfile.NamedTemporaryFile(prefix='cir-import-', suffix='.tar.gz', delete=False)
+        tmp = tmp_file.name
+        tmp_file.close()
         f.save(tmp)
         try:
             with tarfile.open(tmp, 'r:gz') as archive:

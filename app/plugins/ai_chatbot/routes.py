@@ -4,10 +4,11 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from ...models import db, Setting, AIChatbotDocument
-from ...routes import audit_log, setting_value, set_setting_value
+from ...routes import audit_log, setting_value, set_setting_value, validate_upload_file
 from .knowledge import build_system_context, extract_text_from_upload
 from .database_context import database_context_enabled
 from .engines import get_engine, AIEngineError, ENGINE_CLASSES
+from .security import validate_ai_endpoint
 
 bp = Blueprint('ai_chatbot', __name__, url_prefix='/ai-chatbot', template_folder='templates')
 
@@ -128,9 +129,17 @@ def admin_plugins():
             engine = 'chatgpt'
         set_setting_value('ai_chatbot_engine', engine)
         set_setting_value('ai_chatbot_include_database_context', '1' if request.form.get('ai_chatbot_include_database_context') == '1' else '0')
-        for name in ENGINE_NAMES:
-            for field in ('api_key','endpoint','model'):
-                set_setting_value(f'ai_chatbot_{name}_{field}', request.form.get(f'{name}_{field}') or '')
+        try:
+            for name in ENGINE_NAMES:
+                for field in ('api_key','endpoint','model'):
+                    value = request.form.get(f'{name}_{field}') or ''
+                    if field == 'endpoint':
+                        value = validate_ai_endpoint(value, name)
+                    set_setting_value(f'ai_chatbot_{name}_{field}', value)
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+            return redirect(url_for('ai_chatbot.admin_plugins'))
         audit_log('ai_chatbot:plugin_config_update', {'enabled': request.form.get('plugin_ai_chatbot_enabled') == '1', 'engine': engine, 'database_context': request.form.get('ai_chatbot_include_database_context') == '1'}, actor_type='user')
         db.session.commit()
         flash('Configurazione plugin aggiornata.', 'success')
@@ -150,7 +159,11 @@ def admin_documents():
         if not upload or not upload.filename:
             flash('Selezionare un documento da caricare.', 'danger')
         else:
-            original = secure_filename(upload.filename)
+            try:
+                original = validate_upload_file(upload, allowed_extensions={'.txt', '.md', '.csv', '.json', '.xml', '.html', '.htm', '.log', '.pdf', '.docx'})
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('ai_chatbot.admin_documents'))
             stored = f'{uuid.uuid4().hex}_{original}'
             path = docs_dir() / stored
             text = extract_text_from_upload(upload)

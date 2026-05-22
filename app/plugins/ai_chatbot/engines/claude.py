@@ -1,4 +1,5 @@
 import requests
+from ..security import validate_ai_endpoint
 from .base import BaseEngine, AIEngineError
 
 class ClaudeEngine(BaseEngine):
@@ -6,7 +7,7 @@ class ClaudeEngine(BaseEngine):
     def generate(self, messages, system_context):
         api_key=self.config.get('api_key')
         model=self.config.get('model') or 'claude-3-5-sonnet-latest'
-        endpoint=self.config.get('endpoint') or 'https://api.anthropic.com/v1/messages'
+        endpoint=validate_ai_endpoint(self.config.get('endpoint') or 'https://api.anthropic.com/v1/messages', 'claude')
         if not api_key:
             raise AIEngineError('API key Claude non configurata.')
         user_text='\n\n'.join(m.get('content','') for m in messages if m.get('role')=='user')

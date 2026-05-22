@@ -262,6 +262,17 @@ def incident_pdf(inc):
     doc.build(story, onFirstPage=_numbered_canvas, onLaterPages=_numbered_canvas)
     return path
 
+
+def _secure_temp_png():
+    """Return a securely-created temporary PNG path for chart renderers.
+
+    The descriptor is closed immediately because matplotlib writes by path, but
+    the name is reserved atomically to avoid tempfile.mktemp race conditions.
+    """
+    fd, path = tempfile.mkstemp(suffix='.png')
+    os.close(fd)
+    return path
+
 def wrap_table(data, style, widths=None):
     if widths is None: widths=[4*cm,13*cm] if len(data[0])==2 else None
     wrapped=[[P(c,style) for c in row] for row in data]
@@ -272,7 +283,7 @@ def wrap_table(data, style, widths=None):
 def actions_chart(inc):
     acts=list(inc.actions)
     if not acts: return None
-    path=tempfile.mktemp(suffix='.png')
+    path=_secure_temp_png()
     labels=[a.label.value if a.label else 'azione' for a in acts]
     xs=[a.when_at for a in acts]
     ys=list(range(1,len(acts)+1))
@@ -309,7 +320,7 @@ def _count_many(incidents, relation_name):
 def _bar_chart(counts, title):
     if not counts:
         return None
-    path = tempfile.mktemp(suffix='.png')
+    path = _secure_temp_png()
     labels = list(counts.keys())[:12]
     values = [counts[k] for k in labels]
     plt.figure(figsize=(8.5, 4.4))
@@ -326,7 +337,7 @@ def _bar_chart(counts, title):
 def _pie_chart(counts, title):
     if not counts:
         return None
-    path = tempfile.mktemp(suffix='.png')
+    path = _secure_temp_png()
     labels = list(counts.keys())[:10]
     values = [counts[k] for k in labels]
     plt.figure(figsize=(6.8, 4.4))

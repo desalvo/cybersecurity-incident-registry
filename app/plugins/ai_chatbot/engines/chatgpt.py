@@ -1,4 +1,5 @@
 import requests
+from ..security import validate_ai_endpoint
 from .base import BaseEngine, AIEngineError
 
 class ChatGPTEngine(BaseEngine):
@@ -6,7 +7,7 @@ class ChatGPTEngine(BaseEngine):
     def generate(self, messages, system_context):
         api_key=self.config.get('api_key')
         model=self.config.get('model') or 'gpt-4o-mini'
-        endpoint=self.config.get('endpoint') or 'https://api.openai.com/v1/chat/completions'
+        endpoint=validate_ai_endpoint(self.config.get('endpoint') or 'https://api.openai.com/v1/chat/completions', 'chatgpt')
         if not api_key:
             raise AIEngineError('API key ChatGPT non configurata.')
         payload={'model':model,'messages':[{'role':'system','content':system_context}]+messages,'temperature':0.2}

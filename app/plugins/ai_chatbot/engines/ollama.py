@@ -1,10 +1,11 @@
 import requests
+from ..security import validate_ai_endpoint
 from .base import BaseEngine, AIEngineError
 
 class OllamaEngine(BaseEngine):
     name='ollama'
     def generate(self, messages, system_context):
-        endpoint=(self.config.get('endpoint') or 'http://localhost:11434/api/chat').rstrip('/')
+        endpoint=validate_ai_endpoint((self.config.get('endpoint') or 'http://localhost:11434/api/chat').rstrip('/'), 'ollama')
         model=self.config.get('model') or 'llama3.1'
         payload={'model':model,'messages':[{'role':'system','content':system_context}]+messages,'stream':False}
         r=requests.post(endpoint,json=payload,timeout=120)

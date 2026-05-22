@@ -1,7 +1,7 @@
 import os, time, shutil, secrets
 from flask import Flask
 from .text_filters import register_text_filters
-from sqlalchemy import text, inspect
+from sqlalchemy import text, inspect, Table, MetaData, select, func
 from sqlalchemy.exc import OperationalError
 from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob, AIChatbotDocument
 from .auth import login_manager, hash_password
@@ -15,15 +15,15 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI']=os.getenv('DATABASE_URL','sqlite:////tmp/cir.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
     init_security(app)
-    app.config['UPLOAD_DIR']=os.getenv('UPLOAD_DIR','/tmp/cir_uploads')
-    app.config['LOGO_DIR']=os.getenv('LOGO_DIR','/tmp/cir_logo')
+    app.config['UPLOAD_DIR']=os.getenv('UPLOAD_DIR','/data/cir_uploads')
+    app.config['LOGO_DIR']=os.getenv('LOGO_DIR','/data/cir_logo')
     app.config['SSO_LOGO_DIR']=os.getenv('SSO_LOGO_DIR','/data/sso_logos')
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.4.0-1'),
+        'version': os.getenv('APP_VERSION','0.4.0-4'),
         'build': os.getenv('APP_BUILD','20260522'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
@@ -578,17 +578,19 @@ def repair_postgres_sequences(app):
     ]
     try:
         with db.engine.begin() as conn:
+            metadata = MetaData()
             for table, column in sequence_map:
-                quoted_table = f'"{table}"'
-                conn.execute(text(
-                    f"""
-                    SELECT setval(
-                        pg_get_serial_sequence('{table}', '{column}'),
-                        GREATEST(COALESCE((SELECT MAX({column}) FROM {quoted_table}), 0) + 1, 1),
-                        false
+                reflected = Table(table, metadata, autoload_with=conn)
+                max_value = conn.execute(select(func.max(reflected.c[column]))).scalar() or 0
+                seq_name = conn.execute(
+                    text("SELECT pg_get_serial_sequence(:table_name, :column_name)"),
+                    {"table_name": table, "column_name": column},
+                ).scalar()
+                if seq_name:
+                    conn.execute(
+                        text("SELECT setval(:seq_name, :next_value, false)"),
+                        {"seq_name": seq_name, "next_value": max(int(max_value) + 1, 1)},
                     )
-                    """
-                ))
         app.logger.info('PostgreSQL sequences aligned successfully')
 
     except Exception:

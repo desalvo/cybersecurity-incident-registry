@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
-from xml.etree import ElementTree as ET
+from defusedxml import ElementTree as ET
 
 from flask import current_app
 from docx import Document as DocxDocument
@@ -1212,7 +1212,7 @@ def generate_pdf_from_template(inc: Incident, template_name: str, output_dir: Pa
 # ---------------------------------------------------------------------------
 # DOCX -> XML template extraction / preview
 # ---------------------------------------------------------------------------
-from xml.dom import minidom
+from defusedxml import minidom
 
 # Durante l'analisi DOCX non vengono più interpretati campi grigi, puntini,
 # sottolineature o vecchi nomi input_data. Sono compilabili solo i token %...%.
