@@ -23,8 +23,8 @@ def create_app():
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.4.0-33'),
-        'build': os.getenv('APP_BUILD','20260523'),
+        'version': os.getenv('APP_VERSION','0.4.0-4'),
+        'build': os.getenv('APP_BUILD','20260522'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }

@@ -6,7 +6,7 @@ type: Opaque
 stringData:
   POSTGRES_DB: incidents
   POSTGRES_USER: incidents
-  POSTGRES_PASSWORD: "CHANGE_ME_WITH_A_STRONG_RANDOM_PASSWORD"
+  POSTGRES_PASSWORD: incidents
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -42,7 +42,7 @@ spec:
             name: cir-postgres-secret
         volumeMounts:
         - name: data
-          mountPath: /var/lib/postgresql/data
+          mountPath: /var/lib/postgresql
       volumes:
       - name: data
         persistentVolumeClaim:

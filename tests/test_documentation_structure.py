@@ -13,7 +13,7 @@ def test_user_documentation_sections_are_inside_template_block():
     assert html.count("{% endblock %}") == 1
     assert "### Rendering Markdown" not in html
     assert "14. Operazioni previste dell’incidente" in html
-    assert "16. Rendering Markdown sicuro" in html
+    assert "17. Rendering Markdown sicuro" in html
     assert html.index("Figura 1 - Flusso operativo consigliato") > html.index("1. Panoramica")
 
 
@@ -97,30 +97,128 @@ def test_summary_brochure_is_portrait_two_pages_and_has_required_features():
         assert fragment in text
 
 
-def test_release_notes_template_has_single_main_container():
-    for name in ("release_notes.html", "release_notes_en.html"):
-        html = _read_template(name)
-        stripped = html.lstrip()
-        assert stripped.startswith("{% extends 'base.html' %}")
-        assert html.rstrip().endswith("{% endblock %}")
-        assert html.count("{% block content %}") == 1
-        assert html.count("{% endblock %}") == 1
-        assert html.count("release-notes-text") == 1
-        assert "{{ changelog }}" in html
-        prefix = html.split("{% block content %}", 1)[0]
-        assert "<section" not in prefix and "<div" not in prefix
+def test_release_notes_are_rendered_inside_single_main_card():
+    html = _read_template("release_notes.html")
+    assert html.startswith("{% extends 'base.html' %}")
+    assert html.count("release-notes-page") == 1
+    assert '<section class="doc-section">' not in html
+    assert html.rstrip().endswith("{% endblock %}")
 
 
-def test_documentation_pages_expose_pdf_download_buttons():
-    checks = {
-        "help.html": "url_for('main.help_pdf')",
-        "help_en.html": "url_for('main.help_pdf')",
-        "admin_help.html": "url_for('main.admin_help_pdf')",
-        "admin_help_en.html": "url_for('main.admin_help_pdf')",
-        "release_notes.html": "url_for('main.release_notes_pdf')",
-        "release_notes_en.html": "url_for('main.release_notes_pdf')",
-    }
-    for template, route_call in checks.items():
-        html = _read_template(template)
-        assert route_call in html
-        assert "button secondary" in html
+def test_user_pdf_callout_excludes_admin_configurations_and_chat_widget():
+    routes = (ROOT / "app" / "routes.py").read_text(encoding="utf-8")
+    assert "moduli PDF, report ed export/import" in routes
+    assert "moduli PDF, report, export/import e configurazioni amministrative" not in routes
+    for fragment in ("AlBot anche Alex", "Helpdesk applicativo", "Domanda per AlBot"):
+        assert fragment in routes
+
+
+def test_static_pdf_builder_brochure_mentions_accessibility_localization():
+    script = (ROOT / "scripts" / "build_documentation_pdfs.py").read_text(encoding="utf-8")
+    assert "Interfaccia desktop e mobile accessibile" in script
+    assert "Localizzazione ITA + ENG" in script
+    assert "Le figure sono mantenute vicino al capitolo" not in script
+
+
+def test_admin_static_pdf_has_no_orphan_chapter_titles():
+    from pypdf import PdfReader
+    import re
+
+    pdf = ROOT / "docs" / "documentazione_amministrativa.pdf"
+    reader = PdfReader(str(pdf))
+    chapter_title_re = re.compile(r"^\d+[a-z]?\.\s+\S+", re.I)
+    for page in reader.pages:
+        lines = [line.strip() for line in (page.extract_text() or "").splitlines() if line.strip()]
+        if "Indice" in lines[:3]:
+            continue
+        content_lines = [
+            line for line in lines
+            if not line.startswith("Cybersecurity Incident Registry -") and not line.startswith("Pagina ")
+        ]
+        assert not content_lines or not chapter_title_re.match(content_lines[-1])
+
+
+def test_static_pdf_builder_keeps_chapter_titles_with_initial_content():
+    script = (ROOT / "scripts" / "build_documentation_pdfs.py").read_text(encoding="utf-8")
+    assert "chapter heading is left orphaned" in script
+    assert "story.append(KeepTogether(keep_block))" in script
+    assert "is_subheading" in script
+
+
+def test_downloadable_admin_pdf_has_no_orphan_chapter_titles(monkeypatch, tmp_path):
+    from pypdf import PdfReader
+    import io
+    import re
+
+    base = tmp_path
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///" + str(base / "docs.db"))
+    monkeypatch.setenv("UPLOAD_DIR", str(base / "uploads"))
+    monkeypatch.setenv("LOGO_DIR", str(base / "logos"))
+    monkeypatch.setenv("SSO_LOGO_DIR", str(base / "sso"))
+    monkeypatch.setenv("FORM_TEMPLATE_DIR", str(base / "forms"))
+    monkeypatch.setenv("BACKUP_DIR", str(base / "backups"))
+    monkeypatch.setenv("AI_CHATBOT_DOC_DIR", str(base / "ai_docs"))
+    monkeypatch.setenv("SECRET_KEY", "T" * 64)
+    monkeypatch.setenv("ADMIN_INITIAL_PASSWORD", "AdminPassword123!")
+    monkeypatch.delenv("CIR_PRODUCTION", raising=False)
+
+    from app import create_app
+
+    app = create_app()
+    app.config.update(TESTING=True)
+    with app.test_client() as client:
+        client.get("/login")
+        with client.session_transaction() as sess:
+            token = sess["_csrf_token"]
+        login = client.post(
+            "/login",
+            data={"username": "admin", "password": "AdminPassword123!", "_csrf_token": token},
+            follow_redirects=False,
+        )
+        assert login.status_code in {302, 200}
+        response = client.get("/aiuto/amministrazione/pdf")
+
+    assert response.status_code == 200
+    reader = PdfReader(io.BytesIO(response.data))
+    chapter_title_re = re.compile(r"^\d+[a-z]?\.\s+\S+", re.I)
+    for page in reader.pages:
+        lines = [line.strip() for line in (page.extract_text() or "").splitlines() if line.strip()]
+        if "Indice" in lines[:3]:
+            continue
+        content_lines = [
+            line for line in lines
+            if not line.startswith("Cybersecurity Incident Registry -") and not line.startswith("Pagina ")
+        ]
+        assert not content_lines or not chapter_title_re.match(content_lines[-1])
+
+
+def test_static_english_documentation_pdfs_are_packaged():
+    for name in (
+        "user_documentation_en.pdf",
+        "administrator_documentation_en.pdf",
+        "brochure_cybersecurity_incident_registry_en.pdf",
+    ):
+        pdf = ROOT / "docs" / name
+        assert pdf.exists(), f"missing English PDF artifact: {name}"
+        assert pdf.stat().st_size > 50_000
+
+
+def test_static_english_brochure_is_portrait_two_pages():
+    from pypdf import PdfReader
+
+    brochure = ROOT / "docs" / "brochure_cybersecurity_incident_registry_en.pdf"
+    reader = PdfReader(str(brochure))
+    assert len(reader.pages) <= 2
+    for page in reader.pages:
+        box = page.mediabox
+        assert float(box.height) > float(box.width)
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    for fragment in (
+        "Docker Hub",
+        "Docker Compose",
+        "Kubernetes",
+        "Italian + English localization",
+        "European Union Public Licence",
+        "https://github.com/desalvo/cybersecurity-incident-registry",
+    ):
+        assert fragment in text

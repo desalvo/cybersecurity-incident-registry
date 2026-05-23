@@ -1,14 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card doc-page release-notes-page" aria-labelledby="release-notes-title">
+<div class="card doc-page release-notes-page">
   <div class="page-header">
     <div>
-      <h1 id="release-notes-title">Note di rilascio</h1>
-      <p class="muted">Elenco sintetico degli aggiornamenti del pacchetto. Tutte le note sono raccolte in questo riquadro per mantenere la pagina omogenea e separata dalla documentazione operativa.</p>
+      <h1>Note di rilascio</h1>
+      <p class="muted">Elenco sintetico degli aggiornamenti del pacchetto. Le note di rilascio sono raccolte in un unico riquadro omogeneo.</p>
     </div>
-    <div class="button-row">
-      <a class="button secondary" href="{{ url_for('main.release_notes_pdf') }}">Scarica PDF</a>
-    </div>
+    <a class="button secondary" href="{{ url_for('main.release_notes_pdf') }}">Scarica PDF</a>
   </div>
   <pre class="release-notes-text">{{ changelog }}</pre>
 </div>

@@ -1,14 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card doc-page release-notes-page" aria-labelledby="release-notes-title">
+<div class="card doc-page release-notes-page">
   <div class="page-header">
     <div>
-      <h1 id="release-notes-title">Release notes</h1>
-      <p class="muted">Summary of package updates. All entries are contained in this single panel to keep the page consistent and separate from operational documentation.</p>
+      <h1>Release notes</h1>
+      <p class="muted">Concise list of package updates. Release notes are kept in one homogeneous main panel.</p>
     </div>
-    <div class="button-row">
-      <a class="button secondary" href="{{ url_for('main.release_notes_pdf') }}">Download PDF</a>
-    </div>
+    <a class="button secondary" href="{{ url_for('main.release_notes_pdf') }}">Download PDF</a>
   </div>
   <pre class="release-notes-text">{{ changelog }}</pre>
 </div>

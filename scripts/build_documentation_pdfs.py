@@ -31,21 +31,33 @@ def _is_documentation_noise(line: str) -> bool:
     if not normalized:
         return True
     exact_noise = {
-        "Menu",
-        "Logout",
         "Salta al contenuto principale",
+        "Menu",
+        "☰ Menu",
+        "n Menu",
         "Alex",
+        "Logout",
         "Scarica PDF",
         "Scarica PDF amministrativo",
         "Vai all’indice",
         "Vai all'indice",
         "Digita una parola per filtrare i capitoli.",
+        "Go to index Download PDF",
+        "Go to index Download administrator PDF",
     }
     if normalized in exact_noise:
         return True
     noise_fragments = (
+        "Salta al contenuto principale",
+        "Apri o chiudi menu",
         "Cerca nella documentazione",
+        "Search administrator documentation",
+        "Type a word to filter chapters",
+        "Go to index",
+        "Download PDF",
+        "Download administrator PDF",
         "Nessun capitolo contiene il testo cercato",
+        "No chapter contains the searched text",
         "Scarica PDF",
         "Vai all’indice",
         "Vai all'indice",
@@ -53,9 +65,10 @@ def _is_documentation_noise(line: str) -> bool:
         "Il logo presente in questa guida",
         "Questa guida riorganizza le funzioni amministrative",
         "Questa guida descrive lo stato operativo corrente",
-        "Salta al contenuto principale",
         "AlBot anche Alex",
+        "Helpdesk applicativo",
         "Ciao, sono AlBot",
+        "Domanda per AlBot",
         "Invia",
     )
     if any(fragment in normalized for fragment in noise_fragments):
@@ -69,6 +82,12 @@ def _is_documentation_noise(line: str) -> bool:
 
 def _text_lines_from_template(template_name: str) -> list[str]:
     html = (TEMPLATES / template_name).read_text(encoding="utf-8")
+    # Only render the actual Jinja content block.  Some templates may contain
+    # developer notes or legacy fragments after the block; they must not enter
+    # the static PDF deliverables.
+    block_match = re.search(r"\{%\s*block\s+content\s*%\}([\s\S]*?)\{%\s*endblock\s*%\}", html)
+    if block_match:
+        html = block_match.group(1)
     html = re.sub(r"<script[\s\S]*?</script>", " ", html, flags=re.I)
     html = re.sub(r"<style[\s\S]*?</style>", " ", html, flags=re.I)
     html = re.sub(r"<figure[\s\S]*?</figure>", " ", html, flags=re.I)
@@ -81,25 +100,28 @@ def _text_lines_from_template(template_name: str) -> list[str]:
     text = unescape(re.sub(r"<[^>]+>", " ", html))
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
     lines = [
-        line.replace("Versione applicativa: 0.4.0-33 · Build: · Autore: .", "Versione applicativa: 0.4.0-33 · Build: 20260523 · Autore: Alessandro De Salvo.")
+        line.replace("Versione applicativa: 0.4.0-4 · Build: · Autore: .", "Versione applicativa: 0.4.0-4 · Build: 20260522 · Autore: Alessandro De Salvo.")
         for line in lines
     ]
-    cleaned = []
-    for line in lines:
-        if _is_documentation_noise(line):
-            continue
-        line = line.replace("AlBot/Alex", "AlBot").replace(" o Alex", "").replace("anche Alex", "").replace("↻", "Aggiorna")
-        cleaned.append(line)
-    if template_name == "admin_help.html":
-        truncated = []
-        stop = "rimuovono la formattazione prima dell’invio"
-        for line in cleaned:
-            truncated.append(line)
-            if stop in line:
-                break
-        cleaned = truncated
-    return cleaned
+    return [line for line in lines if not _is_documentation_noise(line)]
 
+
+
+
+def _trim_english_preface_after_version_marker(lines: list[str], marker: str) -> list[str]:
+    """Keep the English introductory notes compact in static PDFs.
+
+    The online pages include operational update notes after the version line.
+    For the printable English PDFs we keep the version statement and start the
+    first chapter immediately after it, omitting the extra pre-chapter notes.
+    """
+    marker_idx = next((idx for idx, line in enumerate(lines) if marker in line), None)
+    if marker_idx is None:
+        return lines
+    chapter_idx = next((idx for idx, line in enumerate(lines) if idx > marker_idx and re.match(r"^1\.\s+", line)), None)
+    if chapter_idx is None or chapter_idx <= marker_idx + 1:
+        return lines
+    return lines[: marker_idx + 1] + lines[chapter_idx:]
 
 def _fitted_image(path: Path, max_width=16.3 * cm, max_height=7.6 * cm) -> Image:
     try:
@@ -116,6 +138,16 @@ def _build_pdf(kind: str, template_name: str, output_name: str, title: str, subt
     DOCS.mkdir(exist_ok=True)
     output = DOCS / output_name
     lines = _text_lines_from_template(template_name)
+    if template_name == "help_en.html":
+        lines = _trim_english_preface_after_version_marker(
+            lines,
+            "Version 0.4.0-4 of the user guide, aligned with build",
+        )
+    elif template_name == "admin_help_en.html":
+        lines = _trim_english_preface_after_version_marker(
+            lines,
+            "Application version: 0.4.0-4 · Version 0.4.0-4 of the administrator guide.",
+        )
 
     doc = SimpleDocTemplate(
         str(output),
@@ -149,7 +181,8 @@ def _build_pdf(kind: str, template_name: str, output_name: str, title: str, subt
 
     chapters = [line for line in lines if re.match(r"^\d+\.\s+", line)]
     if chapters:
-        story.append(Paragraph("Indice", h2))
+        toc_label = "Table of contents" if kind.endswith("_en") else "Indice"
+        story.append(Paragraph(toc_label, h2))
         tbl = Table([[Paragraph(escape(c), normal)] for c in chapters], colWidths=[17.0 * cm])
         tbl.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
@@ -163,40 +196,75 @@ def _build_pdf(kind: str, template_name: str, output_name: str, title: str, subt
         story.append(tbl)
         story.append(PageBreak())
 
+    def _line_to_flowable(line: str):
+        if line.startswith("• "):
+            return Paragraph(escape(line), bullet)
+        if len(line) < 90 and (line.startswith("Esempio") or line.startswith("Configurazione") or line.startswith("Procedura") or line in {"Accessibilità", "Checklist finale per un incidente", "Backup consigliato", "Checklist mensile", "Buone pratiche", "Statistiche", "Report PDF incidente"}):
+            return Paragraph(escape(line), h3)
+        return Paragraph(escape(line), normal)
+
+    def _visual_flowables(chapter_number: str, inserted: set[str]) -> list:
+        flows = []
+        for label, filename in visuals_by_chapter.get(chapter_number, []):
+            path = STATIC_HELP / filename
+            if path.exists() and label not in inserted:
+                flows.extend([_fitted_image(path), Paragraph(escape(label), caption), Spacer(1, 0.2 * cm)])
+                inserted.add(label)
+        return flows
+
     inserted = set()
-    pending_chapter: list = []
-    pending_match = None
+    chapter_chunks: list[tuple[str, str, list[str]]] = []
+    current_title: str | None = None
+    current_number: str | None = None
+    current_body: list[str] = []
     for line in lines:
         if line.startswith("Documentazione") or line.startswith("Cybersecurity Incident Registry"):
             continue
         match = re.match(r"^(\d+)\.\s+", line)
         if match:
-            if pending_chapter:
-                story.extend(pending_chapter)
-            pending_chapter = [Paragraph(escape(line), h2)]
-            pending_match = match
-            for label, filename in visuals_by_chapter.get(match.group(1), []):
-                path = STATIC_HELP / filename
-                if path.exists() and label not in inserted:
-                    pending_chapter.append(KeepTogether([_fitted_image(path), Paragraph(escape(label), caption), Spacer(1, 0.2 * cm)]))
-                    inserted.add(label)
-            continue
-        if line.startswith("• "):
-            flowable = Paragraph(escape(line), bullet)
-        elif len(line) < 90 and (line.startswith("Esempio") or line.startswith("Configurazione") or line.startswith("Procedura") or line in {"Accessibilità", "Checklist finale per un incidente", "Backup consigliato", "Checklist mensile", "Buone pratiche", "Statistiche", "Report PDF incidente"}):
-            flowable = Paragraph(escape(line), h3)
+            if current_title and current_number:
+                chapter_chunks.append((current_number, current_title, current_body))
+            current_title = line
+            current_number = match.group(1)
+            current_body = []
+        elif current_title:
+            current_body.append(line)
         else:
-            flowable = Paragraph(escape(line), normal)
-        if pending_chapter:
-            # Keep the chapter title with at least its first content block so it
-            # cannot become the last line of a page.
-            story.append(KeepTogether(pending_chapter + [flowable]))
-            pending_chapter = []
-            pending_match = None
-        else:
-            story.append(flowable)
-    if pending_chapter:
-        story.extend(pending_chapter)
+            story.append(_line_to_flowable(line))
+    if current_title and current_number:
+        chapter_chunks.append((current_number, current_title, current_body))
+
+    for chapter_number, chapter_title, body_lines in chapter_chunks:
+        heading_flow = Paragraph(escape(chapter_title), h2)
+        visual_flows = _visual_flowables(chapter_number, inserted)
+        first_flows = []
+        remaining_lines = body_lines[:]
+
+        # Keep the chapter title with the first meaningful content so that no
+        # chapter heading is left orphaned at the bottom of a page.  We keep
+        # at most the first two short body items with the heading; the rest of
+        # the chapter flows normally and can span pages.
+        while remaining_lines and len(first_flows) < 2:
+            candidate = remaining_lines.pop(0)
+            first_flows.append(_line_to_flowable(candidate))
+            if candidate.startswith("• "):
+                break
+
+        keep_block = [heading_flow] + visual_flows + first_flows
+        story.append(KeepTogether(keep_block))
+        i = 0
+        while i < len(remaining_lines):
+            line = remaining_lines[i]
+            is_subheading = (
+                re.match(r"^\d+[a-z]?\.\s+", line, flags=re.I)
+                or (len(line) < 90 and (line.startswith("Esempio") or line.startswith("Configurazione") or line.startswith("Procedura") or line in {"Accessibilità", "Checklist finale per un incidente", "Backup consigliato", "Checklist mensile", "Buone pratiche", "Statistiche", "Report PDF incidente"}))
+            )
+            if is_subheading and i + 1 < len(remaining_lines):
+                story.append(KeepTogether([_line_to_flowable(line), _line_to_flowable(remaining_lines[i + 1])]))
+                i += 2
+            else:
+                story.append(_line_to_flowable(line))
+                i += 1
 
     def page_canvas(canvas, doc_obj):
         canvas.saveState()
@@ -207,7 +275,8 @@ def _build_pdf(kind: str, template_name: str, output_name: str, title: str, subt
         canvas.drawString(1.55 * cm, A4[1] - 0.42 * cm, f"Cybersecurity Incident Registry - {title}")
         canvas.setFillColor(colors.HexColor("#64748b"))
         canvas.setFont("Helvetica", 8)
-        canvas.drawRightString(A4[0] - 1.55 * cm, 0.8 * cm, f"Pagina {doc_obj.page}")
+        page_label = "Page" if kind.endswith("_en") else "Pagina"
+        canvas.drawRightString(A4[0] - 1.55 * cm, 0.8 * cm, f"{page_label} {doc_obj.page}")
         canvas.restoreState()
 
     doc.build(story, onFirstPage=page_canvas, onLaterPages=page_canvas)
@@ -329,7 +398,7 @@ def _build_brochure() -> None:
     header = Table(
         [[logo, [
             Paragraph("Cybersecurity Incident Registry", title),
-            Paragraph("Versione applicativa 0.4.0-33 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
+            Paragraph("Versione applicativa 0.4.0-4 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
         ]]],
         colWidths=[2.25 * cm, 15.9 * cm],
     )
@@ -384,12 +453,14 @@ def _build_brochure() -> None:
         _feature_paragraph("Interfacciabilità con vari meccanismi di autenticazione: account locali, LDAP/Active Directory, SSO OAuth2/OpenID Connect e MFA.", bullet),
         _feature_paragraph("Configurabilità completa di azioni, step di workflow, tassonomie, notifiche, template, loghi, ruoli e opzioni operative.", bullet),
         _feature_paragraph("Run supportato tramite Docker Compose e manifest Kubernetes per installazioni ripetibili e scalabili.", bullet),
+        _feature_paragraph("Interfaccia desktop e mobile accessibile, adatta all’uso operativo su postazioni e dispositivi mobili.", bullet),
         _feature_paragraph("Notifiche automatiche configurabili verso utenti, CSIRT, DPO e altre entità custom, con attachment automatici di documenti generati o compilati.", bullet),
     ]
     feature_right = [
         _feature_paragraph("Import di workflow custom esterni con controllo degli elementi già presenti.", bullet),
         _feature_paragraph("Analisi e configurazione modulare per la compilazione automatica dei PDF compilabili.", bullet),
         _feature_paragraph("Compliance con le linee guida AGID sul software sicuro, con test dinamici periodici a ogni nuova release.", bullet),
+        _feature_paragraph("Localizzazione ITA + ENG per interfaccia, documentazione e messaggi principali.", bullet),
         _feature_paragraph("Knowledge base opzionale per chatbot AI AlBot/Alex con dati anonimizzati; licenza European Union Public Licence (EUPL).", bullet),
     ]
     feature_table = Table([[feature_left, feature_right]], colWidths=[8.95 * cm, 8.95 * cm])
@@ -468,6 +539,187 @@ def _build_brochure() -> None:
 
     doc.build(story, onFirstPage=brochure_canvas, onLaterPages=brochure_canvas)
 
+
+
+def _build_brochure_en() -> None:
+    """Create a concise two-page, portrait English marketing brochure."""
+    DOCS.mkdir(exist_ok=True)
+    output = DOCS / "brochure_cybersecurity_incident_registry_en.pdf"
+    page_size = A4
+    doc = SimpleDocTemplate(
+        str(output),
+        pagesize=page_size,
+        rightMargin=1.35 * cm,
+        leftMargin=1.35 * cm,
+        topMargin=1.0 * cm,
+        bottomMargin=0.95 * cm,
+        title="Cybersecurity Incident Registry - Brochure EN",
+    )
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle("brochure_en_title", parent=styles["Title"], fontSize=23, leading=26, textColor=colors.white, alignment=TA_LEFT, spaceAfter=5)
+    subtitle = ParagraphStyle("brochure_en_subtitle", parent=styles["BodyText"], fontSize=10.2, leading=12.6, textColor=colors.HexColor("#dbeafe"), alignment=TA_LEFT)
+    h2 = ParagraphStyle("brochure_en_h2", parent=styles["Heading2"], fontSize=13.6, leading=16.5, textColor=colors.HexColor("#1d4ed8"), spaceBefore=4, spaceAfter=5)
+    h3 = ParagraphStyle("brochure_en_h3", parent=styles["Heading3"], fontSize=10.4, leading=12.7, textColor=colors.HexColor("#0f172a"), spaceAfter=2)
+    normal = ParagraphStyle("brochure_en_normal", parent=styles["BodyText"], fontSize=8.55, leading=10.8, textColor=colors.HexColor("#0f172a"), spaceAfter=4)
+    bullet = ParagraphStyle("brochure_en_bullet", parent=normal, leftIndent=10, firstLineIndent=-7, spaceAfter=3.2)
+    small = ParagraphStyle("brochure_en_small", parent=normal, fontSize=7.6, leading=9.2, textColor=colors.HexColor("#475569"), spaceAfter=2)
+    chip = ParagraphStyle("brochure_en_chip", parent=normal, fontSize=7.7, leading=9.4, textColor=colors.HexColor("#1e3a8a"), backColor=colors.HexColor("#dbeafe"), borderPadding=3, borderRadius=4, alignment=TA_CENTER)
+
+    logo_path = STATIC_HELP / "app-logo.png"
+    hero_path = STATIC_HELP / "screenshot-dashboard.png"
+    flow_path = STATIC_HELP / "flow-incident-lifecycle.png"
+    detail_path = STATIC_HELP / "screenshot-incident-detail.png"
+    charts_path = STATIC_HELP / "charts-reporting.png"
+    modules_path = STATIC_HELP / "screenshot-modules.png"
+
+    logo = _brochure_image(logo_path, 1.8 * cm, 1.8 * cm) if logo_path.exists() else Paragraph("", normal)
+    hero = _brochure_image(hero_path, 17.4 * cm, 6.0 * cm) if hero_path.exists() else Paragraph("", normal)
+    flow = _brochure_image(flow_path, 7.9 * cm, 4.3 * cm) if flow_path.exists() else Paragraph("", normal)
+    detail = _brochure_image(detail_path, 7.9 * cm, 4.3 * cm) if detail_path.exists() else Paragraph("", normal)
+    charts = _brochure_image(charts_path, 7.9 * cm, 4.3 * cm) if charts_path.exists() else Paragraph("", normal)
+    modules = _brochure_image(modules_path, 7.9 * cm, 4.3 * cm) if modules_path.exists() else Paragraph("", normal)
+
+    story = []
+    header = Table(
+        [[logo, [
+            Paragraph("Cybersecurity Incident Registry", title),
+            Paragraph("Application version 0.4.0-4 - Container-ready operational registry for cyber incidents, workflows, notifications, audit evidence and documentation.", subtitle),
+        ]]],
+        colWidths=[2.25 * cm, 15.9 * cm],
+    )
+    header.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#0f172a")),
+        ("BOX", (0, 0), (-1, -1), 0, colors.HexColor("#0f172a")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(header)
+    story.append(Spacer(1, 0.20 * cm))
+
+    intro = Table(
+        [[[Paragraph("Purpose", h2),
+           Paragraph("Cybersecurity Incident Registry supports the end-to-end management of cybersecurity incidents: initial registration, classification, action tracking, notifications, evidence, PDF documents, audits, reports and closure.", normal),
+           Paragraph("The solution helps keep evidence, timings, responsibilities and communications in one operational registry suitable for internal checks, audits and accountability.", normal)]]],
+        colWidths=[18.15 * cm],
+    )
+    intro.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#ffffff")),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#cbd5e1")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(intro)
+    story.append(Spacer(1, 0.16 * cm))
+    hero_box = Table([[hero], [Paragraph("Example of the operational interface for monitoring and managing incidents.", small)]], colWidths=[18.15 * cm])
+    hero_box.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#cbd5e1")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.append(hero_box)
+    story.append(Spacer(1, 0.12 * cm))
+    story.append(Paragraph("Key features", h2))
+    feature_left = [
+        _feature_paragraph("Incident registry with statuses, severity, categories, affected data, consequences and operational recommendations.", bullet),
+        _feature_paragraph("Docker container distribution: public Docker Hub image desalvo/cybersecurity-incident-registry.", bullet),
+        _feature_paragraph("Integration with multiple authentication mechanisms: local accounts, LDAP/Active Directory, SSO OAuth2/OpenID Connect and MFA.", bullet),
+        _feature_paragraph("Full configurability of actions, workflow steps, taxonomies, notifications, templates, logos, roles and operational options.", bullet),
+        _feature_paragraph("Supported deployment with Docker Compose and Kubernetes manifests for repeatable and scalable installations.", bullet),
+        _feature_paragraph("Accessible desktop and mobile interface for both workstation and on-the-go operations.", bullet),
+        _feature_paragraph("Configurable automatic notifications to users, CSIRT, DPO and custom recipients, with automatic attachments of generated or filled documents.", bullet),
+    ]
+    feature_right = [
+        _feature_paragraph("Import of external custom workflows with duplicate detection for already existing elements.", bullet),
+        _feature_paragraph("Modular analysis and configuration for automatic completion of fillable PDF forms.", bullet),
+        _feature_paragraph("Compliance with AGID secure-software guidelines, with dynamic tests periodically executed for each new release.", bullet),
+        _feature_paragraph("Italian + English localization for interface, documentation and main messages.", bullet),
+        _feature_paragraph("Optional AI chatbot knowledge base for AlBot/Alex with anonymized data; European Union Public Licence (EUPL).", bullet),
+    ]
+    feature_table = Table([[feature_left, feature_right]], colWidths=[8.95 * cm, 8.95 * cm])
+    feature_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#cbd5e1")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#dbe3ef")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(feature_table)
+    story.append(PageBreak())
+
+    story.append(Paragraph("Governance, automation and traceability", h2))
+    cards = []
+    for img, heading, text in [
+        (flow, "Guided workflows", "Configurable actions and steps guide each incident from detection to closure."),
+        (detail, "Timeline and evidence", "Chronology, attachments, recipients, documents and structured fields remain available in a single view."),
+        (modules, "PDF forms", "Field mapping and automatic completion of fillable PDF documents from incident data."),
+        (charts, "Reporting", "Charts and reports help monitor volumes, states, severity and response times."),
+    ]:
+        card = Table([[img], [Paragraph(heading, h3)], [Paragraph(text, small)]], colWidths=[8.65 * cm])
+        card.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+            ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#cbd5e1")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
+        cards.append(card)
+    story.append(Table([[cards[0], cards[1]], [cards[2], cards[3]]], colWidths=[8.95 * cm, 8.95 * cm], style=[("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    story.append(Spacer(1, 0.14 * cm))
+    chips = Table([[
+        Paragraph("Docker Hub", chip),
+        Paragraph("Docker Compose", chip),
+        Paragraph("Kubernetes", chip),
+        Paragraph("AGID audit", chip),
+    ]], colWidths=[4.43 * cm] * 4)
+    chips.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+    story.append(chips)
+    story.append(Spacer(1, 0.12 * cm))
+    value = Table(
+        [[
+            [Paragraph("Main outputs", h2), Paragraph("PDF reports, filled forms, CSV audits, full backups, documentary evidence, data export/import, importable external workflows and Docker/Docker Compose/Kubernetes deployment.", normal)],
+            [Paragraph("References", h2), Paragraph("Creator: Alessandro De Salvo - braket71@gmail.com<br/>GitHub: https://github.com/desalvo/cybersecurity-incident-registry", normal)],
+        ]],
+        colWidths=[8.95 * cm, 8.95 * cm],
+    )
+    value.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eef4ff")),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#bfdbfe")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#bfdbfe")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(value)
+
+    def brochure_canvas(canvas, doc_obj):
+        _draw_brochure_watermark(canvas, page_size)
+        canvas.saveState()
+        w, h = page_size
+        canvas.setFillColor(colors.HexColor("#0f172a"))
+        canvas.rect(0, h - 0.22 * cm, w, 0.22 * cm, fill=1, stroke=0)
+        canvas.setFillColor(colors.HexColor("#64748b"))
+        canvas.setFont("Helvetica", 7.5)
+        canvas.drawRightString(w - 1.25 * cm, 0.45 * cm, f"Cybersecurity Incident Registry - Brochure - Page {doc_obj.page}/2")
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=brochure_canvas, onLaterPages=brochure_canvas)
+
 def main() -> None:
     _build_pdf(
         kind="user",
@@ -475,7 +727,7 @@ def main() -> None:
         output_name="documentazione_utente.pdf",
         title="Documentazione utente",
         subtitle="Documentazione utente completa",
-        callout="Versione PDF statica della documentazione utente. Le figure sono mantenute vicino al capitolo che le introduce.",
+        callout="Versione PDF statica della documentazione utente, aggiornata agli ultimi sviluppi dell’applicazione.",
         visuals_by_chapter={
             "1": [("Figura 1 - Flusso consigliato di gestione incidente", "flow-incident-lifecycle.png")],
             "3": [("Figura 2 - Pagina principale con avvisi procedurali", "screenshot-dashboard.png")],
@@ -489,7 +741,7 @@ def main() -> None:
         output_name="documentazione_amministrativa.pdf",
         title="Documentazione amministrativa",
         subtitle="Documentazione amministrativa completa",
-        callout="Versione PDF statica della documentazione amministrativa. Le figure sono mantenute vicino al capitolo che le introduce.",
+        callout="Versione PDF statica della documentazione amministrativa, aggiornata agli ultimi sviluppi dell’applicazione.",
         visuals_by_chapter={
             "1": [("Figura 1 - Flusso amministrativo consigliato", "admin-flow.png")],
             "4": [("Figura 2 - Configurazione SSO e controllo connessione", "admin-screenshot-sso.png")],
@@ -497,7 +749,36 @@ def main() -> None:
             "16": [("Figura 4 - Mappa delle aree di governance amministrativa", "admin-chart-governance.png")],
         },
     )
+    _build_pdf(
+        kind="user_en",
+        template_name="help_en.html",
+        output_name="user_documentation_en.pdf",
+        title="User documentation",
+        subtitle="Complete user documentation",
+        callout="Static PDF version of the user documentation, updated with the latest application changes.",
+        visuals_by_chapter={
+            "1": [("Figure 1 - Recommended incident management workflow", "flow-incident-lifecycle.png")],
+            "3": [("Figure 2 - Main page with procedural warnings", "screenshot-dashboard.png")],
+            "5": [("Figure 3 - Incident detail and action timeline", "screenshot-incident-detail.png")],
+            "10": [("Figure 4 - PDF form configuration and mapping", "screenshot-modules.png"), ("Figure 5 - Example reporting charts", "charts-reporting.png")],
+        },
+    )
+    _build_pdf(
+        kind="admin_en",
+        template_name="admin_help_en.html",
+        output_name="administrator_documentation_en.pdf",
+        title="Administrator documentation",
+        subtitle="Complete administrator documentation",
+        callout="Static PDF version of the administrator documentation, updated with the latest application changes.",
+        visuals_by_chapter={
+            "1": [("Figure 1 - Recommended administration workflow", "admin-flow.png")],
+            "4": [("Figure 2 - SSO configuration and connection test", "admin-screenshot-sso.png")],
+            "11": [("Figure 3 - PDF template configuration and mapping", "admin-screenshot-modules.png")],
+            "16": [("Figure 4 - Administrative governance area map", "admin-chart-governance.png")],
+        },
+    )
     _build_brochure()
+    _build_brochure_en()
 
 
 if __name__ == "__main__":

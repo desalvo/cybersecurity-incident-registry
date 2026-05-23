@@ -6428,18 +6428,26 @@ def admin_help_pdf():
     def is_pdf_noise(line):
         if not line:
             return True
-        exact_noise = {'Menu', 'Logout', 'Scarica PDF', 'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.'}
+        exact_noise = {'Salta al contenuto principale', 'Menu', '☰ Menu', 'n Menu', 'Alex', 'Logout', 'Scarica PDF', 'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.', 'Search administrator documentation', 'Type a word to filter chapters.'}
         if line in exact_noise:
             return True
         noise_fragments = (
+            'Salta al contenuto principale',
+            'Apri o chiudi menu',
             'Cerca nella documentazione',
             'Nessun capitolo contiene il testo cercato',
+            'No chapter contains the searched text',
             'Vai all’indice',
             'Scarica PDF',
             'Logout',
             'Il logo presente in questa guida',
             'Questa guida riorganizza le funzioni amministrative',
             'Questa guida descrive lo stato operativo corrente',
+            'AlBot anche Alex',
+            'Helpdesk applicativo',
+            'Ciao, sono AlBot',
+            'Domanda per AlBot',
+            'Invia',
         )
         if any(fragment in line for fragment in noise_fragments):
             return True
@@ -6505,24 +6513,67 @@ def admin_help_pdf():
         t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#f8fafc')),('BOX',(0,0),(-1,-1),0.5,colors.HexColor('#e2e8f0')),('INNERGRID',(0,0),(-1,-1),0.25,colors.HexColor('#e2e8f0')),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5)]))
         story.append(t); story.append(PageBreak())
 
-    inserted_visuals = set()
+    def line_to_admin_flowable(line):
+        if line.startswith('• '):
+            return Paragraph(escape(line), bullet)
+        if len(line) < 90 and (line.startswith('Esempio') or line.startswith('Configurazione') or line.startswith('Procedura') or line in {'Buone pratiche','Campi database incidenti','Misure adottate','Sostituzione template','Backup consigliato','Checklist mensile','SSO non funziona','Modulo PDF incompleto','Export o import non coerente'}):
+            return Paragraph(escape(line), h3)
+        return Paragraph(escape(line), normal)
+
+    def admin_visual_flowables(chapter_number, inserted_visuals):
+        flows = []
+        for label, path in visual_paths_by_chapter.get(chapter_number, []):
+            if path.exists() and label not in inserted_visuals:
+                flows.extend([fitted_doc_image(path), Paragraph(escape(label), caption), Spacer(1, .2*cm)])
+                inserted_visuals.add(label)
+        return flows
+
+    chapter_chunks = []
+    current_number = None
+    current_title = None
+    current_body = []
     for line in lines:
         if line.startswith('Documentazione amministrativa') or line.startswith('Cybersecurity Incident Registry'):
             continue
         chapter_match = re.match(r'^(\d+)\.\s+', line)
         if chapter_match:
-            story.append(Paragraph(escape(line), h2))
-            for label, path in visual_paths_by_chapter.get(chapter_match.group(1), []):
-                if path.exists() and label not in inserted_visuals:
-                    img = fitted_doc_image(path)
-                    story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
-                    inserted_visuals.add(label)
-            continue
-        if line.startswith('• '):
-            story.append(Paragraph(escape(line), bullet)); continue
-        if len(line) < 90 and (line.startswith('Esempio') or line.startswith('Configurazione') or line.startswith('Procedura') or line in {'Buone pratiche','Campi database incidenti','Misure adottate','Sostituzione template','Backup consigliato','Checklist mensile','SSO non funziona','Modulo PDF incompleto','Export o import non coerente'}):
-            story.append(Paragraph(escape(line), h3)); continue
-        story.append(Paragraph(escape(line), normal))
+            if current_title and current_number:
+                chapter_chunks.append((current_number, current_title, current_body))
+            current_number = chapter_match.group(1)
+            current_title = line
+            current_body = []
+        elif current_title:
+            current_body.append(line)
+        else:
+            story.append(line_to_admin_flowable(line))
+    if current_title and current_number:
+        chapter_chunks.append((current_number, current_title, current_body))
+
+    inserted_visuals = set()
+    for chapter_number, chapter_title, body_lines in chapter_chunks:
+        heading_flow = Paragraph(escape(chapter_title), h2)
+        visual_flows = admin_visual_flowables(chapter_number, inserted_visuals)
+        first_flows = []
+        remaining_lines = list(body_lines)
+        while remaining_lines and len(first_flows) < 2:
+            candidate = remaining_lines.pop(0)
+            first_flows.append(line_to_admin_flowable(candidate))
+            if candidate.startswith('• '):
+                break
+        story.append(KeepTogether([heading_flow] + visual_flows + first_flows))
+        i = 0
+        while i < len(remaining_lines):
+            line = remaining_lines[i]
+            is_subheading = (
+                re.match(r'^\d+[a-z]?\.\s+', line, flags=re.I)
+                or (len(line) < 90 and (line.startswith('Esempio') or line.startswith('Configurazione') or line.startswith('Procedura') or line in {'Buone pratiche','Campi database incidenti','Misure adottate','Sostituzione template','Backup consigliato','Checklist mensile','SSO non funziona','Modulo PDF incompleto','Export o import non coerente'}))
+            )
+            if is_subheading and i + 1 < len(remaining_lines):
+                story.append(KeepTogether([line_to_admin_flowable(line), line_to_admin_flowable(remaining_lines[i + 1])]))
+                i += 2
+            else:
+                story.append(line_to_admin_flowable(line))
+                i += 1
 
     def page_canvas(canvas, doc_obj):
         canvas.saveState()
@@ -6578,18 +6629,26 @@ def help_pdf():
     def is_pdf_noise(line):
         if not line:
             return True
-        exact_noise = {'Menu', 'Logout', 'Scarica PDF', 'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.'}
+        exact_noise = {'Salta al contenuto principale', 'Menu', '☰ Menu', 'n Menu', 'Alex', 'Logout', 'Scarica PDF', 'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.', 'Search administrator documentation', 'Type a word to filter chapters.'}
         if line in exact_noise:
             return True
         noise_fragments = (
+            'Salta al contenuto principale',
+            'Apri o chiudi menu',
             'Cerca nella documentazione',
             'Nessun capitolo contiene il testo cercato',
+            'No chapter contains the searched text',
             'Vai all’indice',
             'Scarica PDF',
             'Logout',
             'Il logo presente in questa guida',
             'Questa guida riorganizza le funzioni amministrative',
             'Questa guida descrive lo stato operativo corrente',
+            'AlBot anche Alex',
+            'Helpdesk applicativo',
+            'Ciao, sono AlBot',
+            'Domanda per AlBot',
+            'Invia',
         )
         if any(fragment in line for fragment in noise_fragments):
             return True
@@ -6634,7 +6693,7 @@ def help_pdf():
     story.append(Paragraph('Cybersecurity Incident Registry', h1))
     story.append(Paragraph('Documentazione utente completa', ParagraphStyle('subtitle', parent=normal, alignment=TA_CENTER, fontSize=12, leading=15, textColor=colors.HexColor('#475569'))))
     story.append(Spacer(1, .35*cm))
-    story.append(Paragraph('La documentazione descrive funzionalità, flussi operativi, ruoli, incidenti, azioni, notifiche, moduli PDF, report, export/import e configurazioni amministrative.', callout))
+    story.append(Paragraph('La documentazione descrive funzionalità, flussi operativi, ruoli, incidenti, azioni, notifiche, moduli PDF, report ed export/import.', callout))
     story.append(PageBreak())
 
     # Indice sintetico professionale

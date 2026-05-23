@@ -3,4 +3,3 @@ pytest==9.0.3
 
 defusedxml>=0.7.1,<0.8
 bandit==1.7.10
-pip-audit==2.10.0

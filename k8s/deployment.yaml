@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: desalvo/cybersecurity-incident-registry:0.4.0-33
+        image: cybersecurity-incident-registry:latest
         ports:
         - {containerPort: 8000}
         - {containerPort: 8443}
@@ -17,8 +17,8 @@ spec:
         - {name: DATABASE_URL, valueFrom: {secretKeyRef: {name: cir-secrets, key: database-url}}}
         - {name: SECRET_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: secret-key}}}
         - {name: ADMIN_INITIAL_PASSWORD, valueFrom: {secretKeyRef: {name: cir-secrets, key: admin-initial-password}}}
-        - {name: APP_VERSION, value: "0.4.0-33"}
-        - {name: APP_BUILD, value: "20260523"}
+        - {name: APP_VERSION, value: "0.4.0-4"}
+        - {name: APP_BUILD, value: "20260522"}
         - {name: CIR_PRODUCTION, value: "1"}
         - {name: SESSION_COOKIE_SECURE, value: "1"}
         - {name: FORM_TEMPLATE_DIR, value: /data/form_templates}

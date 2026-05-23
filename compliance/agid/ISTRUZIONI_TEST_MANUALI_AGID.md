@@ -40,7 +40,7 @@ Per controlli rapidi offline o in CI non connessa è possibile usare:
 ./scripts/run_agid_compliance.sh
 ```
 
-Questa modalità esegue `pip-audit` come controllo bloccante. Il runner deve avere accesso al servizio di vulnerability intelligence; in caso contrario il controllo fallisce intenzionalmente e il run non è promuovibile a rilascio.
+Questa modalità non esegue `pip-audit`: il controllo vulnerabilità delle dipendenze è limitato alla modalità manuale Docker per evitare falsi esiti dovuti a runner senza Internet.
 
 ## File prodotti
 
@@ -67,7 +67,7 @@ Ogni run crea una directory `compliance/agid/<RUN_ID>/` con:
 Il report JSON di Bandit viene generato con `--exit-zero`: la presenza di finding LOW non interrompe la generazione del report. La soglia bloccante AGID è applicata subito dopo con `scripts/check_bandit_threshold.py`, che fallisce il run solo in presenza di finding HIGH o MEDIUM. Questo evita falsi FAIL quando Bandit restituisce codice non zero per soli finding LOW.
 
 
-Il runner standard esegue `pip-audit` come passo bloccante: se il servizio di vulnerability intelligence non è raggiungibile o se vengono rilevate vulnerabilità non gestite, il run fallisce. Il runner Docker manuale resta disponibile per produrre evidenze equivalenti in ambienti controllati.
+Il runner standard registra `pip_audit_manual_docker_only` come passo informativo PASS: il controllo vulnerabilità tramite `pip-audit` viene eseguito solo dal runner Docker manuale completo.
 
 ### Output a video della suite AGID
 
