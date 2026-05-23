@@ -219,3 +219,14 @@
 
 </div>
 {% endblock %}
+
+
+### Rendering Markdown sicuro con colori e dimensioni
+
+Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS, è possibile evidenziare il testo con colori e dimensioni controllate:
+
+- `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
+- `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
+- `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
+
+L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.

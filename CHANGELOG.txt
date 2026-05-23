@@ -1,3 +1,41 @@
+2026-05-23
+- Verificato che il full backup/full export includa anche i documenti fisici della knowledge base dell'AI Chatbot in `files/persistent/ai_chatbot_docs/`.
+- Aggiunto test di regressione `test_full_backup_includes_ai_chatbot_knowledge_base_files`.
+- Aggiornata la documentazione di backup e conformità.
+
+2026-05-23
+- Aggiornata la dipendenza Werkzeug da 3.1.5 a 3.1.6.
+- Rieseguiti installazione dipendenze, `pip check`, `compileall`, test pytest e suite standard AGID.
+- Mantenuta solo l’ultima directory di evidenze AGID nel pacchetto.
+
+2026-05-23
+- Aggiornate le dipendenze richieste: Werkzeug 3.1.5, Pillow 12.2.0, python-dotenv 1.2.2, pypdf 6.10.2, requests 2.33.0, cryptography 46.0.7 e pytest 9.0.3.
+- Confermato che il pacchetto HTTP corretto è `requests` anche quando la richiesta operativa indica `request`.
+- Rieseguiti installazione, `pip check`, `compileall`, test pytest e suite standard AGID con soglia Bandit.
+
+0.4.0-4 - Rendering Markdown esteso coerente con CSP
+- Il rendering Markdown sicuro server-side e client-side supporta ovunque colori e dimensioni font controllate.
+- I marker {color:...} e {size:...} generano attributi data-md-* e vengono applicati dal JavaScript globale, evitando style inline bloccati dalla CSP.
+- Supportati colori named/hex/rgb/hsl e dimensioni named/px/em/rem/percentuali entro intervalli controllati.
+- Aggiornati test, documentazione e compliance AGID.
+
+
+2026-05-23
+- Aggiornata la dipendenza Flask da 3.1.1 a 3.1.3.
+- Rieseguiti i controlli locali di compatibilità e compliance AGID dopo l'aggiornamento.
+
+0.4.0-4 - Verifica compliance AGID completa con pip-audit
+- Rieseguita la suite AGID e mantenuta solo l'ultima directory `compliance/agid/20260522T234917Z/`.
+- Test applicativi e dinamici AGID superati; Bandit senza finding HIGH/MEDIUM.
+- `pip-audit` invocato in modalità bloccante ma fallito per mancata risoluzione DNS di `pypi.org` nell'ambiente disponibile; l'esito complessivo del run incluso è FAIL e richiede riesecuzione in runner realmente connesso a Internet.
+
+
+0.4.0-4 markdown-rendering-scheduled-notifications
+- Esteso il rendering Markdown sicuro con colore e dimensione testo tramite sintassi controllata.
+- Allineato il renderer del widget AI Chatbot al filtro server-side.
+- Aggiunta rimozione della formattazione Markdown dalle notifiche schedulate prima dell’invio.
+- Aggiunti test di regressione e aggiornate evidenze compliance AGID.
+
 0.4.0-4 - Fix permessi entrypoint container
 - Corretto l'avvio container quando `docker-entrypoint.sh` risulta copiato senza bit eseguibile.
 - Il Dockerfile applica esplicitamente `chmod 0755 /app/docker-entrypoint.sh` prima del passaggio all'utente non privilegiato.
@@ -1171,3 +1209,19 @@ Versione 0.4.0-4 - aggiornamento compliance AGID
 - Aggiunta documentazione dedicata `docs/AGID_COMPLIANCE.md`.
 - Salvate nel pacchetto le evidenze dei run in `compliance/agid/<RUN_ID>/`.
 - Aggiornate le istruzioni operative affinché ogni futuro aggiornamento riesegua e includa i risultati di compliance.
+
+0.4.0-4 - Fix pip-audit DNS locale
+- Aggiunto `scripts/configure_local_dns.sh` per configurare il resolver DNS locale prima di `pip-audit`.
+- Aggiornato il workflow AGID per usare il DNS locale e rendere bloccante il bootstrap DNS in CI.
+- Aggiornata la documentazione di compliance e mantenimento evidenze AGID.
+
+0.4.0-4 - AGID manual compliance runner
+- Aggiunto `compliance/agid/run_manual_agid_compliance.sh` per eseguire manualmente la suite AGID completa su sistemi connessi a Internet.
+- Aggiunto `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md` con le istruzioni operative separate per il run manuale e per l'uso del DNS locale.
+- Aggiornata la documentazione AGID mantenendo la regola di conservare nel pacchetto solo l'ultima directory dei risultati di compliance.
+
+0.4.0-4 - AGID Docker compliance runner
+- Aggiunto Dockerfile in compliance/agid per esecuzione manuale completa dei test AGID.
+- Aggiunto runner Docker che salva le evidenze nella directory corrente e mantiene solo l'ultimo run.
+- Limitato pip-audit alla sola modalità manuale containerizzata.
+- Aggiornate istruzioni e documentazione di compliance.

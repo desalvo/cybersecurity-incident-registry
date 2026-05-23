@@ -1,3 +1,24 @@
+
+function isAllowedSafeMarkdownColor(value){
+  return /^(?:#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?|[a-zA-Z][a-zA-Z0-9_-]{0,30}|rgb\(\s*(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\s*,\s*(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\s*,\s*(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\s*\)|hsl\(\s*(?:[0-9]|[1-9][0-9]|[12][0-9]{2}|3[0-5][0-9]|360)\s*,\s*(?:[0-9]|[1-9][0-9]|100)%\s*,\s*(?:[0-9]|[1-9][0-9]|100)%\s*\))$/.test((value || '').trim());
+}
+
+function isAllowedSafeMarkdownSize(value){
+  return /^(?:xx-small|x-small|small|normal|medium|large|x-large|xx-large|[8-9]px|[1-4][0-9]px|5[0-6]px|0\.[5-9]em|[1-3](?:\.[0-9])?em|4(?:\.0)?em|0\.[5-9]rem|[1-3](?:\.[0-9])?rem|4(?:\.0)?rem|[5-9][0-9]%|[1-2][0-9]{2}%|300%)$/i.test((value || '').trim());
+}
+
+function applySafeMarkdownStyles(root){
+  const scope = root || document;
+  scope.querySelectorAll('[data-md-color]').forEach((node)=>{
+    const color = (node.getAttribute('data-md-color') || '').trim();
+    if(isAllowedSafeMarkdownColor(color)) node.style.color = color;
+  });
+  scope.querySelectorAll('[data-md-size]').forEach((node)=>{
+    const size = (node.getAttribute('data-md-size') || '').trim().toLowerCase();
+    if(isAllowedSafeMarkdownSize(size)) node.style.fontSize = size;
+  });
+}
+
 function makeDnd(){
   const makeSelectedRemovable=()=>document.querySelectorAll('.dropzone .chip').forEach(chip=>{
     if(chip.dataset.removeReady==='true')return;
@@ -326,6 +347,14 @@ function initAIChatbotWidget(){
       .replace(/'/g, '&#39;');
   }
 
+  function isAllowedMarkdownColor(value){
+    return isAllowedSafeMarkdownColor(value);
+  }
+
+  function isAllowedMarkdownSize(value){
+    return isAllowedSafeMarkdownSize(value);
+  }
+
   function renderInlineChatMarkdown(value){
     return value
       .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -333,6 +362,14 @@ function initAIChatbotWidget(){
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\{color:([^}]+)\}([\s\S]+?)\{\/color\}/gi, function(match, color, body){
+        color = (color || '').trim();
+        return isAllowedMarkdownColor(color) ? '<span class="safe-markdown-color workflow-markdown-color" data-md-color="' + color.replace(/&quot;/g, '') + '">' + body + '</span>' : body;
+      })
+      .replace(/\{size:([^}]+)\}([\s\S]+?)\{\/size\}/gi, function(match, size, body){
+        size = (size || '').trim().toLowerCase();
+        return isAllowedMarkdownSize(size) ? '<span class="safe-markdown-size workflow-markdown-size" data-md-size="' + size.replace(/&quot;/g, '') + '">' + body + '</span>' : body;
+      })
       .replace(/(^|\s)(https?:\/\/[^\s<]+)(?=\s|$)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
   }
 
@@ -431,6 +468,7 @@ function initAIChatbotWidget(){
       node.innerHTML = renderChatMarkdown(text);
     }
     messages.appendChild(node);
+    applySafeMarkdownStyles(node);
     messages.scrollTop = messages.scrollHeight;
     return node;
   }
@@ -468,4 +506,7 @@ function initAIChatbotWidget(){
     });
   }
 }
-document.addEventListener('DOMContentLoaded', initAIChatbotWidget);
+document.addEventListener('DOMContentLoaded', ()=>{
+  applySafeMarkdownStyles(document);
+  initAIChatbotWidget();
+});

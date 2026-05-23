@@ -3,8 +3,27 @@ import re
 from markupsafe import Markup, escape
 
 
-_ALLOWED_COLOR_RE = re.compile(r"^(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?|[a-zA-Z][a-zA-Z0-9_-]{0,30})$")
-_ALLOWED_SIZE_RE = re.compile(r"^(small|normal|large|x-large|xx-large|[8-9]px|[1-2][0-9]px|3[0-2]px|0\.[8-9]em|1(?:\.[0-9])?em|2(?:\.0)?em)$", re.IGNORECASE)
+_ALLOWED_COLOR_RE = re.compile(
+    r"^(?:"
+    r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?"
+    r"|[a-zA-Z][a-zA-Z0-9_-]{0,30}"
+    r"|rgb\(\s*(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\s*,\s*"
+    r"(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\s*,\s*"
+    r"(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\s*\)"
+    r"|hsl\(\s*(?:[0-9]|[1-9][0-9]|[12][0-9]{2}|3[0-5][0-9]|360)\s*,\s*"
+    r"(?:[0-9]|[1-9][0-9]|100)%\s*,\s*(?:[0-9]|[1-9][0-9]|100)%\s*\)"
+    r")$"
+)
+_ALLOWED_SIZE_RE = re.compile(
+    r"^(?:"
+    r"xx-small|x-small|small|normal|medium|large|x-large|xx-large"
+    r"|[8-9]px|[1-4][0-9]px|5[0-6]px"
+    r"|0\.[5-9]em|[1-3](?:\.[0-9])?em|4(?:\.0)?em"
+    r"|0\.[5-9]rem|[1-3](?:\.[0-9])?rem|4(?:\.0)?rem"
+    r"|[5-9][0-9]%|[1-2][0-9]{2}%|300%"
+    r")$",
+    re.IGNORECASE,
+)
 _URL_RE = re.compile(r"(https?://[^\s<]+)", re.IGNORECASE)
 
 
@@ -68,14 +87,16 @@ def _apply_inline_markdown(text):
         body = match.group(2)
         if not _ALLOWED_COLOR_RE.match(color):
             return body
-        return f'<span class="workflow-markdown-color" style="color: {color};">{body}</span>'
+        safe_color = escape(color)
+        return f'<span class="safe-markdown-color workflow-markdown-color" data-md-color="{safe_color}">{body}</span>'
 
     def size_repl(match):
         size = match.group(1).strip().lower()
         body = match.group(2)
         if not _ALLOWED_SIZE_RE.match(size):
             return body
-        return f'<span class="workflow-markdown-size" style="font-size: {size};">{body}</span>'
+        safe_size = escape(size)
+        return f'<span class="safe-markdown-size workflow-markdown-size" data-md-size="{safe_size}">{body}</span>'
 
     text = re.sub(r"\{color:([^}]+)\}(.+?)\{/color\}", color_repl, text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"\{size:([^}]+)\}(.+?)\{/size\}", size_repl, text, flags=re.IGNORECASE | re.DOTALL)
@@ -102,8 +123,10 @@ def workflow_markdown(value):
 
     Supported syntax is intentionally limited to headings, unordered/ordered
     lists, bold, italic, inline code, Markdown links, auto-linked http(s) URLs,
-    color spans using {color:red}text{/color} or {color:#c00}text{/color}
-    and size spans using {size:large}text{/size} or {size:14px}text{/size}.
+    color spans using {color:red}text{/color}, {color:#c00}text{/color},
+    {color:rgb(200,0,0)}text{/color} or {color:hsl(210,80%,40%)}text{/color}
+    and size spans using {size:large}text{/size}, {size:14px}text{/size},
+    {size:1.2em}text{/size}, {size:1.1rem}text{/size} or {size:120%}text{/size}.
     Raw HTML is escaped.
     """
     raw = "" if value is None else str(value)
@@ -150,7 +173,38 @@ def workflow_markdown(value):
     return Markup("\n".join(html))  # nosec B704
 
 
+def strip_markdown_formatting(value):
+    """Return a plain-text representation of the supported Markdown subset.
+
+    Used before sending scheduled notifications so formatting markers for
+    bold, italic, headings, lists, inline code, links, color and size spans do
+    not appear in outbound plain-text email bodies or subjects. The textual
+    content is preserved and raw HTML is reduced to plain text.
+    """
+    text = "" if value is None else str(value)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"\{color:[^}]+\}(.+?)\{/color\}", r"\1", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"\{size:[^}]+\}(.+?)\{/size\}", r"\1", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"```(?:[^`]|`(?!``))*```", lambda m: m.group(0).strip('`'), text, flags=re.DOTALL)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    text = re.sub(r"!\[([^\]\n]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)", r"\1 (\2)", text)
+    text = re.sub(r"(^|\n)\s{0,3}#{1,6}\s+", r"\1", text)
+    text = re.sub(r"(^|\n)\s*[-*+]\s+", r"\1- ", text)
+    text = re.sub(r"(^|\n)\s*\d+[.)]\s+", r"\1", text)
+    text = re.sub(r"(\*\*\*|___)(.+?)\1", r"\2", text, flags=re.DOTALL)
+    text = re.sub(r"(\*\*|__)(.+?)\1", r"\2", text, flags=re.DOTALL)
+    text = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"\1", text)
+    text = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"\1", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def register_text_filters(app):
     """Register custom text-related Jinja filters."""
     app.jinja_env.filters["linkify_text"] = linkify_text
     app.jinja_env.filters["workflow_markdown"] = workflow_markdown
+    app.jinja_env.filters["safe_markdown"] = workflow_markdown
+    app.jinja_env.filters["strip_markdown_formatting"] = strip_markdown_formatting

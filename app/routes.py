@@ -22,6 +22,7 @@ from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
 from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields, incident_measures
 from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
+from .text_filters import strip_markdown_formatting
 bp=Blueprint('main',__name__)
 
 
@@ -4958,8 +4959,8 @@ def deadline_template_unknown_placeholders(subject_template, body_template):
 def build_deadline_email_content(inc, pending_rows, recipients, now=None):
     subject_template = setting_value('notification_deadline_subject_template', default_deadline_subject_template()) or default_deadline_subject_template()
     body_template = setting_value('notification_deadline_body_template', default_deadline_body_template()) or default_deadline_body_template()
-    subject = render_deadline_template(subject_template, inc, pending_rows, recipients, now=now).strip() or default_deadline_subject_template().replace('%incident_name%', inc.name or '')
-    body = render_deadline_template(body_template, inc, pending_rows, recipients, now=now)
+    subject = strip_markdown_formatting(render_deadline_template(subject_template, inc, pending_rows, recipients, now=now)).strip() or default_deadline_subject_template().replace('%incident_name%', inc.name or '')
+    body = strip_markdown_formatting(render_deadline_template(body_template, inc, pending_rows, recipients, now=now))
     link = incident_absolute_url(inc)
     if link not in body:
         body = body.rstrip() + f'\n\nLink diretto incidente: {link}'
@@ -5129,7 +5130,7 @@ def _reminder_body(reminder, now=None):
         f'Incidente: {inc.name if inc else reminder.incident_id}\n'
         f'Riferimento: {(inc.reference if inc else "") or "-"}\n'
         f'Data e ora promemoria: {when_text}\n\n'
-        f'Messaggio:\n{reminder.message or ""}\n\n'
+        f'Messaggio:\n{strip_markdown_formatting(reminder.message or "")}\n\n'
         f'Link diretto incidente: {incident_absolute_url(inc) if inc else "-"}\n\n'
         f'Questa mail è stata generata automaticamente da Cybersecurity Incident Registry il {generated_at}.\n'
         f'Accesso applicazione: {setting_value("application_external_url", "http://localhost:8000") or "http://localhost:8000"}'

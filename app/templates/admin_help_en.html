@@ -37,3 +37,14 @@
 </div>
 <section id="admin-external-recipient-incident-fields" class="doc-chapter" data-doc-title="external recipients reference recipient email manual notifications"><h2>External recipients in incident data</h2><p>In incident <strong>General Data</strong> and in <strong>Admin → Incident templates</strong>, the external recipient address book can fill Reference, Recipient or Recipient e-mail. When Recipient e-mail is set, it must be a valid e-mail address and Reference or Recipient must also be present. New e-mail addresses not yet in the address book are added automatically using Recipient or Reference as name. Manual notifications cannot be sent or confirmed without at least one effective recipient. If the template allows manual recipient or CC editing, values typed in the preview are read directly at submit time for both delivery and confirmation without sending; empty or invalid recipient/CC values are rejected with an explicit error. Editable CC is prefilled from the template default when present, but a manually cleared CC is honoured at confirmation time.</p></section>
 {% endblock %}
+
+
+### Rendering Markdown sicuro con colori e dimensioni
+
+Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS, è possibile evidenziare il testo con colori e dimensioni controllate:
+
+- `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
+- `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
+- `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
+
+L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.

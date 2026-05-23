@@ -1,6 +1,0 @@
-pip_check	0
-compileall	0
-pytest_all	0
-pytest_agid_dynamic	0
-bandit_json	1
-bandit_threshold_high_medium	0

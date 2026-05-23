@@ -85,6 +85,26 @@ def main() -> int:
         "I file `.log`, `bandit.json`, `pip-audit.json` quando disponibile e `summary.json` nella stessa directory costituiscono le evidenze riproducibili del run.",
     ])
     (out_dir / "SUMMARY.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    # Also print a compact terminal summary so manual/CI runs show the
+    # result immediately without opening the generated report files.
+    print("\nAGID compliance summary")
+    print("=======================")
+    print(f"Results directory: {out_dir}")
+    print(f"Overall result: {'PASS' if overall_rc == 0 else 'FAIL'}")
+    print("")
+    print("Test results:")
+    for row in status:
+        print(f"- {row['step']}: {'PASS' if row['passed'] else 'FAIL'} (rc={row['return_code']})")
+    if bandit is not None:
+        print(f"- bandit severity counts: HIGH={bandit['high']}, MEDIUM={bandit['medium']}, LOW={bandit['low']}")
+    if note.exists():
+        note_text = note.read_text(encoding="utf-8").strip()
+        if note_text:
+            print("- pip-audit note: " + note_text.splitlines()[0])
+    print(f"Human-readable report: {out_dir / 'SUMMARY.md'}")
+    print(f"Machine-readable report: {out_dir / 'summary.json'}")
+    print("")
     return 0
 
 

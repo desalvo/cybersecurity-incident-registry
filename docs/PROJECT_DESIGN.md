@@ -1352,10 +1352,10 @@ La sezione degli avvisi procedurali è stata ricollocata subito sotto la sezione
 
 
 ## Backup applicativi
-La versione corrente introduce un sottosistema di backup configurabile da **Admin → Backup**. Il modello `BackupJob` contiene abilitazione, espressione cron-like, categorie incluse, destinazione, parametri POSIX/S3, preferenza di notifica e ultimo esito. La generazione produce archivi `tar.gz` con manifest `backup.json`; le categorie sono `incidents`, `database`, `templates`, `logos` e `uploads`. Se tutte sono selezionate l’archivio è trattato come full backup applicativo. Lo scheduler interno verifica i job abilitati a granularità di minuto; in deployment multi-replica è raccomandato eseguire lo scheduler in una sola replica o introdurre locking distribuito dedicato.
+La versione corrente introduce un sottosistema di backup configurabile da **Admin → Backup**. Il modello `BackupJob` contiene abilitazione, espressione cron-like, categorie incluse, destinazione, parametri POSIX/S3, preferenza di notifica e ultimo esito. La generazione produce archivi `tar.gz` con manifest `backup.json`; le categorie sono `incidents`, `database`, `templates`, `logos` e `uploads`. Se tutte sono selezionate l’archivio è trattato come full backup applicativo. Il full backup usa lo stesso formato del full export e include anche lo snapshot dei volumi persistenti, compresa la directory `AI_CHATBOT_DOC_DIR`/`/data/ai_chatbot_docs` con i documenti fisici della knowledge base dell’AI Chatbot e i relativi record `ai_chatbot_document`. È presente un test di regressione dedicato che verifica l’inclusione del file nel percorso `files/persistent/ai_chatbot_docs/` dell’archivio. Lo scheduler interno verifica i job abilitati a granularità di minuto; in deployment multi-replica è raccomandato eseguire lo scheduler in una sola replica o introdurre locking distribuito dedicato.
 
 ## Application backups
-The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.
+The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. Full backups use the same format as full exports and include persistent-volume snapshots, including `AI_CHATBOT_DOC_DIR`/`/data/ai_chatbot_docs` with the AI Chatbot knowledge-base physical documents and the related `ai_chatbot_document` records. A regression test verifies that the file is stored under `files/persistent/ai_chatbot_docs/` in the archive. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.
 
 ## Aggiornamento 0.4.0-4 - Ricerca nella rubrica destinatari esterni
 
@@ -1784,3 +1784,32 @@ La versione 0.4.0-4 rafforza la conformità alle linee guida AGID per lo svilupp
 Il repository include una suite dedicata alla conformità AGID composta da test dinamici Flask, smoke test di sicurezza, compilazione Python, `pip check`, Bandit con soglia bloccante HIGH/MEDIUM e `pip-audit` quando l'ambiente dispone di accesso al database vulnerabilità. L'entry point è `scripts/run_agid_compliance.sh`; le evidenze sono salvate in `compliance/agid/<RUN_ID>/`. La documentazione operativa sintetica è `docs/AGID_COMPLIANCE.md`.
 
 Ogni aggiornamento futuro deve rieseguire la suite, conservare i risultati nel pacchetto e aggiornare changelog/documentazione.
+
+## Compliance AGID: evidenze singole e pip-audit con rete
+
+La pipeline di conformità AGID mantiene una sola directory di evidenze per rilascio. Lo script `scripts/run_agid_compliance.sh` elimina automaticamente i run precedenti in `compliance/agid/` prima di creare il nuovo `RUN_ID`, in modo che il pacchetto distribuito contenga solo l'ultimo risultato verificato.
+
+Il controllo `pip-audit` è considerato requisito bloccante in CI con rete. Il workflow `.github/workflows/agid-compliance.yml` esegue la suite completa con `AGID_PIP_AUDIT_STRICT=1` e timeout esteso, producendo artifact con log, risultati Bandit, test Python e report `pip-audit`.
+
+## Resolver DNS locale per audit dipendenze AGID
+
+La suite AGID può configurare un resolver DNS locale prima di `pip-audit` tramite `scripts/configure_local_dns.sh`. In CI viene usato lo stub `systemd-resolved` locale con upstream espliciti e verifica preventiva degli host PyPI/OSV, così i problemi di DNS del runner non vengono mascherati come skip offline. Il rilascio mantiene comunque una sola directory `compliance/agid/<RUN_ID>/`.
+
+## Compliance AGID: runner manuale Docker
+
+La verifica completa con audit vulnerabilità dipendenze è stata separata dalla suite standard e resa disponibile tramite `compliance/agid/Dockerfile` e `compliance/agid/run_docker_agid_compliance.sh`. La modalità Docker è l'unica che esegue `pip-audit`; la suite standard e la CI applicativa non lo eseguono automaticamente, evitando falsi fallimenti su ambienti senza rete. Il runner Docker salva le evidenze in `compliance/agid/<RUN_ID>/` nella directory corrente e mantiene una sola directory risultati.
+
+### Aggiornamento dipendenze Flask
+
+Le dipendenze runtime principali sono vincolate in `requirements.txt`: `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.10.2`, `requests==2.33.0` e `cryptography==46.0.7`. Le dipendenze di sviluppo includono `pytest==9.0.3`. Le verifiche di compatibilità devono essere rieseguite dopo ogni aggiornamento delle dipendenze.
+
+
+### Rendering Markdown sicuro con colori e dimensioni
+
+Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS, è possibile evidenziare il testo con colori e dimensioni controllate:
+
+- `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
+- `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
+- `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
+
+L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.

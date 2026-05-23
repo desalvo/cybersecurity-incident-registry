@@ -2,6 +2,11 @@
 - Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.
 
+### Aggiornamento 0.4.0-4 - Markdown con colore/dimensione e notifiche schedulate plain text
+
+Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}` e `{size:<valore>}testo{/size}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
+
+
 0.4.0-4 - Anteprima CC precompilata e svuotamento manuale
 - L’anteprima delle notifiche manuali precompila il CC modificabile con il default del template, se presente.
 - Se l’operatore svuota il campo CC prima della conferma, l’invio ignora il CC e procede senza destinatari in copia.
@@ -15,7 +20,7 @@ Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
 ## Requisiti e compatibilità
 
-Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; è inoltre presente un pin esplicito di `Pillow==11.3.0` per evitare conflitti tra librerie grafiche/PDF/QR.
+Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; sono inoltre presenti pin espliciti aggiornati per `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.10.2`, `requests==2.33.0`, `cryptography==46.0.7` e, nei requisiti di sviluppo, `pytest==9.0.3`. Il pacchetto Python corretto per le chiamate HTTP è `requests`.
 
 ## Stato applicativo
 
@@ -823,3 +828,72 @@ pip install -r requirements-dev.txt
 ```
 
 Le evidenze sono salvate in `compliance/agid/<RUN_ID>/` con log, risultati Bandit, sintesi JSON/Markdown e note su eventuali limitazioni ambientali. La documentazione sintetica dedicata è in `docs/AGID_COMPLIANCE.md`. Ogni aggiornamento del progetto deve rieseguire la suite e includere nel pacchetto la nuova directory dei risultati.
+
+Ultimo run compliance AGID standard incluso nel pacchetto: `compliance/agid/20260523T013326Z/` (pip check PASS, compileall PASS, pytest completo PASS, test dinamici AGID PASS, Bandit 0 HIGH/0 MEDIUM). `pip-audit` è limitato alla modalità manuale Docker documentata in `compliance/agid/run_docker_agid_compliance.sh` e deve essere eseguito su un sistema connesso a Internet per produrre l'evidenza completa di audit dipendenze.
+
+## Aggiornamento compliance AGID con pip-audit in CI
+
+La suite `./scripts/run_agid_compliance.sh` conserva nel pacchetto solo l'ultimo run in `compliance/agid/<RUN_ID>/`. Le evidenze precedenti vengono rimosse automaticamente, salvo uso locale esplicito di `AGID_KEEP_PREVIOUS_RESULTS=1`.
+
+`pip-audit` è ora bloccante per impostazione predefinita (`AGID_PIP_AUDIT_STRICT=1`) e deve essere eseguito in CI con rete, ad esempio tramite `.github/workflows/agid-compliance.yml`. In ambienti offline è possibile registrare la limitazione con `AGID_PIP_AUDIT_STRICT=0`, ma il rilascio produttivo richiede un run connesso senza vulnerabilità note.
+
+### Resolver DNS locale per pip-audit AGID
+
+La pipeline AGID configura ora un resolver DNS locale prima dell'audit delle dipendenze. Usare:
+
+```bash
+AGID_DNS_UPSTREAMS="1.1.1.1 8.8.8.8" ./scripts/configure_local_dns.sh
+AGID_USE_LOCAL_DNS=1 AGID_PIP_AUDIT_STRICT=1 ./scripts/run_agid_compliance.sh
+```
+
+Il workflow GitHub Actions applica la stessa procedura e considera bloccante sia il bootstrap DNS locale sia `pip-audit`.
+
+## Verifica compliance AGID manuale
+
+Il pacchetto include uno script dedicato per rieseguire manualmente la suite completa su un sistema connesso a Internet:
+
+```bash
+./compliance/agid/run_manual_agid_compliance.sh
+```
+
+Le istruzioni complete sono in `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md`. A ogni run ordinario viene mantenuta solo l’ultima directory `compliance/agid/<RUN_ID>/`.
+
+
+## Compliance AGID manuale con Docker
+
+La verifica completa AGID con `pip-audit` si esegue solo manualmente tramite Docker:
+
+```bash
+./compliance/agid/run_docker_agid_compliance.sh
+```
+
+Il runner costruisce `compliance/agid/Dockerfile`, esegue test applicativi, test dinamici AGID, Bandit e `pip-audit`, e salva le evidenze in `compliance/agid/<RUN_ID>/`. La suite standard `scripts/run_agid_compliance.sh` non esegue `pip-audit`; per la compliance completa usare il runner Docker su un sistema connesso a Internet.
+
+### Output a video della suite AGID
+
+Al termine dell’esecuzione degli script di compliance viene sempre stampato a video un riepilogo sintetico con:
+
+- directory dei risultati;
+- esito globale PASS/FAIL;
+- esito dei singoli controlli (`pip_check`, `compileall`, `pytest`, test dinamici AGID, Bandit e, nella modalità Docker manuale, `pip-audit`);
+- conteggio Bandit per severità;
+- percorso dei report `SUMMARY.md` e `summary.json`.
+
+Gli stessi dati sono salvati nella directory del run AGID, insieme ai log completi.
+
+- Dipendenza runtime aggiornata: Flask 3.1.3.
+
+
+### Rendering Markdown sicuro con colori e dimensioni
+
+Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS, è possibile evidenziare il testo con colori e dimensioni controllate:
+
+- `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
+- `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
+- `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
+
+L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.
+
+### Full backup e knowledge base AI Chatbot
+
+Il full backup, ottenuto selezionando tutte le categorie in **Admin → Backup**, usa il formato del full export e comprende anche i documenti caricati nella knowledge base dell’AI Chatbot. I file sono salvati nel manifest sotto `files.persistent_files.ai_chatbot_docs` e nell’archivio sotto `files/persistent/ai_chatbot_docs/`, insieme ai record database `ai_chatbot_document`.

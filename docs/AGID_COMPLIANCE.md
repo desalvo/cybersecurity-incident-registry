@@ -93,3 +93,109 @@ Ogni modifica funzionale o correttiva del progetto deve includere:
 ## Limiti della suite
 
 La suite non sostituisce penetration test infrastrutturali, DAST su deployment reale, verifica TLS/reverse proxy, hardening database, scansione container e audit organizzativo. Questi controlli devono essere eseguiti nell'ambiente di rilascio o nella pipeline CI/CD dell'ente.
+
+### Controllo Markdown e notifiche schedulate
+
+La suite include test dedicati per verificare che il Markdown esteso consenta solo valori controllati di colore e dimensione e che le notifiche schedulate vengano convertite in testo semplice prima dell’invio. Questo riduce il rischio XSS sul rendering e impedisce l’invio di marker di formattazione Markdown nei messaggi automatici.
+
+## Esecuzione in CI con rete e `pip-audit` bloccante
+
+La suite AGID esegue `pip-audit` in modalità bloccante per impostazione predefinita (`AGID_PIP_AUDIT_STRICT=1`). In una pipeline con accesso a Internet il comando da usare è:
+
+```bash
+AGID_PIP_AUDIT_STRICT=1 AGID_PIP_AUDIT_TIMEOUT=300 ./scripts/run_agid_compliance.sh
+```
+
+Il workflow GitHub Actions `.github/workflows/agid-compliance.yml` installa le dipendenze, esegue la suite completa e pubblica le evidenze come artifact. Un fallimento di `pip-audit` per vulnerabilità rilevate, assenza del tool, timeout o problemi di accesso al database vulnerabilità produce esito non conforme in CI.
+
+## Conservazione delle evidenze
+
+A ogni esecuzione ordinaria `scripts/run_agid_compliance.sh` rimuove le directory precedenti in `compliance/agid/` e conserva solo `compliance/agid/<RUN_ID>/`, così il pacchetto di rilascio contiene esclusivamente l'ultima versione dei risultati. Per confronti locali temporanei è possibile impostare `AGID_KEEP_PREVIOUS_RESULTS=1`, ma tale opzione non deve essere usata per produrre pacchetti di rilascio.
+
+## Resolver DNS locale per `pip-audit`
+
+Per evitare fallimenti di `pip-audit` dovuti a resolver DNS non funzionanti nel runner o nel container, il pacchetto include `scripts/configure_local_dns.sh`. Lo script configura preferibilmente il resolver stub locale di `systemd-resolved` su `127.0.0.53`, imposta upstream espliciti tramite `resolvectl` e verifica la risoluzione di `pypi.org` e `api.osv.dev`.
+
+Esecuzione manuale:
+
+```bash
+AGID_DNS_UPSTREAMS="1.1.1.1 8.8.8.8" ./scripts/configure_local_dns.sh
+AGID_USE_LOCAL_DNS=1 AGID_PIP_AUDIT_STRICT=1 ./scripts/run_agid_compliance.sh
+```
+
+In CI il workflow `.github/workflows/agid-compliance.yml` esegue questa configurazione prima dell'installazione delle dipendenze e la riapplica prima di `pip-audit`. Se il resolver locale non viene configurato correttamente, il job fallisce quando `AGID_LOCAL_DNS_STRICT=1`.
+
+## Ultimo run incluso nel pacchetto
+
+Il run standard incluso è `compliance/agid/20260523T013326Z/`. I controlli `pip check`, `compileall`, `pytest`, test dinamici AGID e soglia Bandit HIGH/MEDIUM sono passati. `pip-audit` non viene eseguito dalla suite standard: è disponibile solo nella modalità manuale Docker, che deve essere avviata su un sistema con accesso Internet per produrre l'evidenza completa di audit vulnerabilità dipendenze.
+
+## Script manuale incluso nella directory compliance
+
+Oltre allo script principale `scripts/run_agid_compliance.sh`, il pacchetto include anche:
+
+- `compliance/agid/run_manual_agid_compliance.sh`
+- `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md`
+
+Lo script manuale è pensato per un sistema connesso a Internet: crea un virtual environment dedicato, installa le dipendenze da `requirements-dev.txt`, esegue la suite AGID completa e mantiene nel pacchetto solo l'ultima directory di risultati. Per usarlo:
+
+```bash
+./compliance/agid/run_manual_agid_compliance.sh
+```
+
+Se il sistema richiede il bootstrap del resolver locale prima di `pip-audit`:
+
+```bash
+AGID_USE_LOCAL_DNS=1 ./compliance/agid/run_manual_agid_compliance.sh
+```
+
+Le istruzioni operative dettagliate sono nel file `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md`.
+
+## Esecuzione manuale completa con Docker
+
+A partire da questa versione, `pip-audit` è limitato alla modalità manuale containerizzata. La suite standard `scripts/run_agid_compliance.sh` esegue `pip check`, compilazione, test, test dinamici AGID e Bandit, ma non contatta i servizi Internet di vulnerability intelligence.
+
+Per produrre evidenza completa su un sistema connesso a Internet:
+
+```bash
+./compliance/agid/run_docker_agid_compliance.sh
+```
+
+Il comando costruisce `compliance/agid/Dockerfile`, esegue tutti i controlli AGID inclusi Bandit e `pip-audit`, e salva i risultati nella directory corrente del pacchetto sotto `compliance/agid/<RUN_ID>/`. Prima del run vengono eliminate le vecchie directory di evidenza, così il pacchetto mantiene solo l'ultimo risultato AGID.
+
+Le istruzioni operative dettagliate sono in `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md`.
+
+### Nota Bandit
+
+Il report JSON di Bandit viene generato con `--exit-zero`: la presenza di finding LOW non interrompe la generazione del report. La soglia bloccante AGID è applicata subito dopo con `scripts/check_bandit_threshold.py`, che fallisce il run solo in presenza di finding HIGH o MEDIUM. Questo evita falsi FAIL quando Bandit restituisce codice non zero per soli finding LOW.
+
+
+### Output a video della suite AGID
+
+Al termine dell’esecuzione degli script di compliance viene sempre stampato a video un riepilogo sintetico con:
+
+- directory dei risultati;
+- esito globale PASS/FAIL;
+- esito dei singoli controlli (`pip_check`, `compileall`, `pytest`, test dinamici AGID, Bandit e, nella modalità Docker manuale, `pip-audit`);
+- conteggio Bandit per severità;
+- percorso dei report `SUMMARY.md` e `summary.json`.
+
+Gli stessi dati sono salvati nella directory del run AGID, insieme ai log completi.
+
+### Runner Docker manuale: Bandit e pip-audit
+
+La modalità manuale Docker usa un virtual environment dedicato (`/opt/agid-venv`) creato durante la build dell'immagine. In tale ambiente vengono installati esplicitamente `bandit` e `pip-audit` e tutti i controlli vengono eseguiti tramite quel Python, evitando errori del tipo `No module named bandit` o `No module named pip_audit` dovuti al Python di sistema.
+
+Per forzare una build pulita del runner:
+
+```bash
+AGID_DOCKER_BUILD_FLAGS="--pull --no-cache" ./compliance/agid/run_docker_agid_compliance.sh
+```
+
+## Nota dipendenze runtime
+
+La suite di compliance è stata aggiornata per verificare il progetto con `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.10.2`, `requests==2.33.0`, `cryptography==46.0.7` e `pytest==9.0.3`. La modalità Docker manuale resta necessaria per eseguire anche `pip-audit` con accesso Internet.
+
+
+## Copertura backup AI Chatbot
+
+La suite di regressione include `test_full_backup_includes_ai_chatbot_knowledge_base_files`, che verifica che il full backup/full export includa anche i documenti fisici caricati nella knowledge base dell’AI Chatbot sotto `files/persistent/ai_chatbot_docs/`, oltre ai record database `ai_chatbot_document`.
