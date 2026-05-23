@@ -790,7 +790,7 @@ La documentazione utente è disponibile dal menu `Aiuto -> Documentazione` ed è
 
 La documentazione online è ricercabile lato client tramite `makeDocumentationSearch()` in `app/static/app.js`. Il campo di ricerca filtra i blocchi `.doc-chapter` usando il testo del capitolo e l’attributo `data-doc-title`; il conteggio dei risultati viene aggiornato in tempo reale e viene mostrato un messaggio dedicato quando non esistono capitoli corrispondenti. La ricerca non richiede chiamate server e resta disponibile anche per utenti con permessi di sola lettura, purché autenticati.
 
-La versione PDF della documentazione è generata dalla rotta `GET /aiuto/pdf`, usando lo stesso template HTML della guida online. La rotta converte il contenuto documentale in PDF ReportLab, rimuovendo gli elementi interattivi non necessari come indice di navigazione e controlli di ricerca. Il PDF resta scaricabile dal pulsante presente nella guida; il menu Aiuto non contiene voci dirette di download PDF.
+La versione PDF della documentazione è generata dalla rotta `GET /aiuto/pdf`, usando lo stesso template HTML della guida online. La rotta converte il contenuto documentale in PDF ReportLab, rimuovendo gli elementi interattivi non necessari come indice di navigazione e controlli di ricerca. Il PDF resta scaricabile dal pulsante presente nella guida; il menu Aiuto non contiene voci dirette di download PDF. Le figure vengono inserite vicino al capitolo che le introduce, non raggruppate all'inizio del documento.
 
 È stato aggiunto un logo pittorico applicativo statico in `app/static/cir-application-logo.svg`. Il logo rappresenta graficamente il concetto di registro incidenti cybersecurity tramite scudo, registro, lucchetto, tracciati digitali e simbolo di pericolo. Questo logo è separato dal logo custom configurabile dall’amministratore:
 
@@ -844,6 +844,12 @@ La tabella azioni del dettaglio incidente espone ora il campo `Action.when_at` c
 
 Quando si aggiungono nuove funzionalità applicative, aggiornare sia la pagina `app/templates/help.html` sia la documentazione progettuale. Se la funzionalità ha impatto operativo rilevante, aggiungere o aggiornare anche un asset visuale in `app/static/help/` e verificare che la versione PDF resti leggibile. Il logo custom dell'ente non deve essere usato negli asset della guida utente.
 
+
+
+### PDF statici inclusi nel pacchetto
+
+Ogni rilascio deve includere in `docs/` le copie PDF statiche `documentazione_utente.pdf` e `documentazione_amministrativa.pdf`, generate con `python scripts/build_documentation_pdfs.py`. Lo script usa gli stessi template HTML della guida online e inserisce ogni figura in prossimità del capitolo che la cita, così il PDF resta leggibile anche fuori dall'applicazione. Dopo ogni modifica alla documentazione o agli asset in `app/static/help/`, rigenerare i PDF prima di creare lo ZIP di rilascio.
+
 ## Documentazione amministrativa online e PDF professionale
 
 È stata aggiunta una documentazione amministrativa distinta dalla documentazione utente. La pagina online è implementata nel template `app/templates/admin_help.html` ed è raggiungibile da `GET /aiuto/amministrazione`, esposta nel menu `Aiuto` con la voce **Documentazione amministrativa**. La pagina è autenticata come la documentazione utente e usa lo stesso motore di ricerca client-side `makeDocumentationSearch()` in `app/static/app.js`: i capitoli sono elementi `.doc-chapter`, il testo ricercabile comprende contenuto e attributo `data-doc-title`, il conteggio risultati è aggiornato in tempo reale e un messaggio dedicato viene mostrato in assenza di risultati.
@@ -863,7 +869,7 @@ La guida amministrativa è organizzata in capitoli separati dedicati a:
 11. controlli periodici, audit e qualità dati;
 12. troubleshooting e checklist operative.
 
-Il menu `Aiuto` include ora quattro voci: documentazione utente, download PDF utente, documentazione amministrativa e download PDF amministrativo. Le nuove route sono:
+Il menu `Aiuto` include documentazione utente, documentazione amministrativa e note di rilascio; non contiene voci dirette di download PDF. I PDF si scaricano dai pulsanti interni alle rispettive pagine. Le route disponibili sono:
 
 - `GET /aiuto/amministrazione` -> pagina HTML amministrativa ricercabile;
 - `GET /aiuto/amministrazione/pdf` -> generazione dinamica del PDF amministrativo.
@@ -1833,3 +1839,7 @@ Gli elementi identici già presenti vengono riconosciuti confrontando i valori p
 
 ## Workflow import update - identical item deduplication
 Identical existing items are detected by comparing persisted values with the imported payload, including form-template PDFs when present. They are excluded from the differences list, do not require overwrite confirmation and are not updated during import application; the operation result counts them separately as `unchanged`. Existing but different items remain unchanged unless the administrator explicitly selects the related overwrite key.
+
+### Documentazione PDF e brochure
+
+Il pacchetto distribuisce in `docs/` le versioni PDF della documentazione utente e amministrativa e una brochure riepilogativa di massimo due pagine (`brochure_cybersecurity_incident_registry.pdf`). Il generatore `scripts/build_documentation_pdfs.py` rimuove dalla resa PDF elementi di navigazione e sessione non utili alla stampa, tra cui pulsanti di menu, nome utente, logout e link di download interni. Le figure vengono mantenute vicino al capitolo che le introduce. I modelli DOCX di esempio precedentemente inclusi in `docs/source_models/` non vengono più distribuiti nella cartella `docs` del pacchetto. La brochure è prodotta in formato A4 verticale con background/filigrana ispirati alla cybersecurity e con contenuti pubblicitari sintetici: logo, versione, scopo, screenshot, autenticazione integrabile, workflow configurabili, notifiche automatiche con allegati, import workflow, compilazione PDF, compliance AGID, knowledge base AI opzionale, licenza EUPL e riferimenti del creatore/progetto GitHub.

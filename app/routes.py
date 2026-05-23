@@ -6410,12 +6410,12 @@ def admin_help_pdf():
 
     static_dir = Path(current_app.static_folder)
     logo_path = static_dir / 'help' / 'app-logo.png'
-    visual_paths = [
-        ('Figura 1 - Flusso amministrativo consigliato', static_dir / 'help' / 'admin-flow.png'),
-        ('Figura 2 - Configurazione SSO e controllo connessione', static_dir / 'help' / 'admin-screenshot-sso.png'),
-        ('Figura 3 - Configurazione template PDF e mapping', static_dir / 'help' / 'admin-screenshot-modules.png'),
-        ('Figura 4 - Mappa delle aree di governance amministrativa', static_dir / 'help' / 'admin-chart-governance.png'),
-    ]
+    visual_paths_by_chapter = {
+        '1': [('Figura 1 - Flusso amministrativo consigliato', static_dir / 'help' / 'admin-flow.png')],
+        '4': [('Figura 2 - Configurazione SSO e controllo connessione', static_dir / 'help' / 'admin-screenshot-sso.png')],
+        '11': [('Figura 3 - Configurazione template PDF e mapping', static_dir / 'help' / 'admin-screenshot-modules.png')],
+        '16': [('Figura 4 - Mappa delle aree di governance amministrativa', static_dir / 'help' / 'admin-chart-governance.png')],
+    }
 
     html = render_template('admin_help_en.html' if getattr(g, 'lang', 'it') == 'en' else 'admin_help.html')
     html = re.sub(r'<(script|style|figure)[\s\S]*?</\1>', ' ', html, flags=re.I)
@@ -6425,8 +6425,28 @@ def admin_help_pdf():
     html = re.sub(r'<br\s*/?>', '\n', html, flags=re.I)
     text = unescape(re.sub(r'<[^>]+>', ' ', html))
     lines = [re.sub(r'\s+', ' ', line).strip() for line in text.splitlines()]
-    skip = {'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.'}
-    lines = [line for line in lines if line and line not in skip and not line.startswith('Cerca nella documentazione')]
+    def is_pdf_noise(line):
+        if not line:
+            return True
+        exact_noise = {'Menu', 'Logout', 'Scarica PDF', 'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.'}
+        if line in exact_noise:
+            return True
+        noise_fragments = (
+            'Cerca nella documentazione',
+            'Nessun capitolo contiene il testo cercato',
+            'Vai all’indice',
+            'Scarica PDF',
+            'Logout',
+            'Il logo presente in questa guida',
+            'Questa guida riorganizza le funzioni amministrative',
+            'Questa guida descrive lo stato operativo corrente',
+        )
+        if any(fragment in line for fragment in noise_fragments):
+            return True
+        if re.fullmatch(r'[A-Za-z0-9_.@ -]{2,80} · Logout', line):
+            return True
+        return False
+    lines = [line for line in lines if not is_pdf_noise(line)]
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -6474,7 +6494,7 @@ def admin_help_pdf():
     meta.setStyle(TableStyle([('BACKGROUND',(0,0),(0,-1),colors.HexColor('#dbeafe')),('BACKGROUND',(1,0),(1,-1),colors.HexColor('#f8fafc')),('BOX',(0,0),(-1,-1),0.5,colors.HexColor('#cbd5e1')),('INNERGRID',(0,0),(-1,-1),0.25,colors.HexColor('#cbd5e1')),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5)]))
     story.append(meta)
     story.append(Spacer(1, .25*cm))
-    story.append(Paragraph('Questa guida descrive l’amministrazione completa dell’applicazione: ruoli, utenti, LDAP, OAuth2/SSO, liste, categorie, notifiche, moduli PDF, documentazione, export, import, backup e controlli periodici. Il logo presente è il logo applicativo e non include il logo custom configurabile.', callout))
+    story.append(Paragraph('Questa guida descrive l’amministrazione completa dell’applicazione: ruoli, utenti, LDAP, OAuth2/SSO, liste, categorie, notifiche, moduli PDF, documentazione, export, import, backup e controlli periodici.', callout))
     story.append(PageBreak())
 
     chapters = [line for line in lines if re.match(r'^\d+\.\s+', line)]
@@ -6485,18 +6505,18 @@ def admin_help_pdf():
         t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#f8fafc')),('BOX',(0,0),(-1,-1),0.5,colors.HexColor('#e2e8f0')),('INNERGRID',(0,0),(-1,-1),0.25,colors.HexColor('#e2e8f0')),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5)]))
         story.append(t); story.append(PageBreak())
 
-    visual_inserted = False
+    inserted_visuals = set()
     for line in lines:
         if line.startswith('Documentazione amministrativa') or line.startswith('Cybersecurity Incident Registry'):
             continue
-        if re.match(r'^\d+\.\s+', line):
+        chapter_match = re.match(r'^(\d+)\.\s+', line)
+        if chapter_match:
             story.append(Paragraph(escape(line), h2))
-            if not visual_inserted:
-                for label, path in visual_paths:
-                    if path.exists():
-                        img = fitted_doc_image(path)
-                        story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
-                visual_inserted = True
+            for label, path in visual_paths_by_chapter.get(chapter_match.group(1), []):
+                if path.exists() and label not in inserted_visuals:
+                    img = fitted_doc_image(path)
+                    story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
+                    inserted_visuals.add(label)
             continue
         if line.startswith('• '):
             story.append(Paragraph(escape(line), bullet)); continue
@@ -6537,13 +6557,15 @@ def help_pdf():
 
     static_dir = Path(current_app.static_folder)
     logo_path = static_dir / 'help' / 'app-logo.png'
-    visual_paths = [
-        ('Figura 1 - Flusso consigliato di gestione incidente', static_dir / 'help' / 'flow-incident-lifecycle.png'),
-        ('Figura 2 - Pagina principale con avvisi procedurali', static_dir / 'help' / 'screenshot-dashboard.png'),
-        ('Figura 3 - Dettaglio incidente e timeline azioni', static_dir / 'help' / 'screenshot-incident-detail.png'),
-        ('Figura 4 - Configurazione moduli PDF e mapping', static_dir / 'help' / 'screenshot-modules.png'),
-        ('Figura 5 - Esempi di grafici di reportistica', static_dir / 'help' / 'charts-reporting.png'),
-    ]
+    visual_paths_by_chapter = {
+        '1': [('Figura 1 - Flusso consigliato di gestione incidente', static_dir / 'help' / 'flow-incident-lifecycle.png')],
+        '3': [('Figura 2 - Pagina principale con avvisi procedurali', static_dir / 'help' / 'screenshot-dashboard.png')],
+        '5': [('Figura 3 - Dettaglio incidente e timeline azioni', static_dir / 'help' / 'screenshot-incident-detail.png')],
+        '10': [
+            ('Figura 4 - Configurazione moduli PDF e mapping', static_dir / 'help' / 'screenshot-modules.png'),
+            ('Figura 5 - Esempi di grafici di reportistica', static_dir / 'help' / 'charts-reporting.png'),
+        ],
+    }
 
     html = render_template('help_en.html' if getattr(g, 'lang', 'it') == 'en' else 'help.html')
     html = re.sub(r'<(script|style|figure)[\s\S]*?</\1>', ' ', html, flags=re.I)
@@ -6553,8 +6575,28 @@ def help_pdf():
     html = re.sub(r'<br\s*/?>', '\n', html, flags=re.I)
     text = unescape(re.sub(r'<[^>]+>', ' ', html))
     lines = [re.sub(r'\s+', ' ', line).strip() for line in text.splitlines()]
-    skip = {'Scarica PDF', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.'}
-    lines = [line for line in lines if line and line not in skip and not line.startswith('Cerca nella documentazione')]
+    def is_pdf_noise(line):
+        if not line:
+            return True
+        exact_noise = {'Menu', 'Logout', 'Scarica PDF', 'Scarica PDF amministrativo', 'Vai all’indice', 'Digita una parola per filtrare i capitoli.'}
+        if line in exact_noise:
+            return True
+        noise_fragments = (
+            'Cerca nella documentazione',
+            'Nessun capitolo contiene il testo cercato',
+            'Vai all’indice',
+            'Scarica PDF',
+            'Logout',
+            'Il logo presente in questa guida',
+            'Questa guida riorganizza le funzioni amministrative',
+            'Questa guida descrive lo stato operativo corrente',
+        )
+        if any(fragment in line for fragment in noise_fragments):
+            return True
+        if re.fullmatch(r'[A-Za-z0-9_.@ -]{2,80} · Logout', line):
+            return True
+        return False
+    lines = [line for line in lines if not is_pdf_noise(line)]
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -6592,7 +6634,7 @@ def help_pdf():
     story.append(Paragraph('Cybersecurity Incident Registry', h1))
     story.append(Paragraph('Documentazione utente completa', ParagraphStyle('subtitle', parent=normal, alignment=TA_CENTER, fontSize=12, leading=15, textColor=colors.HexColor('#475569'))))
     story.append(Spacer(1, .35*cm))
-    story.append(Paragraph('La documentazione descrive funzionalità, flussi operativi, ruoli, incidenti, azioni, notifiche, moduli PDF, report, export/import e configurazioni amministrative. Il logo presente in questa guida è il logo applicativo e non include il logo custom configurabile.', callout))
+    story.append(Paragraph('La documentazione descrive funzionalità, flussi operativi, ruoli, incidenti, azioni, notifiche, moduli PDF, report, export/import e configurazioni amministrative.', callout))
     story.append(PageBreak())
 
     # Indice sintetico professionale
@@ -6604,18 +6646,18 @@ def help_pdf():
         t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#f8fafc')),('BOX',(0,0),(-1,-1),0.5,colors.HexColor('#e2e8f0')),('INNERGRID',(0,0),(-1,-1),0.25,colors.HexColor('#e2e8f0')),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5)]))
         story.append(t); story.append(PageBreak())
 
-    visual_inserted = False
+    inserted_visuals = set()
     for line in lines:
         if line.startswith('Documentazione utente') or line.startswith('Cybersecurity Incident Registry'):
             continue
-        if re.match(r'^\d+\.\s+', line):
+        chapter_match = re.match(r'^(\d+)\.\s+', line)
+        if chapter_match:
             story.append(Paragraph(escape(line), h2))
-            if not visual_inserted:
-                for label, path in visual_paths:
-                    if path.exists():
-                        img = fitted_doc_image(path)
-                        story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
-                visual_inserted = True
+            for label, path in visual_paths_by_chapter.get(chapter_match.group(1), []):
+                if path.exists() and label not in inserted_visuals:
+                    img = fitted_doc_image(path)
+                    story.append(KeepTogether([img, Paragraph(escape(label), caption), Spacer(1, .2*cm)]))
+                    inserted_visuals.add(label)
             continue
         if line.startswith('• '):
             story.append(Paragraph(escape(line), bullet)); continue

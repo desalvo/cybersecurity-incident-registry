@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="card help-content documentation" aria-labelledby="admin-doc-title">
-  <div class="page-header"><div><h1 id="admin-doc-title">Documentazione amministrativa</h1><p class="muted">Guida completa alla configurazione, alla sicurezza e alla manutenzione dell’applicazione.</p></div><div class="button-row"><a class="button secondary" href="#indice-admin">Vai all’indice</a><a class="button secondary" href="{{ url_for('main.admin_help_pdf') }}">Scarica PDF amministrativo</a></div></div>
+  <div class="page-header"><div><h1 id="admin-doc-title">Documentazione amministrativa</h1><p class="muted">Guida completa alla configurazione, alla sicurezza e alla manutenzione dell’applicazione.</p></div></div>
   <section class="doc-hero card-lite" aria-label="Sintesi documentazione amministrativa">
     <img class="doc-app-logo" src="{{ url_for('static', filename='help/app-logo.png') }}" alt="Logo applicativo Cybersecurity Incident Registry">
     <div>
       <h2>Amministrazione chiara, verificabile e ripetibile</h2>
-      <p>Questa guida riorganizza le funzioni amministrative per area: identità, sicurezza, tassonomie, workflow, notifiche, moduli, audit, export/import, SSL e manutenzione. Le note operative sono integrate nei capitoli dedicati, così ogni argomento resta nel proprio contesto.</p>
+      
       <p><strong>Versione applicativa: 0.4.0-4</strong> · <span class="muted">Versione 0.4.0-4 della guida amministrativa.</span></p>
       <table class="table doc-table compact-table"><tbody><tr><th>Applicazione</th><td>{{ app_info.name }}</td></tr><tr><th>Versione applicativa</th><td>0.4.0-4</td></tr><tr><th>Build</th><td>{{ app_info.build }}</td></tr><tr><th>Nota</th><td>Versione 0.4.0-4 della documentazione amministrativa.</td></tr></tbody></table>
     </div>

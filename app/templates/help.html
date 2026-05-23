@@ -6,10 +6,7 @@
       <h1 id="doc-title">Documentazione utente</h1>
       <p class="muted">Cybersecurity Incident Registry · guida operativa completa, consultabile online e scaricabile in PDF.</p>
     </div>
-    <div class="button-row">
-      <a class="button secondary" href="#indice">Vai all’indice</a>
-      <a class="button secondary" href="{{ url_for('main.help_pdf') }}">Scarica PDF</a>
-    </div>
+    
   </div>
 
   <section class="doc-hero card-lite" aria-label="Sintesi della guida utente">
@@ -18,7 +15,7 @@
       <h2>Guida pratica per registrare, seguire e chiudere gli incidenti</h2>
       <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
       <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p>
-      <p class="muted">Questa guida descrive lo stato operativo corrente dell’applicazione. Le variazioni cronologiche e i changelog sono mantenuti nelle Note di rilascio.</p>
+      
       <p><strong>Versione applicativa: 0.4.0-4</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
     </div>
   </section>

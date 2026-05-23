@@ -1248,3 +1248,18 @@ Versione 0.4.0-4 - aggiornamento compliance AGID
 
 - L'import dei workflow ora riconosce gli elementi identici già presenti, non li reimporta e non mostra avvisi di sovrascrittura per tali elementi.
 - Il riepilogo dell'import workflow distingue gli elementi identici non importati dagli elementi ignorati perché differenti ma non autorizzati alla sovrascrittura.
+
+0.4.0-4 - PDF documentazione nel pacchetto
+- Aggiunto script `scripts/build_documentation_pdfs.py` per generare le versioni PDF statiche della documentazione utente e amministrativa in `docs/`.
+- Le route PDF e lo script statico mantengono le figure vicino ai capitoli che le citano, evitando il raggruppamento iniziale delle immagini.
+- Aggiornata la documentazione operativa per rigenerare i PDF a ogni modifica documentale.
+
+0.4.0-4 - Documentazione PDF e brochure
+- Rimosso dai docs del pacchetto il contenuto DOCX della directory source_models.
+- Rafforzato il generatore PDF della documentazione per escludere elementi di navigazione, utente, logout e note editoriali non utili alla versione stampabile.
+- Aggiunta brochure riepilogativa professionale in PDF, massimo due pagine, con logo, versione, scopo, funzionalità e immagini di esempio.
+0.4.0-4 - Brochure verticale professionale
+- Brochure PDF convertita in formato A4 verticale, massimo due pagine, con filigrana/background a tema cybersecurity.
+- Aggiunte alla brochure le descrizioni su autenticazione integrabile, configurabilità workflow/azioni/tassonomie, notifiche automatiche con allegati, import workflow custom, compilazione PDF, compliance AGID, knowledge base AI opzionale, licenza EUPL e riferimenti GitHub/creatore.
+- PDF documentazione rigenerati senza nuovi risultati di compliance AGID.
+

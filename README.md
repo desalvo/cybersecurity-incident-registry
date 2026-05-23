@@ -347,7 +347,7 @@ Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step
 
 La guida utente è disponibile dal menu **Aiuto -> Documentazione**. È stata riscritta come manuale operativo completo, con capitoli separati, esempi dettagliati passo-passo, checklist e descrizione delle principali funzioni di gestione incidenti. La pagina è ricercabile: il campo di ricerca filtra in tempo reale i capitoli della documentazione online.
 
-Dal menu **Aiuto -> Documentazione utente** è possibile aprire la guida online; il PDF corrispondente resta scaricabile dal pulsante interno alla pagina.
+Dal menu **Aiuto -> Documentazione utente** è possibile aprire la guida online; il PDF corrispondente resta scaricabile dal pulsante interno alla pagina. Nel pacchetto di rilascio sono inoltre salvate copie statiche aggiornate in `docs/documentazione_utente.pdf` e `docs/documentazione_amministrativa.pdf`. Le versioni PDF mantengono le figure vicino ai capitoli che le citano e possono essere rigenerate con `python scripts/build_documentation_pdfs.py`.
 
 L’applicazione include inoltre un logo pittorico statico che rappresenta un cybersecurity incident registry. Il logo è mostrato sempre nella pagina di login e, nelle viste desktop/non mobile, anche nella barra del menu principale; resta disponibile anche la variante decorativa in basso a destra nelle pagine interne. Non sostituisce e non modifica il logo custom configurabile da **Admin -> Logo**, che continua a funzionare come nelle versioni precedenti. Nella versione mobile il logo pittorico della barra e quello decorativo sono nascosti per preservare lo spazio dello schermo. La barra menu desktop/non mobile usa background blu e mostra il nome **Cybersecurity Incident Registry** in verticale, con una parola per riga. La voce **Nuovo incidente** è rimossa dalla barra dei menu: la creazione avviene dal pulsante omonimo nella pagina principale degli incidenti.
 
@@ -382,7 +382,7 @@ Dal menu **Aiuto → Documentazione amministrativa** è disponibile una guida de
 - full export, import, backup, ripristino e continuità operativa;
 - controlli periodici, audit, qualità dati e troubleshooting.
 
-Dal menu **Aiuto → Documentazione amministrativa** è possibile aprire la guida amministrativa; la versione PDF professionale è scaricabile dal pulsante interno alla pagina. Il PDF include copertina, logo applicativo, informazioni di versione lette da `APP_INFO`, indice, header/footer, numerazione pagine, diagrammi di flusso, grafici e schermate illustrative. Anche in questo caso viene usato esclusivamente il logo applicativo, senza includere il logo custom configurabile dall'amministratore.
+Dal menu **Aiuto → Documentazione amministrativa** è possibile aprire la guida amministrativa; la versione PDF professionale è scaricabile dal pulsante interno alla pagina. Il PDF include copertina, logo applicativo, informazioni di versione lette da `APP_INFO`, indice, header/footer, numerazione pagine, diagrammi di flusso, grafici e schermate illustrative. Anche in questo caso viene usato esclusivamente il logo applicativo, senza includere il logo custom configurabile dall'amministratore. Le copie PDF statiche incluse in `docs/` devono essere rigenerate a ogni aggiornamento documentale con `python scripts/build_documentation_pdfs.py`.
 
 ## Multi-factor authentication TOTP
 
@@ -909,3 +909,7 @@ Il full backup, ottenuto selezionando tutte le categorie in **Admin → Backup**
 
 ### Import workflow: deduplica elementi identici
 L’import mostra solo gli elementi esistenti con valori diversi e richiede una checkbox dedicata per ogni sovrascrittura. Gli elementi già presenti e identici al pacchetto importato non vengono importati di nuovo, non sono conteggiati come sovrascritture e non generano avvisi di sovrascrittura; nel riepilogo finale sono indicati come identici non importati.
+
+## Documentazione PDF
+
+La cartella `docs/` include anche le versioni PDF aggiornate della documentazione e la brochure riepilogativa `brochure_cybersecurity_incident_registry.pdf`. I PDF sono generati con `scripts/build_documentation_pdfs.py`, che esclude elementi di navigazione non utili alla stampa. La brochure è in formato verticale, massimo due pagine, con filigrana professionale a tema cybersecurity, logo/versione, scopo, funzionalità principali, immagini di esempio, riferimento alla licenza EUPL e link al progetto GitHub.
