@@ -400,3 +400,14 @@ label:has(> input[type="checkbox"]) input[type="checkbox"],
 .ai-chatbot-page-answer{min-width:0;flex:1}
 @media (max-width:820px){.ai-chatbot-mobile-open{display:inline-flex}}
 @media (max-width:520px){.ai-chatbot-message.bot,.ai-chatbot-message.pending,.ai-chatbot-message.error{margin-left:42px}.ai-chatbot-message.bot::before,.ai-chatbot-message.pending::before,.ai-chatbot-message.error::before{left:-42px;width:34px;height:34px}.ai-chatbot-title img{width:36px;height:36px}.ai-chatbot-answer-row{gap:.6rem}.ai-chatbot-page-avatar{width:42px;height:42px}}
+
+
+/* Documentation desktop layout refinements */
+@media (min-width: 821px){
+  .documentation{max-width:1180px;margin-left:auto;margin-right:auto}
+  .doc-hero{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:1.25rem}
+  .doc-hero>div{min-width:0}
+  .doc-app-logo{flex:0 0 auto}
+  .documentation .doc-table{width:100%}
+  .documentation .page-header{align-items:flex-start}
+}

@@ -1,3 +1,10 @@
+2026-05-23 - Riorganizzazione documentazione utente/amministrativa
+- Riassunti e integrati nei capitoli corretti i commenti operativi su notifiche schedulate, CC, conseguenze automatiche, stato servizi e AI Chatbot.
+- Integrate le figure di flusso nei primi capitoli delle guide, evitando elementi fuori contesto.
+- Numerate e contestualizzate le sezioni finali, incluse operazioni previste, flussi operativi, modelli, Full import, sequence, destinatari esterni e rendering Markdown.
+- Rafforzato il layout desktop della documentazione mantenendo la resa mobile.
+- Non sono stati generati nuovi risultati di compliance AGID: le evidenze vanno salvate solo su richiesta esplicita.
+
 
 0.4.0-4 - AI Chatbot API key masking
 - Le API key già presenti nella configurazione del plugin AI Chatbot sono ora mostrate solo in forma offuscata.

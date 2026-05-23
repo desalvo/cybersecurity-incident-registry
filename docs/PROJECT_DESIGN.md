@@ -1,3 +1,7 @@
+## Aggiornamento 0.4.0-4 - Struttura documentazione utente e amministrativa
+
+La documentazione online è stata riorganizzata per evitare blocchi fuori capitolo. I contenuti operativi vengono raggruppati nei capitoli pertinenti: notifiche e CC nei capitoli notifiche, stato servizi nel capitolo di responsabilità amministrativa, conseguenze automatiche nella configurazione, chatbot nei capitoli plugin/uso mobile, workflow e destinatari esterni in sezioni numerate. Le figure di flusso sono integrate nei capitoli introduttivi. Il CSS della documentazione usa un layout desktop più stabile e mantiene il comportamento responsive mobile. Le evidenze di compliance AGID restano conservate solo se richieste esplicitamente.
+
 
 ## Aggiornamento 0.4.0-4 - Compliance sviluppo sicuro
 

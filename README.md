@@ -1,3 +1,7 @@
+### Aggiornamento 0.4.0-4 - Riorganizzazione documentazione
+
+Le guide utente e amministrativa sono state ristrutturate per integrare nei capitoli corretti le note operative su notifiche schedulate, CC, conseguenze automatiche, stato servizi, AI Chatbot, workflow e destinatari esterni. Le figure di flusso sono ora collocate all’interno dei capitoli introduttivi, le sezioni finali sono numerate e contestualizzate e il layout desktop della documentazione è stato rafforzato. I risultati AGID non vengono rigenerati automaticamente: nuove evidenze vengono salvate solo su richiesta esplicita.
+
 0.4.0-4 - Abilitazione CC in anteprima notifiche manuali
 - Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.

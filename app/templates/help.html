@@ -17,14 +17,12 @@
     <div>
       <h2>Guida pratica per registrare, seguire e chiudere gli incidenti</h2>
       <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
-      <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p><p class="muted">Questa guida descrive lo stato operativo corrente dell’applicazione. Le variazioni cronologiche e i changelog sono mantenuti nelle Note di rilascio.</p><p>Gli utenti non amministratori con ruolo writer trovano in <strong>Impostazioni → Destinatari esterni</strong> la gestione completa, inclusa la ricerca, della rubrica usata per le notifiche manuali con destinatari liberi.</p><p><strong>Versione applicativa: 0.4.0-4</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p><p class="muted">Versione 0.4.0-4 della guida utente, allineata al build {{ app_info.build }}.</p>
+      <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p>
+      <p class="muted">Questa guida descrive lo stato operativo corrente dell’applicazione. Le variazioni cronologiche e i changelog sono mantenuti nelle Note di rilascio.</p>
+      <p><strong>Versione applicativa: 0.4.0-4</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
     </div>
-  <p>I tooltip di aiuto dei campi incidente sono disponibili sia nella pagina di modifica/dettaglio sia nella pagina di creazione di un nuovo incidente.</p><p><strong>Stato delle notifiche schedulate:</strong> la pagina Notifiche mostra ora anche lo stato programmata/inviata/errore e gli esiti recenti aggiornati automaticamente dallo scheduler.</p><p>Quando il template consente la modifica manuale del CC, l’anteprima precompila il campo con il default del template se presente; se l’operatore lo svuota prima della conferma, l’invio viene effettuato senza CC. La checkbox “Usa CC per questa notifica”, abilitata per default, permette di nascondere e ignorare completamente il CC per la singola notifica.</p><p>Il campo moduli <code>consequences</code> unisce le conseguenze automatiche configurate dall’amministratore e le conseguenze eventualmente indicate nelle azioni dell’incidente. La logica automatica è modificabile da Admin → Altre configurazioni con regole aggiungibili/rimuovibili e condizioni personalizzabili.</p><p><strong>AI Chatbot:</strong> se attivato dall’amministratore, il menu Aiuto include una chat di supporto sulle funzioni dell’applicazione e sulle procedure per gli incidenti di sicurezza.</p><p><strong>AI Chatbot:</strong> se abilitato anche al contesto database, il chatbot può usare uno snapshot sanitizzato delle configurazioni e dello stato applicativo, senza inviare dati personali o sensibili al motore AI.</p><p><strong>Widget AI Chatbot:</strong> quando il plugin è attivo, la chat è disponibile da ogni pagina. Su desktop compare preferibilmente in basso a destra sopra il logo applicativo, con posizionamento anti-collisione; su mobile si apre dal pulsante in alto accanto al menu con layout anti-sovrapposizione. La finestra può essere iconizzata nuovamente e le risposte sono visualizzate con Markdown sicuro per titoli, elenchi, grassetto, codice e link.</p></section>
+  </section>
 
-  <figure class="doc-figure">
-    <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma del ciclo di vita di un incidente">
-    <figcaption>Figura 1 - Flusso operativo consigliato: apertura, analisi, azioni, notifiche, documentazione, verifica e chiusura.</figcaption>
-  </figure>
 
   <div class="doc-search" role="search" aria-label="Ricerca nella documentazione">
     <label for="doc-search-input">Cerca nella documentazione</label>
@@ -52,6 +50,7 @@
       <li><a href="#cap-workflow-incidenti">Operazioni previste dell’incidente</a></li>
       <li><a href="#user-incident-templates">Creazione incidente da modello e azioni rapide</a></li>
       <li><a href="#user-full-import-note">Nota sul Full import</a></li>
+      <li><a href="#cap-markdown-rendering">Rendering Markdown sicuro</a></li>
     </ol>
   </nav>
 
@@ -59,6 +58,12 @@
     <h2>1. Panoramica e concetti di base</h2>
     <p><strong>Cybersecurity Incident Registry</strong> consente di documentare l’intero ciclo di vita di un incidente informatico: apertura, classificazione, attività tecniche e organizzative, notifiche, documenti, report, moduli ufficiali e chiusura.</p>
     <p>Un incidente contiene una scheda principale e diversi elementi collegati: azioni cronologiche, personale associato, categorie, dati coinvolti, raccomandazioni, allegati, documenti generati, promemoria e avvisi procedurali. Il registro permette di conservare una traccia ordinata e verificabile delle decisioni prese.</p>
+
+  <figure class="doc-figure">
+    <img src="{{ url_for('static', filename='help/flow-incident-lifecycle.png') }}" alt="Diagramma del ciclo di vita di un incidente">
+    <figcaption>Figura 1 - Flusso operativo consigliato: apertura, analisi, azioni, notifiche, documentazione, verifica e chiusura.</figcaption>
+  </figure>
+
     <h3>Flusso operativo consigliato</h3>
     <ol>
       <li>Aprire l’incidente appena viene rilevato o comunicato.</li>
@@ -130,6 +135,7 @@
         <li><strong>Silenzia notifiche deadline</strong>: impedisce le notifiche e-mail automatiche dei task in scadenza per lo specifico incidente.</li>
       </ul>
     </div>
+      <p>I tooltip di aiuto dei campi incidente sono disponibili sia nella pagina di creazione sia nella pagina di modifica/dettaglio.</p>
   </section>
 
   <section id="cap-azioni" class="doc-chapter" data-doc-title="azioni incidente exportable conclusione chiusura allegati timeline">
@@ -158,6 +164,10 @@
     <p>Le notifiche possono essere inviate manualmente dagli operatori oppure automaticamente dallo scheduler. Le notifiche relative a incidenti includono il link diretto alla pagina dell’incidente solo quando il template contiene esplicitamente il placeholder <code>%INCIDENT_URL%</code>, così l’amministratore controlla il testo inviato.</p>
     <p><strong>Importante:</strong> l’utente locale <code>admin</code> non può inviare notifiche dalla pagina degli incidenti: la form blocca l’invio e mostra un messaggio esplicito; per inviare notifiche operative occorre accedere con un altro utente autorizzato.</p><p>Nell’anteprima delle notifiche manuali è disponibile anche <strong>Conferma senza inviare</strong>: dopo ulteriore conferma l’applicazione registra l’azione e il PDF della comunicazione prevista senza trasmettere email.</p><p>Nell’anteprima di invio è sempre possibile selezionare o deselezionare i documenti allegati. Se il template di notifica è associato a un template modulo, i documenti dell’incidente generati da quel modulo sono preselezionati automaticamente; se mancano, viene mostrato un warning non bloccante.</p><p>Per le notifiche con destinatario compilabile e non già fissato dalle configurazioni dell’applicazione, l’anteprima di invio mostra la rubrica dei destinatari esterni; la rubrica è ricercabile dalle pagine di gestione con nome ed e-mail: si può scegliere un contatto come destinatario principale oppure aggiungerlo in CC. Il campo resta libero e accetta anche nuovi indirizzi; quando si usa una nuova email, l’applicazione salva automaticamente il contatto nella rubrica condivisa usando il campo Riferimento dell’incidente come nome associato. L’invio viene bloccato con un messaggio di errore se il destinatario resta vuoto; se il template permette la compilazione manuale, un indirizzo valido inserito dall’operatore consente l’invio.</p><p>I template delle notifiche manuali possono usare anche <code>%MEASURES_ADOPTED%</code> per la lista delle contromisure adottate, <code>%RECOMMENDATIONS%</code> per la lista delle raccomandazioni da fornire agli interessati, <code>%SITE%</code> per il nome della struttura configurata, <code>%INCIDENT_URL%</code> per il link diretto e <code>%STATISTICS%</code> per allegare il report statistiche in PDF e <code>%APP_INFO%</code> per nome applicazione e versione.</p><p>Le notifiche per task con scadenza usano una pianificazione di tipo cron, con orari specifici o intervalli. La pianificazione è calcolata rispetto alla mezzanotte della timezone applicativa e non rispetto all’avvio dell’applicazione; l’intervallo di poll per i task in scadenza è configurabile separatamente e vale 60 secondi per default. Per evitare mail flooding, lo scheduler riserva lo slot prima dell’invio e non invia più volte la stessa notifica per lo stesso incidente nello stesso intervallo.</p>
     <p>Per evitare duplicati, l’applicazione tiene traccia dell’ultimo invio riuscito per tipologia/notifica e non reinvia messaggi identici all’interno dello stesso intervallo tra due schedule successive.</p>
+  
+    <h3>Stato notifiche schedulate e CC</h3>
+    <p>La pagina Notifiche mostra lo stato <strong>programmata</strong>, <strong>inviata</strong> o <strong>errore</strong> e gli esiti recenti aggiornati dallo scheduler.</p>
+    <p>Quando un template consente la modifica manuale del CC, l’anteprima usa il default del template se presente; se l’operatore svuota il campo prima della conferma, l’invio procede senza CC. La checkbox <strong>Usa CC per questa notifica</strong>, abilitata per default, permette di ignorare il CC per la singola notifica.</p>
   </section>
 
   <section id="cap-documenti" class="doc-chapter" data-doc-title="documenti allegati moduli pdf report incidente logo indice">
@@ -165,6 +175,9 @@
     <p>La sezione Documenti consente di allegare file all’incidente. Gli allegati delle singole azioni restano invece collegati alla relativa attività cronologica. I report PDF degli incidenti includono copertina, loghi, indice sintetico, sezioni ordinate, numeri di pagina e durata quando disponibile.</p>
     <p>I moduli PDF sono generati a partire dai template configurati dall’amministratore. Quando un template usa campi dinamici basati sulle azioni, vengono incluse solo le azioni contrassegnate come esportabili.</p><p> Prima della generazione, se un campo richiesto dal template non è compilato, l’applicazione chiede di inserire i dati mancanti anche per più campi contemporaneamente.</p>
     <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-modules.png') }}" alt="Schermata illustrativa della generazione moduli"><figcaption>Figura 4 - Configurazione e generazione dei moduli PDF da template.</figcaption></figure>
+  
+    <h3>Conseguenze e campo moduli <code>consequences</code></h3>
+    <p>Il campo moduli <code>consequences</code> unisce le conseguenze automatiche configurate dall’amministratore e quelle eventualmente indicate nelle azioni dell’incidente. La logica automatica è modificabile da <strong>Admin → Altre configurazioni</strong>.</p>
   </section>
 
   <section id="cap-export" class="doc-chapter" data-doc-title="export import audit csv backup tracciamento">
@@ -182,6 +195,10 @@
       <li>Controllare gli avvisi procedurali prima di generare report o chiudere l’incidente.</li>
       <li>Evitare modifiche non necessarie dopo la chiusura; se indispensabili, documentarle con un’azione.</li>
     </ul>
+  
+    <h3>AI Chatbot AlBot/Alex</h3>
+    <p>Se il plugin è attivato dall’amministratore, il menu Aiuto e il launcher globale rendono disponibile <strong>AlBot</strong>, chiamabile anche <strong>Alex</strong>, per supporto sulle funzioni dell’applicazione e sulle procedure per gli incidenti di sicurezza.</p>
+    <p>Quando il contesto database è abilitato, il chatbot usa solo uno snapshot sanitizzato delle configurazioni e dello stato applicativo, senza inviare dati personali, segreti o allegati binari al motore AI. Il widget è posizionato in modo da evitare sovrapposizioni con logo, bordi viewport ed elementi fissi; su mobile si apre dal pulsante in alto accanto al menu.</p>
   </section>
 
   <section id="cap-esempi" class="doc-chapter" data-doc-title="esempi operativi apertura chiusura data breach comunicazioni">
@@ -204,7 +221,7 @@
     </ol>
   </section>
   <section id="cap-workflow-incidenti" class="doc-chapter" data-doc-title="operazioni previste flusso incidente categorie azioni scadenze">
-    <h2>Operazioni previste dell’incidente</h2>
+    <h2>14. Operazioni previste dell’incidente</h2>
     <p>Nella pagina dello specifico incidente, in cima alla form, viene mostrata la lista delle operazioni previste fino alla conclusione. Le operazioni già effettuate sono evidenziate in verde, quelle ancora mancanti in arancione; se un task con tempo massimo risulta scaduto, la scadenza viene evidenziata ulteriormente.</p>
     <p>La didascalia di ogni step usa la descrizione del task configurata nella lista azioni, se presente, altrimenti il nome del task; gli step marcati come richiesti generano avvisi procedurali finché non sono completati. L’amministratore può aggiungere una descrizione operativa ulteriore sul singolo step del workflow, anche su più righe e fino a 500 caratteri, utile quando la stessa azione compare più volte con significati diversi. La descrizione visualizzata negli step supporta un sottoinsieme sicuro di Markdown per grassetto, corsivo, codice inline, titoli, elenchi e link. Eventuali URL presenti nella descrizione sono cliccabili senza modificare il comportamento generale del riquadro dello step. Per evidenziare parti del testo si può usare anche <code>{color:red}testo rosso{/color}</code> o <code>{color:#0b7285}testo colorato{/color}</code>; per la dimensione del testo sono supportati valori controllati come <code>{size:large}testo grande{/size}</code> o <code>{size:14px}testo 14px{/size}</code>. Lo stesso Markdown è applicato agli avvisi procedurali, dove viene mostrato anche il nome del task associato.</p>
     <p>Quando l’azione prevista ha un tempo massimo, la scheda mostra limite, scadenza e tempo rimanente solo finché lo step non risulta effettuato. Se il tempo rimanente è minore o uguale a zero, lo step mancante viene evidenziato come critico. Il calcolo parte dall’azione di informazione iniziale, come per le notifiche automatiche dei task in scadenza.</p>
@@ -212,21 +229,16 @@
   </section>
 
 
-<section id="user-incident-templates" class="doc-chapter" data-doc-title="nuovo incidente modello profilo azioni data ora"><h2>Creazione incidente da modello e azioni</h2><p>Nella pagina <strong>Nuovo incidente</strong> è possibile scegliere un modello predefinito, se configurato dall’amministratore. Il modello compila i dati iniziali dell’incidente, mentre data e ora di inizio sono impostate al momento corrente.</p><p>Nella pagina del singolo incidente, sezione <strong>Azioni</strong>, il pulsante <strong>↻</strong> accanto a data e ora aggiorna il campo al momento corrente prima dell’inserimento dell’azione.</p></section>
+<section id="user-incident-templates" class="doc-chapter" data-doc-title="nuovo incidente modello profilo azioni data ora"><h2>15. Creazione incidente da modello e azioni</h2><p>Nella pagina <strong>Nuovo incidente</strong> è possibile scegliere un modello predefinito, se configurato dall’amministratore. Il modello compila i dati iniziali dell’incidente, mentre data e ora di inizio sono impostate al momento corrente.</p><p>Nella pagina del singolo incidente, sezione <strong>Azioni</strong>, il pulsante <strong>↻</strong> accanto a data e ora aggiorna il campo al momento corrente prima dell’inserimento dell’azione.</p></section>
 
-<section id="user-full-import-note" class="doc-chapter" data-doc-title="full import ripristino distruttivo backup"><h2>Nota sul Full import</h2><p>Il Full import è una funzione amministrativa di ripristino totale. Quando viene eseguito, il database viene ricreato completamente e sostituito con i dati dell'archivio importato. Gli utenti operativi devono richiederlo solo come procedura controllata di ripristino o migrazione.</p></section>
+<section id="user-full-import-note" class="doc-chapter" data-doc-title="full import ripristino distruttivo backup"><h2>16. Nota sul Full import</h2><p>Il Full import è una funzione amministrativa di ripristino totale. Quando viene eseguito, il database viene ricreato completamente e sostituito con i dati dell'archivio importato. Gli utenti operativi devono richiederlo solo come procedura controllata di ripristino o migrazione.</p></section>
 
+
+  <section id="cap-markdown-rendering" class="doc-chapter" data-doc-title="markdown sicuro colori dimensioni testo">
+    <h2>17. Rendering Markdown sicuro</h2>
+    <p>Le viste che mostrano Markdown applicativo, incluse descrizioni workflow, avvisi procedurali, pagina chatbot e widget chatbot, supportano un sottoinsieme sicuro: titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS.</p>
+    <p>Per evidenziare il testo sono disponibili tag controllati come <code>{color:red}testo{/color}</code>, <code>{color:#0b7285}testo{/color}</code>, <code>{size:large}testo{/size}</code>, <code>{size:14px}testo{/size}</code>, <code>{size:1.2em}testo{/size}</code> e <code>{size:120%}testo{/size}</code>. L’HTML libero resta escapato; le notifiche schedulate rimuovono la formattazione Markdown prima dell’invio.</p>
+  </section>
 
 </div>
 {% endblock %}
-
-
-### Rendering Markdown sicuro con colori e dimensioni
-
-Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS, è possibile evidenziare il testo con colori e dimensioni controllate:
-
-- `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
-- `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
-- `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
-
-L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.
