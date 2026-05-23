@@ -95,3 +95,32 @@ def test_summary_brochure_is_portrait_two_pages_and_has_required_features():
     ]
     for fragment in required_fragments:
         assert fragment in text
+
+
+def test_release_notes_template_has_single_main_container():
+    for name in ("release_notes.html", "release_notes_en.html"):
+        html = _read_template(name)
+        stripped = html.lstrip()
+        assert stripped.startswith("{% extends 'base.html' %}")
+        assert html.rstrip().endswith("{% endblock %}")
+        assert html.count("{% block content %}") == 1
+        assert html.count("{% endblock %}") == 1
+        assert html.count("release-notes-text") == 1
+        assert "{{ changelog }}" in html
+        prefix = html.split("{% block content %}", 1)[0]
+        assert "<section" not in prefix and "<div" not in prefix
+
+
+def test_documentation_pages_expose_pdf_download_buttons():
+    checks = {
+        "help.html": "url_for('main.help_pdf')",
+        "help_en.html": "url_for('main.help_pdf')",
+        "admin_help.html": "url_for('main.admin_help_pdf')",
+        "admin_help_en.html": "url_for('main.admin_help_pdf')",
+        "release_notes.html": "url_for('main.release_notes_pdf')",
+        "release_notes_en.html": "url_for('main.release_notes_pdf')",
+    }
+    for template, route_call in checks.items():
+        html = _read_template(template)
+        assert route_call in html
+        assert "button secondary" in html

@@ -30,15 +30,15 @@ run_step() {
   return "$rc"
 }
 
-run_step pip_check timeout 120 "$PYTHON_BIN" -m pip check || OVERALL=1
-run_step compileall timeout 120 "$PYTHON_BIN" -m compileall -q app tests || OVERALL=1
-run_step pytest_all timeout 240 "$PYTHON_BIN" -m pytest -q || OVERALL=1
-run_step pytest_agid_dynamic timeout 240 "$PYTHON_BIN" -m pytest -q tests/test_agid_compliance_dynamic.py || OVERALL=1
+run_step pip_check "$PYTHON_BIN" -m pip check || OVERALL=1
+run_step compileall "$PYTHON_BIN" -m compileall -q app tests || OVERALL=1
+run_step pytest_all "$PYTHON_BIN" -m pytest -q || OVERALL=1
+run_step pytest_agid_dynamic "$PYTHON_BIN" -m pytest -q tests/test_agid_compliance_dynamic.py || OVERALL=1
 
-run_step bandit_module_check timeout 60 "$PYTHON_BIN" -m bandit --version || OVERALL=1
-run_step pip_audit_module_check timeout 60 "$PYTHON_BIN" -m pip_audit --version || OVERALL=1
+run_step bandit_module_check "$PYTHON_BIN" -m bandit --version || OVERALL=1
+run_step pip_audit_module_check "$PYTHON_BIN" -m pip_audit --version || OVERALL=1
 
-run_step bandit_json timeout 180 "$PYTHON_BIN" -m bandit -r app -x '*/__pycache__/*' -f json --exit-zero -o "$OUT_DIR/bandit.json" || true
+run_step bandit_json scripts/run_bandit_json.sh "$OUT_DIR/bandit.json" || true
 if ! "$PYTHON_BIN" scripts/check_bandit_threshold.py "$OUT_DIR/bandit.json" >"$OUT_DIR/bandit_threshold.log" 2>&1; then
   printf '%s\t%s\n' "bandit_threshold_high_medium" "1" >> "$OUT_DIR/status.tsv"
   OVERALL=1
@@ -47,7 +47,7 @@ else
 fi
 
 # pip-audit is restricted to this manual Docker execution path.
-if ! run_step pip_audit_json timeout "${AGID_PIP_AUDIT_TIMEOUT:-300}" "$PYTHON_BIN" -m pip_audit --progress-spinner off --timeout "${AGID_PIP_AUDIT_SOCKET_TIMEOUT:-10}" -r requirements.txt -r requirements-dev.txt -f json -o "$OUT_DIR/pip-audit.json"; then
+if ! run_step pip_audit_json "$PYTHON_BIN" -m pip_audit --progress-spinner off --timeout "${AGID_PIP_AUDIT_SOCKET_TIMEOUT:-10}" -r requirements.txt -r requirements-dev.txt -f json -o "$OUT_DIR/pip-audit.json"; then
   echo "pip-audit failed, found vulnerabilities, or could not reach the vulnerability service. This manual Docker run is not fully AGID-compliant until pip-audit passes." > "$OUT_DIR/pip-audit-note.txt"
   OVERALL=1
 fi

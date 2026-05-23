@@ -1,1 +1,0 @@
-pip-audit is available only in the manual Docker compliance runner: compliance/agid/run_docker_agid_compliance.sh

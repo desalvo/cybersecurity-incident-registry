@@ -75,7 +75,7 @@ def _text_lines_from_template(template_name: str) -> list[str]:
     text = unescape(re.sub(r"<[^>]+>", " ", html))
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
     lines = [
-        line.replace("Versione applicativa: 0.4.0-4 · Build: · Autore: .", "Versione applicativa: 0.4.0-4 · Build: 20260522 · Autore: Alessandro De Salvo.")
+        line.replace("Versione applicativa: 0.4.0-33 · Build: · Autore: .", "Versione applicativa: 0.4.0-33 · Build: 20260523 · Autore: Alessandro De Salvo.")
         for line in lines
     ]
     return [line for line in lines if not _is_documentation_noise(line)]
@@ -295,7 +295,7 @@ def _build_brochure() -> None:
     header = Table(
         [[logo, [
             Paragraph("Cybersecurity Incident Registry", title),
-            Paragraph("Versione applicativa 0.4.0-4 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
+            Paragraph("Versione applicativa 0.4.0-33 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
         ]]],
         colWidths=[2.25 * cm, 15.9 * cm],
     )

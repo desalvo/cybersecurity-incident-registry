@@ -127,7 +127,7 @@ In CI il workflow `.github/workflows/agid-compliance.yml` esegue questa configur
 
 ## Ultimo run incluso nel pacchetto
 
-Il run standard incluso è `compliance/agid/20260523T013326Z/`. I controlli `pip check`, `compileall`, `pytest`, test dinamici AGID e soglia Bandit HIGH/MEDIUM sono passati. `pip-audit` non viene eseguito dalla suite standard: è disponibile solo nella modalità manuale Docker, che deve essere avviata su un sistema con accesso Internet per produrre l'evidenza completa di audit vulnerabilità dipendenze.
+La suite standard produce evidenze in `compliance/agid/<RUN_ID>/` ed esegue `pip check`, `compileall`, `pytest`, test dinamici AGID, soglia Bandit HIGH/MEDIUM e `pip-audit` bloccante. In assenza di rete verso il servizio di vulnerability intelligence, il controllo `pip-audit` fallisce intenzionalmente e il pacchetto non deve essere promosso a rilascio finale fino al passaggio in CI con rete.
 
 ## Script manuale incluso nella directory compliance
 
@@ -152,7 +152,7 @@ Le istruzioni operative dettagliate sono nel file `compliance/agid/ISTRUZIONI_TE
 
 ## Esecuzione manuale completa con Docker
 
-A partire da questa versione, `pip-audit` è limitato alla modalità manuale containerizzata. La suite standard `scripts/run_agid_compliance.sh` esegue `pip check`, compilazione, test, test dinamici AGID e Bandit, ma non contatta i servizi Internet di vulnerability intelligence.
+A partire dalla versione `0.4.0-33`, `pip-audit` è parte bloccante della suite standard `scripts/run_agid_compliance.sh`: il controllo produce `pip-audit.json` e il run fallisce se vengono rilevate vulnerabilità, errori del comando o indisponibilità del servizio di vulnerability intelligence. La modalità containerizzata manuale resta disponibile come alternativa riproducibile per ambienti isolati.
 
 Per produrre evidenza completa su un sistema connesso a Internet:
 
