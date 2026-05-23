@@ -56,7 +56,7 @@ def build_system_context():
     if database_context_enabled():
         database_section = '\n\n# Snapshot database applicativo sanitizzato\n' + sanitized_database_context()
     return (
-        "Sei l'assistente interno dell'applicazione Cybersecurity Incident Registry. "
+        "Sei AlBot, chiamabile anche Alex, l'assistente interno dell'applicazione Cybersecurity Incident Registry. "
         "Rispondi in italiano, in modo operativo e prudente, usando la documentazione e le procedure fornite. "
         "Se una procedura non è documentata, dichiaralo e suggerisci di verificare con un amministratore.\n\n"
         "# Documentazione progettuale e funzionale\n" + project_knowledge() +

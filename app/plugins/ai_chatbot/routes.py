@@ -31,12 +31,29 @@ def admin_required():
     return getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) == 'admin'
 
 
+def _mask_secret(value):
+    """Return a non-reversible display mask for stored API keys.
+
+    The admin UI must show that a key is present without exposing the
+    secret.  Only the last four characters are shown to help operators
+    distinguish rotated keys; the real value is never rendered in HTML.
+    """
+    value = (value or '').strip()
+    if not value:
+        return ''
+    suffix = value[-4:] if len(value) >= 4 else '****'
+    return f'••••••••{suffix}'
+
+
 def plugin_config():
     engine = _get_setting('ai_chatbot_engine', 'chatgpt') or 'chatgpt'
     configs = {}
     for name in ENGINE_NAMES:
+        api_key = _get_setting(f'ai_chatbot_{name}_api_key', '')
         configs[name] = {
-            'api_key': _get_setting(f'ai_chatbot_{name}_api_key', ''),
+            'api_key': api_key,
+            'has_api_key': bool(api_key),
+            'masked_api_key': _mask_secret(api_key),
             'endpoint': _get_setting(f'ai_chatbot_{name}_endpoint', ''),
             'model': _get_setting(f'ai_chatbot_{name}_model', ''),
         }
@@ -130,9 +147,18 @@ def admin_plugins():
         set_setting_value('ai_chatbot_engine', engine)
         set_setting_value('ai_chatbot_include_database_context', '1' if request.form.get('ai_chatbot_include_database_context') == '1' else '0')
         try:
+            api_key_updates = []
             for name in ENGINE_NAMES:
                 for field in ('api_key','endpoint','model'):
                     value = request.form.get(f'{name}_{field}') or ''
+                    if field == 'api_key':
+                        # Empty API key fields mean "keep the current secret".
+                        # Stored keys are never sent back to the browser; admins can
+                        # only replace them by typing a new value.
+                        if value.strip():
+                            set_setting_value(f'ai_chatbot_{name}_{field}', value.strip())
+                            api_key_updates.append(name)
+                        continue
                     if field == 'endpoint':
                         value = validate_ai_endpoint(value, name)
                     set_setting_value(f'ai_chatbot_{name}_{field}', value)
@@ -140,7 +166,12 @@ def admin_plugins():
             db.session.rollback()
             flash(str(exc), 'danger')
             return redirect(url_for('ai_chatbot.admin_plugins'))
-        audit_log('ai_chatbot:plugin_config_update', {'enabled': request.form.get('plugin_ai_chatbot_enabled') == '1', 'engine': engine, 'database_context': request.form.get('ai_chatbot_include_database_context') == '1'}, actor_type='user')
+        audit_log('ai_chatbot:plugin_config_update', {
+            'enabled': request.form.get('plugin_ai_chatbot_enabled') == '1',
+            'engine': engine,
+            'database_context': request.form.get('ai_chatbot_include_database_context') == '1',
+            'api_keys_overwritten': api_key_updates,
+        }, actor_type='user')
         db.session.commit()
         flash('Configurazione plugin aggiornata.', 'success')
         return redirect(url_for('ai_chatbot.admin_plugins'))

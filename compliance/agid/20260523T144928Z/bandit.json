@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2026-05-23T02:10:31Z",
+  "generated_at": "2026-05-23T14:49:43Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 27,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 29,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 11300,
+      "loc": 11370,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -232,7 +232,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 180,
+      "loc": 205,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -271,7 +271,7 @@
       "SEVERITY.LOW": 12,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 7551,
+      "loc": 7596,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -785,7 +785,7 @@
       "test_name": "hardcoded_password_string"
     },
     {
-      "code": "6313     from reportlab.lib import colors\n6314     from xml.sax.saxutils import escape\n6315     buf = io.BytesIO()\n",
+      "code": "6364     from reportlab.lib import colors\n6365     from xml.sax.saxutils import escape\n6366     buf = io.BytesIO()\n",
       "col_offset": 4,
       "end_col_offset": 39,
       "filename": "app/routes.py",
@@ -796,16 +796,16 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Using escape to parse untrusted XML data is known to be vulnerable to XML attacks. Replace escape with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
-      "line_number": 6314,
+      "line_number": 6365,
       "line_range": [
-        6314
+        6365
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.10/blacklists/blacklist_imports.html#b406-import-xml-sax",
       "test_id": "B406",
       "test_name": "blacklist"
     },
     {
-      "code": "6357     from reportlab.lib import colors\n6358     from xml.sax.saxutils import escape\n6359 \n",
+      "code": "6408     from reportlab.lib import colors\n6409     from xml.sax.saxutils import escape\n6410 \n",
       "col_offset": 4,
       "end_col_offset": 39,
       "filename": "app/routes.py",
@@ -816,16 +816,16 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Using escape to parse untrusted XML data is known to be vulnerable to XML attacks. Replace escape with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
-      "line_number": 6358,
+      "line_number": 6409,
       "line_range": [
-        6358
+        6409
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.10/blacklists/blacklist_imports.html#b406-import-xml-sax",
       "test_id": "B406",
       "test_name": "blacklist"
     },
     {
-      "code": "6484     from reportlab.lib import colors\n6485     from xml.sax.saxutils import escape\n6486 \n",
+      "code": "6535     from reportlab.lib import colors\n6536     from xml.sax.saxutils import escape\n6537 \n",
       "col_offset": 4,
       "end_col_offset": 39,
       "filename": "app/routes.py",
@@ -836,16 +836,16 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Using escape to parse untrusted XML data is known to be vulnerable to XML attacks. Replace escape with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
-      "line_number": 6485,
+      "line_number": 6536,
       "line_range": [
-        6485
+        6536
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.10/blacklists/blacklist_imports.html#b406-import-xml-sax",
       "test_id": "B406",
       "test_name": "blacklist"
     },
     {
-      "code": "7447                     try: start_at = datetime.fromisoformat(a.strip())\n7448                     except Exception: pass\n7449                     try: end_at = datetime.fromisoformat(b.strip()) if b.strip() else None\n",
+      "code": "7498                     try: start_at = datetime.fromisoformat(a.strip())\n7499                     except Exception: pass\n7500                     try: end_at = datetime.fromisoformat(b.strip()) if b.strip() else None\n",
       "col_offset": 20,
       "end_col_offset": 42,
       "filename": "app/routes.py",
@@ -856,16 +856,16 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Try, Except, Pass detected.",
-      "line_number": 7448,
+      "line_number": 7499,
       "line_range": [
-        7448
+        7499
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.10/plugins/b110_try_except_pass.html",
       "test_id": "B110",
       "test_name": "try_except_pass"
     },
     {
-      "code": "7449                     try: end_at = datetime.fromisoformat(b.strip()) if b.strip() else None\n7450                     except Exception: pass\n7451                 inc = Incident(\n",
+      "code": "7500                     try: end_at = datetime.fromisoformat(b.strip()) if b.strip() else None\n7501                     except Exception: pass\n7502                 inc = Incident(\n",
       "col_offset": 20,
       "end_col_offset": 42,
       "filename": "app/routes.py",
@@ -876,16 +876,16 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Try, Except, Pass detected.",
-      "line_number": 7450,
+      "line_number": 7501,
       "line_range": [
-        7450
+        7501
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.10/plugins/b110_try_except_pass.html",
       "test_id": "B110",
       "test_name": "try_except_pass"
     },
     {
-      "code": "8055                 (upload_dir / Path(stored).name).unlink(missing_ok=True)\n8056             except Exception:\n8057                 pass\n8058         section_flash('Generazione rifiutata: i file temporanei sono stati eliminati.', 'incident-forms', 'info')\n",
+      "code": "8106                 (upload_dir / Path(stored).name).unlink(missing_ok=True)\n8107             except Exception:\n8108                 pass\n8109         section_flash('Generazione rifiutata: i file temporanei sono stati eliminati.', 'incident-forms', 'info')\n",
       "col_offset": 12,
       "end_col_offset": 20,
       "filename": "app/routes.py",
@@ -896,10 +896,10 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Try, Except, Pass detected.",
-      "line_number": 8056,
+      "line_number": 8107,
       "line_range": [
-        8056,
-        8057
+        8107,
+        8108
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.10/plugins/b110_try_except_pass.html",
       "test_id": "B110",

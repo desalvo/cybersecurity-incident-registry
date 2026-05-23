@@ -22,7 +22,12 @@
       <label for="{{ engine }}_endpoint">Endpoint</label>
       <input id="{{ engine }}_endpoint" name="{{ engine }}_endpoint" value="{{ config.configs[engine].endpoint }}" placeholder="Endpoint API opzionale">
       <label for="{{ engine }}_api_key">API key</label>
-      <input id="{{ engine }}_api_key" name="{{ engine }}_api_key" value="{{ config.configs[engine].api_key }}" autocomplete="off" placeholder="API key, se richiesta dal motore">
+      {% if config.configs[engine].has_api_key %}
+      <p class="muted secret-presence">API key presente: <code>{{ config.configs[engine].masked_api_key }}</code>. Il valore reale non viene visualizzato; inserisci una nuova API key solo per sovrascriverla.</p>
+      {% else %}
+      <p class="muted secret-presence">Nessuna API key salvata per questo motore.</p>
+      {% endif %}
+      <input id="{{ engine }}_api_key" name="{{ engine }}_api_key" value="" type="password" autocomplete="new-password" placeholder="Nuova API key; lascia vuoto per mantenere quella esistente">
     </details>
     {% endfor %}
     <button type="submit" class="btn primary">Salva configurazione plugin</button>

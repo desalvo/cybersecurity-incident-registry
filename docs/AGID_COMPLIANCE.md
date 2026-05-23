@@ -199,3 +199,8 @@ La suite di compliance è stata aggiornata per verificare il progetto con `Flask
 ## Copertura backup AI Chatbot
 
 La suite di regressione include `test_full_backup_includes_ai_chatbot_knowledge_base_files`, che verifica che il full backup/full export includa anche i documenti fisici caricati nella knowledge base dell’AI Chatbot sotto `files/persistent/ai_chatbot_docs/`, oltre ai record database `ai_chatbot_document`.
+
+
+## Protezione API key AI Chatbot
+
+La configurazione del plugin AI Chatbot applica una gestione overwrite-only delle API key: le chiavi presenti sono mostrate agli amministratori solo in forma offuscata, il valore reale non viene renderizzato nei template HTML e un campo vuoto mantiene il segreto esistente. La sovrascrittura è possibile solo inserendo una nuova API key. Questa scelta riduce il rischio di information disclosure e mantiene la tracciabilità dell'operazione senza registrare segreti nei log.

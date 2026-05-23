@@ -2649,8 +2649,18 @@ def workflow_import_diff(payload):
                 if comparable[field] != new_value:
                     changes[field] = {'old': comparable[field], 'new': new_value}
             existing_binary = FormTemplateBinary.query.filter_by(template_name=ft.get('template_name')).first()
-            if existing_binary and (ft.get('binary') or {}).get('pdf_base64'):
-                changes.setdefault('binary_pdf', {'old': existing_binary.filename, 'new': (ft.get('binary') or {}).get('filename')})
+            incoming_binary = ft.get('binary') or {}
+            incoming_pdf_b64 = incoming_binary.get('pdf_base64')
+            if incoming_pdf_b64:
+                try:
+                    incoming_pdf = base64.b64decode(incoming_pdf_b64)
+                except Exception:
+                    incoming_pdf = None
+                incoming_filename = incoming_binary.get('filename') or ft.get('template_name')
+                if not existing_binary:
+                    changes.setdefault('binary_pdf', {'old': '', 'new': incoming_filename})
+                elif existing_binary.filename != incoming_filename or existing_binary.pdf_data != incoming_pdf:
+                    changes.setdefault('binary_pdf', {'old': existing_binary.filename, 'new': incoming_filename})
             if changes:
                 diffs.append({'key': f"form_template::{ft.get('template_name')}", 'type': 'form_template', 'title': f"Template modulo {ft.get('template_name')}", 'changes': changes})
     for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
@@ -2719,117 +2729,158 @@ def _upsert_config_label(data, allow_overwrite):
 
 
 def apply_workflow_import(payload, overwrite_keys):
+    """Importa un workflow evitando duplicati identici.
+
+    Gli elementi gia' presenti e identici al payload vengono lasciati invariati:
+    non sono aggiornati, non richiedono conferma di sovrascrittura e sono
+    conteggiati come ``unchanged``. Solo gli elementi esistenti con valori
+    diversi possono essere aggiornati, e soltanto quando la relativa chiave e'
+    stata selezionata esplicitamente nella preview.
+    """
     overwrite_keys = set(overwrite_keys or [])
-    created = updated = skipped = 0
+    changed_keys = {diff.get('key') for diff in workflow_import_diff(payload)}
+    created = updated = skipped = unchanged = 0
     label_cache = {}
+
     for lab_data in (payload.get('dependencies') or {}).get('labels') or []:
         key = f"label::{lab_data.get('kind')}::{lab_data.get('value')}"
         exists = ConfigLabel.query.filter_by(kind=lab_data.get('kind'), value=lab_data.get('value')).first()
-        lab = _upsert_config_label(lab_data, (not exists) or key in overwrite_keys)
-        label_cache[(lab.kind, lab.value)] = lab
+        if exists and key not in changed_keys:
+            label_cache[(exists.kind, exists.value)] = exists
+            unchanged += 1
+            continue
         if exists and key not in overwrite_keys:
+            label_cache[(exists.kind, exists.value)] = exists
             skipped += 1
-        elif exists:
+            continue
+        lab = _upsert_config_label(lab_data, True)
+        label_cache[(lab.kind, lab.value)] = lab
+        if exists:
             updated += 1
         else:
             created += 1
     db.session.flush()
+
     for nt in (payload.get('dependencies') or {}).get('notification_types') or []:
-        key=f"notification_type::{nt.get('code')}"
-        obj=NotificationType.query.filter_by(code=nt.get('code')).first()
-        exists=bool(obj)
+        key = f"notification_type::{nt.get('code')}"
+        obj = NotificationType.query.filter_by(code=nt.get('code')).first()
+        exists = bool(obj)
+        if exists and key not in changed_keys:
+            unchanged += 1
+            continue
+        if exists and key not in overwrite_keys:
+            skipped += 1
+            continue
         if not obj:
-            obj=NotificationType(code=nt.get('code'))
+            obj = NotificationType(code=nt.get('code'))
             db.session.add(obj)
-        if (not exists) or key in overwrite_keys:
-            obj.label=nt.get('label') or nt.get('code')
-            obj.description=nt.get('description') or ''
-            obj.enabled=bool(nt.get('enabled'))
-            created += 0 if exists else 1; updated += 1 if exists else 0
-        else:
-            skipped += 1
+        obj.label = nt.get('label') or nt.get('code')
+        obj.description = nt.get('description') or ''
+        obj.enabled = bool(nt.get('enabled'))
+        created += 0 if exists else 1
+        updated += 1 if exists else 0
     db.session.flush()
+
     for ft in (payload.get('dependencies') or {}).get('form_templates') or []:
-        name=ft.get('template_name')
-        if not name: continue
-        key=f"form_template::{name}"
-        cfg=FormTemplateConfig.query.filter_by(template_name=name).first()
-        exists=bool(cfg)
+        name = ft.get('template_name')
+        if not name:
+            continue
+        key = f"form_template::{name}"
+        cfg = FormTemplateConfig.query.filter_by(template_name=name).first()
+        exists = bool(cfg)
+        if exists and key not in changed_keys:
+            unchanged += 1
+            continue
+        if exists and key not in overwrite_keys:
+            skipped += 1
+            continue
         if not cfg:
-            cfg=FormTemplateConfig(template_name=name); db.session.add(cfg); created += 1
-        if (not exists) or key in overwrite_keys:
-            cfg.font_family=FormTemplateConfig.normalize_font_family(ft.get('font_family'))
-            cfg.font_size=FormTemplateConfig.normalize_font_size(ft.get('font_size'))
-            cfg.set_notification_tags(ft.get('notification_tags') or [])
-            bin_data=(ft.get('binary') or {})
-            if bin_data.get('pdf_base64'):
-                binary=FormTemplateBinary.query.filter_by(template_name=name).first()
-                if not binary:
-                    binary=FormTemplateBinary(template_name=name, filename=bin_data.get('filename') or name); db.session.add(binary)
-                binary.filename=bin_data.get('filename') or binary.filename
-                binary.pdf_data=base64.b64decode(bin_data.get('pdf_base64'))
-            if exists: updated += 1
-        elif exists:
-            skipped += 1
+            cfg = FormTemplateConfig(template_name=name)
+            db.session.add(cfg)
+        cfg.font_family = FormTemplateConfig.normalize_font_family(ft.get('font_family'))
+        cfg.font_size = FormTemplateConfig.normalize_font_size(ft.get('font_size'))
+        cfg.set_notification_tags(ft.get('notification_tags') or [])
+        bin_data = ft.get('binary') or {}
+        if bin_data.get('pdf_base64'):
+            binary = FormTemplateBinary.query.filter_by(template_name=name).first()
+            if not binary:
+                binary = FormTemplateBinary(template_name=name, filename=bin_data.get('filename') or name)
+                db.session.add(binary)
+            binary.filename = bin_data.get('filename') or binary.filename
+            binary.pdf_data = base64.b64decode(bin_data.get('pdf_base64'))
+        created += 0 if exists else 1
+        updated += 1 if exists else 0
     db.session.flush()
+
     for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
-        key=f"notification_template::{tpl.get('kind')}::{tpl.get('name')}"
-        obj=NotificationTemplate.query.filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
-        exists=bool(obj)
-        if not obj:
-            obj=NotificationTemplate(kind=tpl.get('kind'), name=tpl.get('name')); db.session.add(obj)
-        if (not exists) or key in overwrite_keys:
-            obj.subject=tpl.get('subject') or ''
-            obj.body=tpl.get('body') or ''
-            obj.linked_form_template_name=tpl.get('linked_form_template_name') or None
-            obj.recipient_source=tpl.get('recipient_source') or 'manual'
-            obj.recipient_value=tpl.get('recipient_value') or ''
-            obj.recipient_editable=bool(tpl.get('recipient_editable'))
-            obj.recipient_external_allowed=bool(tpl.get('recipient_external_allowed'))
-            obj.cc_source=tpl.get('cc_source') or 'manual'
-            obj.cc_value=tpl.get('cc_value') or ''
-            obj.cc_editable=bool(tpl.get('cc_editable'))
-            obj.cc_external_allowed=bool(tpl.get('cc_external_allowed'))
-            obj.is_default=bool(tpl.get('is_default'))
-            al=tpl.get('action_label') or {}
-            if al.get('kind') and al.get('value'):
-                label=ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
-                obj.action_label_id=label.id if label else None
-            created += 0 if exists else 1; updated += 1 if exists else 0
-        else:
+        key = f"notification_template::{tpl.get('kind')}::{tpl.get('name')}"
+        obj = NotificationTemplate.query.filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        exists = bool(obj)
+        if exists and key not in changed_keys:
+            unchanged += 1
+            continue
+        if exists and key not in overwrite_keys:
             skipped += 1
+            continue
+        if not obj:
+            obj = NotificationTemplate(kind=tpl.get('kind'), name=tpl.get('name'))
+            db.session.add(obj)
+        obj.subject = tpl.get('subject') or ''
+        obj.body = tpl.get('body') or ''
+        obj.linked_form_template_name = tpl.get('linked_form_template_name') or None
+        obj.recipient_source = tpl.get('recipient_source') or 'manual'
+        obj.recipient_value = tpl.get('recipient_value') or ''
+        obj.recipient_editable = bool(tpl.get('recipient_editable'))
+        obj.recipient_external_allowed = bool(tpl.get('recipient_external_allowed'))
+        obj.cc_source = tpl.get('cc_source') or 'manual'
+        obj.cc_value = tpl.get('cc_value') or ''
+        obj.cc_editable = bool(tpl.get('cc_editable'))
+        obj.cc_external_allowed = bool(tpl.get('cc_external_allowed'))
+        obj.is_default = bool(tpl.get('is_default'))
+        al = tpl.get('action_label') or {}
+        if al.get('kind') and al.get('value'):
+            label = ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
+            obj.action_label_id = label.id if label else None
+        created += 0 if exists else 1
+        updated += 1 if exists else 0
     db.session.flush()
-    wf=payload.get('workflow') or {}
-    cat=wf.get('category') or None
-    category_id=None
+
+    wf = payload.get('workflow') or {}
+    cat = wf.get('category') or None
+    category_id = None
     if cat:
-        category=ConfigLabel.query.filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
-        category_id=category.id if category else None
+        category = ConfigLabel.query.filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
+        category_id = category.id if category else None
     existing = IncidentWorkflowStep.query.filter_by(category_id=category_id).all()
     existing_map = {f"{st.position}::{st.action_label.value if st.action_label else st.action_label_id}": st for st in existing}
     for st in wf.get('steps') or []:
-        al=st.get('action_label') or {}
-        label=ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
+        al = st.get('action_label') or {}
+        label = ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
         if not label:
             continue
-        key_short=f"{st.get('position',0)}::{al.get('value','')}"
-        key=f"workflow_step::{key_short}"
-        obj=existing_map.get(key_short)
-        exists=bool(obj)
-        if not obj:
-            obj=IncidentWorkflowStep(category_id=category_id, action_label_id=label.id, position=int(st.get('position') or 0)); db.session.add(obj)
-        if (not exists) or key in overwrite_keys:
-            obj.action_label_id=label.id
-            obj.description=st.get('description') or ''
-            obj.set_condition_tokens(st.get('conditions') or [])
-            obj.required=bool(st.get('required'))
-            obj.requires_notification=bool(st.get('requires_notification'))
-            obj.required_notification_type=st.get('required_notification_type') or None
-            created += 0 if exists else 1; updated += 1 if exists else 0
-        else:
+        key_short = f"{st.get('position',0)}::{al.get('value','')}"
+        key = f"workflow_step::{key_short}"
+        obj = existing_map.get(key_short)
+        exists = bool(obj)
+        if exists and key not in changed_keys:
+            unchanged += 1
+            continue
+        if exists and key not in overwrite_keys:
             skipped += 1
+            continue
+        if not obj:
+            obj = IncidentWorkflowStep(category_id=category_id, action_label_id=label.id, position=int(st.get('position') or 0))
+            db.session.add(obj)
+        obj.action_label_id = label.id
+        obj.description = st.get('description') or ''
+        obj.set_condition_tokens(st.get('conditions') or [])
+        obj.required = bool(st.get('required'))
+        obj.requires_notification = bool(st.get('requires_notification'))
+        obj.required_notification_type = st.get('required_notification_type') or None
+        created += 0 if exists else 1
+        updated += 1 if exists else 0
     db.session.commit()
-    return {'created': created, 'updated': updated, 'skipped': skipped}
+    return {'created': created, 'updated': updated, 'skipped': skipped, 'unchanged': unchanged}
 
 @bp.route('/admin/incident-workflows',methods=['GET','POST'])
 @login_required
@@ -2957,7 +3008,7 @@ def admin_incident_workflow_import_apply():
         return redirect(url_for('main.admin_incident_workflows'))
     overwrite_keys = request.form.getlist('overwrite_key')
     result = apply_workflow_import(payload, overwrite_keys)
-    flash(f"Workflow importato. Creati: {result['created']}; aggiornati: {result['updated']}; ignorati: {result['skipped']}.", 'success')
+    flash(f"Workflow importato. Creati: {result['created']}; aggiornati: {result['updated']}; ignorati: {result['skipped']}; identici non importati: {result.get('unchanged', 0)}.", 'success')
     return redirect(url_for('main.admin_incident_workflows'))
 
 @bp.route('/admin/labels',methods=['GET','POST'])

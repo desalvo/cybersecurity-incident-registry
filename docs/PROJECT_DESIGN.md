@@ -1728,7 +1728,7 @@ Caratteristiche principali:
 - attivabile da **Admin → Plugins**;
 - un solo motore AI attivo alla volta;
 - motori configurabili: ChatGPT, Claude, Gemini, Ollama e Perplexity;
-- configurazione separata per modello, endpoint e API key di ogni motore;
+- configurazione separata per modello, endpoint e API key di ogni motore; le API key già presenti sono mostrate in interfaccia solo come valore offuscato non reversibile e non vengono mai reinserite nel valore HTML del campo; un campo vuoto mantiene la chiave esistente, mentre una nuova API key digitata la sovrascrive;
 - knowledge base costruita dalle definizioni progettuali, dai README, dal changelog e dalle pagine di help dell’applicazione;
 - caricamento di documenti procedurali aggiuntivi da **Admin → Plugins → Gestisci documenti chatbot**;
 - i documenti testuali caricati vengono indicizzati come contesto operativo;
@@ -1738,6 +1738,11 @@ Caratteristiche principali:
 Il chatbot è pensato per assistere gli operatori su funzionalità applicative, procedure da seguire e gestione degli incidenti di sicurezza. Se il motore selezionato non è configurato correttamente, l’interfaccia mostra un errore operativo senza bloccare l’applicazione.
 
 
+
+### Gestione sicura API key AI Chatbot
+
+Nella pagina **Admin → Plugins** le API key dei motori AI non sono mai visualizzate in chiaro. Quando una chiave è presente, l'interfaccia mostra soltanto un indicatore offuscato con suffisso parziale, utile a capire che il segreto esiste senza esporlo. Il campo di inserimento resta vuoto: lasciandolo vuoto si conserva la chiave già salvata, mentre digitando un nuovo valore la chiave precedente viene sovrascritta. Gli aggiornamenti vengono registrati nell'audit log indicando solo quali motori sono stati sovrascritti, senza memorizzare il valore della chiave.
+
 ### Contesto database sanitizzato per AI Chatbot
 
 Il plugin **AI Chatbot** può essere configurato per includere nel prompt anche uno snapshot sanitizzato del database corrente. La funzione è controllata dalla setting `ai_chatbot_include_database_context`, disattivata per default e modificabile da **Admin → Plugins**.
@@ -1745,6 +1750,10 @@ Il plugin **AI Chatbot** può essere configurato per includere nel prompt anche 
 L'implementazione è isolata nel plugin, nel file `app/plugins/ai_chatbot/database_context.py`, e non richiede modifiche al core applicativo. Prima di inviare contenuti al motore AI vengono esclusi dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari, certificati, chiavi, audit dettagliati e campi testuali liberi che possono contenere informazioni identificative. Le tabelle intrinsecamente personali o binarie, come utenti, rubrica esterna, token MFA, documenti chatbot e binari dei template PDF, sono escluse o rappresentate solo con metadati non identificativi.
 
 Il contesto risultante viene aggiunto dopo documentazione progettuale e knowledge base caricata, in una sezione `Snapshot database applicativo sanitizzato`. Ogni domanda al chatbot registra nell'audit se il contesto database era abilitato.
+
+## Identità visuale AlBot
+
+L'assistente del plugin AI Chatbot usa il nome applicativo **AlBot** e può essere chiamato anche **Alex**. L'asset `app/static/ai-chatbot/albot-avatar.png` viene referenziato dal template base per il pulsante flottante, l'header della chat e le icone accanto alle risposte del bot; la pagina completa del chatbot mostra la stessa icona accanto alla risposta. Il prompt di sistema identifica l'assistente come AlBot/Alex per mantenere coerenza fra interfaccia e risposte generate.
 
 ## AI Chatbot globale come plugin
 
@@ -1813,3 +1822,10 @@ Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte l
 - `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
 
 L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.
+
+
+## Aggiornamento import workflow - deduplica elementi identici
+Gli elementi identici già presenti vengono riconosciuti confrontando i valori persistiti con il payload importato, inclusi i PDF dei template modulo quando presenti. Questi elementi sono esclusi dalla lista delle differenze, non richiedono alcuna conferma di sovrascrittura e non vengono aggiornati durante l'applicazione dell'import; il risultato dell'operazione li conteggia separatamente come `unchanged`. Gli elementi esistenti ma differenti restano invece invariati finché l'amministratore non seleziona esplicitamente la relativa chiave di sovrascrittura.
+
+## Workflow import update - identical item deduplication
+Identical existing items are detected by comparing persisted values with the imported payload, including form-template PDFs when present. They are excluded from the differences list, do not require overwrite confirmation and are not updated during import application; the operation result counts them separately as `unchanged`. Existing but different items remain unchanged unless the administrator explicitly selects the related overwrite key.

@@ -2,12 +2,12 @@
 {% block content %}
 <div class="card">
   <h2>Anteprima import workflow</h2>
-  <p class="muted">Verifica struttura e differenze. Gli elementi nuovi saranno creati automaticamente. Per ogni elemento esistente con valori diversi, seleziona esplicitamente se sovrascrivere.</p>
+  <p class="muted">Verifica struttura e differenze. Gli elementi nuovi saranno creati automaticamente. Gli elementi già presenti e identici non vengono importati e non generano avvisi di sovrascrittura. Per ogni elemento esistente con valori diversi, seleziona esplicitamente se sovrascrivere.</p>
   <div class="stats-grid">
     <div><strong>Ambito</strong><br>{{ payload.workflow.scope }}</div>
     <div><strong>Categoria</strong><br>{{ payload.workflow.category.value if payload.workflow.category else 'Flusso di default' }}</div>
     <div><strong>Step</strong><br>{{ payload.workflow.steps|length }}</div>
-    <div><strong>Differenze</strong><br>{{ diffs|length }}</div>
+    <div><strong>Differenze da confermare</strong><br>{{ diffs|length }}</div>
   </div>
   <form method="post" action="{{ url_for('main.admin_incident_workflow_import_apply') }}" onsubmit="return confirm('Confermi l’import del workflow con le sovrascritture selezionate?');">
     <input type="hidden" name="payload_b64" value="{{ payload_b64 }}">

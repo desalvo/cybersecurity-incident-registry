@@ -1,3 +1,16 @@
+
+0.4.0-4 - AI Chatbot API key masking
+- Le API key già presenti nella configurazione del plugin AI Chatbot sono ora mostrate solo in forma offuscata.
+- I campi API key non espongono più il valore reale nel markup HTML; lasciandoli vuoti la chiave esistente viene mantenuta, inserendo un nuovo valore viene sovrascritta.
+- Aggiunti test di regressione e aggiornata la documentazione amministrativa/AGID.
+
+
+2026-05-23 - AlBot visual identity
+- AI Chatbot renamed in the user interface to AlBot, also callable Alex.
+- Added packaged avatar at app/static/ai-chatbot/albot-avatar.png and displayed it in the launcher, widget header, bot replies and full chat page.
+- Updated AI system context so generated answers identify the assistant as AlBot/Alex.
+- Added regression tests for the packaged avatar and UI references.
+
 2026-05-23
 - Verificato che il full backup/full export includa anche i documenti fisici della knowledge base dell'AI Chatbot in `files/persistent/ai_chatbot_docs/`.
 - Aggiunto test di regressione `test_full_backup_includes_ai_chatbot_knowledge_base_files`.
@@ -1225,3 +1238,6 @@ Versione 0.4.0-4 - aggiornamento compliance AGID
 - Aggiunto runner Docker che salva le evidenze nella directory corrente e mantiene solo l'ultimo run.
 - Limitato pip-audit alla sola modalità manuale containerizzata.
 - Aggiornate istruzioni e documentazione di compliance.
+
+- L'import dei workflow ora riconosce gli elementi identici già presenti, non li reimporta e non mostra avvisi di sovrascrittura per tali elementi.
+- Il riepilogo dell'import workflow distingue gli elementi identici non importati dagli elementi ignorati perché differenti ma non autorizzati alla sovrascrittura.

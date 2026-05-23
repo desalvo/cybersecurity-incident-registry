@@ -1,6 +1,6 @@
 # Risultati test conformità AGID
 
-Generato: `2026-05-23T02:10:34.096513+00:00`
+Generato: `2026-05-23T14:49:44.159944+00:00`
 Esito complessivo: **PASS**
 
 ## Passi eseguiti

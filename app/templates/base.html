@@ -15,7 +15,7 @@
 <header class="topbar" role="banner">
   <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" onerror="this.style.display='none'"><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
   <button class="mobile-menu-toggle" type="button" aria-label="Apri o chiudi menu" aria-controls="main-nav" aria-expanded="false">☰ Menu</button>
-  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AI Chatbot">💬 Chat</button>{% endif %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AlBot"> <img class="ai-chatbot-mobile-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"> Alex</button>{% endif %}
   <nav id="main-nav" class="nav" aria-label="Menu principale">
     <a href="{{ url_for('main.index') }}">Incidenti</a>
     <div class="dropdown">
@@ -115,7 +115,7 @@
         <a role="menuitem" href="{{ url_for('main.help_page') }}">Documentazione utente</a>
         <a role="menuitem" href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>
         <a role="menuitem" href="{{ url_for('main.release_notes') }}">Note di rilascio</a>
-        {% if ai_chatbot_plugin_enabled() %}<a role="menuitem" href="{{ url_for('ai_chatbot.chat') }}">AI Chatbot</a>{% endif %}
+        {% if ai_chatbot_plugin_enabled() %}<a role="menuitem" href="{{ url_for('ai_chatbot.chat') }}">AlBot</a>{% endif %}
       </div>
     </div>
 
@@ -138,17 +138,17 @@
 
 {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}
 <div id="ai-chatbot-widget" class="ai-chatbot-widget" data-ask-url="{{ url_for('ai_chatbot.widget_ask') }}" aria-live="polite">
-  <button id="ai-chatbot-fab" class="ai-chatbot-fab" type="button" aria-controls="ai-chatbot-panel" aria-expanded="false" title="Apri AI Chatbot" aria-label="Apri AI Chatbot">💬</button>
-  <section id="ai-chatbot-panel" class="ai-chatbot-panel" role="dialog" aria-label="AI Chatbot" hidden>
+  <button id="ai-chatbot-fab" class="ai-chatbot-fab" type="button" aria-controls="ai-chatbot-panel" aria-expanded="false" title="Apri AlBot" aria-label="Apri AlBot"><img src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"></button>
+  <section id="ai-chatbot-panel" class="ai-chatbot-panel" role="dialog" aria-label="AlBot" hidden>
     <header class="ai-chatbot-header">
-      <div><strong>AI Chatbot</strong><span>Helpdesk applicativo</span></div>
-      <button id="ai-chatbot-minimize" type="button" class="ai-chatbot-minimize" aria-label="Iconizza AI Chatbot">−</button>
+      <div class="ai-chatbot-title"><img src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"><div><strong>AlBot</strong><span>anche Alex · Helpdesk applicativo</span></div></div>
+      <button id="ai-chatbot-minimize" type="button" class="ai-chatbot-minimize" aria-label="Iconizza AlBot">−</button>
     </header>
     <div id="ai-chatbot-messages" class="ai-chatbot-messages">
-      <div class="ai-chatbot-message bot">Ciao, posso aiutarti sulle funzionalità dell’applicazione e sulle procedure per gli incidenti di sicurezza.</div>
+      <div class="ai-chatbot-message bot">Ciao, sono AlBot (puoi chiamarmi anche Alex). Posso aiutarti sulle funzionalità dell’applicazione e sulle procedure per gli incidenti di sicurezza.</div>
     </div>
     <form id="ai-chatbot-form" class="ai-chatbot-form">
-      <label class="sr-only" for="ai-chatbot-question">Domanda per AI Chatbot</label>
+      <label class="sr-only" for="ai-chatbot-question">Domanda per AlBot</label>
       <textarea id="ai-chatbot-question" name="question" rows="2" placeholder="Scrivi una domanda..." required></textarea>
       <button type="submit" class="btn primary">Invia</button>
     </form>

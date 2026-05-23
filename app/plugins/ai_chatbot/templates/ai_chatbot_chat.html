@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="card">
-  <h2>AI Chatbot</h2>
-  <p class="muted">Assistente per funzionalità dell’applicazione, operazioni e procedure sugli incidenti di sicurezza. Motore attivo: <strong>{{ engine }}</strong>.</p>
+  <h2>AlBot</h2>
+  <p class="muted">Assistente AI per funzionalità dell’applicazione, operazioni e procedure sugli incidenti di sicurezza. Motore attivo: <strong>{{ engine }}</strong>.</p>
   <form method="post" class="stacked-form">
     <label for="question">Domanda</label>
     <textarea id="question" name="question" rows="6" required placeholder="Esempio: come preparo una notifica manuale all’utente?">{{ question }}</textarea>
@@ -11,8 +11,8 @@
 </section>
 {% if answer %}
 <section class="card">
-  <h3>Risposta</h3>
-  <div class="pre-wrap ai-chatbot-markdown">{{ answer|workflow_markdown }}</div>
+  <h3>Risposta di AlBot</h3>
+  <div class="ai-chatbot-answer-row"><img class="ai-chatbot-page-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="AlBot"><div class="pre-wrap ai-chatbot-markdown ai-chatbot-page-answer">{{ answer|workflow_markdown }}</div></div>
 </section>
 {% endif %}
 {% endblock %}

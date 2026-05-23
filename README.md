@@ -787,6 +787,10 @@ Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha 
 
 Aggiornamento AI Chatbot: nella configurazione del plugin è disponibile l'opzione **Consenti al motore AI di usare anche uno snapshot sanitizzato del database corrente**. L'opzione è disattivata per default. Se abilitata, il contesto inviato al motore selezionato include anche una vista JSON del database applicativo corrente, filtrata per escludere dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari e campi di testo libero potenzialmente identificativi.
 
+### Identità visuale AlBot
+
+Il plugin AI Chatbot si presenta agli utenti come **AlBot**, chiamabile anche **Alex**. L'icona ufficiale è distribuita nel pacchetto in `app/static/ai-chatbot/albot-avatar.png` ed è usata dal launcher flottante, dall'intestazione del widget, dalle risposte del bot e dalla pagina completa della chat.
+
 ### AI Chatbot globale
 
 Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice e link vengono formattati nella chat; HTML libero e script restano escapati.
@@ -897,3 +901,7 @@ L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Sec
 ### Full backup e knowledge base AI Chatbot
 
 Il full backup, ottenuto selezionando tutte le categorie in **Admin → Backup**, usa il formato del full export e comprende anche i documenti caricati nella knowledge base dell’AI Chatbot. I file sono salvati nel manifest sotto `files.persistent_files.ai_chatbot_docs` e nell’archivio sotto `files/persistent/ai_chatbot_docs/`, insieme ai record database `ai_chatbot_document`.
+
+
+### Import workflow: deduplica elementi identici
+L’import mostra solo gli elementi esistenti con valori diversi e richiede una checkbox dedicata per ogni sovrascrittura. Gli elementi già presenti e identici al pacchetto importato non vengono importati di nuovo, non sono conteggiati come sovrascritture e non generano avvisi di sovrascrittura; nel riepilogo finale sono indicati come identici non importati.
