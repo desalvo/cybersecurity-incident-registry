@@ -1261,5 +1261,6 @@ Versione 0.4.0-4 - aggiornamento compliance AGID
 0.4.0-4 - Brochure verticale professionale
 - Brochure PDF convertita in formato A4 verticale, massimo due pagine, con filigrana/background a tema cybersecurity.
 - Aggiunte alla brochure le descrizioni su autenticazione integrabile, configurabilità workflow/azioni/tassonomie, notifiche automatiche con allegati, import workflow custom, compilazione PDF, compliance AGID, knowledge base AI opzionale, licenza EUPL e riferimenti GitHub/creatore.
+- Aggiunte alla brochure le informazioni sulla disponibilità come container Docker Hub `desalvo/cybersecurity-incident-registry` e sul supporto al run tramite Docker Compose e Kubernetes.
 - PDF documentazione rigenerati senza nuovi risultati di compliance AGID.
 

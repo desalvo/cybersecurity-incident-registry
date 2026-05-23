@@ -295,7 +295,7 @@ def _build_brochure() -> None:
     header = Table(
         [[logo, [
             Paragraph("Cybersecurity Incident Registry", title),
-            Paragraph("Versione applicativa 0.4.0-4 - Registro operativo per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
+            Paragraph("Versione applicativa 0.4.0-4 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
         ]]],
         colWidths=[2.25 * cm, 15.9 * cm],
     )
@@ -346,8 +346,10 @@ def _build_brochure() -> None:
     story.append(Paragraph("Funzionalità principali", h2))
     feature_left = [
         _feature_paragraph("Registro incidenti con stati, gravità, categorie, dati coinvolti, conseguenze e raccomandazioni operative.", bullet),
+        _feature_paragraph("Distribuzione container Docker: immagine pubblica desalvo/cybersecurity-incident-registry su Docker Hub.", bullet),
         _feature_paragraph("Interfacciabilità con vari meccanismi di autenticazione: account locali, LDAP/Active Directory, SSO OAuth2/OpenID Connect e MFA.", bullet),
         _feature_paragraph("Configurabilità completa di azioni, step di workflow, tassonomie, notifiche, template, loghi, ruoli e opzioni operative.", bullet),
+        _feature_paragraph("Run supportato tramite Docker Compose e manifest Kubernetes per installazioni ripetibili e scalabili.", bullet),
         _feature_paragraph("Notifiche automatiche configurabili verso utenti, CSIRT, DPO e altre entità custom, con attachment automatici di documenti generati o compilati.", bullet),
     ]
     feature_right = [
@@ -392,9 +394,9 @@ def _build_brochure() -> None:
     story.append(Table([[cards[0], cards[1]], [cards[2], cards[3]]], colWidths=[8.95 * cm, 8.95 * cm], style=[("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(Spacer(1, 0.14 * cm))
     chips = Table([[
-        Paragraph("Workflow custom", chip),
-        Paragraph("Notifiche automatiche", chip),
-        Paragraph("PDF compilabili", chip),
+        Paragraph("Docker Hub", chip),
+        Paragraph("Docker Compose", chip),
+        Paragraph("Kubernetes", chip),
         Paragraph("Audit AGID", chip),
     ]], colWidths=[4.43 * cm] * 4)
     chips.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
@@ -402,7 +404,7 @@ def _build_brochure() -> None:
     story.append(Spacer(1, 0.12 * cm))
     value = Table(
         [[
-            [Paragraph("Output principali", h2), Paragraph("Report PDF, moduli compilati, audit CSV, backup completi, evidenze documentali, export/import dei dati e workflow esterni importabili.", normal)],
+            [Paragraph("Output principali", h2), Paragraph("Report PDF, moduli compilati, audit CSV, backup completi, evidenze documentali, export/import dei dati, workflow esterni importabili e deployment Docker/Docker Compose/Kubernetes.", normal)],
             [Paragraph("Riferimenti", h2), Paragraph("Creatore: Alessandro De Salvo - braket71@gmail.com<br/>GitHub: https://github.com/desalvo/cybersecurity-incident-registry", normal)],
         ]],
         colWidths=[8.95 * cm, 8.95 * cm],
