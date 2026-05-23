@@ -33,6 +33,8 @@ def _is_documentation_noise(line: str) -> bool:
     exact_noise = {
         "Menu",
         "Logout",
+        "Salta al contenuto principale",
+        "Alex",
         "Scarica PDF",
         "Scarica PDF amministrativo",
         "Vai all’indice",
@@ -51,6 +53,10 @@ def _is_documentation_noise(line: str) -> bool:
         "Il logo presente in questa guida",
         "Questa guida riorganizza le funzioni amministrative",
         "Questa guida descrive lo stato operativo corrente",
+        "Salta al contenuto principale",
+        "AlBot anche Alex",
+        "Ciao, sono AlBot",
+        "Invia",
     )
     if any(fragment in normalized for fragment in noise_fragments):
         return True
@@ -78,7 +84,21 @@ def _text_lines_from_template(template_name: str) -> list[str]:
         line.replace("Versione applicativa: 0.4.0-33 · Build: · Autore: .", "Versione applicativa: 0.4.0-33 · Build: 20260523 · Autore: Alessandro De Salvo.")
         for line in lines
     ]
-    return [line for line in lines if not _is_documentation_noise(line)]
+    cleaned = []
+    for line in lines:
+        if _is_documentation_noise(line):
+            continue
+        line = line.replace("AlBot/Alex", "AlBot").replace(" o Alex", "").replace("anche Alex", "").replace("↻", "Aggiorna")
+        cleaned.append(line)
+    if template_name == "admin_help.html":
+        truncated = []
+        stop = "rimuovono la formattazione prima dell’invio"
+        for line in cleaned:
+            truncated.append(line)
+            if stop in line:
+                break
+        cleaned = truncated
+    return cleaned
 
 
 def _fitted_image(path: Path, max_width=16.3 * cm, max_height=7.6 * cm) -> Image:
@@ -144,25 +164,39 @@ def _build_pdf(kind: str, template_name: str, output_name: str, title: str, subt
         story.append(PageBreak())
 
     inserted = set()
+    pending_chapter: list = []
+    pending_match = None
     for line in lines:
         if line.startswith("Documentazione") or line.startswith("Cybersecurity Incident Registry"):
             continue
         match = re.match(r"^(\d+)\.\s+", line)
         if match:
-            story.append(Paragraph(escape(line), h2))
+            if pending_chapter:
+                story.extend(pending_chapter)
+            pending_chapter = [Paragraph(escape(line), h2)]
+            pending_match = match
             for label, filename in visuals_by_chapter.get(match.group(1), []):
                 path = STATIC_HELP / filename
                 if path.exists() and label not in inserted:
-                    story.append(KeepTogether([_fitted_image(path), Paragraph(escape(label), caption), Spacer(1, 0.2 * cm)]))
+                    pending_chapter.append(KeepTogether([_fitted_image(path), Paragraph(escape(label), caption), Spacer(1, 0.2 * cm)]))
                     inserted.add(label)
             continue
         if line.startswith("• "):
-            story.append(Paragraph(escape(line), bullet))
-            continue
-        if len(line) < 90 and (line.startswith("Esempio") or line.startswith("Configurazione") or line.startswith("Procedura") or line in {"Accessibilità", "Checklist finale per un incidente", "Backup consigliato", "Checklist mensile", "Buone pratiche", "Statistiche", "Report PDF incidente"}):
-            story.append(Paragraph(escape(line), h3))
-            continue
-        story.append(Paragraph(escape(line), normal))
+            flowable = Paragraph(escape(line), bullet)
+        elif len(line) < 90 and (line.startswith("Esempio") or line.startswith("Configurazione") or line.startswith("Procedura") or line in {"Accessibilità", "Checklist finale per un incidente", "Backup consigliato", "Checklist mensile", "Buone pratiche", "Statistiche", "Report PDF incidente"}):
+            flowable = Paragraph(escape(line), h3)
+        else:
+            flowable = Paragraph(escape(line), normal)
+        if pending_chapter:
+            # Keep the chapter title with at least its first content block so it
+            # cannot become the last line of a page.
+            story.append(KeepTogether(pending_chapter + [flowable]))
+            pending_chapter = []
+            pending_match = None
+        else:
+            story.append(flowable)
+    if pending_chapter:
+        story.extend(pending_chapter)
 
     def page_canvas(canvas, doc_obj):
         canvas.saveState()

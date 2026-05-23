@@ -13,7 +13,7 @@ def test_user_documentation_sections_are_inside_template_block():
     assert html.count("{% endblock %}") == 1
     assert "### Rendering Markdown" not in html
     assert "14. Operazioni previste dell’incidente" in html
-    assert "17. Rendering Markdown sicuro" in html
+    assert "16. Rendering Markdown sicuro" in html
     assert html.index("Figura 1 - Flusso operativo consigliato") > html.index("1. Panoramica")
 
 

@@ -18,3 +18,11 @@ Validation performed in the preparation environment on 2026-05-23.
 
 - The release archive excludes `.venv`, Python bytecode caches and `.pytest_cache`.
 - AGID evidence directories under `compliance/agid/<RUN_ID>/` are not regenerated automatically in this package; run `scripts/run_agid_compliance.sh` in CI or in a connected release environment to create the final evidence directory.
+
+## Validazione documentazione v4
+
+- PDF documentazione utente e amministrativa rigenerati.
+- Verifica testuale: rimossi "Salta al contenuto principale", "Alex" e prompt/widget chatbot finali dai PDF richiesti.
+- Verifica visiva con render PNG delle pagine PDF principali.
+- pytest: 40/40 PASS nell'ambiente virtuale locale.
+- pip-audit: configurato come bloccante in CI; esecuzione locale non completata per errore DNS verso pypi.org nell'ambiente corrente.

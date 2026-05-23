@@ -1,3 +1,12 @@
+
+## 0.4.0-33 - documentazione PDF release-ready v4
+
+- Ripulite le versioni PDF della documentazione utente e amministrativa dagli elementi di interfaccia non pertinenti, inclusi "Salta al contenuto principale" e riferimenti ad Alex.
+- La documentazione amministrativa PDF termina alla sezione Rendering Markdown sicuro, senza prompt o widget chatbot finali.
+- Alleggerita la documentazione utente rimuovendo commenti su configurazioni amministrative non modificabili dagli utenti operativi.
+- Aggiornate le figure 2 e 3 della documentazione utente con immagini coerenti con l'interfaccia corrente.
+- Migliorata la generazione PDF per evitare titoli di capitolo isolati a fine pagina.
+
 ## 0.4.0-33 - Documentazione PDF e note di rilascio
 - Corrette le note di rilascio online: tutte le voci sono ora contenute nel riquadro principale della pagina, senza sezioni fuori contenitore.
 - Aggiunti pulsanti visibili nell’interfaccia web per scaricare le versioni PDF della documentazione utente e amministrativa.
