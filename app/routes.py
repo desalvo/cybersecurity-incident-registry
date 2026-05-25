@@ -1168,10 +1168,24 @@ def workflow_steps_for_incident(inc):
         deduped.append(row)
     return deduped
 
+def incident_workflow_actions(inc):
+    """Return fresh actions for workflow/procedural warning evaluation.
+
+    Some callers evaluate warnings after a manual action has just been flushed,
+    while the ``inc.actions`` relationship may already have been loaded earlier
+    in the same request by notification/global-check guards. Querying the table
+    explicitly keeps automatic operations, such as closure without warnings,
+    aligned with the current unit of work and avoids stale relationship caches.
+    """
+    if not inc or not getattr(inc, 'id', None):
+        return list(getattr(inc, 'actions', None) or [])
+    return Action.query.filter_by(incident_id=inc.id).order_by(Action.when_at.asc(), Action.id.asc()).all()
+
+
 def incident_workflow_status(inc):
     steps = workflow_steps_for_incident(inc)
     action_counts = {}
-    for action in (inc.actions or []):
+    for action in incident_workflow_actions(inc):
         if action.label_id:
             action_counts[action.label_id] = action_counts.get(action.label_id, 0) + 1
     used_counts = {}

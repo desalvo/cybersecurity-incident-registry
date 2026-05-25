@@ -138,7 +138,7 @@
   <section id="cap-azioni" class="doc-chapter" data-doc-title="azioni incidente exportable conclusione chiusura allegati timeline">
     <h2>6. Azioni, allegati e chiusura</h2>
     <p>Le azioni descrivono ciò che è stato fatto sull’incidente. Ogni azione ha una label, una data e ora, una descrizione e, se necessario, allegati. Le nuove azioni possono essere esportabili per default in base alla configurazione della relativa label.</p><p>Solo le azioni contrassegnate come <strong>esportabili</strong> sono considerate per la generazione dei documenti e per i campi dinamici dei moduli PDF, ad esempio l’elenco delle misure adottate.</p>
-    <p>L’inserimento dell’azione di conclusione può aggiornare automaticamente lo stato a <strong>chiuso</strong> e impostare data e ora di fine. La chiusura viene impedita se sono ancora presenti avvisi procedurali attivi.</p>
+    <p>L’inserimento di un’azione associata al tag amministrativo <strong>Chiusura del task in assenza di avvisi procedurali</strong> aggiorna automaticamente lo stato dell’incidente a <strong>chiuso</strong> e imposta data e ora correnti nel fuso orario applicativo, ma solo quando dopo il salvataggio dell’azione non risultano avvisi procedurali attivi. La chiusura viene impedita se restano altri step richiesti mancanti.</p>
     <p>Le date e ore predefinite nelle form usano la timezone applicativa configurata; i pulsanti Adesso nei campi inizio/fine permettono di impostare rapidamente il momento corrente nello stesso fuso. Nei report PDF gli orari sono formattati con secondi interi.</p>
   </section>
 

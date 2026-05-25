@@ -1,3 +1,8 @@
+0.4.0-4 - Chiusura automatica azioni senza avvisi procedurali
+- Corretto il calcolo degli avvisi procedurali durante l'inserimento di un'azione: la chiusura automatica considera anche l'azione appena salvata e non resta bloccata da cache di relazione obsolete.
+- Le azioni con tag "Chiusura del task in assenza di avvisi procedurali" impostano l'incidente a chiuso e valorizzano data/ora correnti nella timezone applicativa solo se non rimangono avvisi attivi.
+- Aggiunti test di regressione dedicati e aggiornata la documentazione.
+
 0.4.0-4 - Autoriempimento modelli su dettaglio incidente
 - Aggiunto il menu "Applica modello incidente" nella sezione Dati generali del singolo incidente.
 - La selezione di un modello autocompila immediatamente i campi del form, incluse categorie, dati interessati, personale e raccomandazioni, senza modificare azioni o documenti.
