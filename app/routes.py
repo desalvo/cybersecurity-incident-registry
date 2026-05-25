@@ -1950,6 +1950,35 @@ def incident_template_from_incident(inc, name=None, description=''):
         recommendation_ids=_csv_ids_from_objects(inc.recommendations),
     )
 
+
+
+def incident_template_client_payload(template):
+    """Return a sanitized payload used by the UI to apply a template client-side."""
+    if template is None:
+        return {}
+    return {
+        'id': template.id,
+        'name': template.name or '',
+        'description': template.description or '',
+        'incident_name': template.incident_name or '',
+        'reference': template.reference or '',
+        'recipient': template.recipient or '',
+        'recipient_email': template.recipient_email or '',
+        'incident_description': template.incident_description or '',
+        'severity_id': str(template.severity_id or ''),
+        'personal_data': bool(template.personal_data),
+        'data_subjects_count': template.data_subjects_count or '',
+        'data_volume': template.data_volume or '',
+        'status': template.status or 'aperto',
+        'category_ids': [str(x) for x in template.category_id_list()],
+        'data_type_ids': [str(x) for x in template.data_type_id_list()],
+        'people_ids': [str(x) for x in template.people_id_list()],
+        'recommendation_ids': [str(x) for x in template.recommendation_id_list()],
+    }
+
+def incident_template_client_payloads():
+    return [incident_template_client_payload(t) for t in IncidentTemplate.query.order_by(IncidentTemplate.name).all()]
+
 def incident_template_context(template=None):
     return dict(
         template=template,
@@ -2025,14 +2054,14 @@ def incident_new():
         if not reference_value:
             flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
         recipient_value = (request.form.get('recipient') or '').strip()
         recipient_email_value = (request.form.get('recipient_email') or '').strip()
         recipient_email_error = validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email_value)
         if recipient_email_error:
             flash(recipient_email_error, 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
         inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
@@ -2056,7 +2085,7 @@ def incident_new():
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
     now_dt = application_now()
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
@@ -2111,6 +2140,8 @@ def incident_detail(iid):
         form_templates=list_templates(),
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),
         recommendations_max_per_incident=recommendations_limit(),
+        incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(),
+        incident_template_payloads=incident_template_client_payloads(),
         owner_name=setting_value('security_owner_name'),
         owner_role=setting_value('security_owner_role'),
         owner_email=setting_value('security_owner_email'),

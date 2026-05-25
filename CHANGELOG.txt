@@ -1,3 +1,10 @@
+0.4.0-4 - Autoriempimento modelli su dettaglio incidente
+- Aggiunto il menu "Applica modello incidente" nella sezione Dati generali del singolo incidente.
+- La selezione di un modello autocompila immediatamente i campi del form, incluse categorie, dati interessati, personale e raccomandazioni, senza modificare azioni o documenti.
+- Le modifiche diventano effettive solo dopo il salvataggio dell'incidente.
+- Aggiornate documentazione utente/amministrativa e PDF statici bilingue.
+- Non sono stati generati nuovi risultati di compliance AGID.
+
 0.4.0-4 - Correzioni PDF statici inglesi
 - Corretto l’indice delle versioni PDF statiche inglesi da “Indice” a “Table of contents”.
 - Ripulite le introduzioni dei PDF statici inglesi della documentazione utente e amministrativa, rimuovendo le note operative pre-capitolo richieste.

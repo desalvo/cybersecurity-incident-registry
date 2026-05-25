@@ -2,13 +2,12 @@
 {% macro info_label(text, help) -%}<span class="field-label-with-help"><span>{{ text }}</span><span class="info-icon" tabindex="0" role="img" aria-label="Info: {{ help }}" title="{{ help }}">ⓘ</span></span>{%- endmacro %}
 {% set t = selected_template %}
 <div class="card"><h2>Nuovo incidente</h2>
-  {% if incident_templates %}
-  <form method="get" class="form-grid" aria-label="Selezione modello incidente">
-    <div class="wide"><label>Vuoi utilizzare un modello predefinito?</label><select name="template_id" onchange="this.form.submit()"><option value="">Nessun modello: compilazione manuale</option>{% for model in incident_templates %}<option value="{{model.id}}" {% if t and t.id==model.id %}selected{% endif %}>{{model.name}}</option>{% endfor %}</select><p class="muted">Il modello inizializza i dati dell’incidente; data e ora di inizio vengono comunque impostate al momento corrente.</p></div>
-  </form>
-  {% endif %}
+  {% if incident_templates %}<script id="incident-template-payloads" type="application/json">{{ incident_template_payloads|default([])|tojson }}</script>{% endif %}
   {% if t %}<div class="flash info">Modello selezionato: <strong>{{t.name}}</strong>{% if t.description %} — {{t.description}}{% endif %}</div>{% endif %}
-  <form method="post"><div class="form-grid">
+  <form method="post" id="incident-create-form"><div class="form-grid">
+    {% if incident_templates %}
+    <div class="wide"><label>Vuoi utilizzare un modello predefinito?</label><select name="template_id" id="incident-template-select" data-incident-template-select="1" data-template-target-form="incident-create-form" data-template-payload="incident-template-payloads" data-template-notice="incident-template-notice"><option value="">Nessun modello: compilazione manuale</option>{% for model in incident_templates %}<option value="{{model.id}}" {% if t and t.id==model.id %}selected{% endif %}>{{model.name}}</option>{% endfor %}</select><p class="muted">Il modello inizializza i dati dell’incidente; data e ora di inizio vengono comunque impostate al momento corrente.</p><p id="incident-template-notice" class="muted" {% if not t %}hidden{% endif %}>{% if t %}Modello applicato al form: {{t.name}}. Salvare per confermare la creazione.{% endif %}</p></div>
+    {% endif %}
     <div class="wide"><label>{{ info_label('Nome', 'Nome dell’incidente, obbligatorio.') }}</label><input name="name" required value="{{ t.incident_name if t else '' }}"></div>
     {% with reference_target='new-reference', recipient_target='new-recipient', email_target='new-recipient-email' %}{% include 'external_recipient_picker.html' %}{% endwith %}
     <div class="wide"><label>{{ info_label('Riferimento', 'Riferimento dell’incidente, obbligatorio, normalmente corrispondente all’utente che ha subito le conseguenze dell’incidente.') }}</label><input id="new-reference" name="reference" placeholder="Campo obbligatorio" required value="{{ t.reference if t and t.reference else '' }}"></div>

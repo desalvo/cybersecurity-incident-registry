@@ -58,6 +58,77 @@ function makeDnd(){
   makeSelectedRemovable();
 }
 
+
+function initIncidentTemplateAutofill(){
+  document.querySelectorAll('[data-incident-template-select]').forEach(select=>{
+    if(select.dataset.autofillReady==='true') return;
+    select.dataset.autofillReady='true';
+    const formId = select.dataset.templateTargetForm;
+    const form = formId ? document.getElementById(formId) : select.closest('form');
+    const payloadNodeId = select.dataset.templatePayload;
+    const payloadNode = payloadNodeId ? document.getElementById(payloadNodeId) : null;
+    let templates = [];
+    try{ templates = JSON.parse(payloadNode ? payloadNode.textContent : '[]') || []; }catch(e){ templates = []; }
+    const byId = new Map(templates.map(t=>[String(t.id), t]));
+    function field(name){ return form ? form.querySelector('[name="'+name+'"]') : null; }
+    function setValue(name, value){ const el = field(name); if(el) el.value = value || ''; }
+    function setSelectValue(name, value){ const el = field(name); if(el) el.value = value == null ? '' : String(value); }
+    function setCheckbox(name, value){ const el = field(name); if(el) el.checked = !!value; }
+    function chipText(target, id){
+      const source = document.querySelector('.palette .chip[data-target="'+target+'"][data-id="'+id+'"]');
+      return source ? (source.dataset.text || source.textContent || id).trim() : id;
+    }
+    function setDropzone(target, ids){
+      if(!form) return;
+      const zone = form.querySelector('.dropzone[data-target="'+target+'"]');
+      if(!zone) return;
+      zone.innerHTML = '';
+      (ids || []).forEach(raw=>{
+        const id = String(raw);
+        if(!id || zone.querySelector('input[value="'+CSS.escape(id)+'"][name="'+target+'"]')) return;
+        const span = document.createElement('span');
+        span.className = 'chip';
+        span.textContent = chipText(target, id) + ' ×';
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = target;
+        input.value = id;
+        if(zone.dataset.formId) input.setAttribute('form', zone.dataset.formId);
+        span.appendChild(input);
+        zone.appendChild(span);
+      });
+    }
+    function refreshDndHandlers(){
+      if(typeof makeDnd === 'function') makeDnd();
+    }
+    select.addEventListener('change', ()=>{
+      const tmpl = byId.get(String(select.value));
+      if(!tmpl || !form) return;
+      setValue('name', tmpl.incident_name);
+      setValue('reference', tmpl.reference);
+      setValue('recipient', tmpl.recipient);
+      setValue('recipient_email', tmpl.recipient_email);
+      setValue('description', tmpl.incident_description);
+      setSelectValue('severity_id', tmpl.severity_id);
+      setSelectValue('status', tmpl.status || 'aperto');
+      setCheckbox('personal_data', tmpl.personal_data);
+      setValue('data_subjects_count', tmpl.data_subjects_count);
+      setValue('data_volume', tmpl.data_volume);
+      setDropzone('categories', tmpl.category_ids);
+      setDropzone('data_types', tmpl.data_type_ids);
+      setDropzone('people', tmpl.people_ids);
+      setDropzone('recommendations', tmpl.recommendation_ids);
+      refreshDndHandlers();
+      const noticeId = select.dataset.templateNotice;
+      const notice = noticeId ? document.getElementById(noticeId) : null;
+      if(notice){
+        notice.hidden = false;
+        notice.textContent = 'Modello applicato al form: ' + (tmpl.name || 'modello selezionato') + '. Salvare per confermare le modifiche.';
+      }
+    });
+  });
+}
+
 function makeAccessibleMenus(){
   const dropdowns=[...document.querySelectorAll('.dropdown')];
   const closeAll=(except=null)=>dropdowns.forEach(d=>{if(d!==except){d.classList.remove('open');const b=d.querySelector('.dropbtn');if(b)b.setAttribute('aria-expanded','false');}});
@@ -82,7 +153,7 @@ function makeAccessibleMenus(){
   document.addEventListener('click',ev=>{if(!ev.target.closest('.dropdown'))closeAll();});
 }
 
-document.addEventListener('DOMContentLoaded',()=>{makeDnd();makeAccessibleMenus();});
+document.addEventListener('DOMContentLoaded',()=>{makeDnd();initIncidentTemplateAutofill();makeAccessibleMenus();});
 
 
 function makeMobileMenu(){
