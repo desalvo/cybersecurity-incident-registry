@@ -33,3 +33,11 @@ def test_incident_template_payload_is_sanitized_for_client():
     assert 'incident_template_payloads=incident_template_client_payloads()' in routes
     assert 'category_id_list()' in routes
     assert 'recommendation_id_list()' in routes
+
+def test_incident_anchor_opens_and_scrolls_target_section():
+    script = Path('app/static/app.js').read_text(encoding='utf-8')
+    assert 'function openInitialIncidentAnchor' in script
+    assert "window.setTimeout(()=>scrollToIncidentSection(section), 0);" in script
+    assert "window.setTimeout(()=>scrollToIncidentSection(section), 100);" in script
+    assert "window.addEventListener('hashchange', openInitialIncidentAnchor);" in script
+

@@ -7,7 +7,7 @@ from .models import Setting
 
 def _setting_value(key, default=''):
     try:
-        obj = Setting.query.get(key)
+        obj = db.session.get(Setting, key)
         return obj.value if obj and obj.value is not None else default
     except Exception:
         return default

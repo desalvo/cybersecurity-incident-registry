@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
+from .timeutils import utcnow
 
 db=SQLAlchemy()
 incident_people=db.Table('incident_people', db.Column('incident_id',db.Integer,db.ForeignKey('incident.id'),primary_key=True), db.Column('person_id',db.Integer,db.ForeignKey('person.id'),primary_key=True))
@@ -18,14 +19,14 @@ class AIChatbotDocument(db.Model):
     content_type=db.Column(db.String(120), default='')
     size_bytes=db.Column(db.Integer, default=0)
     extracted_text=db.Column(db.Text, default='')
-    uploaded_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    uploaded_at=db.Column(db.DateTime, default=utcnow, nullable=False)
     uploaded_by_id=db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     uploaded_by=db.relationship('User', foreign_keys=[uploaded_by_id])
 
 
 class AuditLog(db.Model):
     id=db.Column(db.Integer, primary_key=True)
-    occurred_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    occurred_at=db.Column(db.DateTime, default=utcnow, nullable=False, index=True)
     operation_type=db.Column(db.String(120), nullable=False, index=True)
     username=db.Column(db.String(160), nullable=False, default='system', index=True)
     user_id=db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
@@ -47,8 +48,8 @@ class LoginFailure(db.Model):
     username=db.Column(db.String(160), nullable=False, default='', index=True)
     ip_address=db.Column(db.String(64), nullable=False, default='', index=True)
     failure_count=db.Column(db.Integer, nullable=False, default=0)
-    first_failure_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    last_failure_at=db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    first_failure_at=db.Column(db.DateTime, default=utcnow, nullable=False)
+    last_failure_at=db.Column(db.DateTime, default=utcnow, nullable=False)
     blocked_until=db.Column(db.DateTime, nullable=True, index=True)
 
 class User(UserMixin,db.Model):
@@ -66,13 +67,13 @@ class MfaTotpToken(db.Model):
     user_id=db.Column(db.Integer,db.ForeignKey('user.id'),nullable=False,index=True)
     name=db.Column(db.String(160),nullable=False,default='Token TOTP')
     secret=db.Column(db.String(64),nullable=False)
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
     last_used_at=db.Column(db.DateTime,nullable=True)
     verified_at=db.Column(db.DateTime,nullable=True)
     user=db.relationship('User',back_populates='mfa_tokens')
 
 class ConfigLabel(db.Model):
-    id=db.Column(db.Integer,primary_key=True); kind=db.Column(db.String(40),nullable=False,index=True); group=db.Column(db.String(80),default='default'); value=db.Column(db.String(255),nullable=False); description=db.Column(db.Text,default=''); max_completion_hours=db.Column(db.Integer,nullable=False,default=0); default_exportable=db.Column(db.Boolean,default=True,nullable=False); automatic_operations=db.Column(db.Text,default=''); __table_args__=(db.UniqueConstraint('kind','value',name='uq_label_kind_value'),)
+    id=db.Column(db.Integer,primary_key=True); kind=db.Column(db.String(40),nullable=False,index=True); group=db.Column(db.String(80),default='default'); value=db.Column(db.String(255),nullable=False); description=db.Column(db.Text,default=''); max_completion_hours=db.Column(db.Integer,nullable=False,default=0); default_exportable=db.Column(db.Boolean,default=True,nullable=False); description_required=db.Column(db.Boolean,default=False,nullable=False); automatic_operations=db.Column(db.Text,default=''); __table_args__=(db.UniqueConstraint('kind','value',name='uq_label_kind_value'),)
 
     def automatic_operation_list(self):
         values=[]
@@ -96,7 +97,7 @@ class IncidentWorkflowStep(db.Model):
     requires_notification=db.Column(db.Boolean,default=False,nullable=False)
     required_notification_type=db.Column(db.String(40),nullable=True,index=True)
     conditions=db.Column(db.Text,default='')
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
     category=db.relationship('ConfigLabel',foreign_keys=[category_id])
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
 
@@ -127,10 +128,10 @@ class Person(db.Model):
 class Recommendation(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     text=db.Column(db.Text,unique=True,nullable=False)
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
 
 class Incident(db.Model):
-    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); recipient_email=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    id=db.Column(db.Integer,primary_key=True); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); recipient_email=db.Column(db.String(255),nullable=True); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=utcnow)
 
     @property
     def start_at(self):
@@ -209,8 +210,8 @@ class IncidentTemplate(db.Model):
     data_type_ids=db.Column(db.Text,default='')
     people_ids=db.Column(db.Text,default='')
     recommendation_ids=db.Column(db.Text,default='')
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
-    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
+    updated_at=db.Column(db.DateTime,default=utcnow,onupdate=utcnow)
     severity=db.relationship('ConfigLabel',foreign_keys=[severity_id])
 
     def _ids(self, field):
@@ -233,8 +234,8 @@ class IncidentReminder(db.Model):
     message=db.Column(db.Text,nullable=False,default='')
     cc_emails=db.Column(db.Text,default='')
     sent_at=db.Column(db.DateTime,nullable=True,index=True)
-    created_at=db.Column(db.DateTime,default=datetime.utcnow,nullable=False)
-    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow,nullable=False)
+    created_at=db.Column(db.DateTime,default=utcnow,nullable=False)
+    updated_at=db.Column(db.DateTime,default=utcnow,onupdate=utcnow,nullable=False)
     created_by_id=db.Column(db.Integer,db.ForeignKey('user.id'),nullable=True)
     created_by_name=db.Column(db.String(160),default='')
     last_error=db.Column(db.Text,default='')
@@ -259,9 +260,9 @@ class Action(db.Model):
     def action_at(self, value):
         self.when_at = value
 class ActionAttachment(db.Model):
-    id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow)
+    id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=utcnow)
 class Document(db.Model):
-    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=datetime.utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True); notification_tags=db.Column(db.Text,default='',nullable=False)
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True); notification_tags=db.Column(db.Text,default='',nullable=False)
 
     @property
     def notification_tag_list(self):
@@ -296,8 +297,8 @@ class BackupJob(db.Model):
     last_run_at=db.Column(db.DateTime,nullable=True)
     last_status=db.Column(db.String(40),default='never')
     last_message=db.Column(db.Text,default='')
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
-    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
+    updated_at=db.Column(db.DateTime,default=utcnow,onupdate=utcnow)
 
     def category_list(self):
         return [x.strip() for x in (self.categories or '').split(',') if x.strip()]
@@ -318,7 +319,7 @@ class DeadlineNotificationState(db.Model):
     last_recipients=db.Column(db.Text,default='')
     last_details=db.Column(db.Text,default='')
     send_count=db.Column(db.Integer,nullable=False,default=1)
-    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow,nullable=False)
+    updated_at=db.Column(db.DateTime,default=utcnow,onupdate=utcnow,nullable=False)
     incident=db.relationship('Incident',foreign_keys=[incident_id],back_populates='deadline_notification_states')
 
 
@@ -333,7 +334,7 @@ class NotificationType(db.Model):
     recipient_setting_key=db.Column(db.String(100),default='')
     cc_setting_key=db.Column(db.String(100),default='')
     enabled=db.Column(db.Boolean,default=True)
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
 
 class NotificationTemplate(db.Model):
     id=db.Column(db.Integer,primary_key=True)
@@ -354,7 +355,7 @@ class NotificationTemplate(db.Model):
     cc_external_allowed=db.Column(db.Boolean,default=True,nullable=False)
 
     is_default=db.Column(db.Boolean,default=False)
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
     __table_args__=(db.UniqueConstraint('kind','name',name='uq_notification_template_kind_name'),)
 
 
@@ -365,8 +366,8 @@ class ExternalRecipient(db.Model):
     name=db.Column(db.String(160),nullable=False,default='')
     email=db.Column(db.String(255),nullable=False,unique=True,index=True)
     notes=db.Column(db.Text,default='')
-    created_at=db.Column(db.DateTime,default=datetime.utcnow)
-    updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow)
+    created_at=db.Column(db.DateTime,default=utcnow)
+    updated_at=db.Column(db.DateTime,default=utcnow,onupdate=utcnow)
 
 
 class FormTemplateConfig(db.Model):
@@ -375,8 +376,8 @@ class FormTemplateConfig(db.Model):
     font_family=db.Column(db.String(40), nullable=False, default='Helvetica')
     font_size=db.Column(db.Integer, nullable=False, default=10)
     notification_tags=db.Column(db.Text, default='', nullable=False)
-    created_at=db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at=db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at=db.Column(db.DateTime, default=utcnow)
+    updated_at=db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     @property
     def notification_tag_list(self):
@@ -417,13 +418,13 @@ class FormTemplateBinary(db.Model):
     template_name=db.Column(db.String(255), nullable=False, unique=True, index=True)
     filename=db.Column(db.String(255), nullable=False)
     pdf_data=db.Column(db.LargeBinary, nullable=False)
-    created_at=db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at=db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at=db.Column(db.DateTime, default=utcnow)
+    updated_at=db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
 class FormFieldMapping(db.Model):
     id=db.Column(db.Integer, primary_key=True)
     template_name=db.Column(db.String(255), nullable=False, index=True)
     template_field=db.Column(db.String(255), nullable=False)
     db_field=db.Column(db.String(255), nullable=False)
-    created_at=db.Column(db.DateTime, default=datetime.utcnow)
+    created_at=db.Column(db.DateTime, default=utcnow)
     __table_args__=(db.UniqueConstraint('template_name','template_field',name='uq_form_template_field'),)

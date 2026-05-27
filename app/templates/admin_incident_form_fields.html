@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Campi default nuovo incidente</h2>
+  <p class="muted">Seleziona i campi visualizzati per default nella form di inserimento di un nuovo incidente. I campi nascosti restano disponibili tramite riattivazione della configurazione; i campi obbligatori essenziali sono mantenuti visibili.</p>
+  <form method="post" class="form-grid">
+    <div class="wide field-checkbox-grid">
+      {% for code,label,required in incident_form_fields %}
+        <label class="checkbox-inline"><input type="checkbox" name="visible_field" value="{{code}}" {% if code in visible_fields %}checked{% endif %} {% if required %}disabled checked{% endif %}> {{label}}{% if required %} <span class="muted">(obbligatorio)</span><input type="hidden" name="visible_field" value="{{code}}">{% endif %}</label>
+      {% endfor %}
+    </div>
+    <div class="wide"><button>Salva configurazione</button></div>
+  </form>
+</div>
+{% endblock %}

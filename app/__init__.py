@@ -23,7 +23,7 @@ def create_app():
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.4.0-4'),
+        'version': os.getenv('APP_VERSION','0.5.0-1'),
         'build': os.getenv('APP_BUILD','20260522'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
@@ -106,7 +106,7 @@ def wait_db(db):
     raise last
 
 def ensure_setting(key, value):
-    s=Setting.query.get(key)
+    s=db.session.get(Setting, key)
     if not s:
         db.session.add(Setting(key=key,value=value))
 
@@ -245,6 +245,10 @@ def run_schema_migrations(app):
                     app.logger.exception('Unable to migrate user unique constraint to username + auth_provider')
         if 'config_label' in tables:
             cols = {c['name'] for c in inspector.get_columns('config_label')}
+            if 'description_required' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE config_label ADD COLUMN description_required BOOLEAN DEFAULT 0 NOT NULL'))
+                app.logger.info('Schema migration applied: config_label.description_required added')
             if 'description' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE config_label ADD COLUMN description TEXT'))

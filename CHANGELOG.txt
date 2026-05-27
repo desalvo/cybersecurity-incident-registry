@@ -1,39 +1,48 @@
-0.4.0-4 - Brochure e knowledge base AlBot aggiornate
+0.5.0-1 - Campi incidenti, workflow procedurale e LDAP
+- Aggiornata la versione applicativa a 0.5.0-1 in configurazioni, documentazione e manifest di rilascio.
+- Aggiunta la voce Admin → Campi nuovo incidente per scegliere i campi visualizzati per default nella form di creazione incidente, mantenendo visibili i campi obbligatori essenziali.
+- Rinominato il riquadro “Operazioni previste” in “Fasi procedurali” e separato ogni fase in descrizione del flusso e task cliccabile.
+- Estesa la sintassi Markdown degli step workflow con pulsanti link `{button:Etichetta|https://...}`.
+- Nelle azioni, “Aggiungi azione” diventa “Salva” e “Descrizione opzionale” diventa “Descrizione operazioni compiute”, configurabile come obbligatoria per singolo task.
+- Aggiunta ricerca LDAP nelle form incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili.
+- Rimossi i warning applicativi da `datetime.utcnow()` e `Query.get()`; i warning residui di dipendenze terze sono filtrati in pytest.
+
+0.5.0-1 - Brochure e knowledge base AlBot aggiornate
 - Aggiornate le brochure ITA/ENG sostituendo il riferimento e-mail del creatore con Alessandro.DeSalvo@roma1.infn.it.
 - Aggiunto `docs/AI_CHATBOT_KNOWLEDGE.md`, documento sintetico caricato automaticamente nel contesto di AlBot/Alex con funzionalità, setup, distribuzione container, workflow, notifiche, PDF, compliance e note operative correnti.
 - Estesa la knowledge base progettuale del chatbot per includere per primo il riepilogo operativo aggiornato e aumentato il limite del contesto progettuale.
 - Rigenerate le versioni PDF statiche nei `docs/`; non sono stati salvati nuovi risultati AGID.
 
-0.4.0-4 - Chiusura automatica azioni senza avvisi procedurali
+0.5.0-1 - Chiusura automatica azioni senza avvisi procedurali
 - Corretto il calcolo degli avvisi procedurali durante l'inserimento di un'azione: la chiusura automatica considera anche l'azione appena salvata e non resta bloccata da cache di relazione obsolete.
 - Le azioni con tag "Chiusura del task in assenza di avvisi procedurali" impostano l'incidente a chiuso e valorizzano data/ora correnti nella timezone applicativa solo se non rimangono avvisi attivi.
 - Aggiunti test di regressione dedicati e aggiornata la documentazione.
 
-0.4.0-4 - Autoriempimento modelli su dettaglio incidente
+0.5.0-1 - Autoriempimento modelli su dettaglio incidente
 - Aggiunto il menu "Applica modello incidente" nella sezione Dati generali del singolo incidente.
 - La selezione di un modello autocompila immediatamente i campi del form, incluse categorie, dati interessati, personale e raccomandazioni, senza modificare azioni o documenti.
 - Le modifiche diventano effettive solo dopo il salvataggio dell'incidente.
 - Aggiornate documentazione utente/amministrativa e PDF statici bilingue.
 - Non sono stati generati nuovi risultati di compliance AGID.
 
-0.4.0-4 - Correzioni PDF statici inglesi
+0.5.0-1 - Correzioni PDF statici inglesi
 - Corretto l’indice delle versioni PDF statiche inglesi da “Indice” a “Table of contents”.
 - Ripulite le introduzioni dei PDF statici inglesi della documentazione utente e amministrativa, rimuovendo le note operative pre-capitolo richieste.
 - Rigenerate le copie PDF statiche in inglese e mantenuta la generazione PDF bilingue in `docs/`.
 - Non sono stati generati nuovi risultati di compliance AGID.
 
 
-0.4.0-4 - PDF amministrativo scaricabile senza titoli orfani
+0.5.0-1 - PDF amministrativo scaricabile senza titoli orfani
 - Corretto il generatore PDF della documentazione amministrativa scaricabile dall'applicazione per mantenere titoli di capitolo e sottocapitolo insieme all'inizio del relativo testo.
 - Rafforzato il filtro degli elementi UI non utili nei PDF stampabili.
 - Aggiunto test di regressione sul PDF amministrativo scaricato dall'interfaccia web.
 
 
-## 0.4.0-4 - Pulizia PDF scaricabili documentazione
+## 0.5.0-1 - Pulizia PDF scaricabili documentazione
 - I PDF della documentazione utente e amministrativa scaricabili dall'interfaccia applicativa filtrano anche la skip link, il pulsante mobile di menu e il pulsante mobile Alex/AlBot ereditati dal layout globale.
 - Rigenerate le copie PDF statiche in `docs/` senza salvare nuove evidenze AGID.
 
-## 0.4.0-4 - Documentazione PDF e brochure aggiornata
+## 0.5.0-1 - Documentazione PDF e brochure aggiornata
 - Uniformate le note di rilascio in un unico riquadro principale.
 - Aggiunti link dall’interfaccia web per scaricare le versioni PDF della documentazione utente e amministrativa.
 - Ripulito il generatore PDF della documentazione da elementi di interfaccia non pertinenti, inclusi widget e controlli della chat.
@@ -47,7 +56,7 @@
 - Non sono stati generati nuovi risultati di compliance AGID: le evidenze vanno salvate solo su richiesta esplicita.
 
 
-0.4.0-4 - AI Chatbot API key masking
+0.5.0-1 - AI Chatbot API key masking
 - Le API key già presenti nella configurazione del plugin AI Chatbot sono ora mostrate solo in forma offuscata.
 - I campi API key non espongono più il valore reale nel markup HTML; lasciandoli vuoti la chiave esistente viene mantenuta, inserendo un nuovo valore viene sovrascritta.
 - Aggiunti test di regressione e aggiornata la documentazione amministrativa/AGID.
@@ -74,7 +83,7 @@
 - Confermato che il pacchetto HTTP corretto è `requests` anche quando la richiesta operativa indica `request`.
 - Rieseguiti installazione, `pip check`, `compileall`, test pytest e suite standard AGID con soglia Bandit.
 
-0.4.0-4 - Rendering Markdown esteso coerente con CSP
+0.5.0-1 - Rendering Markdown esteso coerente con CSP
 - Il rendering Markdown sicuro server-side e client-side supporta ovunque colori e dimensioni font controllate.
 - I marker {color:...} e {size:...} generano attributi data-md-* e vengono applicati dal JavaScript globale, evitando style inline bloccati dalla CSP.
 - Supportati colori named/hex/rgb/hsl e dimensioni named/px/em/rem/percentuali entro intervalli controllati.
@@ -85,330 +94,330 @@
 - Aggiornata la dipendenza Flask da 3.1.1 a 3.1.3.
 - Rieseguiti i controlli locali di compatibilità e compliance AGID dopo l'aggiornamento.
 
-0.4.0-4 - Verifica compliance AGID completa con pip-audit
+0.5.0-1 - Verifica compliance AGID completa con pip-audit
 - Rieseguita la suite AGID e mantenuta solo l'ultima directory `compliance/agid/20260522T234917Z/`.
 - Test applicativi e dinamici AGID superati; Bandit senza finding HIGH/MEDIUM.
 - `pip-audit` invocato in modalità bloccante ma fallito per mancata risoluzione DNS di `pypi.org` nell'ambiente disponibile; l'esito complessivo del run incluso è FAIL e richiede riesecuzione in runner realmente connesso a Internet.
 
 
-0.4.0-4 markdown-rendering-scheduled-notifications
+0.5.0-1 markdown-rendering-scheduled-notifications
 - Esteso il rendering Markdown sicuro con colore e dimensione testo tramite sintassi controllata.
 - Allineato il renderer del widget AI Chatbot al filtro server-side.
 - Aggiunta rimozione della formattazione Markdown dalle notifiche schedulate prima dell’invio.
 - Aggiunti test di regressione e aggiornate evidenze compliance AGID.
 
-0.4.0-4 - Fix permessi entrypoint container
+0.5.0-1 - Fix permessi entrypoint container
 - Corretto l'avvio container quando `docker-entrypoint.sh` risulta copiato senza bit eseguibile.
 - Il Dockerfile applica esplicitamente `chmod 0755 /app/docker-entrypoint.sh` prima del passaggio all'utente non privilegiato.
 - Aggiunti test di regressione sul packaging container e aggiornata la documentazione operativa.
 
-0.4.0-4 - Compliance sviluppo sicuro
+0.5.0-1 - Compliance sviluppo sicuro
 - Rafforzata la validazione server-side per password, utenti, email, testo e upload.
 - Introdotti rate limiting login, timeout sessione, rigenerazione sessione, audit security e CSP configurabile.
 - Hardened upload con whitelist, magic number e permessi restrittivi.
 - Aggiornata la documentazione operativa e progettuale alla build 20260522.
 
-0.4.0-4
+0.5.0-1
 - AI Chatbot: rafforzato il posizionamento anti-collisione del widget globale.
 - Nel desktop il launcher resta preferibilmente in basso a destra sopra il logo applicativo e ricalcola automaticamente lo spazio rispetto al logo e alla viewport.
 - Aggiornata la documentazione del comportamento responsive del widget.
 
 - AI Chatbot: la finestra flottante renderizza Markdown sicuro nelle risposte, inclusi titoli, elenchi, grassetto, codice e link; HTML libero escapato.
-0.4.0-4
+0.5.0-1
 - Corretto il layout del widget AI Chatbot: icona e pannello desktop non si sovrappongono più al logo applicativo decorativo.
 - Rafforzato il layout mobile del pulsante Chat accanto al menu per evitare sovrapposizioni con brand/logo.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Aggiunto widget globale AI Chatbot in ogni pagina quando il plugin è attivo.
 - Su desktop il launcher e la finestra chat sono in basso a destra; su mobile il pulsante di apertura è accanto al menu.
 - Aggiunto endpoint AJAX protetto per dialogare con il chatbot senza lasciare la pagina.
 - Documentazione aggiornata.
 
-0.4.0-4 - Aggiornamento versione applicativa
-- Versione applicativa aggiornata a 0.4.0-4.
+0.5.0-1 - Aggiornamento versione applicativa
+- Versione applicativa aggiornata a 0.5.0-1.
 - Build aggiornata a 20260522.
 - Riferimenti documentali e configurazioni allineati alla nuova release.
 
-0.4.0-4
+0.5.0-1
 - Aggiunto import/export mirato dei singoli workflow con anteprima struttura JSON.
 - L’import workflow mostra le differenze e richiede conferma selettiva per le sovrascritture.
 - Il pacchetto workflow include label, tipi notifica, template notifica e template modulo collegati.
 
-0.4.0-4 - Regole conseguenze dinamiche e preselezione documenti
+0.5.0-1 - Regole conseguenze dinamiche e preselezione documenti
 - Anteprima notifiche manuali: i documenti generati da template associati non vengono preselezionati se non hanno il tag notifica appropriato.
 - Admin → Altre configurazioni: la logica delle conseguenze automatiche è modificabile tramite regole dinamiche con condizioni configurabili.
 - È possibile aggiungere, rimuovere e modificare regole e condizioni senza modificare il codice.
 - Documentazione aggiornata.
 
-0.4.0-4 - Markdown dimensioni e avvisi procedurali
+0.5.0-1 - Markdown dimensioni e avvisi procedurali
 - Gli step workflow supportano anche dimensioni font controllate con {size:large}testo{/size} e {size:14px}testo{/size}.
 - Gli avvisi procedurali usano lo stesso rendering Markdown sicuro degli step workflow.
 - Ogni avviso procedurale mostra il nome del task associato.
 - Documentazione aggiornata.
 
-0.4.0-4 - Rimozione tag dai template modulo
+0.5.0-1 - Rimozione tag dai template modulo
 - Configurazione moduli: i tag di tipo notifica associati ai template PDF possono essere rimossi con il pulsante × del chip selezionato.
 - Il salvataggio persiste correttamente anche la rimozione dei tag, lasciando i documenti futuri con il solo insieme aggiornato dei tag del template.
 - Documentazione aggiornata in italiano e inglese.
 
-0.4.0-4
+0.5.0-1
 - Configurazione moduli: aggiunta associazione drag & drop tra template PDF e tag di tipo notifica.
 - I documenti generati da un template ereditano per default solo i tag configurati direttamente sul template modulo.
 - Aggiunta colonna FormTemplateConfig.notification_tags con migrazione idempotente.
 - Documentazione aggiornata.
 
-0.4.0-4 - Checkbox uso CC nelle notifiche manuali
+0.5.0-1 - Checkbox uso CC nelle notifiche manuali
 - Aggiunta in anteprima la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se disabilitata, il campo CC viene nascosto e ignorato per invio reale e conferma senza invio.
 - Aggiornata la documentazione.
 
-0.4.0-4 - Anteprima CC precompilata e svuotamento manuale
+0.5.0-1 - Anteprima CC precompilata e svuotamento manuale
 - Ripristinata la precompilazione del campo CC modificabile con il default del template in anteprima.
 - Mantenuta la prevalenza del valore manuale al submit: se l'operatore svuota il CC, l'invio procede senza CC.
 - Aggiornata la documentazione.
 
-0.4.0-4 - Precedenza del CC manuale vuoto nelle notifiche
+0.5.0-1 - Precedenza del CC manuale vuoto nelle notifiche
 - Quando il campo CC è compilabile manualmente in anteprima, il campo lasciato vuoto prevale sull’eventuale CC predefinito del template.
 - L’anteprima non inserisce automaticamente il CC di default nei campi modificabili, evitando invii con CC non confermati esplicitamente.
 - Documentazione aggiornata.
 
-0.4.0-4 - Invio notifiche manuali con campi modificabili da anteprima
+0.5.0-1 - Invio notifiche manuali con campi modificabili da anteprima
 - In fase di invio o conferma senza invio vengono acquisiti direttamente tutti i campi destinatario e CC compilabili manualmente disponibili nell'anteprima.
 - La conferma browser resta obbligatoria e riepiloga i valori effettivamente presenti nei campi al momento del submit.
 - Rimosso dalla form il commento che richiamava l'aggiornamento dell'anteprima.
 - Documentazione aggiornata.
 
-0.4.0-4 - Validazione sintassi E-mail Destinatario negli incidenti
+0.5.0-1 - Validazione sintassi E-mail Destinatario negli incidenti
 - Il campo E-mail Destinatario viene validato sempre lato server nelle form di creazione e modifica incidente.
 - La stessa validazione è applicata ai Modelli incidente.
 - Il salvataggio viene bloccato con messaggio esplicito se il valore non è un singolo indirizzo e-mail valido.
 - Aggiornata tutta la documentazione.
 
-0.4.0-4 - Valori manuali destinatario/CC usati senza aggiornare anteprima
+0.5.0-1 - Valori manuali destinatario/CC usati senza aggiornare anteprima
 - Le notifiche manuali usano direttamente, al momento del submit, i valori digitati nei campi modificabili di Destinatario e CC.
 - Non è più necessario premere “Aggiorna anteprima” per propagare destinatario o CC manuali all’invio o alla conferma senza invio.
 - La validazione server-side continua a richiedere almeno un destinatario effettivo e indirizzi e-mail validi.
 
 
-## 0.4.0-4
+## 0.5.0-1
 - Corretto il flusso di invio delle notifiche manuali: l’invio viene respinto con messaggio esplicito se il destinatario è vuoto.
 - Se il template consente la modifica manuale del destinatario, l’indirizzo digitato in anteprima viene propagato al POST e consente l’invio quando è una e-mail valida.
 - Aggiunta validazione server-side del formato e-mail per destinatario e CC delle notifiche manuali.
 - Aggiornata la documentazione utente, amministrativa e progettuale.
 
-0.4.0-4
+0.5.0-1
 - La form degli incidenti e i modelli incidente possono caricare Riferimento, Destinatario ed E-mail Destinatario dalla rubrica dei destinatari esterni.
 - Se viene salvata una nuova E-mail Destinatario non presente in rubrica, viene aggiunta automaticamente usando come nome Destinatario o Riferimento.
 - L'E-mail Destinatario richiede la compilazione di Riferimento o Destinatario.
 - Le notifiche manuali non possono essere inviate o confermate senza almeno un destinatario effettivo.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Rimossi completamente dalle impostazioni notifiche i campi globali Email CSIRT, CC CSIRT, Email DPO e CC DPO.
 - Le notifiche manuali configurano destinatario e CC solo nei singoli template.
 - I tipi di notifica non espongono più chiavi impostazione destinatario/CC nell'interfaccia.
 - Aggiornata la documentazione progettuale e utente.
 
 
-0.4.0-4
+0.5.0-1
 - Spostata nei template di notifica manuale la configurazione di destinatario e CC automatici.
 - Aggiunta configurazione per rendere destinatario/CC modificabili in anteprima e utilizzabili con la rubrica esterna.
 - Aggiunto campo E-mail Destinatario a incidenti e modelli incidente.
 - Aggiornata la documentazione progettuale.
 
 
-0.4.0-4
-- Aggiunto campo “CC Utente” in Admin → Notifiche. [DEPRECATO in 0.4.0-4: i CC sono nei template.]
-- Le notifiche manuali agli utenti usano “CC Utente” come CC predefinito, modificabile o rimovibile in anteprima. [DEPRECATO in 0.4.0-4]
+0.5.0-1
+- Aggiunto campo “CC Utente” in Admin → Notifiche. [DEPRECATO in 0.5.0-1: i CC sono nei template.]
+- Le notifiche manuali agli utenti usano “CC Utente” come CC predefinito, modificabile o rimovibile in anteprima. [DEPRECATO in 0.5.0-1]
 - Aggiornata la documentazione progettuale e utente.
 
-0.4.0-4 - Operazioni previste aperte e sezioni destinazione
+0.5.0-1 - Operazioni previste aperte e sezioni destinazione
 - La sezione Operazioni previste del dettaglio incidente rimane aperta per default.
 - Il click su uno step workflow apre automaticamente la sezione di destinazione prima dello scorrimento.
 - L'apertura automatica è applicata anche agli anchor iniziali su sezioni collassabili.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Nella lista Azioni del dettaglio incidente, il riquadro collassabile usa come nome azione la descrizione della label/task quando disponibile, altrimenti il nome della label/task.
 - Localizzata in italiano la dicitura di stato azione come “esportabile” / “non esportabile”.
 - Aggiornata la documentazione utente e progettuale.
 
-0.4.0-4
+0.5.0-1
 - La lista Azioni del dettaglio incidente usa ora riquadri separati collassabili, chiusi per default, con intestazione riepilogativa e dettagli espandibili.
-0.4.0-4
+0.5.0-1
 - La sezione Azioni del dettaglio incidente usa ora schede leggibili per ogni azione, con metadati, descrizione, conseguenze, allegati e comandi separati.
 - Confermata la modifica di data e ora delle azioni esistenti nel nuovo layout a schede.
 - Uniformato l’allineamento delle checkbox con il testo associato in tutta l’interfaccia.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Aggiunto nelle notifiche manuali/non schedulate il pulsante “Conferma senza inviare”, con conferma esplicita lato browser e controllo server-side: l’azione viene registrata e viene prodotto il PDF del testo, ma nessuna email viene trasmessa.
 - La conferma senza invio usa la stessa validazione di template, destinatari e documenti della notifica ordinaria, ma non richiede la disponibilità effettiva del server SMTP.
 - Nella lista Azioni del dettaglio incidente è ora modificabile anche il campo data e ora di ciascuna azione.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Corretto il RuntimeError "Working outside of application context" nei thread scheduler: la lettura degli intervalli configurabili avviene ora sempre dentro app.app_context(), con fallback sicuro.
 - Rafforzati i thread deadline e promemoria specifici affinché non accedano a Setting, db.session o proxy Flask fuori dal contesto applicativo.
 - Confermati gli indicatori della pagina Admin -> Stato per thread attivi/non attivi e ultimi cicli scheduler.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Corretto il crash del thread dei promemoria specifici dovuto alla generazione di URL con url_for fuori da un request context: i link incidente usano ora application_external_url e percorso stabile.
 - Aggiunta configurazione dell’intervallo di poll per i task in scadenza, default 60 secondi, nella pagina Impostazioni notifiche.
 - La pagina Admin → Stato mostra indicatori a pallino colorato per thread task, promemoria specifici e backup e per l’esito degli ultimi cicli scheduler.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Separato il controllo automatico dei promemoria specifici in un thread dedicato.
 - L'intervallo del thread promemoria è configurabile da Impostazioni notifiche, default 60 secondi.
 - Ogni ciclo del controllo promemoria specifici produce un audit, anche senza promemoria scaduti.
 - La pagina Admin -> Stato mostra thread, intervallo e ultima esecuzione del controllo promemoria specifici.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Rimossa la “presa in carico” tecnica come motivo bloccante per l'invio dei promemoria specifici.
 - I promemoria specifici vengono valutati solo tramite `incident_reminder.sent_at`: se è nullo sono inviabili, se è valorizzato sono già inviati.
 - La concorrenza viene gestita con lock/rivalutazione atomica del record `IncidentReminder`, senza usare slot o claim in `deadline_notification_state` come criterio di salto.
 - `deadline_notification_state` per i promemoria resta solo diagnostico per stato e riepiloghi amministrativi.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Corretto il controllo manuale dei promemoria specifici: gli audit non accedono più a un attributo inesistente `IncidentReminder.recipient_emails`.
 - Centralizzata la risoluzione dei destinatari dei promemoria specifici dal personale associato all’incidente, riutilizzata da invio e audit.
 - Confermato che il blocco funzionale dei promemoria specifici resta basato solo su `incident_reminder.sent_at`, senza slot o finestre di invio.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Aggiunta nella pagina Notifiche → Impostazioni una sezione finale dedicata al controllo manuale dei promemoria specifici dei singoli incidenti.
 - Il pulsante manuale esegue `process_due_incident_reminders(source='manual_button')` e mostra inviati, saltati, scaduti verificati ed eventuali errori.
 - Gli audit `scheduler:incident_reminder_skipped` includono ora dettagli completi del promemoria saltato: id, data programmata, eventuale data invio, messaggio sintetico, destinatari/CC configurati, ultimo errore, incidente e motivo del salto.
 - Ribadito che i promemoria specifici non usano slot o finestre di invio come criterio di blocco: il blocco funzionale resta esclusivamente `incident_reminder.sent_at`; il claim tecnico serve solo per evitare invii contemporanei dello stesso record.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Corretto l'errore PostgreSQL `duplicate key value violates unique constraint "audit_log_pkey"` durante l'uso del pulsante manuale "Esegui controllo ora" del controllo scadenze azioni.
 - L'audit log forza ora il flush dell'inserimento e riallinea subito la sequence `audit_log` in caso di collisione, evitando che l'errore emerga al commit del controllo manuale.
 - Rafforzata la logica dei promemoria specifici: il blocco funzionale dell'invio dipende solo da `incident_reminder.sent_at`; il claim tecnico anti-concorrenza non usa più slot di invio.
 - Aggiornata la documentazione progettuale e operativa.
 
-## 0.4.0-4
+## 0.5.0-1
 - Aggiunto audit puntuale per ogni incidente saltato dallo scheduler notifiche.
 - Le notifiche periodiche dei task in scadenza registrano `scheduler:deadline_notification_skipped` con incidente, slot, sorgente e motivo del salto.
 - I promemoria specifici registrano `scheduler:incident_reminder_skipped` con incidente, promemoria, data programmata e motivo del salto.
 - Aggiornata la documentazione progettuale e operativa.
 
-## 0.4.0-4
+## 0.5.0-1
 - Separato il criterio dei promemoria specifici dalla deduplica periodica delle notifiche deadline.
 - I promemoria puntuali vengono inviati solo se `incident_reminder.sent_at` è nullo; audit e stato scheduler non sostituiscono più il flag funzionale di invio.
 - Il claim su `deadline_notification_state` resta solo temporaneo e anti-concorrenza, per evitare invii simultanei dello stesso promemoria senza bloccare promemoria diversi nello stesso periodo.
 - Aggiornata la documentazione progettuale e operativa.
 
-## 0.4.0-4
+## 0.5.0-1
 - Scheduler notifiche: rimosso l'invio opportunistico dalle richieste web; le notifiche schedulate vengono inviate solo dal thread dedicato.
 - Serializzato l'invio SMTP delle mail schedulate tramite lock applicativo, così deadline e promemoria vengono inviati uno alla volta.
 - Aggiunto claim persistente anche per i promemoria specifici incidente, prima dell'apertura SMTP, per evitare copie contemporanee dello stesso messaggio.
-- Per i promemoria specifici è stato introdotto un claim tecnico pre-invio; dalla 0.4.0-4 il claim non applica più deduplica per periodo.
+- Per i promemoria specifici è stato introdotto un claim tecnico pre-invio; dalla 0.5.0-1 il claim non applica più deduplica per periodo.
 - Aggiornata la documentazione progettuale sul meccanismo anti-flooding dello scheduler.
 
-0.4.0-4
+0.5.0-1
 - Rimossi i banner di versione dalle guide operative README.md e README_en.md.
 - Estratto il filtro Jinja linkify_text in app/text_filters.py e registrato dall’app factory.
 - Aggiunto .gitignore e rimossi gli artefatti __pycache__ dal pacchetto sorgente.
 - Aggiornata la documentazione progettuale con la bonifica delle criticità rilevate.
 
-0.4.0-4 - Scheduler notifiche deadline e anti-flooding
+0.5.0-1 - Scheduler notifiche deadline e anti-flooding
 - Claim persistente dello slot prima dell'invio delle notifiche schedulate per task con tempo massimo.
 - Cleanup ad ogni ciclo degli stati scheduler orfani relativi a incidenti cancellati.
 - Chiarito che schedule, cron e intervalli sono calcolati nella timezone applicativa dalla mezzanotte locale.
 - Documentazione aggiornata.
 
-0.4.0-4
-- Riallineata documentazione utente/amministrativa alla versione 0.4.0-4.
+0.5.0-1
+- Riallineata documentazione utente/amministrativa alla versione 0.5.0-1.
 - Rimossi capitoli changelog dalle guide operative e integrate sezioni fuori corpo.
 
-0.4.0-4
+0.5.0-1
 - Corrette le occorrenze residue della versione applicativa nelle pagine Info, documentazione utente e amministrativa.
 - Separati i contenuti di changelog dalle guide operative: le guide descrivono lo stato corrente, mentre le variazioni restano nelle Note di rilascio.
 - Ricontrollata la documentazione IT/EN e progettuale rispetto agli ultimi sviluppi su workflow, condizioni e operazioni automatiche.
 
-0.4.0-4
+0.5.0-1
 - Estese le condizioni degli step workflow: rischio per diritti e libertà, gravità e dati interessati.
 - Associazione condizioni tramite drag & drop compatto nella gestione workflow.
 - Valutazione step solo quando tutte le condizioni configurate sono soddisfatte.
 
-0.4.0-4
+0.5.0-1
 - Added the global-check automatic operation for action labels.
 - Task insertion is blocked when previous applicable workflow steps are still missing.
 - Updated Italian and English documentation.
 
-0.4.0-4
+0.5.0-1
 - Migliorata la leggibilità della sezione Label azioni in Admin -> Liste configurabili con vista a schede e campi separati.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Operazioni automatiche configurabili sulle label azione tramite drag & drop.
 - Chiusura incidente e fine violazione non sono più hard-coded sul nome del task.
 
-0.4.0-4 - Avvisi procedurali da workflow richiesto
+0.5.0-1 - Avvisi procedurali da workflow richiesto
 - Gli avvisi procedurali derivano dagli step workflow marcati come richiesti e non completati.
 - La chiusura automatica tramite conclusione resta consentita solo senza avvisi attivi.
 
-0.4.0-4 - Blocco invio notifiche admin e destinatari automatici
+0.5.0-1 - Blocco invio notifiche admin e destinatari automatici
 - Bloccato in anteprima e lato server l’invio di notifiche manuali/non schedulate dall’utente locale admin.
 - Le nuove email libere vengono salvate nei destinatari esterni usando il Riferimento dell’incidente come nome, senza richiesta bloccante.
 - Documentazione IT/EN aggiornata.
 
-0.4.0-4 - Riepilogo notifiche schedulate e anti-flooding
+0.5.0-1 - Riepilogo notifiche schedulate e anti-flooding
 - Aggiunto in Impostazioni → Notifiche il riepilogo delle notifiche schedulate nelle prossime 24 ore, ordinate per ora e con destinatari/tipo notifica.
 - Il controllo automatico da richiesta web è stato disabilitato: lo scheduler dedicato è l’unica sorgente degli invii automatici.
 - Documentazione italiana e inglese aggiornata.
 
-0.4.0-4 - Conferma destinatario notifiche manuali
+0.5.0-1 - Conferma destinatario notifiche manuali
 - Aggiunta conferma esplicita prima dell’invio delle notifiche manuali/non schedulate con destinatario libero.
 - La conferma mostra destinatario e CC e viene verificata anche lato server.
 - Aggiornata la documentazione italiana e inglese.
 
-## 0.4.0-4
+## 0.5.0-1
 - Aggiunti pulsanti "Adesso" accanto a data/ora inizio e data/ora fine nelle form incidente per valorizzarli con il momento corrente nel fuso applicativo configurato.
 - Le azioni registrate automaticamente dopo l'invio di notifiche usano ora la data e ora locale dell'applicazione, coerente con la timeline incidente.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Gli step workflow dipendenti da notifica guidano automaticamente verso la form della notifica richiesta.
 - Se la notifica richiede documenti generati o taggati non ancora disponibili, il click mostra un avviso e porta alla sezione moduli/documenti.
 - Bloccato l’inserimento manuale dell’azione di uno step che richiede una notifica non ancora registrata.
 - Documentazione IT/EN e progettuale aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Corretto inserimento step workflow dopo import/restore con riallineamento sequence incident_workflow_step e retry su duplicate-key.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Aggiunto flag personal_data_only sugli step dei flussi operativi.
 - Gli step condizionali sono considerati solo per incidenti con rischio per diritti e libertà.
 - Aggiunta notifica email best-effort all admin quando LDAP/SSO crea utenti disabled.
 - Aggiornata documentazione italiana e inglese.
 
-## 0.4.0-4
+## 0.5.0-1
 - Riferimento incidente obbligatorio in creazione e modifica.
 - Normalizzazione import/migrazioni per incidenti storici senza riferimento.
 - Documentazione aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Riallineamento generalizzato delle sequence PostgreSQL per tutte le tabelle applicative con chiave primaria intera.
 - Copertura post full import/restore estesa a workflow, stati scheduler, template binari, backup e nuove tabelle dai metadati SQLAlchemy.
 - Documentazione aggiornata sulle protezioni contro duplicate key.
 
-## 0.4.0-4
+## 0.5.0-1
 
 - Corretto errore PostgreSQL `audit_log_pkey` durante aggiunta, modifica e cancellazione utenti dopo import/restore.
 - Riallineamento sequence audit persistente fuori dalla transazione web.
 - Retry automatico dell’inserimento audit in caso di collisione sulla chiave primaria.
 - Documentazione IT/EN aggiornata.
 
-## 0.4.0-4
+## 0.5.0-1
 - Corretto il riallineamento della sequenza audit per evitare errori duplicate key durante la cancellazione utenti su database importati o con sequence PostgreSQL non allineate.
 - Aggiunta ricerca nella pagina Admin → Utenti.
 - Aggiunto pulsante di aggiornamento rapido data/ora nella sezione Azioni del singolo incidente.
@@ -416,67 +425,67 @@
 - Documentazione italiana, inglese e progettuale aggiornata.
 
 
-## 0.4.0-4
+## 0.5.0-1
 - Aggiunti tooltip dei campi anche nella pagina nuovo incidente.
 - Aggiunta gestione Admin → Backup con categorie selezionabili, backup on-demand, schedulazione cron-like, destinazioni POSIX/S3/download e verifica restore.
 - Updated documentation in Italian and English.
 
-0.4.0-4
+0.5.0-1
 - Spostati gli avvisi procedurali subito sotto le operazioni previste nella pagina incidente.
 - Resi cliccabili e accessibili da tastiera gli step workflow.
 - Clic su uno step: scroll alla sezione Azioni e preselezione della label associata.
 - Documentazione italiana, inglese e progettuale aggiornata.
 
-0.4.0-4 - Container environment documentation
+0.5.0-1 - Container environment documentation
 - Added docs/CONTAINER_ENVIRONMENT.md and docs/CONTAINER_ENVIRONMENT_en.md with all container environment variables, persistent volumes, Docker Compose/Kubernetes operations, HTTPS, Gunicorn tuning, scheduler, backup and upgrade guidance.
 - Expanded .env.example with all operational variables and links to the new guide.
 - docker-compose.yml now exposes configurable persistent storage paths through UPLOAD_DIR, LOGO_DIR, FORM_TEMPLATE_DIR, SSO_LOGO_DIR and SSL_DIR.
 - Integrated the container environment guide into the Italian and English online administrator documentation.
 - Updated README and project design documentation.
 
-0.4.0-4 - External recipient picker for manual notifications
+0.5.0-1 - External recipient picker for manual notifications
 - Added explicit address-book selection in manual notification previews with free recipient fields.
 - Selected contacts can populate the main recipient or be appended to CC.
 - Updated Italian and English documentation.
 
-0.4.0-4 - Automatic notification tags on generated forms
+0.5.0-1 - Automatic notification tags on generated forms
 - Generated PDF form documents automatically receive notification tags derived from notification templates linked to the form template.
 - Attachment preselection keeps using document tags and linked templates while remaining manually editable.
-- Application version set to 0.4.0-4 and build to 20260522.
+- Application version set to 0.5.0-1 and build to 20260522.
 - Documentation updated in Italian and English.
 
-0.4.0-4
+0.5.0-1
 - Aggiunta associazione opzionale template notifica/template modulo PDF con preselezione automatica documenti generati.
 - Aggiunta rubrica destinatari esterni amministrabile e suggerita nei campi destinatario/CC.
 - Aggiornata documentazione italiana e inglese.
 
 
-0.4.0-4 - Placeholder notifiche manuali e allegato statistiche
+0.5.0-1 - Placeholder notifiche manuali e allegato statistiche
 - Le notifiche manuali/non schedulate inseriscono il link incidente solo tramite %INCIDENT_URL%.
 - Aggiunti %MEASURES_ADOPTED%, %SITE% e %STATISTICS% ai template di notifica generali.
 - %STATISTICS% allega il report statistiche PDF durante l'invio.
 - Aggiornata la documentazione utente/amministrativa italiana e inglese, inclusa la nota sull'utente admin che non invia notifiche dal dettaglio incidente.
 
-0.4.0-4 - User removal
+0.5.0-1 - User removal
 - Added administrator-controlled user removal with safeguards for current and last admin accounts.
 - User deletion preserves incidents, reminders and audit history while removing MFA tokens.
 - Updated bilingual documentation.
 
-0.4.0-4
+0.5.0-1
 - Corretto il rendering grafico dei loghi SSO caricati da interfaccia web nella sezione Admin → SSO/OAuth2 → Storage loghi SSO.
 - Le gallerie dei loghi usano ora la rotta persistente /sso-logos/<filename>, invece degli URL statici dell’immagine applicativa.
 - Aggiornata la documentazione italiana e inglese per chiarire anteprima, storage persistente e selezione dei loghi caricati.
 - Fixed graphical rendering of administrator-uploaded SSO logos in Admin → SSO/OAuth2 → SSO logo storage.
 - Logo galleries now use the persistent /sso-logos/<filename> route rather than static image URLs.
 
-0.4.0-4
+0.5.0-1
 - Spostato lo storage dei loghi condivisi SSO/OAuth2 caricati dalla UI in una directory persistente configurabile con SSO_LOGO_DIR, default /data/sso_logos.
 - Aggiunta rotta dedicata /sso-logos/<filename> per servire i loghi dallo storage persistente con validazione del nome file.
 - Aggiornati export/import completi per leggere e ripristinare i loghi SSO da SSO_LOGO_DIR.
 - Aggiornati docker-compose, .env.example e manifest Kubernetes con volume/PVC persistente per i loghi SSO.
 - Aggiornata la documentazione italiana e inglese.
 
-0.4.0-4
+0.5.0-1
 - Hardened production baseline: CSRF protection for unsafe HTTP methods, automatic hidden token injection in POST forms, security headers and secure cookie defaults.
 - Added fail-fast production checks for weak SECRET_KEY, weak ADMIN_INITIAL_PASSWORD and SQLite usage when CIR_PRODUCTION=1.
 - Removed hardcoded secrets from docker-compose.yml and added .env.example for safe bootstrap.
@@ -484,16 +493,16 @@
 - Added security smoke tests and requirements-dev.txt.
 - Aggiornata documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
 
-0.4.0-4
+0.5.0-1
 - Aggiunte icone informative con help online nei campi principali della pagina dettaglio incidente.
 - I tooltip spiegano nome, riferimento, destinatario, descrizione, gravità, stato, date/ore della violazione, rischio per diritti e libertà, silenziamento notifiche deadline, numero interessati e volume dati.
 - Aggiornate documentazione utente, amministrativa e progettuale/procedurale in italiano e inglese.
 - Added contextual online help icons to the main fields of the incident detail page and updated bilingual documentation.
 
-## 0.4.0-4 - build 20260522
-- Aggiornata la versione applicativa a 0.4.0-4 e il build a 20260522.
+## 0.5.0-1 - build 20260522
+- Aggiornata la versione applicativa a 0.5.0-1 e il build a 20260522.
 - Consolidati nella documentazione utente e amministrativa bilingue gli sviluppi recenti: audit, notifiche, promemoria, SSO, HTTPS/SSL, report PDF, menu Aiuto e loghi SSO.
-- Aggiornata la documentazione progettuale con la baseline funzionale 0.4.0-4.
+- Aggiornata la documentazione progettuale con la baseline funzionale 0.5.0-1.
 
 
 ## 0.1.0-125
@@ -1088,77 +1097,77 @@ Notification menu and SMTP sender fix
 - Documentazione IT/EN aggiornata.
 
 
-0.4.0-4
+0.5.0-1
 - Identità utenti basata sulla coppia username + backend/auth_provider.
 - Login locale, LDAP e SSO isolati per backend; i profili SSO usano auth_provider nel formato sso:<id profilo>.
 - Gestione utenti aggiornata per mostrare e creare account locali/LDAP con username duplicati su backend diversi.
 - Documentazione italiana e inglese aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Admin utenti: la colonna Tipo login distingue gli utenti SSO anche per provider, mostrando nome provider, id profilo e backend tecnico.
 - Admin utenti: il menu backend include i profili SSO configurati per creare o predisporre identità SSO specifiche.
 - Documentazione italiana e inglese aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Corretto l’invio notifiche manuali/non schedulate quando un placeholder, in particolare %MEASURES_ADOPTED%, produce una lista invece di una stringa.
 - Aggiunta normalizzazione centralizzata dei valori placeholder prima della sostituzione nei template.
 - Documentazione italiana e inglese aggiornata.
 - Fixed manual notification sending when a placeholder, especially %MEASURES_ADOPTED%, produces a list instead of a string.
 - Placeholder values are now normalised centrally before template replacement.
 
-0.4.0-4
+0.5.0-1
 - Added multiple notification-type tags on incident documents.
 - Added drag-and-drop tagging UI in the incident document list.
 - Manual notification preview now preselects documents tagged for the selected notification type, while keeping the final attachment selection editable.
 - Updated Italian/English user, admin and design documentation.
 
-## 0.4.0-4
+## 0.5.0-1
 - Added incident operational workflow steps configurable by administrators.
 - Added default workflow fallback and category-specific workflows based on action labels.
 - Added top-of-page incident workflow progress with completed/missing visual states.
 - Updated Italian and English user, administrator and project documentation.
 
-0.4.0-4
+0.5.0-1
 - Workflow incidenti: didascalia da descrizione task, fallback al nome task.
 - Aggiunta descrizione operativa ulteriore per ogni step di workflow.
 - Visualizzazione tempo limite, scadenza e tempo rimanente per step con tempo massimo.
 - Inizializzazione del flusso default modificabile: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Conclusione.
 - Documentazione IT/EN e progettuale aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Corretta la cancellazione degli incidenti quando esistono stati deadline_notification_state collegati.
 - Aggiunta cancellazione esplicita degli stati notifiche deadline prima della rimozione incidente.
 - Aggiornata la documentazione italiana, inglese e progettuale.
 
-## Aggiornamento 0.4.0-4 - Descrizioni workflow multilinea e URL cliccabili
+## Aggiornamento 0.5.0-1 - Descrizioni workflow multilinea e URL cliccabili
 
 - Le descrizioni degli step nei flussi operativi incidenti sono ora campi multilinea con limite massimo di 500 caratteri.
 - Gli URL `http://` e `https://` presenti nelle descrizioni mostrate nella pagina del singolo incidente sono cliccabili.
 - Il click sui link non modifica il comportamento generale del riquadro dello step, che continua ad avviare il percorso guidato del workflow.
 - Documentazione utente, amministrativa e progettuale aggiornata in italiano e inglese.
 
-0.4.0-4
+0.5.0-1
 - Stato notifiche programmate aggiornato e committato subito dopo ogni invio o errore SMTP dello scheduler.
 - Riepilogo notifiche schedulate con colonna Stato e visualizzazione degli esiti recenti.
 - Voce Cambio password visibile e accessibile solo per login locale.
 
-0.4.0-4
+0.5.0-1
 - Il controllo manuale dei promemoria specifici mostra ora nel messaggio di output quali promemoria sono stati saltati e il motivo.
 - Rafforzata la diagnostica degli audit dei promemoria specifici saltati mantenendo identificativo, incidente, data programmata, testo sintetico e motivo.
 - Centralizzata la risoluzione dei destinatari delle notifiche task in scadenza e corretta la visualizzazione degli esiti recenti nella sezione Prossime notifiche schedulate.
 
-0.4.0-4
+0.5.0-1
 - Scheduler notifiche: il ciclo automatico esegue sempre anche il controllo dei promemoria specifici, indipendentemente dall’esito o dall’abilitazione delle notifiche task in scadenza.
 - Aggiunta pagina Admin → Stato con stato completo dei servizi, heartbeat, tipi di schedula, cicli, ultimi risultati, errori e scheduler backup.
 - Documentazione italiana, inglese e progettuale aggiornata.
 
-0.4.0-4
+0.5.0-1
 - La pagina dettaglio incidente usa sezioni collassabili chiuse per default.
 - La sezione principale dell'incidente è rinominata "Dati Generali".
 - Operazioni previste, avvisi procedurali, dati titolare/responsabile, conseguenze, azioni, promemoria, documenti, generazione moduli e notifiche sono apribili singolarmente.
 - Documentazione aggiornata.
 
-0.4.0-4
+0.5.0-1
 - Corretta la gestione drag & drop dei tag notifiche nella sezione Documenti del dettaglio incidente.
 - La classe hidden dei tag documento ora prevale sulle regole globali di allineamento checkbox.
 - Il JavaScript aggiorna anche l'attributo hidden durante aggiunta/rimozione dei tag, rendendo stabile il salvataggio.
@@ -1169,12 +1178,12 @@ Notification menu and SMTP sender fix
 - Il manifest `export.json` include ora `files.persistent_files` e `schema._coverage.file_groups` dichiara anche `persistent_files`.
 - Il full import ripristina anche i file persistenti non direttamente referenziati da singoli record, mantenendo comunque il dump completo del database e delle relazioni.
 
-0.4.0-4
+0.5.0-1
 - Aggiunto rendering Markdown sicuro per le descrizioni degli step workflow nella pagina incidente.
 - Aggiunta sintassi controllata per testo colorato negli step: {color:red}testo{/color} e {color:#RRGGBB}testo{/color}.
 - Aggiornata la documentazione utente, amministrativa e progettuale con esempi di Markdown e colori.
 
-0.4.0-4
+0.5.0-1
 - Rinominata in interfaccia la checkbox “Dati personali” in “Rischio per diritti e libertà”.
 - Rinominata la condizione workflow `personal_data` in “Rischio per diritti e libertà”, mantenendo invariato il token tecnico per compatibilità.
 - I placeholder delle notifiche deadline `%pending_actions%` e `%pending_actions_count%` considerano ora solo gli step workflow applicabili allo specifico incidente, rispettando condizioni di rischio, gravità e dati interessati.
@@ -1208,17 +1217,17 @@ Notification menu and SMTP sender fix
 - The form field consequences now combines configurable automatic consequences with consequences explicitly entered on incident actions.
 - Added an Admin -> Other configurations section to enable and customize automatic consequence rules.
 
-0.4.0-4
+0.5.0-1
 - Aggiunto plugin opzionale AI Chatbot, disattivato per default e attivabile da Admin -> Plugins.
 - Aggiunta configurazione motori ChatGPT, Claude, Gemini, Ollama e Perplexity con singolo motore attivo.
 - Aggiunta knowledge base del chatbot basata su documentazione progettuale e documenti procedurali caricabili.
 - Aggiunti audit e full export/import per documenti e configurazioni del chatbot.
 
 
-0.4.0-4 update
+0.5.0-1 update
 - AI Chatbot: aggiunta opzione per includere nel contesto uno snapshot sanitizzato del database corrente, escludendo dati personali, sensibili, credenziali, token, email, binari e testo potenzialmente identificativo.
 
-0.4.0-4 build 20260522 - AGID full compliance hardening
+0.5.0-1 build 20260522 - AGID full compliance hardening
 - Rimossa la SECRET_KEY statica di fallback: in sviluppo viene generata una chiave casuale, in produzione viene imposto un segreto robusto tramite variabile d'ambiente.
 - Rafforzata la CSP con nonce per script/style inline e senza unsafe-inline nello header predefinito.
 - Aggiunta cifratura applicativa a riposo per i setting segreti: password SMTP, password bind LDAP, client secret SSO, profili SSO e API key dei motori chatbot.
@@ -1227,7 +1236,7 @@ Notification menu and SMTP sender fix
 - Rafforzato il full import tar.gz con validazione preventiva di path traversal, link, device file, numero di file e dimensioni massime prima della ricostruzione del database.
 - Esteso l'audit per upload non validi e mantenuti i controlli su CSRF, login, session timeout e operazioni amministrative.
 
-0.4.0-4 build 20260522 - Chiusura compliance AGID
+0.5.0-1 build 20260522 - Chiusura compliance AGID
 - Bloccati direttamente a livello applicativo i metodi HTTP TRACE e TRACK, con audit security:method_blocked.
 - Corretta la lettura della password bind LDAP cifrata a riposo per login, test connessione e ricerca UID.
 - Aggiunto pytest.ini per eseguire la suite con pytest dalla radice del progetto.
@@ -1235,27 +1244,27 @@ Notification menu and SMTP sender fix
 - Documentazione aggiornata.
 
 
-0.4.0-4 - Final AGID login lockout compliance
+0.5.0-1 - Final AGID login lockout compliance
 - Sostituito il contatore dei login falliti basato su sessione client con la tabella server-side `login_failure`.
 - Il blocco progressivo per username/IP non è più aggirabile cancellando i cookie o aprendo una nuova sessione.
 - Aggiunte variabili di configurazione `LOGIN_LOCKOUT_THRESHOLD`, `LOGIN_LOCKOUT_WINDOW_SECONDS`, `LOGIN_LOCKOUT_STEP_SECONDS` e `LOGIN_LOCKOUT_MAX_SECONDS`.
 - Aggiornati test di sicurezza: pytest ora copre anche il modello server-side di lockout.
 
-## 0.4.0-4 - Aggiornamento compatibilità Python 3.13
+## 0.5.0-1 - Aggiornamento compatibilità Python 3.13
 - Aggiornati i pin delle dipendenze per supportare Python 3.13 e risolvere errori di installazione wheel/build su matplotlib e psycopg2-binary.
 - Aggiunto pin esplicito di Pillow compatibile con reportlab, matplotlib e qrcode.
 - Aggiornate le dipendenze di test a pytest 8.4.2.
 - Verificati installazione completa, pip check, compileall e test pytest.
 
-0.4.0-4 - Rafforzamento compliance AGID
+0.5.0-1 - Rafforzamento compliance AGID
 - Sostituito il parsing XML standard con defusedxml per mitigare XXE e XML entity expansion.
 - Eliminato l'uso di tempfile.mktemp nei report e nei flussi import/restore, usando file temporanei creati atomicamente.
 - Allineata la validazione degli upload del plugin AI Chatbot alla validazione centralizzata dell'applicazione.
 - Aggiunta validazione server-side degli endpoint AI per ridurre il rischio SSRF: host vendor predefiniti, HTTPS per endpoint pubblici e blocco di reti private salvo esplicita configurazione amministrativa via variabili d'ambiente.
 - Rimosse query SQL dinamiche non necessarie nel riallineamento sequenze, usando SQLAlchemy Core e parametri bind.
-- Allineata la versione applicativa a 0.4.0-4 in codice, template, documentazione, Docker Compose e manifest Kubernetes.
+- Allineata la versione applicativa a 0.5.0-1 in codice, template, documentazione, Docker Compose e manifest Kubernetes.
 
-0.4.0-4 build 20260522 - AGID compliance evidence package
+0.5.0-1 build 20260522 - AGID compliance evidence package
 - Aggiunta suite riproducibile `scripts/run_agid_compliance.sh`.
 - Aggiunti test dinamici `tests/test_agid_compliance_dynamic.py` per CSRF, TRACE/TRACK, header/cookie, lockout, audit, access control, XSS, upload e SSRF AI.
 - Aggiunti script di riepilogo e soglia Bandit.
@@ -1264,24 +1273,24 @@ Notification menu and SMTP sender fix
 - Corretto l'hardening dei cookie di sessione: SameSite/HttpOnly vengono impostati esplicitamente anche quando Flask ha default `None`.
 
 
-Versione 0.4.0-4 - aggiornamento compliance AGID
+Versione 0.5.0-1 - aggiornamento compliance AGID
 - Inserita suite riproducibile per i controlli di conformità AGID in `scripts/run_agid_compliance.sh`.
 - Aggiunti script di supporto per soglia Bandit e sintesi risultati.
 - Aggiunta documentazione dedicata `docs/AGID_COMPLIANCE.md`.
 - Salvate nel pacchetto le evidenze dei run in `compliance/agid/<RUN_ID>/`.
 - Aggiornate le istruzioni operative affinché ogni futuro aggiornamento riesegua e includa i risultati di compliance.
 
-0.4.0-4 - Fix pip-audit DNS locale
+0.5.0-1 - Fix pip-audit DNS locale
 - Aggiunto `scripts/configure_local_dns.sh` per configurare il resolver DNS locale prima di `pip-audit`.
 - Aggiornato il workflow AGID per usare il DNS locale e rendere bloccante il bootstrap DNS in CI.
 - Aggiornata la documentazione di compliance e mantenimento evidenze AGID.
 
-0.4.0-4 - AGID manual compliance runner
+0.5.0-1 - AGID manual compliance runner
 - Aggiunto `compliance/agid/run_manual_agid_compliance.sh` per eseguire manualmente la suite AGID completa su sistemi connessi a Internet.
 - Aggiunto `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md` con le istruzioni operative separate per il run manuale e per l'uso del DNS locale.
 - Aggiornata la documentazione AGID mantenendo la regola di conservare nel pacchetto solo l'ultima directory dei risultati di compliance.
 
-0.4.0-4 - AGID Docker compliance runner
+0.5.0-1 - AGID Docker compliance runner
 - Aggiunto Dockerfile in compliance/agid per esecuzione manuale completa dei test AGID.
 - Aggiunto runner Docker che salva le evidenze nella directory corrente e mantiene solo l'ultimo run.
 - Limitato pip-audit alla sola modalità manuale containerizzata.
@@ -1290,23 +1299,23 @@ Versione 0.4.0-4 - aggiornamento compliance AGID
 - L'import dei workflow ora riconosce gli elementi identici già presenti, non li reimporta e non mostra avvisi di sovrascrittura per tali elementi.
 - Il riepilogo dell'import workflow distingue gli elementi identici non importati dagli elementi ignorati perché differenti ma non autorizzati alla sovrascrittura.
 
-0.4.0-4 - PDF documentazione nel pacchetto
+0.5.0-1 - PDF documentazione nel pacchetto
 - Aggiunto script `scripts/build_documentation_pdfs.py` per generare le versioni PDF statiche della documentazione utente e amministrativa in `docs/`.
 - Le route PDF e lo script statico mantengono le figure vicino ai capitoli che le citano, evitando il raggruppamento iniziale delle immagini.
 - Aggiornata la documentazione operativa per rigenerare i PDF a ogni modifica documentale.
 
-0.4.0-4 - Documentazione PDF e brochure
+0.5.0-1 - Documentazione PDF e brochure
 - Rimosso dai docs del pacchetto il contenuto DOCX della directory source_models.
 - Rafforzato il generatore PDF della documentazione per escludere elementi di navigazione, utente, logout e note editoriali non utili alla versione stampabile.
 - Aggiunta brochure riepilogativa professionale in PDF, massimo due pagine, con logo, versione, scopo, funzionalità e immagini di esempio.
-0.4.0-4 - Brochure verticale professionale
+0.5.0-1 - Brochure verticale professionale
 - Brochure PDF convertita in formato A4 verticale, massimo due pagine, con filigrana/background a tema cybersecurity.
 - Aggiunte alla brochure le descrizioni su autenticazione integrabile, configurabilità workflow/azioni/tassonomie, notifiche automatiche con allegati, import workflow custom, compilazione PDF, compliance AGID, knowledge base AI opzionale, licenza EUPL e riferimenti GitHub/creatore.
 - Aggiunte alla brochure le informazioni sulla disponibilità come container Docker Hub `desalvo/cybersecurity-incident-registry` e sul supporto al run tramite Docker Compose e Kubernetes.
 - PDF documentazione rigenerati senza nuovi risultati di compliance AGID.
 
 
-0.4.0-4 - English static PDF documentation
+0.5.0-1 - English static PDF documentation
 - Added English static PDFs for user documentation, administrator documentation and product brochure under `docs/`.
 - Updated `scripts/build_documentation_pdfs.py` to generate Italian and English static PDF artifacts in a single run.
 - Added regression checks ensuring the English PDF artifacts are packaged and the English brochure remains portrait and no longer than two pages.

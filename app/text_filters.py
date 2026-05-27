@@ -123,7 +123,7 @@ def workflow_markdown(value):
 
     Supported syntax is intentionally limited to headings, unordered/ordered
     lists, bold, italic, inline code, Markdown links, auto-linked http(s) URLs,
-    color spans using {color:red}text{/color}, {color:#c00}text{/color},
+    button links using {button:Etichetta|https://example.org}, color spans using {color:red}text{/color}, {color:#c00}text{/color},
     {color:rgb(200,0,0)}text{/color} or {color:hsl(210,80%,40%)}text{/color}
     and size spans using {size:large}text{/size}, {size:14px}text{/size},
     {size:1.2em}text{/size}, {size:1.1rem}text{/size} or {size:120%}text{/size}.
@@ -185,6 +185,7 @@ def strip_markdown_formatting(value):
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"\{color:[^}]+\}(.+?)\{/color\}", r"\1", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"\{size:[^}]+\}(.+?)\{/size\}", r"\1", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"\{button:([^|{}\n]{1,80})\|(https?://[^\s{}]+)\}", r"\1 (\2)", text, flags=re.IGNORECASE)
     text = re.sub(r"```(?:[^`]|`(?!``))*```", lambda m: m.group(0).strip('`'), text, flags=re.DOTALL)
     text = re.sub(r"`([^`]+)`", r"\1", text)
     text = re.sub(r"!\[([^\]\n]*)\]\([^)]*\)", r"\1", text)

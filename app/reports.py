@@ -25,7 +25,7 @@ except Exception:
 def _setting_value(key, default=''):
     if not Setting:
         return default
-    obj=Setting.query.get(key)
+    obj=db.session.get(Setting, key)
     return obj.value if obj and obj.value is not None else default
 
 def _incident_consequences(inc):

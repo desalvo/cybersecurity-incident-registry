@@ -33,6 +33,7 @@
         <div class="action-label-options-row">
           <label>Tempo massimo (ore)<input type="number" min="0" name="max_completion_hours" value="0" placeholder="0"></label>
           <label class="checkbox-inline action-label-checkbox"><input type="checkbox" name="default_exportable" value="1" checked> Esportabile per default</label>
+              <label class="checkbox-inline action-label-checkbox"><input type="checkbox" name="description_required" value="1"> Descrizione operazioni compiute obbligatoria</label>
         </div>
         <div class="automatic-operations-editor">
           <label>Operazioni automatiche</label>
@@ -69,6 +70,7 @@
             <div class="action-label-options-row">
               <label>Tempo massimo (ore)<input type="number" min="0" name="max_completion_hours" value="{{ l.max_completion_hours if l.max_completion_hours is not none else 0 }}" placeholder="0" form="label-update-{{l.id}}"></label>
               <label class="checkbox-inline action-label-checkbox"><input type="checkbox" name="default_exportable" value="1" {% if l.default_exportable %}checked{% endif %} form="label-update-{{l.id}}"> Esportabile per default</label>
+              <label class="checkbox-inline action-label-checkbox"><input type="checkbox" name="description_required" value="1" {% if l.description_required %}checked{% endif %} form="label-update-{{l.id}}"> Descrizione operazioni compiute obbligatoria</label>
             </div>
             <div class="automatic-operations-editor">
               <label>Operazioni automatiche</label>

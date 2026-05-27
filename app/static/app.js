@@ -302,10 +302,14 @@ function openInitialIncidentAnchor(){
   const hash=(window.location.hash || '').replace(/^#/, '');
   if(!hash)return;
   const section=document.getElementById(hash);
-  if(section) openIncidentSection(section);
+  if(!section)return;
+  openIncidentSection(section);
+  window.setTimeout(()=>scrollToIncidentSection(section), 0);
+  window.setTimeout(()=>scrollToIncidentSection(section), 100);
 }
 
 document.addEventListener('DOMContentLoaded', openInitialIncidentAnchor);
+window.addEventListener('hashchange', openInitialIncidentAnchor);
 
 function makeIncidentWorkflowStepsClickable(){
   const actionForm=document.querySelector('#incident-actions form[action*="/actions/add"], #incident-actions form[data-scroll-anchor="incident-actions"]');
@@ -353,6 +357,22 @@ function makeIncidentWorkflowStepsClickable(){
   });
 }
 document.addEventListener('DOMContentLoaded', makeIncidentWorkflowStepsClickable);
+function initActionDescriptionRequirement(){
+  const select=document.getElementById('new-action-label-id');
+  const description=document.getElementById('new-action-description');
+  const notice=document.getElementById('new-action-description-required-notice');
+  if(!select || !description) return;
+  function sync(){
+    const option=select.selectedOptions && select.selectedOptions[0];
+    const required=!!(option && option.dataset.descriptionRequired === '1');
+    description.required=required;
+    if(notice) notice.hidden=!required;
+  }
+  select.addEventListener('change', sync);
+  sync();
+}
+document.addEventListener('DOMContentLoaded', initActionDescriptionRequirement);
+
 
 function initAIChatbotWidget(){
   const widget = document.getElementById('ai-chatbot-widget');
@@ -581,3 +601,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
   applySafeMarkdownStyles(document);
   initAIChatbotWidget();
 });
+
+function initLdapRecipientLookup(){
+  document.querySelectorAll('.ldap-recipient-loader').forEach(box=>{
+    const input=box.querySelector('.ldap-recipient-query');
+    const button=box.querySelector('.ldap-recipient-search-button');
+    const results=box.querySelector('.ldap-recipient-results');
+    function setValue(id, value){ const el=id ? document.getElementById(id) : null; if(el && value) el.value=value; }
+    async function search(){
+      const q=(input && input.value || '').trim();
+      if(q.length < 2){ results.innerHTML='<p class="muted">Inserire almeno 2 caratteri.</p>'; return; }
+      results.innerHTML='<p class="muted">Ricerca LDAP in corso...</p>';
+      try{
+        const response=await fetch(box.dataset.searchUrl + '?q=' + encodeURIComponent(q), {headers:{'Accept':'application/json'}});
+        const data=await response.json();
+        if(!response.ok || !data.ok){ throw new Error(data.error || 'Ricerca non riuscita'); }
+        if(!data.entries || !data.entries.length){ results.innerHTML='<p class="muted">Nessun utente LDAP trovato.</p>'; return; }
+        results.innerHTML='';
+        data.entries.forEach(entry=>{
+          const row=document.createElement('div'); row.className='ldap-recipient-result';
+          const label=document.createElement('span'); label.textContent=(entry.reference || entry.recipient || entry.dn || 'Utente LDAP') + (entry.email ? ' <' + entry.email + '>' : '');
+          const use=document.createElement('button'); use.type='button'; use.className='secondary small'; use.textContent='Usa';
+          use.addEventListener('click', ()=>{ setValue(box.dataset.referenceTarget, entry.reference); setValue(box.dataset.recipientTarget, entry.recipient || entry.reference); setValue(box.dataset.emailTarget, entry.email); });
+          row.appendChild(label); row.appendChild(use); results.appendChild(row);
+        });
+      }catch(e){ results.innerHTML='<p class="error">'+String(e.message || e)+'</p>'; }
+    }
+    if(button) button.addEventListener('click', search);
+    if(input) input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); search(); }});
+  });
+}
+document.addEventListener('DOMContentLoaded', initLdapRecipientLookup);

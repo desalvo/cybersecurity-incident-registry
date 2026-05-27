@@ -23,7 +23,15 @@ from .reports import incident_pdf, statistics_pdf
 from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields, incident_measures
 from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
 from .text_filters import strip_markdown_formatting
+from .timeutils import utcnow
 bp=Blueprint('main',__name__)
+
+def model_or_404(model, ident):
+    obj = db.session.get(model, ident)
+    if obj is None:
+        abort(404)
+    return obj
+
 
 
 SUPPORTED_LANGUAGES = {'it', 'en'}
@@ -239,7 +247,7 @@ def _login_lockout_policy():
 
 
 def _prune_login_failures(now=None):
-    now = now or datetime.utcnow()
+    now = now or utcnow()
     try:
         cutoff = now - timedelta(days=7)
         LoginFailure.query.filter(LoginFailure.last_failure_at < cutoff).delete(synchronize_session=False)
@@ -251,7 +259,7 @@ def login_is_blocked(username):
     entry = LoginFailure.query.filter_by(rate_key=login_rate_limit_key(username)).first()
     if not entry or not entry.blocked_until:
         return False, 0
-    now = datetime.utcnow()
+    now = utcnow()
     if entry.blocked_until <= now:
         return False, 0
     return True, max(0, int((entry.blocked_until - now).total_seconds()))
@@ -259,7 +267,7 @@ def login_is_blocked(username):
 
 def register_login_failure(username):
     key = login_rate_limit_key(username)
-    now = datetime.utcnow()
+    now = utcnow()
     threshold, window_seconds, max_block_seconds, step_seconds = _login_lockout_policy()
     entry = LoginFailure.query.filter_by(rate_key=key).first()
     if not entry:
@@ -351,7 +359,7 @@ def audit_retention_label():
     return ', '.join(labels) or '6 mesi'
 
 def audit_cutoff_datetime():
-    return datetime.utcnow() - audit_retention_delta()
+    return utcnow() - audit_retention_delta()
 
 def audit_max_records(default=10000):
     """Numero massimo di righe audit da mantenere.
@@ -501,7 +509,7 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
     user_id, username, resolved_actor_type = audit_actor(actor_type)
     op = (operation_type or 'operazione')[:120]
     summarized_details = audit_detail_summary(operation_type, details)[:1000]
-    now = datetime.utcnow()
+    now = utcnow()
     try:
         # Evita che una precedente riga AuditLog ancora pendente venga
         # autoflushata dalla SELECT prima del riallineamento della sequence.
@@ -737,7 +745,7 @@ def format_application_datetime(value, include_timezone=True):
 def utc_to_application_datetime(value):
     """Converte un datetime naive UTC nel fuso applicativo configurato.
 
-    I record audit sono registrati con datetime.utcnow() naive. La pagina Audit
+    I record audit sono registrati con utcnow() naive. La pagina Audit
     espone però sempre data e ora nel fuso configurato in Admin -> Altre
     configurazioni.
     """
@@ -800,11 +808,11 @@ def apply_action_automatic_operations(incident_id, action):
     configurabili da Admin -> Liste configurabili -> Label azioni. Questo rende
     estendibile il comportamento anche per task personalizzati.
     """
-    label = getattr(action, 'label', None) or (ConfigLabel.query.get(action.label_id) if action.label_id else None)
+    label = getattr(action, 'label', None) or (db.session.get(ConfigLabel, action.label_id) if action.label_id else None)
     operations = action_automatic_operation_list(label)
     if not operations:
         return False
-    inc = Incident.query.get(incident_id)
+    inc = db.session.get(Incident, incident_id)
     if not inc:
         return False
     now = application_now()
@@ -1016,7 +1024,7 @@ def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc)
         ['Destinatario mail', recipient or ''],
         ['CC', cc or ''],
         ['Oggetto', subject or ''],
-        ['Data generazione', datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')],
+        ['Data generazione', utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')],
     ]
     table = RLTable([[Paragraph(escape(str(a)), small), Paragraph(escape(str(b)), small)] for a,b in meta], colWidths=[4*cm, 12*cm])
     table.setStyle(TableStyle([('GRID',(0,0),(-1,-1),0.25,colors.grey),('BACKGROUND',(0,0),(0,-1),colors.whitesmoke),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),4),('RIGHTPADDING',(0,0),(-1,-1),4)]))
@@ -1024,7 +1032,7 @@ def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc)
     for line in (body or '').splitlines() or ['']:
         story.append(Paragraph(escape(line) if line else '&nbsp;', normal))
     doc.build(story)
-    return path, stored, f'testo-mail-notifica-{inc.id}-{datetime.utcnow().strftime("%Y%m%d%H%M%S")}.pdf'
+    return path, stored, f'testo-mail-notifica-{inc.id}-{utcnow().strftime("%Y%m%d%H%M%S")}.pdf'
 
 
 def labels(kind): return ConfigLabel.query.filter_by(kind=kind).order_by(ConfigLabel.group,ConfigLabel.value).all()
@@ -1047,13 +1055,13 @@ def workflow_condition_token_label(token):
         return 'Rischio per diritti e libertà'
     if token.startswith('severity:'):
         try:
-            lab=ConfigLabel.query.get(int(token.split(':',1)[1]))
+            lab=db.session.get(ConfigLabel, int(token.split(':',1)[1]))
             return f"Gravità: {lab.value}" if lab else f"Gravità #{token.split(':',1)[1]}"
         except Exception:
             return 'Gravità non valida'
     if token.startswith('data_type:'):
         try:
-            lab=ConfigLabel.query.get(int(token.split(':',1)[1]))
+            lab=db.session.get(ConfigLabel, int(token.split(':',1)[1]))
             return f"Dati interessati: {lab.value}" if lab else f"Dato interessato #{token.split(':',1)[1]}"
         except Exception:
             return 'Dato interessato non valido'
@@ -1224,7 +1232,10 @@ def incident_workflow_status(inc):
             'action_label_id': label_id,
             'label': (label.description or label.value) if label else '',
             'task_name': label.value if label else '',
+            'task_description': (label.description or '') if label else '',
             'description': step.description or '',
+            'flow_description': step.description or '',
+            'description_required': bool(getattr(label, 'description_required', False)) if label else False,
             'personal_data_only': bool(getattr(step, 'personal_data_only', False)),
             'conditions': [workflow_condition_token_label(t) for t in (step.condition_tokens() if hasattr(step, 'condition_tokens') else [])],
             'required': bool(getattr(step, 'required', True)),
@@ -1375,7 +1386,7 @@ def sso_profiles(include_legacy=True):
 
 def save_sso_profiles(profiles):
     normalized = [_normalize_sso_profile(p, f'sso-{i+1}') for i, p in enumerate(profiles or [])]
-    s = Setting.query.get('sso_profiles_json') or Setting(key='sso_profiles_json')
+    s = db.session.get(Setting, 'sso_profiles_json') or Setting(key='sso_profiles_json')
     s.value = store_setting_value('sso_profiles_json', json.dumps(normalized, ensure_ascii=False, indent=2))
     db.session.merge(s)
 
@@ -2004,7 +2015,24 @@ def incident_template_context(template=None):
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),
         recommendations_max_per_incident=recommendations_limit(),
         external_recipients=get_external_recipients(),
+        incident_form_visible_fields=incident_form_visible_fields(),
+        incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
     )
+
+
+@bp.route('/admin/incident-form-fields', methods=['GET','POST'])
+@login_required
+def admin_incident_form_fields():
+    if not can_admin(): return redirect(url_for('main.index'))
+    all_codes = [code for code, _label, _required in INCIDENT_FORM_FIELDS]
+    if request.method == 'POST':
+        selected = [code for code in request.form.getlist('visible_field') if code in all_codes]
+        selected = list(dict.fromkeys(selected + list(incident_form_required_field_codes())))
+        set_setting_value('incident_form_default_visible_fields', ','.join(selected))
+        db.session.commit()
+        flash('Configurazione campi nuovo incidente salvata.', 'success')
+        return redirect(url_for('main.admin_incident_form_fields'))
+    return render_template('admin_incident_form_fields.html', incident_form_fields=INCIDENT_FORM_FIELDS, visible_fields=incident_form_visible_fields())
 
 @bp.route('/admin/incident-templates',methods=['GET','POST'])
 @login_required
@@ -2013,14 +2041,14 @@ def admin_incident_templates():
     editing=None
     edit_id=request.args.get('edit', type=int)
     if edit_id:
-        editing=IncidentTemplate.query.get_or_404(edit_id)
+        editing=model_or_404(IncidentTemplate, edit_id)
     if request.method=='POST':
         action=request.form.get('action') or 'save'
         if action=='delete':
-            tmpl=IncidentTemplate.query.get_or_404(request.form.get('id', type=int))
+            tmpl=model_or_404(IncidentTemplate, request.form.get('id', type=int))
             db.session.delete(tmpl); db.session.commit(); flash('Modello incidente cancellato.'); return redirect(url_for('main.admin_incident_templates'))
         if action=='create_from_incident':
-            inc=Incident.query.get_or_404(request.form.get('incident_id', type=int))
+            inc=model_or_404(Incident, request.form.get('incident_id', type=int))
             tmpl=incident_template_from_incident(inc, request.form.get('template_name') or f'Modello da {inc.name}', request.form.get('template_description') or '')
             db.session.add(tmpl); db.session.commit(); flash('Modello creato dall’incidente esistente, senza azioni e documenti.'); return redirect(url_for('main.admin_incident_templates'))
         payload=incident_template_form_payload()
@@ -2032,7 +2060,7 @@ def admin_incident_templates():
             flash(recipient_email_error, 'error')
             return redirect(url_for('main.admin_incident_templates', edit=request.form.get('id', type=int)) if request.form.get('id') else url_for('main.admin_incident_templates'))
         tid=request.form.get('id', type=int)
-        tmpl=IncidentTemplate.query.get(tid) if tid else None
+        tmpl=db.session.get(IncidentTemplate, tid) if tid else None
         if tmpl is None:
             tmpl=IncidentTemplate(); db.session.add(tmpl)
         for k,v in payload.items(): setattr(tmpl,k,v)
@@ -2048,7 +2076,7 @@ def admin_incident_templates():
 @login_required
 def incident_create_template(iid):
     if not can_admin(): return redirect(url_for('main.index'))
-    inc=Incident.query.get_or_404(iid)
+    inc=model_or_404(Incident, iid)
     name=(request.form.get('template_name') or f'Modello da {inc.name}').strip()
     tmpl=incident_template_from_incident(inc, name, request.form.get('template_description') or '')
     db.session.add(tmpl)
@@ -2062,20 +2090,20 @@ def incident_create_template(iid):
 @login_required
 def incident_new():
     if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.index'))
-    selected_template = IncidentTemplate.query.get(request.args.get('template_id', type=int)) if request.args.get('template_id') else None
+    selected_template = db.session.get(IncidentTemplate, request.args.get('template_id', type=int)) if request.args.get('template_id') else None
     if request.method=='POST':
         reference_value = (request.form.get('reference') or '').strip()
         if not reference_value:
             flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         recipient_value = (request.form.get('recipient') or '').strip()
         recipient_email_value = (request.form.get('recipient_email') or '').strip()
         recipient_email_error = validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email_value)
         if recipient_email_error:
             flash(recipient_email_error, 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
         inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
@@ -2099,11 +2127,11 @@ def incident_new():
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
     now_dt = application_now()
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients())
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
-    inc=visible(Incident.query).get_or_404(iid)
+    inc=visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if request.method=='POST':
         if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.incident_detail',iid=iid))
         requested_status = request.form.get('status')
@@ -2173,12 +2201,14 @@ def incident_detail(iid):
         global_messages=global_messages,
         split_email_list=_split_email_list,
         external_recipients=get_external_recipients(),
+        incident_form_visible_fields=incident_form_visible_fields(),
+        incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
     )
 
 @bp.route('/incident/<int:iid>/reminder/add',methods=['POST'])
 @login_required
 def add_incident_reminder(iid):
-    inc=visible(Incident.query).get_or_404(iid)
+    inc=visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if not can_write():
         section_flash('Permessi insufficienti','incident-reminders','error')
         return incident_detail_redirect(iid, 'incident-reminders')
@@ -2202,8 +2232,8 @@ def add_incident_reminder(iid):
 @bp.route('/incident/reminder/<int:rid>/update',methods=['POST'])
 @login_required
 def update_incident_reminder(rid):
-    rem=IncidentReminder.query.get_or_404(rid)
-    inc=visible(Incident.query).get_or_404(rem.incident_id)
+    rem=model_or_404(IncidentReminder, rid)
+    inc=visible(Incident.query).filter(Incident.id == rem.incident_id).first_or_404()
     if not can_write():
         section_flash('Permessi insufficienti','incident-reminders','error')
         return incident_detail_redirect(inc.id, 'incident-reminders')
@@ -2216,7 +2246,7 @@ def update_incident_reminder(rid):
     if not message:
         section_flash('Il messaggio del promemoria è obbligatorio','incident-reminders','error')
         return incident_detail_redirect(inc.id, 'incident-reminders')
-    rem.scheduled_at=scheduled_at; rem.message=message; rem.cc_emails=request.form.get('cc_emails') or ''; rem.updated_at=datetime.utcnow()
+    rem.scheduled_at=scheduled_at; rem.message=message; rem.cc_emails=request.form.get('cc_emails') or ''; rem.updated_at=utcnow()
     if request.form.get('reset_sent'):
         rem.sent_at=None; rem.last_error=''
     audit_log('incident_reminder:update', json.dumps({'reminder_id': rem.id, 'incident_id': inc.id, 'scheduled_at': scheduled_at.isoformat(timespec='seconds'), 'reset_sent': bool(request.form.get('reset_sent'))}, ensure_ascii=False))
@@ -2227,9 +2257,9 @@ def update_incident_reminder(rid):
 @bp.route('/incident/reminder/<int:rid>/delete',methods=['POST'])
 @login_required
 def delete_incident_reminder(rid):
-    rem=IncidentReminder.query.get_or_404(rid)
+    rem=model_or_404(IncidentReminder, rid)
     iid=rem.incident_id
-    visible(Incident.query).get_or_404(iid)
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if not can_write():
         section_flash('Permessi insufficienti','incident-reminders','error')
         return incident_detail_redirect(iid, 'incident-reminders')
@@ -2257,7 +2287,7 @@ def delete_incident_with_related_state(incident):
 @login_required
 def incident_delete(iid):
     if can_write():
-        inc = Incident.query.get_or_404(iid)
+        inc = model_or_404(Incident, iid)
         delete_incident_with_related_state(inc)
         db.session.commit()
         flash('Incidente cancellato.', 'success')
@@ -2266,7 +2296,7 @@ def incident_delete(iid):
 @login_required
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
-    src=Incident.query.get_or_404(iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=datetime.utcnow(),status='aperto')
+    src=model_or_404(Incident, iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto')
     sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
 
 def workflow_notification_blocking_message(inc, label_id):
@@ -2304,7 +2334,7 @@ def workflow_global_check_blocking_message(inc, label_id):
         selected_label_id = int(label_id)
     except Exception:
         return ''
-    label = ConfigLabel.query.get(selected_label_id)
+    label = db.session.get(ConfigLabel, selected_label_id)
     if not action_has_automatic_operation(label, 'global_check'):
         return ''
     workflow = incident_workflow_status(inc)
@@ -2345,14 +2375,16 @@ def create_manual_action_safely(iid):
     """
     align_table_sequence('action')
     label_id = request.form.get('label_id') or None
-    label = ConfigLabel.query.get(label_id) if label_id else None
-    inc = Incident.query.get(iid)
+    label = db.session.get(ConfigLabel, label_id) if label_id else None
+    inc = db.session.get(Incident, iid)
     blocking = workflow_notification_blocking_message(inc, label_id) if inc else ''
     if not blocking and inc:
         blocking = workflow_global_check_blocking_message(inc, label_id)
     if blocking:
         raise ValueError(blocking)
-    description = request.form.get('description') or None
+    description = (request.form.get('description') or '').strip() or None
+    if label and getattr(label, 'description_required', False) and not description:
+        raise ValueError('La Descrizione operazioni compiute è obbligatoria per il task selezionato.')
     payload = dict(
         incident_id=iid,
         when_at=datetime.fromisoformat(request.form['when_at']),
@@ -2385,7 +2417,7 @@ def add_action(iid):
     if can_write():
         try:
             action = create_manual_action_safely(iid)
-            if getattr(Incident.query.get(iid), '_closure_blocked_by_procedural_warnings', False):
+            if getattr(db.session.get(Incident, iid), '_closure_blocked_by_procedural_warnings', False):
                 section_flash('Incidente non chiuso: sono ancora presenti avvisi procedurali attivi.', 'incident-actions', 'warning')
             for f in request.files.getlist('action_files'):
                 save_action_attachment_file(f, action)
@@ -2406,7 +2438,7 @@ def add_action(iid):
 @bp.route('/action/<int:aid>/update',methods=['POST'])
 @login_required
 def update_action(aid):
-    a=Action.query.get_or_404(aid); iid=a.incident_id
+    a=model_or_404(Action, aid); iid=a.incident_id
     if can_write():
         when_value = (request.form.get('when_at') or '').strip()
         if when_value:
@@ -2416,13 +2448,18 @@ def update_action(aid):
                 section_flash('Data e ora azione non valida.', 'incident-actions', 'error')
                 return incident_detail_redirect(iid, 'incident-actions')
         a.person_name=request.form.get('person_name') or a.person_name
-        a.description=request.form.get('description') or None
-        a.consequence_text=request.form.get('consequence_text') or None
         label_id=request.form.get('label_id') or None
+        label = db.session.get(ConfigLabel, label_id) if label_id else None
+        description = (request.form.get('description') or '').strip() or None
+        if label and getattr(label, 'description_required', False) and not description:
+            section_flash('La Descrizione operazioni compiute è obbligatoria per il task selezionato.', 'incident-actions', 'warning')
+            return incident_detail_redirect(iid, 'incident-actions')
+        a.description=description
+        a.consequence_text=request.form.get('consequence_text') or None
         a.label_id=label_id
         a.exportable=bool(request.form.get('exportable'))
         close_incident_from_conclusion_action(iid, a)
-        if getattr(Incident.query.get(iid), '_closure_blocked_by_procedural_warnings', False):
+        if getattr(db.session.get(Incident, iid), '_closure_blocked_by_procedural_warnings', False):
             section_flash('Incidente non chiuso: sono ancora presenti avvisi procedurali attivi.', 'incident-actions', 'warning')
         try:
             db.session.commit(); section_flash('Azione aggiornata', 'incident-actions', 'success')
@@ -2433,14 +2470,14 @@ def update_action(aid):
 @bp.route('/action/<int:aid>/delete',methods=['POST'])
 @login_required
 def del_action(aid):
-    a=Action.query.get_or_404(aid); iid=a.incident_id
+    a=model_or_404(Action, aid); iid=a.incident_id
     if can_write(): db.session.delete(a); db.session.commit()
     return incident_detail_redirect(iid, 'incident-actions')
 @bp.route('/action/<int:aid>/exportable',methods=['POST'])
 @login_required
 def update_action_exportable(aid):
-    a=Action.query.get_or_404(aid); iid=a.incident_id
-    visible(Incident.query).get_or_404(iid)
+    a=model_or_404(Action, aid); iid=a.incident_id
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if can_write():
         a.exportable = bool(request.form.get('exportable'))
         db.session.commit()
@@ -2450,16 +2487,16 @@ def update_action_exportable(aid):
 @bp.route('/action-attachment/<int:att_id>/download')
 @login_required
 def download_action_attachment(att_id):
-    att=ActionAttachment.query.get_or_404(att_id)
-    action=Action.query.get_or_404(att.action_id)
-    visible(Incident.query).get_or_404(action.incident_id)
+    att=model_or_404(ActionAttachment, att_id)
+    action=model_or_404(Action, att.action_id)
+    visible(Incident.query).filter(Incident.id == action.incident_id).first_or_404()
     return send_file(os.path.join(current_app.config['UPLOAD_DIR'],att.stored_name),download_name=att.filename,as_attachment=True)
 
 @bp.route('/action-attachment/<int:att_id>/delete',methods=['POST'])
 @login_required
 def del_action_attachment(att_id):
-    att=ActionAttachment.query.get_or_404(att_id)
-    action=Action.query.get_or_404(att.action_id)
+    att=model_or_404(ActionAttachment, att_id)
+    action=model_or_404(Action, att.action_id)
     iid=action.incident_id
     if can_write():
         try: os.remove(os.path.join(current_app.config['UPLOAD_DIR'],att.stored_name))
@@ -2484,11 +2521,11 @@ def upload(iid):
 @bp.route('/document/<int:did>/download')
 @login_required
 def download_doc(did):
-    d=Document.query.get_or_404(did); visible(Incident.query).get_or_404(d.incident_id); return send_file(os.path.join(current_app.config['UPLOAD_DIR'],d.stored_name),download_name=d.filename,as_attachment=True)
+    d=model_or_404(Document, did); visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404(); return send_file(os.path.join(current_app.config['UPLOAD_DIR'],d.stored_name),download_name=d.filename,as_attachment=True)
 @bp.route('/document/<int:did>/delete',methods=['POST'])
 @login_required
 def del_doc(did):
-    d=Document.query.get_or_404(did); iid=d.incident_id
+    d=model_or_404(Document, did); iid=d.incident_id
     if can_write():
         try:
             try: os.remove(os.path.join(current_app.config['UPLOAD_DIR'],d.stored_name))
@@ -2501,8 +2538,8 @@ def del_doc(did):
 @bp.route('/document/<int:did>/notification-tags', methods=['POST'])
 @login_required
 def update_document_notification_tags(did):
-    d = Document.query.get_or_404(did)
-    visible(Incident.query).get_or_404(d.incident_id)
+    d = model_or_404(Document, did)
+    visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404()
     if not can_write():
         section_flash('Permessi insufficienti', 'incident-documents', 'error')
         return incident_detail_redirect(d.incident_id, 'incident-documents')
@@ -2518,7 +2555,7 @@ def update_document_notification_tags(did):
 
 def _workflow_scope_label(category_id):
     if category_id:
-        lab = ConfigLabel.query.get(category_id)
+        lab = db.session.get(ConfigLabel, category_id)
         return lab.value if lab else str(category_id)
     return 'default'
 
@@ -2603,7 +2640,7 @@ def build_workflow_export_payload(category_id=None):
         if data:
             label_map[f"{data['kind']}::{data['value']}"] = data
 
-    category_label = ConfigLabel.query.get(category_id) if category_id else None
+    category_label = db.session.get(ConfigLabel, category_id) if category_id else None
     add_label(category_label)
     exported_steps = []
     for step in steps:
@@ -2612,7 +2649,7 @@ def build_workflow_export_payload(category_id=None):
             if ':' in token:
                 kind, sid = token.split(':', 1)
                 if kind in {'severity', 'data_type'}:
-                    lab = ConfigLabel.query.get(int(sid)) if sid.isdigit() else None
+                    lab = db.session.get(ConfigLabel, int(sid)) if sid.isdigit() else None
                     add_label(lab)
         nt = NotificationType.query.filter_by(code=step.required_notification_type).first() if step.required_notification_type else None
         if nt:
@@ -2637,7 +2674,7 @@ def build_workflow_export_payload(category_id=None):
         })
     return {
         'format': 'cybersecurity-incident-registry.workflow.v1',
-        'exported_at': datetime.utcnow().isoformat() + 'Z',
+        'exported_at': utcnow().isoformat() + 'Z',
         'application': {'name': APP_NAME if 'APP_NAME' in globals() else 'Cybersecurity Incident Registry', 'version': APP_VERSION if 'APP_VERSION' in globals() else ''},
         'workflow': {
             'scope': 'category' if category_label else 'default',
@@ -2975,7 +3012,7 @@ def admin_incident_workflows():
         elif action == 'save':
             ids = request.form.getlist('step_id')
             for sid in ids:
-                step = IncidentWorkflowStep.query.get(int(sid))
+                step = db.session.get(IncidentWorkflowStep, int(sid))
                 if not step: continue
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()[:500]
@@ -2998,7 +3035,7 @@ def admin_incident_workflows():
 @login_required
 def admin_incident_workflow_delete(sid):
     if not can_admin(): return redirect(url_for('main.index'))
-    step=IncidentWorkflowStep.query.get_or_404(sid)
+    step=model_or_404(IncidentWorkflowStep, sid)
     db.session.delete(step); db.session.commit(); flash('Passo del flusso eliminato','info')
     return redirect(url_for('main.admin_incident_workflows'))
 
@@ -3071,16 +3108,18 @@ def admin_labels():
             existing=ConfigLabel.query.filter_by(kind=kind,value=value).first()
             max_hours=request.form.get('max_completion_hours', type=int)
             default_exportable = bool(request.form.get('default_exportable')) if kind == 'action_label' else True
+            description_required = bool(request.form.get('description_required')) if kind == 'action_label' else False
             automatic_operations = ','.join([op for op in request.form.getlist('automatic_operations') if op in AUTOMATIC_ACTION_OPERATIONS]) if kind == 'action_label' else ''
             if existing:
                 existing.group=group; existing.description=description
                 if kind == 'action_label':
                     existing.max_completion_hours = max_hours if max_hours is not None and max_hours >= 0 else 0
                     existing.default_exportable = default_exportable
+                    existing.description_required = description_required
                     existing.automatic_operations = automatic_operations
                 flash('Label già presente: gruppo e descrizione aggiornati','info')
             else:
-                db.session.add(ConfigLabel(kind=kind,group=group,value=value,description=description,max_completion_hours=(max_hours if kind=='action_label' and max_hours is not None and max_hours >= 0 else 0),default_exportable=default_exportable,automatic_operations=automatic_operations))
+                db.session.add(ConfigLabel(kind=kind,group=group,value=value,description=description,max_completion_hours=(max_hours if kind=='action_label' and max_hours is not None and max_hours >= 0 else 0),default_exportable=default_exportable,description_required=description_required,automatic_operations=automatic_operations))
             try:
                 db.session.commit()
             except Exception as exc:
@@ -3092,7 +3131,7 @@ def admin_labels():
 def admin_label_update(lid):
     if not can_admin():
         return redirect(url_for('main.index'))
-    lab=ConfigLabel.query.get_or_404(lid)
+    lab=model_or_404(ConfigLabel, lid)
     value=(request.form.get('value') or '').strip()
     description=(request.form.get('description') or '').strip()
     if not value:
@@ -3104,6 +3143,7 @@ def admin_label_update(lid):
             mh = request.form.get('max_completion_hours', type=int)
             lab.max_completion_hours = mh if mh is not None and mh >= 0 else 0
             lab.default_exportable = bool(request.form.get('default_exportable'))
+            lab.description_required = bool(request.form.get('description_required'))
             lab.automatic_operations = ','.join([op for op in request.form.getlist('automatic_operations') if op in AUTOMATIC_ACTION_OPERATIONS])
         try:
             db.session.commit(); flash('Label aggiornata','success')
@@ -3115,7 +3155,7 @@ def admin_label_update(lid):
 @login_required
 def admin_label_delete(lid):
     if can_admin():
-        lab=ConfigLabel.query.get_or_404(lid)
+        lab=model_or_404(ConfigLabel, lid)
         # Rimuove la label da tutti gli incidenti e dalle azioni prima della cancellazione,
         # così non restano foreign key pendenti e la cancellazione è coerente con la UI.
         for inc in Incident.query.all():
@@ -3159,7 +3199,7 @@ def admin_people():
 @login_required
 def admin_people_delete(pid):
     if not can_admin(): return redirect(url_for('main.index'))
-    person=Person.query.get_or_404(pid)
+    person=model_or_404(Person, pid)
     for inc in Incident.query.all():
         if person in inc.people:
             inc.people.remove(person)
@@ -3231,7 +3271,7 @@ def admin_recommendations():
             if not text:
                 flash('Indicare il testo della raccomandazione','error')
             elif rid:
-                rec=Recommendation.query.get_or_404(int(rid)); rec.text=text
+                rec=model_or_404(Recommendation, int(rid)); rec.text=text
                 try: db.session.commit(); flash('Raccomandazione aggiornata','success')
                 except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
             elif Recommendation.query.filter_by(text=text).first():
@@ -3246,7 +3286,7 @@ def admin_recommendations():
 @login_required
 def admin_recommendation_delete(rid):
     if not can_admin(): return redirect(url_for('main.index'))
-    rec=Recommendation.query.get_or_404(rid)
+    rec=model_or_404(Recommendation, rid)
     for inc in Incident.query.all():
         if rec in inc.recommendations:
             inc.recommendations.remove(rec)
@@ -3256,7 +3296,7 @@ def admin_recommendation_delete(rid):
 
 @bp.route('/logo')
 def logo_image():
-    setting=Setting.query.get('logo_path')
+    setting=db.session.get(Setting, 'logo_path')
     path=setting.value if setting and setting.value else ''
     if not path or not os.path.exists(path):
         abort(404)
@@ -3266,7 +3306,7 @@ def logo_image():
 @login_required
 def admin_logo():
     if not can_admin(): return redirect(url_for('main.index'))
-    setting=Setting.query.get('logo_path') or Setting(key='logo_path',value='')
+    setting=db.session.get(Setting, 'logo_path') or Setting(key='logo_path',value='')
     if request.method=='POST':
         action=request.form.get('action')
         if action=='delete':
@@ -3307,7 +3347,7 @@ def mfa_verify():
     uid = session.get('mfa_user_id')
     if not uid:
         return redirect(url_for('main.login'))
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     if not user or user.role == 'disabled':
         session.pop('mfa_user_id', None); session.pop('mfa_next', None)
         flash('Sessione MFA non valida.', 'error')
@@ -3316,7 +3356,7 @@ def mfa_verify():
         code = (request.form.get('code') or '').replace(' ', '').strip()
         for token in MfaTotpToken.query.filter_by(user_id=user.id).all():
             if pyotp.TOTP(token.secret).verify(code, valid_window=1):
-                token.last_used_at = datetime.utcnow(); db.session.commit()
+                token.last_used_at = utcnow(); db.session.commit()
                 session.pop('mfa_user_id', None)
                 next_url = session.pop('mfa_next', None) or url_for('main.index')
                 login_user(user)
@@ -3340,7 +3380,7 @@ def mfa_settings():
                 db.session.commit(); flash('Impostazione MFA aggiornata.')
         elif action == 'prepare':
             secret = pyotp.random_base32()
-            session['pending_mfa_token'] = {'name': request.form.get('name') or 'Token TOTP', 'secret': secret, 'created_at': datetime.utcnow().isoformat()}
+            session['pending_mfa_token'] = {'name': request.form.get('name') or 'Token TOTP', 'secret': secret, 'created_at': utcnow().isoformat()}
             flash('Token generato. Scansiona il QR Code o copia la stringa, poi inserisci il codice TOTP per verificarlo e salvarlo.')
         elif action == 'verify_new':
             pending_token = session.get('pending_mfa_token')
@@ -3348,7 +3388,7 @@ def mfa_settings():
             if not pending_token:
                 flash('Nessun token in verifica. Crea un nuovo token TOTP.', 'error')
             elif pyotp.TOTP(pending_token['secret']).verify(code, valid_window=1):
-                token = MfaTotpToken(user_id=current_user.id, name=pending_token.get('name') or 'Token TOTP', secret=pending_token['secret'], verified_at=datetime.utcnow())
+                token = MfaTotpToken(user_id=current_user.id, name=pending_token.get('name') or 'Token TOTP', secret=pending_token['secret'], verified_at=utcnow())
                 db.session.add(token); db.session.commit()
                 session.pop('pending_mfa_token', None)
                 flash('Token MFA verificato e salvato correttamente.')
@@ -3380,7 +3420,7 @@ def mfa_settings():
 @login_required
 def admin_user_mfa(uid):
     if not can_admin(): return redirect(url_for('main.index'))
-    user = User.query.get_or_404(uid)
+    user = model_or_404(User, uid)
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'toggle':
@@ -3437,12 +3477,12 @@ def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari es
     edit_id = request.args.get('edit', type=int)
     search_query = (request.values.get('q') or '').strip()
     if edit_id:
-        editing = ExternalRecipient.query.get_or_404(edit_id)
+        editing = model_or_404(ExternalRecipient, edit_id)
     if request.method == 'POST':
         action = request.form.get('action', 'save')
         rid = request.form.get('recipient_id', type=int)
         if action == 'delete':
-            rec = ExternalRecipient.query.get_or_404(rid)
+            rec = model_or_404(ExternalRecipient, rid)
             db.session.delete(rec); db.session.commit()
             audit_log(f'{audit_prefix}:external_recipient_delete', {'recipient_id': rid}, actor_type='user', commit=True)
             flash('Destinatario esterno cancellato.')
@@ -3465,7 +3505,7 @@ def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari es
             if search_query:
                 params['q'] = search_query
             return redirect(url_for(endpoint_name, **params))
-        rec = ExternalRecipient.query.get(rid) if rid else ExternalRecipient()
+        rec = db.session.get(ExternalRecipient, rid) if rid else ExternalRecipient()
         rec.name = name; rec.email = email; rec.notes = notes
         db.session.add(rec); db.session.commit()
         audit_log(f'{audit_prefix}:external_recipient_save', {'recipient_id': rec.id, 'email': rec.email}, actor_type='user', commit=True)
@@ -3495,6 +3535,66 @@ def admin_external_recipients():
 def settings_external_recipients():
     if not can_manage_external_recipients_from_settings(): return redirect(url_for('main.index'))
     return _external_recipients_page('main.settings_external_recipients', 'settings', title='Destinatari esterni', settings_mode=True)
+
+
+def _ldap_attr_list(raw, fallback='uid,cn,mail,displayName'):
+    values=[]
+    for item in (raw or fallback).split(','):
+        item=item.strip()
+        if item and re.match(r'^[A-Za-z][A-Za-z0-9._-]{0,63}$', item) and item not in values:
+            values.append(item)
+    return values or _ldap_attr_list(fallback, '')
+
+
+def make_incident_ldap_filter(cfg, query):
+    q=escape_filter_chars(query or '')
+    template=(cfg.get('ldap_incident_search_filter') or '').strip()
+    if template:
+        if '{q}' not in template:
+            raise ValueError('Il filtro ricerca incidenti LDAP deve contenere il placeholder {q}.')
+        filt=template.replace('{q}', q)
+        if not (filt.startswith('(') and filt.endswith(')')):
+            raise ValueError('Filtro ricerca incidenti LDAP non valido.')
+        return filt
+    attrs=_ldap_attr_list(cfg.get('ldap_incident_search_attributes'))
+    return '(|' + ''.join(f'({attr}=*{q}*)' for attr in attrs) + ')'
+
+
+@bp.route('/ldap/incident-recipient-search')
+@login_required
+def ldap_incident_recipient_search():
+    if not can_write():
+        return jsonify({'ok': False, 'error': 'Permessi insufficienti'}), 403
+    q=(request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({'ok': True, 'entries': []})
+    cfg=setting_map()
+    try:
+        attrs=_ldap_attr_list(cfg.get('ldap_incident_search_attributes'))
+        ref_attr=(cfg.get('ldap_incident_reference_attribute') or 'displayName').strip() or 'displayName'
+        email_attr=(cfg.get('ldap_incident_email_attribute') or 'mail').strip() or 'mail'
+        for extra in [ref_attr, email_attr, 'cn', 'uid', 'displayName', 'mail']:
+            if extra and extra not in attrs:
+                attrs.append(extra)
+        filt=make_incident_ldap_filter(cfg, q)
+        srv=Server(cfg.get('ldap_uri'),get_info=ALL,connect_timeout=5)
+        bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
+        entries=[]
+        with Connection(srv,user=bind_dn,password=bind_pw,auto_bind=True) as c:
+            c.search(cfg.get('ldap_base_dn'),filt,attributes=attrs,size_limit=10)
+            for e in c.entries:
+                def aval(name):
+                    if not name or not hasattr(e, name): return ''
+                    v=getattr(e, name)
+                    if hasattr(v, 'values') and v.values: return str(v.values[0])
+                    return str(v) if str(v) != '[]' else ''
+                reference=aval(ref_attr) or aval('displayName') or aval('cn') or aval('uid')
+                email=aval(email_attr) or aval('mail')
+                entries.append({'dn': e.entry_dn, 'reference': reference, 'recipient': reference, 'email': email})
+        return jsonify({'ok': True, 'entries': entries})
+    except Exception as exc:
+        current_app.logger.exception('Ricerca LDAP destinatario incidente fallita')
+        return jsonify({'ok': False, 'error': str(exc)}), 400
 
 @bp.route('/admin/users',methods=['GET','POST'])
 @login_required
@@ -3552,7 +3652,7 @@ def admin_users():
 @login_required
 def user_role(uid):
     if can_admin():
-        u=User.query.get_or_404(uid)
+        u=model_or_404(User, uid)
         u.role=request.form['role']; u.email=request.form.get('email',u.email)
         db.session.commit()
         audit_log('admin:user_update', {'user_id': u.id, 'username': u.username, 'role': u.role}, actor_type='user', commit=True)
@@ -3563,7 +3663,7 @@ def user_role(uid):
 @login_required
 def admin_user_delete(uid):
     if not can_admin(): return redirect(url_for('main.index'))
-    user=User.query.get_or_404(uid)
+    user=model_or_404(User, uid)
     if user.id == current_user.id:
         flash('Non è possibile rimuovere il proprio utente amministratore durante la sessione corrente.', 'error')
         return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
@@ -3731,15 +3831,15 @@ def ldap_settings():
     result=None
     def form_cfg():
         cfg=dict(settings)
-        for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter']:
+        for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter','ldap_incident_search_filter','ldap_incident_search_attributes','ldap_incident_reference_attribute','ldap_incident_email_attribute']:
             cfg[k]=request.form.get(k,cfg.get(k,''))
         return cfg
     if request.method=='POST':
         action=request.form.get('action','save')
         cfg=form_cfg()
         if action=='save':
-            for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter']:
-                s=Setting.query.get(k) or Setting(key=k); s.value=store_setting_value(k, cfg.get(k,'')); db.session.merge(s)
+            for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter','ldap_incident_search_filter','ldap_incident_search_attributes','ldap_incident_reference_attribute','ldap_incident_email_attribute']:
+                s=db.session.get(Setting, k) or Setting(key=k); s.value=store_setting_value(k, cfg.get(k,'')); db.session.merge(s)
             db.session.commit(); settings=cfg; flash('Parametri LDAP salvati')
         elif action=='test_connection':
             try:
@@ -3920,13 +4020,51 @@ def get_notification_type(kind):
     return t
 
 def setting_value(key, default=''):
-    s = Setting.query.get(key)
+    s = db.session.get(Setting, key)
     return decrypt_setting_value(key, s.value) if s and s.value is not None else default
 
 def set_setting_value(key, value):
-    s = Setting.query.get(key) or Setting(key=key)
+    s = db.session.get(Setting, key) or Setting(key=key)
     s.value = store_setting_value(key, value or '')
     db.session.merge(s)
+
+
+INCIDENT_FORM_FIELDS = [
+    ('template', 'Modello predefinito', False),
+    ('name', 'Nome', True),
+    ('external_recipients', 'Rubrica destinatari esterni / LDAP', False),
+    ('reference', 'Riferimento', True),
+    ('recipient', 'Destinatario', False),
+    ('recipient_email', 'E-mail destinatario', False),
+    ('description', 'Descrizione', False),
+    ('severity', 'Gravità', False),
+    ('status', 'Stato', False),
+    ('start_date', 'Data inizio', True),
+    ('start_time', 'Ora inizio', True),
+    ('end_date', 'Data fine', False),
+    ('end_time', 'Ora fine', False),
+    ('personal_data', 'Rischio per diritti e libertà', False),
+    ('data_subjects_count', 'Numero di interessati', False),
+    ('data_volume', 'Volume dati', False),
+    ('dnd_fields', 'Label, personale e raccomandazioni', False),
+]
+
+
+def incident_form_required_field_codes():
+    return {code for code, _label, required in INCIDENT_FORM_FIELDS if required}
+
+
+def incident_form_visible_fields():
+    raw = setting_value('incident_form_default_visible_fields', '')
+    all_codes = [code for code, _label, _required in INCIDENT_FORM_FIELDS]
+    if not raw:
+        return set(all_codes)
+    visible = {x.strip() for x in raw.split(',') if x.strip() in all_codes}
+    return visible | incident_form_required_field_codes()
+
+
+def incident_ldap_lookup_enabled():
+    return bool(setting_value('ldap_uri') and setting_value('ldap_base_dn'))
 
 def app_info_label():
     info = current_app.config.get('APP_INFO', {}) if has_app_context() else {}
@@ -4681,7 +4819,7 @@ def _claim_deadline_notification_slot(incident_id, schedule_slot, source='schedu
             DeadlineNotificationState.last_schedule_slot: schedule_slot,
             DeadlineNotificationState.last_recipients: '',
             DeadlineNotificationState.last_details: f'invio in corso; sorgente {source}',
-            DeadlineNotificationState.updated_at: datetime.utcnow(),
+            DeadlineNotificationState.updated_at: utcnow(),
         }, synchronize_session=False)
         if not updated:
             db.session.rollback()
@@ -4709,7 +4847,7 @@ def _record_deadline_notification_success(incident_id, schedule_slot, recipients
     now = application_now()
     recipients = (recipients or '').strip()
     if not recipients:
-        recipients = _deadline_recipients_text_for_incident(Incident.query.get(incident_id))
+        recipients = _deadline_recipients_text_for_incident(db.session.get(Incident, incident_id))
     state = DeadlineNotificationState.query.filter_by(notification_key=key).first()
     if not state:
         state = DeadlineNotificationState(
@@ -4731,7 +4869,7 @@ def _record_deadline_notification_success(incident_id, schedule_slot, recipients
         state.last_recipients = recipients or ''
         state.last_details = details or ''
         state.send_count = max(1, int(state.send_count or 0) + 1)
-        state.updated_at = datetime.utcnow()
+        state.updated_at = utcnow()
     return state
 
 
@@ -4741,7 +4879,7 @@ def _record_deadline_notification_failure(incident_id, schedule_slot, details=''
     if state:
         state.last_schedule_slot = schedule_slot
         state.last_details = details or 'invio non riuscito'
-        state.updated_at = datetime.utcnow()
+        state.updated_at = utcnow()
     return state
 
 
@@ -4854,7 +4992,7 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
     ).order_by(DeadlineNotificationState.last_schedule_slot.desc()).limit(limit).all()
     existing_keys = {(r.get('source'), getattr(r.get('incident'), 'id', None), r.get('scheduled_at')) for r in rows}
     for state in recent_states:
-        inc = state.incident if hasattr(state, 'incident') else Incident.query.get(state.incident_id)
+        inc = state.incident if hasattr(state, 'incident') else db.session.get(Incident, state.incident_id)
         key = ('deadline', state.incident_id, state.last_schedule_slot)
         if key in existing_keys:
             continue
@@ -5388,7 +5526,7 @@ def _claim_incident_reminder(reminder, source='scheduler'):
             state.last_recipients = ''
             state.last_details = f'promemoria in invio; sorgente {source}'
             state.send_count = 0
-            state.updated_at = datetime.utcnow()
+            state.updated_at = utcnow()
             db.session.flush()
         except IntegrityError:
             db.session.rollback()
@@ -5416,7 +5554,7 @@ def _record_incident_reminder_claim_result(reminder, ok, info=''):
         state.last_recipients = info if ok else ''
         state.last_details = ('Promemoria inviato' if ok else f'Promemoria non inviato: {info}')
         state.send_count = 1 if ok else 0
-        state.updated_at = datetime.utcnow()
+        state.updated_at = utcnow()
 
 def _audit_has_reminder_sent(reminder_id):
     pattern = f'"reminder_id": {int(reminder_id)}'
@@ -5979,7 +6117,7 @@ def start_incident_reminder_scheduler(app):
 
 @bp.before_app_request
 def mark_auditable_request():
-    g.audit_started_at = datetime.utcnow()
+    g.audit_started_at = utcnow()
 
 @bp.after_app_request
 def record_auditable_request(response):
@@ -6014,7 +6152,7 @@ def notification_types():
         action = request.form.get('action','save')
         type_id = request.form.get('type_id', type=int)
         if action == 'delete':
-            t = NotificationType.query.get_or_404(type_id)
+            t = model_or_404(NotificationType, type_id)
             if NotificationTemplate.query.filter_by(kind=t.code).first():
                 flash('Impossibile cancellare il tipo: esistono template associati. Cancellare o spostare prima i template.', 'error')
             elif t.code in ['user','csirt','dpo']:
@@ -6030,7 +6168,7 @@ def notification_types():
         if not code or not label:
             flash('Codice e nome del tipo sono obbligatori.', 'error')
         else:
-            t = NotificationType.query.get(type_id) if type_id else NotificationType()
+            t = db.session.get(NotificationType, type_id) if type_id else NotificationType()
             if t.id and t.code in ['user','csirt','dpo'] and code != t.code:
                 flash('Il codice dei tipi predefiniti non può essere modificato.', 'error')
             else:
@@ -6042,7 +6180,7 @@ def notification_types():
                     db.session.rollback(); flash('Esiste già un tipo di notifica con lo stesso codice.', 'error')
         return redirect(url_for('main.notification_types'))
     edit_id=request.args.get('edit', type=int)
-    editing=NotificationType.query.get(edit_id) if edit_id else None
+    editing=db.session.get(NotificationType, edit_id) if edit_id else None
     return render_template('notification_types.html', types=NotificationType.query.order_by(NotificationType.label).all(), editing=editing)
 
 
@@ -6238,7 +6376,7 @@ def notification_template(kind):
 def notify_preview(iid, kind):
     if kind not in notification_type_map(): abort(404)
     ntype = get_notification_type(kind)
-    inc = visible(Incident.query).get_or_404(iid)
+    inc = visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if not can_write():
         flash('Permessi insufficienti per inviare notifiche','error')
         return redirect(url_for('main.incident_detail', iid=iid))
@@ -6277,7 +6415,7 @@ def notify_preview(iid, kind):
 def notify_send(iid, kind):
     if kind not in notification_type_map(): abort(404)
     ntype = get_notification_type(kind)
-    inc = visible(Incident.query).get_or_404(iid)
+    inc = visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if not can_write():
         flash('Permessi insufficienti per inviare notifiche','error')
         return redirect(url_for('main.incident_detail', iid=iid))
@@ -6960,7 +7098,7 @@ def _restore_persistent_files_from_archive(archive, persistent_manifest):
 def build_full_export_archive_for_backup(prefix='cir-full-backup'):
     fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
     os.close(fd)
-    now = datetime.utcnow().isoformat()
+    now = utcnow().isoformat()
     payload = {
         'format': 'cybersecurity-incident-registry-full-export',
         'version': 4,
@@ -6977,7 +7115,7 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
         },
     }
     payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
-    logo_setting = Setting.query.get('logo_path')
+    logo_setting = db.session.get(Setting, 'logo_path')
     if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
         payload['files']['logo'] = {'path': logo_setting.value, 'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'}
     sso_dir = sso_logo_storage_dir()
@@ -7025,7 +7163,7 @@ def build_backup_archive(categories, prefix='cir-backup'):
         return build_full_export_archive_for_backup(prefix)
     fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
     os.close(fd)
-    created_at = datetime.utcnow().isoformat()
+    created_at = utcnow().isoformat()
     manifest = {
         'format': 'cybersecurity-incident-registry-backup',
         'version': 1,
@@ -7105,7 +7243,7 @@ def _send_backup_admin_email(job, status, message, filename=''):
 def execute_backup_job(job, allow_download=False):
     categories = job.category_list() or BACKUP_CATEGORY_KEYS[:]
     path = build_backup_archive(categories)
-    timestamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+    timestamp = utcnow().strftime('%Y%m%d-%H%M%S')
     filename = f'backup-cir-{timestamp}.tar.gz'
     try:
         if job.destination == 's3':
@@ -7127,7 +7265,7 @@ def execute_backup_job(job, allow_download=False):
             dst = target_dir / filename
             shutil.copyfile(path, dst)
             result = str(dst)
-        job.last_run_at = datetime.utcnow()
+        job.last_run_at = utcnow()
         job.last_status = 'ok'
         job.last_message = result
         audit_log('backup_execute', f'Backup {job.name}: {result}')
@@ -7136,7 +7274,7 @@ def execute_backup_job(job, allow_download=False):
         db.session.commit()
         return result, path
     except Exception as exc:
-        job.last_run_at = datetime.utcnow()
+        job.last_run_at = utcnow()
         job.last_status = 'error'
         job.last_message = str(exc)
         db.session.commit()
@@ -7176,7 +7314,7 @@ def admin_backups():
                 try:
                     result, tmp_path = execute_backup_job(job, allow_download=(job.destination == 'download'))
                     if job.destination == 'download':
-                        return send_file(tmp_path, download_name=os.path.basename(result) if result != tmp_path else f'backup-cir-{datetime.utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
+                        return send_file(tmp_path, download_name=os.path.basename(result) if result != tmp_path else f'backup-cir-{utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
                     flash(f'Backup completato: {result}', 'success')
                 except Exception as exc:
                     current_app.logger.exception('Backup on-demand fallito')
@@ -7252,7 +7390,7 @@ def duration(i):
 @bp.route('/incident/<int:iid>/pdf')
 @login_required
 def pdf(iid):
-    inc=visible(Incident.query).get_or_404(iid); return send_file(incident_pdf(inc),download_name=f'incident-{iid}.pdf',as_attachment=True)
+    inc=visible(Incident.query).filter(Incident.id == iid).first_or_404(); return send_file(incident_pdf(inc),download_name=f'incident-{iid}.pdf',as_attachment=True)
 
 
 def _dt(v):
@@ -7474,7 +7612,7 @@ def export_full():
 
     fd, path = tempfile.mkstemp(prefix='cir-full-export-', suffix='.tar.gz')
     os.close(fd)
-    now = datetime.utcnow().isoformat()
+    now = utcnow().isoformat()
 
     payload = {
         'format': 'cybersecurity-incident-registry-full-export',
@@ -7529,7 +7667,7 @@ def export_full():
     }
     payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
 
-    logo_setting = Setting.query.get('logo_path')
+    logo_setting = db.session.get(Setting, 'logo_path')
     if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
         payload['files']['logo'] = {
             'path': logo_setting.value,
@@ -7617,7 +7755,7 @@ def export_full():
                     archive.addfile(info, io.BytesIO(row.pdf_data))
         _add_persistent_files_to_archive(archive, payload['files'].get('persistent_files', {}))
 
-    return send_file(path, download_name=f'export-completo-{datetime.utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
+    return send_file(path, download_name=f'export-completo-{utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
 
 @bp.route('/import/csv', methods=['GET','POST'])
 @login_required
@@ -7637,7 +7775,7 @@ def import_csv():
                 if not name:
                     continue
                 periodo = row.get('periodo') or ''
-                start_at = datetime.utcnow()
+                start_at = utcnow()
                 end_at = None
                 if ' - ' in periodo:
                     a,b = periodo.split(' - ',1)
@@ -7821,7 +7959,7 @@ def import_full():
                         dst = os.path.join(current_app.config['LOGO_DIR'], f'logo{ext}')
                         with open(dst, 'wb') as out:
                             shutil.copyfileobj(src, out)
-                        setting = Setting.query.get('logo_path') or Setting(key='logo_path')
+                        setting = db.session.get(Setting, 'logo_path') or Setting(key='logo_path')
                         setting.value = dst
                         db.session.merge(setting)
                     except KeyError:
@@ -7923,7 +8061,7 @@ def _stats_incidents_for_range(start=None, end=None):
     return q.order_by(Incident.start_date.desc(), Incident.start_time.desc()).all()
 
 def _build_stats_rows(include_search=True):
-    now = datetime.utcnow()
+    now = utcnow()
     periods = []
     start_arg = request.args.get('start', '').strip()
     end_arg = request.args.get('end', '').strip()
@@ -8196,7 +8334,7 @@ def modules_configuration():
 @bp.route('/incident/<int:iid>/forms/generate', methods=['POST'])
 @login_required
 def generate_incident_forms(iid):
-    inc = visible(Incident.query).get_or_404(iid)
+    inc = visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if not can_write():
         section_flash('Permessi insufficienti', 'incident-forms', 'error')
         return incident_detail_redirect(iid, 'incident-forms')
@@ -8228,7 +8366,7 @@ def generate_incident_forms(iid):
 @bp.route('/incident/<int:iid>/forms/preview-file/<path:stored_name>')
 @login_required
 def preview_generated_form_file(iid, stored_name):
-    visible(Incident.query).get_or_404(iid)
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     safe = Path(stored_name).name
     path = Path(current_app.config['UPLOAD_DIR']) / safe
     if not path.exists():
@@ -8238,7 +8376,7 @@ def preview_generated_form_file(iid, stored_name):
 @bp.route('/incident/<int:iid>/forms/confirm', methods=['POST'])
 @login_required
 def confirm_generated_forms(iid):
-    inc = visible(Incident.query).get_or_404(iid)
+    inc = visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if not can_write():
         section_flash('Permessi insufficienti', 'incident-forms', 'error')
         return incident_detail_redirect(iid, 'incident-forms')
@@ -8348,11 +8486,11 @@ def recommendations_from_form(field='recommendations'):
     return Recommendation.query.filter(Recommendation.id.in_(ids)).order_by(Recommendation.text).all()
 
 def setting_value(key, default=''):
-    s=Setting.query.get(key)
+    s=db.session.get(Setting, key)
     return decrypt_setting_value(key, s.value) if s and s.value is not None else default
 
 def set_setting_value(key, value):
-    s=Setting.query.get(key)
+    s=db.session.get(Setting, key)
     encrypted = store_setting_value(key, value or '')
     if not s:
         s=Setting(key=key,value=encrypted)
@@ -8499,7 +8637,7 @@ def admin_audit_export_csv():
             log.repeat_count or 1,
             audit_detail_summary(log.operation_type, log.details),
         ])
-    filename = f"audit_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"audit_export_{utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={filename}'})
 
 

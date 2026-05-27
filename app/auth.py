@@ -1,5 +1,6 @@
 import hashlib
 from flask_login import LoginManager
+from .models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 login_manager=LoginManager()
 def norm(p):
@@ -13,4 +14,4 @@ def verify_password(h,p):
 @login_manager.user_loader
 def load_user(uid):
     from .models import User
-    return User.query.get(int(uid))
+    return db.session.get(User, int(uid))

@@ -1,31 +1,31 @@
-## Aggiornamento 0.4.0-4 - Struttura documentazione utente e amministrativa
+## Aggiornamento 0.5.0-1 - Struttura documentazione utente e amministrativa
 
 La documentazione online è stata riorganizzata per evitare blocchi fuori capitolo. I contenuti operativi vengono raggruppati nei capitoli pertinenti: notifiche e CC nei capitoli notifiche, stato servizi nel capitolo di responsabilità amministrativa, conseguenze automatiche nella configurazione, chatbot nei capitoli plugin/uso mobile, workflow e destinatari esterni in sezioni numerate. Le figure di flusso sono integrate nei capitoli introduttivi. Il CSS della documentazione usa un layout desktop più stabile e mantiene il comportamento responsive mobile. Le evidenze di compliance AGID restano conservate solo se richieste esplicitamente.
 
 
-## Aggiornamento 0.4.0-4 - Compliance sviluppo sicuro
+## Aggiornamento 0.5.0-1 - Compliance sviluppo sicuro
 
 La build 20260522 recepisce le principali misure applicabili delle linee guida di sviluppo sicuro: validazione server-side degli input, password policy locale, rate limiting dei login, timeout di sessione, invalidazione sessioni su login/logout, CSP, hardening degli upload e audit degli eventi security-relevant. La configurazione di produzione continua a fallire in modo esplicito se `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD` o PostgreSQL non sono sicuri. Gli upload accettano solo estensioni consentite, verificano la firma dei formati binari principali e sono salvati fuori dalla document root con permessi restrittivi.
 
 Restano di responsabilità infrastrutturale: TLS end-to-end, conferma della disabilitazione TRACE/TRACK anche sul reverse proxy, secret manager/Kubernetes Secret per credenziali e scansioni SAST/SCA/container in pipeline. L’applicazione blocca comunque direttamente i metodi HTTP TRACE e TRACK prima del dispatch delle route.
 
-## Aggiornamento 0.4.0-4 - Anteprima CC precompilata e svuotamento manuale
+## Aggiornamento 0.5.0-1 - Anteprima CC precompilata e svuotamento manuale
 
 L'anteprima delle notifiche manuali torna a valorizzare il campo CC modificabile con il default configurato nel template, quando presente. La risoluzione in invio resta basata sui campi effettivamente inviati dalla form: `manual_cc`, anche se vuoto, ha priorità sul valore configurato del template. In questo modo l'operatore vede il default proposto, può confermarlo senza ulteriori operazioni oppure svuotarlo consapevolmente prima della conferma per inviare senza CC. Il comportamento vale sia per l'invio effettivo sia per la conferma senza invio.
 
 # Documentazione progettuale
 
-## Baseline progettuale 0.4.0-4 - build 20260522
+## Baseline progettuale 0.5.0-1 - build 20260522
 
 La documentazione progettuale descrive lo stato corrente dell’applicazione. I metadati tecnici della release sono mantenuti nella pagina Info, nelle Note di rilascio e nel CHANGELOG, mentre le guide operative restano prive di banner di versione.
 
-## Aggiornamento 0.4.0-4 - Pulsanti data/ora locale e azioni notifica
+## Aggiornamento 0.5.0-1 - Pulsanti data/ora locale e azioni notifica
 
 La pagina di creazione incidente e la pagina di dettaglio incidente espongono pulsanti rapidi accanto ai campi separati `start_date`, `start_time`, `end_date` ed `end_time`. Il JavaScript dei template calcola il momento corrente usando la timezone applicativa configurata (`application_timezone`) tramite `Intl.DateTimeFormat`, con fallback alla timezone del browser. La route `incident_new` passa ora il nome del fuso al template come avviene già per `incident_detail`.
 
 Le azioni automatiche generate dall'invio di notifiche manuali sono create tramite `add_notification_action_safely()` con `application_now()` invece di `datetime.utcnow()`. In questo modo gli eventi registrati nella timeline dell'incidente sono espressi nella timezone locale applicativa, coerentemente con gli input HTML e con la documentazione utente.
 
-## Aggiornamento 0.4.0-4 - Workflow con dipendenze da notifiche e percorso guidato
+## Aggiornamento 0.5.0-1 - Workflow con dipendenze da notifiche e percorso guidato
 
 `IncidentWorkflowStep` supporta i campi `requires_notification` e `required_notification_type`. Quando uno step è configurato come dipendente da una notifica, `incident_workflow_status()` calcola se una azione di notifica compatibile è già presente nell’incidente, usando le label azione associate ai template di notifica del tipo richiesto e la label fallback del tipo notifica.
 
@@ -42,13 +42,13 @@ La sezione finale contiene una descrizione testuale completa, pensata per poter 
 ## 2. Informazioni applicative
 
 - Nome applicazione: Cybersecurity Incident Registry
-- Versione: 0.4.0-4
+- Versione: 0.5.0-1
 - Build: 20260522
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 - Backend: Flask con server di produzione Gunicorn
-## Baseline progettuale 0.4.0-4 - build 20260522
+## Baseline progettuale 0.5.0-1 - build 20260522
 
-La baseline 0.4.0-4 stabilizza l'applicazione come registro operativo bilingue per incidenti informatici. Include:
+La baseline 0.5.0-1 stabilizza l'applicazione come registro operativo bilingue per incidenti informatici. Include:
 
 - interfaccia e documentazione in italiano e inglese con selezione automatica da locale browser e override amministrativo;
 - menu Aiuto riorganizzato in Documentazione utente, Documentazione amministrativa e Note di rilascio, con PDF scaricabili dalle pagine relative;
@@ -641,7 +641,7 @@ Il menu Info contiene Applicazione con nome, versione, build e autore; l'email d
 Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero nella forma corrente.
 
 ```text
-Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.4.0-4, build 20260522, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
+Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.5.0-1, build 20260522, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
 L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
@@ -1282,19 +1282,19 @@ La gestione utenti consente agli amministratori di creare e rimuovere account lo
 From the administrator perspective, user deletion is an access-control operation, not a data-retention purge. Removing a user blocks future access and removes MFA tokens, but does not remove incidents, reminders or audit history. This keeps operational traceability intact while allowing administrators to keep the active user list clean.
 
 
-## Aggiornamento 0.4.0-4 - Identità utente composta
+## Aggiornamento 0.5.0-1 - Identità utente composta
 
 Il modello `User` usa ora il vincolo composto `username + auth_provider` (`uq_user_username_auth_provider`) invece dell’unicità sul solo `username`. I login locali cercano esclusivamente utenti con `auth_provider='local'`; il login LDAP cerca o crea utenti con `auth_provider='ldap'`; i profili SSO/OAuth2 cercano o creano utenti con `auth_provider='sso:<id profilo>'`. In questo modo lo stesso identificativo restituito dai diversi backend non causa fusioni accidentali di account, ruoli o token MFA.
 
 La migrazione idempotente all’avvio aggiorna gli utenti storici con backend mancante e, su PostgreSQL, rimuove il vincolo univoco precedente sul solo username prima di creare il vincolo composto. I nuovi database SQLite di sviluppo usano direttamente il modello aggiornato; per produzione il database supportato resta PostgreSQL.
 
 
-### Aggiornamento 0.4.0-4 - Visualizzazione provider nel tipo login SSO
+### Aggiornamento 0.5.0-1 - Visualizzazione provider nel tipo login SSO
 
 La vista `Admin → Utenti` costruisce una mappa dei backend disponibili a partire dai profili SSO configurati. I backend `local` e `ldap` sono mostrati come login locali o LDAP, mentre ogni backend nel formato `sso:<id profilo>` viene presentato come `SSO/OAuth2 · <nome provider> (<id profilo>)`, mantenendo visibile anche il codice tecnico. Se un utente fa riferimento a un profilo SSO eliminato o non più configurato, l'interfaccia lo segnala come profilo non configurato invece di nascondere l'account.
 
 
-## Aggiornamento 0.4.0-4 - Placeholder notifiche manuali e link incidente esplicito
+## Aggiornamento 0.5.0-1 - Placeholder notifiche manuali e link incidente esplicito
 
 Le notifiche manuali/non schedulate non aggiungono più automaticamente il link diretto all’incidente: il link compare solo se il template contiene `%INCIDENT_URL%`. Sono stati aggiunti i placeholder `%MEASURES_ADOPTED%`, `%RECOMMENDATIONS%`, `%SITE%` e `%STATISTICS%`; quest’ultimo allega il PDF delle statistiche. La documentazione utente chiarisce che l’utente locale `admin` non può inviare notifiche dalla pagina degli incidenti: per inviare tali notifiche è necessario accedere con un altro utente autorizzato.
 
@@ -1312,11 +1312,11 @@ Il modello `Document` contiene il campo `notification_tags`, una lista compatta 
 In anteprima invio notifica, `auto_selected_notification_documents()` combina due criteri di preselezione: documenti taggati con il tipo notifica corrente e documenti generati dal template modulo eventualmente collegato al template di notifica. I duplicati vengono rimossi. La lista rimane modificabile dall’utente prima dell’invio, quindi il tagging è un suggerimento operativo e non un vincolo di allegazione. Il full export/import include il campo perché deriva dallo schema SQLAlchemy.
 
 
-## Aggiornamento 0.4.0-4 - Picker rubrica destinatari esterni
+## Aggiornamento 0.5.0-1 - Picker rubrica destinatari esterni
 
 La pagina di anteprima delle notifiche manuali con destinatario libero riceve la lista `ExternalRecipient` solo quando il tipo di notifica non usa destinatari bloccati da configurazione. Il template `notification_preview.html` espone un selettore con nome ed e-mail dei destinatari esterni e pulsanti client-side per valorizzare il campo destinatario principale o aggiungere l’indirizzo al campo CC, mantenendo invariata la validazione server-side e l’acquisizione dei nuovi indirizzi tramite `ensure_external_recipients_from_addresses()`.
 
-## Aggiornamento 0.4.0-4 - Tag automatici dei documenti generati
+## Aggiornamento 0.5.0-1 - Tag automatici dei documenti generati
 
 La configurazione dei moduli PDF conserva in `FormTemplateConfig.notification_tags` l'elenco compatto dei codici dei tipi di notifica associati al template. L'interfaccia `modules_configuration.html` mostra i tipi di notifica con il nome leggibile del tipo e consente l'associazione tramite drag and drop e la rimozione con il pulsante × del chip selezionato, riutilizzando lo stesso paradigma della lista Documenti dell'incidente.
 
@@ -1324,9 +1324,9 @@ Durante `confirm_generated_forms()` la funzione `notification_tags_for_generated
 
 La migrazione idempotente aggiunge la colonna `form_template_config.notification_tags` ai database esistenti. Full export/import include automaticamente il campo perché serializza tutte le colonne SQLAlchemy del modello corrente.
 
-Metadati runtime aggiornati: versione `0.4.0-4`, build `20260522`.
+Metadati runtime aggiornati: versione `0.5.0-1`, build `20260522`.
 
-## Aggiornamento 0.4.0-4 - Gestione rubrica destinatari esterni per utenti writer
+## Aggiornamento 0.5.0-1 - Gestione rubrica destinatari esterni per utenti writer
 
 La rubrica `ExternalRecipient` resta una risorsa applicativa condivisa. La rotta amministrativa `admin_external_recipients()` continua a essere disponibile solo agli utenti con ruolo `admin`, mentre la nuova rotta `settings_external_recipients()` espone la stessa gestione CRUD dal menu **Impostazioni** agli utenti non amministratori con ruolo `writer`. La funzione di autorizzazione dedicata `can_manage_external_recipients_from_settings()` evita di aprire il menu amministrativo e limita l’accesso agli utenti con privilegi di scrittura/modifica sugli incidenti. Le due route condividono la funzione interna `_external_recipients_page()`, così validazione, controllo duplicati, audit, template HTML e comportamento operativo rimangono coerenti.
 
@@ -1356,7 +1356,7 @@ On fresh installations the bootstrap creates an editable default workflow with f
 
 For each workflow step whose action label has `max_completion_hours > 0`, `incident_workflow_status()` computes the due timestamp and remaining time from the incident initial-information timestamp, using the same reference logic as deadline notifications. The incident page displays these values only while the workflow step is still missing. Completed steps do not show deadline/remaining-time details anymore. A missing step is marked as critical when the remaining time is less than or equal to zero; the status remains informational and does not block manual completion or attachment/notification choices.
 
-### Aggiornamento 0.4.0-4 - Workflow interattivo nella pagina incidente
+### Aggiornamento 0.5.0-1 - Workflow interattivo nella pagina incidente
 
 La sezione degli avvisi procedurali è stata ricollocata subito sotto la sezione delle operazioni previste, in modo da mostrare all’operatore lo stato del workflow e i vincoli procedurali prima della scheda principale. Gli elementi del workflow esposti nella pagina incidente includono l'identificativo della label azione associata e sono resi attivabili da mouse e tastiera. L'attivazione scorre alla sezione Azioni e preseleziona la label dell'azione corrispondente, senza salvare automaticamente alcun dato: l'utente conserva il controllo su data, persona, descrizione, conseguenze e allegati.
 
@@ -1367,28 +1367,28 @@ La versione corrente introduce un sottosistema di backup configurabile da **Admi
 ## Application backups
 The current version adds a configurable backup subsystem under **Admin → Backup**. The `BackupJob` model stores enablement, cron-like expression, included categories, destination, POSIX/S3 parameters, notification preference and last status. Backup generation creates `tar.gz` archives with a `backup.json` manifest; categories are `incidents`, `database`, `templates`, `logos` and `uploads`. When all categories are selected the archive is treated as an application full backup. Full backups use the same format as full exports and include persistent-volume snapshots, including `AI_CHATBOT_DOC_DIR`/`/data/ai_chatbot_docs` with the AI Chatbot knowledge-base physical documents and the related `ai_chatbot_document` records. A regression test verifies that the file is stored under `files/persistent/ai_chatbot_docs/` in the archive. The internal scheduler checks enabled jobs with minute granularity; in multi-replica deployments run the scheduler on a single replica or add dedicated distributed locking.
 
-## Aggiornamento 0.4.0-4 - Ricerca nella rubrica destinatari esterni
+## Aggiornamento 0.5.0-1 - Ricerca nella rubrica destinatari esterni
 
 La gestione della rubrica `ExternalRecipient`, sia dal menu Admin sia dal menu Impostazioni per utenti `writer`, espone un filtro testuale `q`. Il filtro viene applicato ai campi `name`, `email` e `notes` con matching case-insensitive e il template `admin_external_recipients.html` mantiene il parametro nelle azioni di modifica, salvataggio e cancellazione. La modifica non introduce nuove tabelle né migrazioni: utilizza il modello esistente e mantiene invariati audit, export/import e controlli di unicità sull'e-mail.
 
-## Aggiornamento 0.4.0-4 - Modelli incidente e gestione utenti
+## Aggiornamento 0.5.0-1 - Modelli incidente e gestione utenti
 
 La release introduce la tabella `incident_template`, usata per memorizzare profili di bootstrap degli incidenti. I modelli contengono solo dati iniziali e associazioni anagrafiche, non azioni né documenti. La pagina `Admin → Modelli incidente` permette CRUD completo e creazione da incidente esistente. La form di nuovo incidente può caricare un modello e imposta comunque `start_date` e `start_time` al momento corrente.
 
 La cancellazione utenti è stata resa più robusta riallineando la sequence PostgreSQL della tabella `audit_log` prima dell’inserimento dell’evento di audit. La pagina `Admin → Utenti` supporta ora filtro testuale su username, nome, email, backend e ruolo.
 
-## Aggiornamento 0.4.0-4 - Correzione sequence audit nelle operazioni utenti
+## Aggiornamento 0.5.0-1 - Correzione sequence audit nelle operazioni utenti
 
 Le operazioni di aggiunta, modifica e cancellazione utenti registrano eventi nella tabella `audit_log`. In installazioni PostgreSQL ripristinate da full import, restore o migrazioni con ID espliciti, la sequence della tabella `audit_log` poteva restare disallineata e provocare l'errore `duplicate key value violates unique constraint "audit_log_pkey"` durante le operazioni sugli utenti. La gestione audit ora riallinea la sequence con una connessione separata e persistente prima degli inserimenti critici e riprova l'inserimento audit se viene rilevata una collisione sulla chiave primaria. La correzione si applica anche alle altre funzioni che usano il registro audit.
 
-## Aggiornamento 0.4.0-4 - Full import con ricostruzione dello schema database
+## Aggiornamento 0.5.0-1 - Full import con ricostruzione dello schema database
 
 La funzione `import_full()` valida prima l'archivio di export completo e poi richiama `rebuild_database_for_full_import()`, che esegue rollback della sessione corrente, rimozione della sessione scoped, `db.drop_all()`, `db.create_all()` e commit dello schema vuoto. Solo dopo questa ricostruzione vengono importate le righe con ID espliciti e le relazioni molti-a-molti. La scelta rende il Full import coerente con una semantica di ripristino totale: non rimangono dati applicativi precedenti, vincoli o sequence PostgreSQL disallineate. I file contenuti nell'export continuano a essere ripristinati nelle directory persistenti configurate; la manutenzione di file orfani non referenziati resta responsabilità delle procedure operative di storage.
-### Correzione sequence utenti 0.4.0-4
+### Correzione sequence utenti 0.5.0-1
 
 Gli inserimenti nella tabella utenti eseguono un riallineamento preventivo della sequence PostgreSQL `user.id` prima delle creazioni critiche. La creazione manuale da `Admin → Utenti` gestisce inoltre una collisione `user_pkey` con rollback, riallineamento persistente e reinserimento del record. Questo rende sicuri gli inserimenti dopo full import distruttivi, restore o import con chiavi primarie esplicite.
 
-## Aggiornamento 0.4.0-4 - Riallineamento sequence PostgreSQL generalizzato
+## Aggiornamento 0.5.0-1 - Riallineamento sequence PostgreSQL generalizzato
 
 La protezione contro collisioni di chiave primaria PostgreSQL non è più limitata a singole tabelle. Il progetto introduce una funzione di introspezione dei metadati SQLAlchemy che individua tutte le tabelle applicative con colonna `id` intera e riallinea la sequence associata tramite `pg_get_serial_sequence` e `setval`. La procedura viene usata dopo Full import/restore e come recupero generalizzato in caso di `duplicate key value violates unique constraint`.
 
@@ -1396,32 +1396,32 @@ Questa scelta riduce il rischio di regressioni quando vengono aggiunte nuove ent
 
 
 
-## Aggiornamento 0.4.0-4 - Riferimento incidente obbligatorio
+## Aggiornamento 0.5.0-1 - Riferimento incidente obbligatorio
 
 Il modello applicativo considera il campo `Incident.reference` obbligatorio. La validazione viene eseguita nella creazione e nella modifica degli incidenti, con attributo HTML `required` e controllo server-side. Le migrazioni leggere e il Full import normalizzano eventuali record storici con riferimento nullo o vuoto usando un valore tecnico `Incidente #<id>`, evitando dati incompleti dopo import di archivi precedenti.
 
 
-## Versione 0.4.0-4 - Workflow condizionali e provisioning utenti
+## Versione 0.5.0-1 - Workflow condizionali e provisioning utenti
 
 La tabella `incident_workflow_step` include il flag booleano `personal_data_only`. Quando il flag è attivo, `workflow_steps_for_incident()` mantiene lo step nel flusso amministrativo ma lo esclude dalle operazioni previste se `Incident.personal_data` è falso. La chiave di deduplica include anche questo flag per evitare collisioni tra step ordinari e step condizionali.
 
 Il provisioning automatico LDAP/SSO crea gli utenti con ruolo predefinito `disabled` quando previsto dalla configurazione. Dopo il commit del nuovo utente, `notify_admin_disabled_user_created()` tenta un invio SMTP best-effort all’indirizzo dell’utente locale `admin` o, in fallback, al primo utente con ruolo admin. La mail contiene dati identificativi dell’utente creato e il link diretto `/admin/users`, costruito a partire da `application_external_url`. Errori SMTP vengono loggati ma non interrompono il flusso di login/provisioning.
 
-## Versione 0.4.0-4 - Hardening sequence step workflow
+## Versione 0.5.0-1 - Hardening sequence step workflow
 
 L’inserimento degli step nei flussi operativi usa un riallineamento preventivo della sequence PostgreSQL `incident_workflow_step.id`. Il percorso di salvataggio intercetta inoltre eventuali collisioni duplicate-key residue, ricostruisce l’oggetto dopo rollback e ritenta l’inserimento con sequence riallineata. Questo completa la protezione post Full import/restore per la gestione dei workflow.
 
-## Versione 0.4.0-4 - Estensione workflow di default
+## Versione 0.5.0-1 - Estensione workflow di default
 
 Il bootstrap del workflow di default usa ora la sequenza: Informazione iniziale, Analisi, Notifica allo CSIRT, Notifica al DPO, Comunicazione al Garante, Comunicazione all’utente, Conclusione. Lo step Comunicazione al Garante viene creato con `personal_data_only=True`, quindi resta configurabile nel workflow ma viene considerato tra le operazioni previste solo per incidenti in cui è indicato il coinvolgimento di rischio per diritti e libertà.
 
 Per installazioni già esistenti, `ensure_default_workflow_required_steps()` aggiunge in modo conservativo i due step mancanti al flusso di default senza cancellare o riscrivere personalizzazioni amministrative; se uno step verso il Garante è già presente, il flag `personal_data_only` viene riallineato a vero.
 
-## Aggiornamento 0.4.0-4 - Frecce negli step workflow e versione applicativa
+## Aggiornamento 0.5.0-1 - Frecce negli step workflow e versione applicativa
 
-La pagina del singolo incidente visualizza gli step delle operazioni previste con una freccia di sequenza quando il workflow è ordinato tramite il campo `position`. Il template `incident_detail.html` aggiunge l'indicatore tra due step consecutivi e `style.css` ne definisce il layout responsive. I metadati runtime dell'applicazione usano la versione normalizzata `0.4.0-4` e il build `20260522`, visibili in Info → Applicazione e configurabili tramite `APP_VERSION` e `APP_BUILD`.
+La pagina del singolo incidente visualizza gli step delle operazioni previste con una freccia di sequenza quando il workflow è ordinato tramite il campo `position`. Il template `incident_detail.html` aggiunge l'indicatore tra due step consecutivi e `style.css` ne definisce il layout responsive. I metadati runtime dell'applicazione usano la versione normalizzata `0.5.0-1` e il build `20260522`, visibili in Info → Applicazione e configurabili tramite `APP_VERSION` e `APP_BUILD`.
 
-## Aggiornamento 0.4.0-4 - Cancellazione incidenti con stati deadline collegati
+## Aggiornamento 0.5.0-1 - Cancellazione incidenti con stati deadline collegati
 
 La funzione `incident_delete()` non elimina più direttamente solo il record `Incident`: usa `delete_incident_with_related_state()`, che rimuove prima i record `DeadlineNotificationState` collegati tramite `incident_id` e poi elimina l'incidente. Il modello dichiara inoltre la relazione `Incident.deadline_notification_states` con cascade applicativa e il vincolo `ForeignKey('incident.id', ondelete='CASCADE')` per i nuovi schemi. La cancellazione esplicita resta necessaria per database esistenti nei quali il vincolo PostgreSQL è stato creato da versioni precedenti senza `ON DELETE CASCADE`.
 
@@ -1438,62 +1438,62 @@ La vista `notification_settings.html` riceve da `upcoming_scheduled_notification
 Il controllo opportunistico `maybe_run_deadline_notification_check()` non invia più notifiche dalle richieste web. La chiamata automatica a `run_deadline_notification_check()` e `process_due_incident_reminders()` avviene solo nel thread scheduler dedicato, protetto da lock in-process e advisory lock PostgreSQL. In questo modo deployment con più worker o repliche evitano mail duplicate nello stesso intervallo, mentre la tabella `DeadlineNotificationState` registra claim ed esiti per incidente, slot e promemoria.
 
 
-### 0.4.0-4 - Blocco invio admin e autosalvataggio destinatari
+### 0.5.0-1 - Blocco invio admin e autosalvataggio destinatari
 
 Le notifiche manuali/non schedulate dalla pagina incidente ora verificano esplicitamente l'utente locale `admin`: la pagina di anteprima mostra un errore e il pulsante di invio è disabilitato; il controllo è replicato lato server nella route di invio. Per i destinatari liberi non presenti nella rubrica esterna, l'inserimento non richiede più il nome: il contatto viene creato automaticamente usando il campo `Incident.reference` come nome associato, con fallback tecnico solo se il riferimento fosse assente.
 
 
-## Versione 0.4.0-4 - Avvisi procedurali basati sul workflow richiesto
+## Versione 0.5.0-1 - Avvisi procedurali basati sul workflow richiesto
 
 La funzione `incident_procedural_status()` calcola ora gli avvisi procedurali a partire da `incident_workflow_status()`: vengono considerati solo gli step applicabili all'incidente marcati con `IncidentWorkflowStep.required=True` e non ancora completati. Ogni avviso usa `step.description` se disponibile, altrimenti la descrizione o il nome della label azione. La pagina principale continua a mostrare l'icona di pericolo per gli incidenti con `has_procedural_warnings=True`. La chiusura automatica tramite azione di conclusione continua a chiamare `incident_procedural_status()` e viene eseguita solo quando la lista degli avvisi è vuota.
 
-## Version 0.4.0-4 - Procedural warnings based on required workflow steps
+## Version 0.5.0-1 - Procedural warnings based on required workflow steps
 
 `incident_procedural_status()` now derives procedural warnings from `incident_workflow_status()`: only workflow steps applicable to the incident, marked with `IncidentWorkflowStep.required=True` and still missing, are considered. Each warning uses `step.description` when available, otherwise the action-label description or name. The dashboard still displays the warning icon for incidents with `has_procedural_warnings=True`. Automatic closure through a closure action still calls `incident_procedural_status()` and runs only when the warning list is empty.
 
 
-## Versione 0.4.0-4 - Operazioni automatiche sulle label azione
+## Versione 0.5.0-1 - Operazioni automatiche sulle label azione
 Il modello `ConfigLabel` include il campo `automatic_operations`, usato per le label di tipo `action_label`. L'amministratore configura i tag tramite drag & drop in `admin_labels.html`; le operazioni supportate sono `close_without_warnings`, `end_breach` e `global_check`. La funzione `apply_action_automatic_operations()` applica gli effetti al momento dell'inserimento dell'azione, usando la timezone applicativa e bloccando la chiusura se restano avvisi procedurali attivi.
 
-## Version 0.4.0-4 - Automatic operations on action labels
+## Version 0.5.0-1 - Automatic operations on action labels
 The `ConfigLabel` model includes the `automatic_operations` field for `action_label` rows. Administrators configure tags by drag and drop in `admin_labels.html`; supported operations are `close_without_warnings`, `end_breach` and `global_check`. `apply_action_automatic_operations()` applies the effects when an action is added, using the application timezone and blocking closure while procedural warnings remain active.
 
 
-## Versione 0.4.0-4 - Leggibilità label azioni
+## Versione 0.5.0-1 - Leggibilità label azioni
 La sezione delle label azioni in Admin → Liste configurabili è stata trasformata da tabella larga a vista a schede. Ogni label azione espone in modo separato nome, descrizione, tempo massimo, flag di esportazione e operazioni automatiche configurabili con drag & drop. La modifica è puramente di interfaccia e non altera il modello dati né la semantica delle operazioni automatiche.
 
-## Version 0.4.0-4 - Action-label readability
+## Version 0.5.0-1 - Action-label readability
 The action-label section in Admin → Configurable lists has been changed from a wide table to a card layout. Each action label exposes name, description, maximum time, export flag and drag-and-drop automatic operations separately. The change is UI-only and does not alter the data model or automatic-operation semantics.
 
 
-## Versione 0.4.0-4 - Controllo globale sui task
+## Versione 0.5.0-1 - Controllo globale sui task
 Le label azione supportano l'operazione automatica `global_check`, configurabile tramite drag & drop da Admin → Liste configurabili → Label azioni. Quando l'utente tenta di inserire un'azione con una label che contiene questo tag, `create_manual_action_safely()` invoca `workflow_global_check_blocking_message()`: il sistema individua lo step workflow applicabile associato alla label e impedisce l'inserimento se uno degli step precedenti non è ancora completato. Il controllo è lato server e quindi resta valido anche in caso di richieste manuali o interfacce personalizzate.
 
-## Version 0.4.0-4 - Global task check
+## Version 0.5.0-1 - Global task check
 Action labels support the `global_check` automatic operation, configured by drag and drop under Admin → Configurable lists → Action labels. When a user tries to add an action whose label includes this tag, `create_manual_action_safely()` calls `workflow_global_check_blocking_message()`: the system finds the applicable workflow step associated with that label and blocks insertion if any previous step is still incomplete. The check is enforced server-side, so it also applies to manual requests or customized interfaces.
 
 
 
-## Versione 0.4.0-4 - Condizioni workflow estese
+## Versione 0.5.0-1 - Condizioni workflow estese
 Gli step dei flussi operativi supportano ora condizioni multiple memorizzate nel campo `IncidentWorkflowStep.conditions`. Le condizioni disponibili sono `personal_data` (mostrata come “Rischio per diritti e libertà”), `severity:<id>` e `data_type:<id>`. La valutazione è con logica AND: lo step è incluso nelle operazioni previste solo se non ha condizioni oppure tutte le condizioni sono soddisfatte dall’incidente. La UI amministrativa usa un selettore drag & drop compatto per ridurre lo spazio occupato.
 
-## Version 0.4.0-4 - Extended workflow conditions
+## Version 0.5.0-1 - Extended workflow conditions
 Operational workflow steps now support multiple conditions stored in `IncidentWorkflowStep.conditions`. Available conditions are `personal_data` (shown as “Risk to rights and freedoms”), `severity:<id>` and `data_type:<id>`. Evaluation uses AND logic: a step is included in expected operations only when it has no conditions or all conditions are satisfied by the incident. The administrative UI uses a compact drag-and-drop selector to reduce page space.
 
 
-## Versione 0.4.0-4 - Pulizia versione e documentazione
+## Versione 0.5.0-1 - Pulizia versione e documentazione
 
-La versione applicativa esposta da `APP_VERSION` e dalla pagina Info è normalizzata a `0.4.0-4`, con build `20260522`. Le guide utente e amministrativa sono mantenute come documentazione operativa dello stato corrente: non devono contenere banner di versione né blocchi di changelog. Le variazioni cronologiche sono centralizzate in `CHANGELOG.txt` e nelle pagine `release_notes.html` / `release_notes_en.html`.
+La versione applicativa esposta da `APP_VERSION` e dalla pagina Info è normalizzata a `0.5.0-1`, con build `20260522`. Le guide utente e amministrativa sono mantenute come documentazione operativa dello stato corrente: non devono contenere banner di versione né blocchi di changelog. Le variazioni cronologiche sono centralizzate in `CHANGELOG.txt` e nelle pagine `release_notes.html` / `release_notes_en.html`.
 
-## Version 0.4.0-4 - Version and documentation cleanup
+## Version 0.5.0-1 - Version and documentation cleanup
 
-The application version exposed by `APP_VERSION`, the Info page and the guides is normalized to `0.4.0-4`, with build `20260522`. User and administrator guides are maintained as operational documentation of the current state and must not contain changelog blocks. Chronological changes are centralized in `CHANGELOG.txt` and in `release_notes.html` / `release_notes_en.html`.
+The application version exposed by `APP_VERSION`, the Info page and the guides is normalized to `0.5.0-1`, with build `20260522`. User and administrator guides are maintained as operational documentation of the current state and must not contain changelog blocks. Chronological changes are centralized in `CHANGELOG.txt` and in `release_notes.html` / `release_notes_en.html`.
 
-## Versione 0.4.0-4 - Riallineamento guide operative
+## Versione 0.5.0-1 - Riallineamento guide operative
 
 Le guide utente e amministrativa sono state ricontrollate per eliminare i banner espliciti di versione dal corpo operativo, lasciando la versione alla pagina Info, alle Note di rilascio e al CHANGELOG. Le sezioni che erano fuori dal contenitore principale della documentazione online sono state integrate come capitoli regolari.
 
-## Version 0.4.0-4 - Operational guide alignment
+## Version 0.5.0-1 - Operational guide alignment
 
 The user and administrator guides were reviewed to remove explicit version banners from the operational body, leaving release identifiers to the Info page, Release notes and CHANGELOG. Sections that were outside the main online-documentation container were integrated as regular chapters.
 
@@ -1522,7 +1522,7 @@ Example accepted workflow description:
 {color:#0b7285}Nota informativa{/color}
 ```
 
-## Aggiornamento 0.4.0-4 - Bonifica criticità progettuali
+## Aggiornamento 0.5.0-1 - Bonifica criticità progettuali
 
 Sono state chiuse le criticità emerse dall’analisi del pacchetto allegato:
 
@@ -1537,7 +1537,7 @@ Questa bonifica non modifica il modello dati né le route pubbliche. La modulari
 
 
 
-## Aggiornamento 0.4.0-4 - Scheduler notifiche seriale e anti-duplicazione mail
+## Aggiornamento 0.5.0-1 - Scheduler notifiche seriale e anti-duplicazione mail
 
 Il meccanismo di invio delle notifiche schedulate è stato rivisto per eliminare le sovrapposizioni fra più sorgenti di esecuzione. L'hook `before_app_request` non esegue più controlli automatici né invii SMTP: le notifiche schedulate vengono gestite esclusivamente dal thread daemon `cir-deadline-notification-scheduler`, avviato da `start_deadline_notification_scheduler(app)`. Il pulsante manuale in **Admin → Notifiche** resta separato e continua a richiamare il controllo esplicito richiesto dall'amministratore.
 
@@ -1547,7 +1547,7 @@ La deduplica persistente è stata estesa ai promemoria specifici incidente. Prim
 
 La tabella `deadline_notification_state` assume quindi il ruolo di registro anti-flooding generale dello scheduler: contiene claim preventivi, ultimo esito, slot/finestra di riferimento, destinatari e dettagli sintetici. La funzione di cleanup degli stati orfani continua a essere eseguita ad ogni ciclo per eliminare record collegati a incidenti cancellati.
 
-## Aggiornamento 0.4.0-4 - Stato notifiche schedulate e cambio password solo locale
+## Aggiornamento 0.5.0-1 - Stato notifiche schedulate e cambio password solo locale
 
 Lo scheduler aggiorna lo stato persistente delle mail schedulate immediatamente dopo ogni tentativo di invio, non solo al termine dell'intero ciclo. Per i promemoria specifici incidente `process_due_incident_reminders()` imposta `IncidentReminder.sent_at` o `last_error`, aggiorna il corrispondente record `DeadlineNotificationState` e committa subito l'esito del singolo messaggio. Per le notifiche periodiche dei task in scadenza `run_deadline_notification_check()` committa subito il risultato per incidente dopo `_record_deadline_notification_success()` o `_record_deadline_notification_failure()`. Questo evita che una mail già consegnata resti temporaneamente nello stato programmato e riduce il rischio di reinvio in caso di errore successivo nello stesso ciclo.
 
@@ -1555,13 +1555,13 @@ La funzione `upcoming_scheduled_notifications()` mostra ora nella pagina **Impos
 
 La voce di menu **Impostazioni → Cambio password** è visibile solo per utenti autenticati con backend `auth_provider='local'` e non LDAP. La route `/settings/password` replica il controllo lato server e rifiuta qualsiasi backend esterno, inclusi LDAP e profili SSO nel formato `sso:<profilo>`, perché tali password sono gestite dal provider di identità esterno.
 
-## Aggiornamento 0.4.0-4 - Audit degli incidenti saltati dallo scheduler notifiche
+## Aggiornamento 0.5.0-1 - Audit degli incidenti saltati dallo scheduler notifiche
 
 Lo scheduler registra ora un record audit specifico ogni volta che un incidente viene conteggiato come saltato durante l'elaborazione delle notifiche. Per i riepiloghi periodici dei task in scadenza viene usato il tipo operazione `scheduler:deadline_notification_skipped`; per i promemoria specifici viene usato `scheduler:incident_reminder_skipped`.
 
 Ogni record include l'identificativo dell'incidente, nome e riferimento quando disponibili, sorgente del ciclo scheduler, codice motivo e descrizione leggibile. Per le notifiche deadline vengono registrati anche slot e fine finestra; per i promemoria specifici vengono registrati identificativo del promemoria e data programmata. Per le notifiche deadline i motivi coperti includono notifica già inviata o già presa in carico nello slot corrente e claim concorrente non acquisito; per i promemoria specifici i motivi coperti includono promemoria già marcato come inviato, errore SMTP/destinatari assenti ed eccezioni applicative. Il record globale `scheduler:deadline_notification_check` resta un riepilogo aggregato, mentre i nuovi record permettono di capire quale incidente è stato saltato e perché.
 
-## Aggiornamento 0.4.0-4 - Audit robusto nel controllo manuale e promemoria senza slot
+## Aggiornamento 0.5.0-1 - Audit robusto nel controllo manuale e promemoria senza slot
 
 Il pulsante manuale **Esegui controllo ora** della sezione **Controllo scadenze azioni** richiama `run_deadline_notification_check(force=True, source='manual_button')`. Prima del calcolo dello slot vengono ora riallineate tutte le sequence applicative PostgreSQL tramite `align_all_table_sequences()`, così eventuali database ripristinati o importati non mantengono sequence arretrate.
 
@@ -1569,21 +1569,21 @@ La funzione centrale `audit_log()` è stata rafforzata: usa `db.session.no_autof
 
 Per i promemoria specifici incidente la funzione `_claim_incident_reminder()` non usa più lo slot programmato come blocco. Il blocco funzionale rimane soltanto `IncidentReminder.sent_at`: un promemoria con `sent_at` valorizzato è considerato inviato, un promemoria con `sent_at` nullo resta eleggibile anche se esistono record tecnici storici in `deadline_notification_state`. Il record tecnico con `notification_type='incident_reminder'` conserva solo lo stato temporaneo "promemoria in invio" e scade dopo il timeout anti-concorrenza; `last_schedule_slot` viene lasciato nullo anche dopo successo o errore, per evitare qualsiasi interpretazione a finestra/periodo.
 
-## Aggiornamento 0.4.0-4 - Controllo manuale dei promemoria specifici e audit dettagliato
+## Aggiornamento 0.5.0-1 - Controllo manuale dei promemoria specifici e audit dettagliato
 
 La pagina `notification_settings.html` contiene ora, alla fine della vista, una sezione separata **Controllo promemoria specifici**. Il form invia `action=run_incident_reminder_check` alla rotta `notification_settings()`, che richiama `process_due_incident_reminders(source='manual_button')` e presenta all'amministratore il riepilogo di promemoria scaduti verificati, email inviate, promemoria saltati ed errori. Questa azione è separata dal pulsante **Controllo scadenze azioni**, che continua a richiamare `run_deadline_notification_check(force=True, source='manual_button')` per i riepiloghi periodici dei task in scadenza.
 
 Per i promemoria specifici il criterio funzionale di blocco dell'invio resta soltanto `IncidentReminder.sent_at`. La funzione `_claim_incident_reminder()` non valorizza né interpreta `last_schedule_slot`: il record in `deadline_notification_state` è solo diagnostico. Non è più un claim bloccante: la concorrenza viene gestita sul record `IncidentReminder` e la decisione finale dipende solo da `sent_at`.
 
 La funzione `_reminder_audit_details()` centralizza i dettagli del promemoria da scrivere negli audit di salto. Ogni `scheduler:incident_reminder_skipped`, sia proveniente dal thread scheduler sia dal controllo manuale, include ora identificativo del promemoria, data programmata, eventuale `sent_at`, messaggio sintetico, destinatari e CC configurati, ultimo errore, oltre ai dati dell'incidente, alla sorgente, al codice motivo e alla descrizione leggibile del motivo.
-## Aggiornamento 0.4.0-4 - Risoluzione destinatari dei promemoria specifici
+## Aggiornamento 0.5.0-1 - Risoluzione destinatari dei promemoria specifici
 
 Il controllo manuale dei promemoria specifici continua a usare `process_due_incident_reminders(source='manual_button')`, ma la produzione dei dettagli audit non legge più `reminder.recipient_emails`, attributo non presente nel modello `IncidentReminder`. La nuova funzione `_incident_reminder_recipients(reminder)` centralizza la risoluzione dei destinatari effettivi dal personale associato all'incidente (`incident.people`) e viene usata sia da `send_incident_reminder_email()` sia da `_reminder_audit_details()`.
 
 Gli audit `scheduler:incident_reminder_skipped` mantengono quindi destinatari, CC, identificativo promemoria, data programmata, messaggio sintetico e motivo del salto senza causare eccezioni durante il controllo manuale. La semantica di invio non cambia: per i promemoria specifici il solo blocco funzionale resta `IncidentReminder.sent_at`; `deadline_notification_state` rimane diagnostico e non usa slot o finestre di deduplica.
 
 
-## Aggiornamento 0.4.0-4 - Diagnostica controllo manuale promemoria e destinatari deadline
+## Aggiornamento 0.5.0-1 - Diagnostica controllo manuale promemoria e destinatari deadline
 
 Il controllo manuale dei promemoria specifici, avviato dalla sezione **Controllo promemoria specifici** della pagina **Impostazioni → Notifiche**, restituisce ora nel messaggio flash anche l'elenco sintetico dei promemoria saltati. Per ciascun promemoria vengono riportati identificativo, incidente, data programmata, testo sintetico del messaggio e motivo del salto. La stessa informazione resta registrata negli audit `scheduler:incident_reminder_skipped` tramite `reminder_id`, `reminder_scheduled_at`, `reminder_message`, destinatari, CC, ultimo errore e codice motivo.
 
@@ -1592,7 +1592,7 @@ La funzione `process_due_incident_reminders()` restituisce ora anche `skipped_de
 Per le notifiche periodiche dei task in scadenza è stata centralizzata la risoluzione dei destinatari nelle funzioni `_deadline_recipients_for_incident()` e `_deadline_recipients_text_for_incident()`. `send_deadline_summary_email()`, `_record_deadline_notification_success()` e `upcoming_scheduled_notifications()` usano la stessa logica basata sul personale associato all'incidente con indirizzo email valorizzato. In questo modo, dopo l'invio, la sezione **Prossime notifiche schedulate** mostra i destinatari effettivi anche per gli esiti recenti già inviati; se uno stato storico non contiene `last_recipients`, il valore viene ricalcolato dall'incidente prima di mostrare la riga.
 
 
-## Aggiornamento 0.4.0-4 - Promemoria specifici senza blocco da presa in carico
+## Aggiornamento 0.5.0-1 - Promemoria specifici senza blocco da presa in carico
 
 La funzione `_claim_incident_reminder()` è stata riallineata alla semantica richiesta per i promemoria specifici: la presa in carico tecnica da parte di un ciclo scheduler o di un controllo manuale concorrente non è più considerata un motivo bloccante di salto. Il solo criterio funzionale resta il campo `IncidentReminder.sent_at`: se è nullo il promemoria è candidabile all'invio, se è valorizzato il promemoria è già stato inviato e non viene reinviato.
 
@@ -1613,7 +1613,7 @@ Questa separazione garantisce che i promemoria specifici scaduti e non ancora in
 Il controllo dei promemoria specifici è separato dallo scheduler delle notifiche periodiche dei task in scadenza. `start_incident_reminder_scheduler()` avvia il thread daemon `cir-incident-reminder-scheduler`, serializzato localmente da lock Python e, su PostgreSQL, da advisory lock dedicato. L'intervallo è letto a ogni ciclo dalla setting `notification_incident_reminder_poll_seconds`, configurabile da interfaccia con default 60 secondi. Ogni ciclo invoca `process_due_incident_reminders()`, che registra sempre l'audit `scheduler:incident_reminder_check`; la pagina Admin → Stato legge `scheduler_status_incident_reminders` per mostrare cicli, ultimo risultato e ultima esecuzione.
 
 
-## Aggiornamento 0.4.0-4 - Scheduler, URL e stato servizi
+## Aggiornamento 0.5.0-1 - Scheduler, URL e stato servizi
 
 - Il corpo delle mail dei promemoria specifici costruisce il link diretto all’incidente usando `application_external_url` e il percorso `/incident/<id>`, senza chiamare `url_for` in assenza di request context. Questo evita l’errore Flask `Unable to build URLs outside an active request` nei thread scheduler.
 - L’intervallo di poll del thread dei task in scadenza è configurabile da **Impostazioni → Notifiche** tramite `notification_deadline_poll_seconds`, con default 60 secondi e minimo applicativo 10 secondi.
@@ -1621,7 +1621,7 @@ Il controllo dei promemoria specifici è separato dallo scheduler delle notifich
 - La pagina **Admin → Stato** mostra lo stato attivo/non attivo dei thread scheduler task, promemoria specifici e backup con indicatori a pallino colorato, oltre all’esito degli ultimi cicli e all’ultima esecuzione dei promemoria specifici.
 
 
-### Aggiornamento 0.4.0-4 - Contesto applicativo dei thread scheduler
+### Aggiornamento 0.5.0-1 - Contesto applicativo dei thread scheduler
 
 I thread di background degli scheduler non devono usare proxy Flask-SQLAlchemy, `current_app`, `Setting.query`, `db.session` o funzioni che li richiamano fuori da un contesto applicativo Flask. Per evitare il RuntimeError `Working outside of application context`, la lettura degli intervalli configurabili (`notification_deadline_poll_seconds` e `notification_incident_reminder_poll_seconds`) viene ora eseguita all'interno di `with app.app_context():` nel ciclo dei thread.
 
@@ -1629,7 +1629,7 @@ La funzione comune di lettura degli intervalli applica inoltre un fallback sicur
 
 Il thread `cir-deadline-notification-scheduler` e il thread `cir-incident-reminder-scheduler` restano separati, serializzati con lock di processo e lock advisory PostgreSQL quando disponibile. La pagina **Admin → Stato** continua a mostrare heartbeat, ultimi cicli e indicatori visuali di attività dei thread.
 
-## Aggiornamento 0.4.0-4 - Sezioni collassabili nel dettaglio incidente
+## Aggiornamento 0.5.0-1 - Sezioni collassabili nel dettaglio incidente
 
 La pagina del singolo incidente (`incident_detail.html`) organizza ora tutte le sezioni principali in elementi HTML `<details>` collassabili e chiusi per default. La sezione dei campi principali dell'incidente è stata rinominata **Dati Generali** e mantiene lo stesso identificativo tecnico `incident-main` usato da validazioni, messaggi di sezione e ritorno allo scroll anchor.
 
@@ -1637,18 +1637,18 @@ Sono collassabili in modo indipendente: **Operazioni previste**, **Avvisi proced
 
 Lo stile locale della pagina introduce le classi `incident-section-collapsible`, `incident-section-summary` e `incident-section-body`, con indicatore visuale di apertura/chiusura e padding coerente con le card esistenti. Le azioni registrate restano a loro volta riquadri collassabili interni alla sezione **Azioni**.
 
-## Aggiornamento 0.4.0-4 - Sezioni incidente e workflow guidato
+## Aggiornamento 0.5.0-1 - Sezioni incidente e workflow guidato
 
 Nel template `incident_detail.html` la sezione **Operazioni previste** è l'unica sezione del dettaglio incidente aperta per default, mentre le altre rimangono collassate finché l'utente non le apre o non viene guidato verso di esse. Il JavaScript `makeIncidentWorkflowStepsClickable()` usa le funzioni comuni `openIncidentSection()` e `scrollToIncidentSection()` per aprire automaticamente il `<details>` di destinazione prima dello scroll. Questo vale sia per gli step che portano all'inserimento di una azione sia per gli step che richiedono la generazione/taggatura di documenti prima della notifica. L'apertura automatica viene applicata anche agli anchor iniziali presenti nell'URL, così i redirect post-operazione continuano a mostrare la sezione corretta anche se collassabile.
 
-## Aggiornamento 0.4.0-4 - Tag documenti nel dettaglio incidente
+## Aggiornamento 0.5.0-1 - Tag documenti nel dettaglio incidente
 
 Nel template `incident_detail.html` la gestione dei tag notifica associati ai documenti è stata resa robusta rispetto alle regole CSS globali introdotte per l'allineamento delle checkbox. I tag non selezionati usano sia la classe `hidden` sia l'attributo HTML `hidden`; la regola `.tag-selected.hidden, .tag-selected[hidden] { display: none !important; }` prevale sulle regole globali `label:has(> input[type="checkbox"])`, evitando che tutti i tag risultino visibili e impediscano l'aggiunta/rimozione tramite drag & drop.
 
 Il JavaScript della sezione Documenti aggiorna in modo coerente classe, attributo `hidden` e checkbox interna quando un tipo notifica viene trascinato sulla drop-zone o rimosso con il pulsante `×`. La route `update_document_notification_tags()` resta invariata: riceve solo le checkbox selezionate, valida i codici rispetto ai `NotificationType` configurati e salva la lista compatta in `Document.notification_tags`.
 
 
-## Aggiornamento 0.4.0-4 - CC predefinito notifiche utente
+## Aggiornamento 0.5.0-1 - CC predefinito notifiche utente
 
 
 
@@ -1666,20 +1666,20 @@ Il campo **E-mail Destinatario** rappresenta l’indirizzo predefinito utilizzab
 
 L’invio delle notifiche manuali verifica sempre la presenza di almeno un destinatario effettivo risolto dal template o indicato manualmente. In assenza del destinatario l’invio e la conferma senza invio sono bloccati e viene mostrato un messaggio di errore.
 
-### Aggiornamento 0.4.0-4 - Submit diretto dei destinatari manuali
+### Aggiornamento 0.5.0-1 - Submit diretto dei destinatari manuali
 
 Il template `notification_preview.html` associa i campi manuali `manual_recipient` e `manual_cc` direttamente al form POST di invio/conferma. La funzione `resolve_template_notification_addresses()` dà priorità a questi valori quando il template consente la modifica manuale, poi usa i valori hidden/GET storici e infine la sorgente automatica del template. In questo modo l’operatore può digitare o sostituire destinatario/CC nella preview e premere subito “Conferma e invia” o “Conferma senza inviare”, mantenendo conferma browser e validazione server-side.
 
-## Aggiornamento 0.4.0-4 - Campi manuali acquisiti al submit notifiche
+## Aggiornamento 0.5.0-1 - Campi manuali acquisiti al submit notifiche
 
 Nelle notifiche manuali/non schedulate, la pagina di anteprima continua a mostrare i campi Destinatario e CC solo quando il template li rende modificabili. Al submit della form, sia per `send_mode=send` sia per `send_mode=confirm_without_send`, il client copia tutti i campi modificabili presenti nell’anteprima nei campi hidden del form di invio e il server dà priorità ai valori `manual_recipient` e `manual_cc` ricevuti nella POST. La validazione server-side resta autorevole: destinatario obbligatorio, formato e-mail valido e conferma esplicita tramite `recipient_confirmed=1`/`confirm_without_send_confirmed=1` dove applicabile. La form non richiede né suggerisce più il ricalcolo dell’anteprima per propagare i valori manuali. Dal momento che i campi manuali sono prevalenti, se il CC è modificabile e viene svuotato al submit, il valore vuoto annulla l’eventuale CC predefinito configurato sul template: l’invio prosegue senza CC.
 
 
-## Aggiornamento 0.4.0-4 - Precedenza CC manuale vuoto
+## Aggiornamento 0.5.0-1 - Precedenza CC manuale vuoto
 
-Nelle notifiche manuali, quando il template consente la modifica del campo CC, il valore digitato manualmente resta prevalente; se il campo CC viene svuotato dall’operatore, tale valore vuoto annulla il default del template e la mail viene inviata senza CC. Dalla versione 0.4.0-4 l’anteprima precompila nuovamente il campo CC con il valore di default del template, quando presente, lasciando comunque al submit la priorità al valore manuale effettivo.
+Nelle notifiche manuali, quando il template consente la modifica del campo CC, il valore digitato manualmente resta prevalente; se il campo CC viene svuotato dall’operatore, tale valore vuoto annulla il default del template e la mail viene inviata senza CC. Dalla versione 0.5.0-1 l’anteprima precompila nuovamente il campo CC con il valore di default del template, quando presente, lasciando comunque al submit la priorità al valore manuale effettivo.
 
-## Aggiornamento 0.4.0-4 - Abilitazione esplicita del CC in anteprima
+## Aggiornamento 0.5.0-1 - Abilitazione esplicita del CC in anteprima
 
 Nell’anteprima delle notifiche manuali il template `notification_preview.html` mostra ora la checkbox **Usa CC per questa notifica**, abilitata per default. La checkbox è associata al form di invio tramite `cc_enabled` e `cc_enabled_present`: quando viene deselezionata il client nasconde il campo CC, lo disabilita e copia nel submit un valore CC vuoto. La funzione `resolve_template_notification_addresses()` riconosce il submit dell’anteprima e, se `cc_enabled` non è attivo, forza il CC a stringa vuota prima di ogni validazione e invio. Il comportamento vale sia per l’invio reale sia per `confirm_without_send`, mantenendo la conferma operatore e la validazione server-side come fonte autoritativa.
 
@@ -1690,26 +1690,26 @@ Il full export è stato esteso per includere non solo i file referenziati da doc
 
 Questa copertura rende l'archivio idoneo a riprodurre completamente la directory/stato attuale dell'applicazione: database, relazioni, configurazioni, documenti, template di notifica, modelli incidente, modelli PDF compilabili, loghi custom, loghi SSO, certificati SSL e altri file operativi presenti nei volumi. Il full import valida i percorsi relativi, impedisce path traversal e ripristina i file nei volumi corrispondenti dopo la ricostruzione del database.
 
-## Aggiornamento 0.4.0-4 - Markdown e colori negli step workflow
+## Aggiornamento 0.5.0-1 - Markdown e colori negli step workflow
 
 I riquadri degli step nella sezione **Operazioni previste** renderizzano ora la descrizione operativa con il filtro Jinja `workflow_markdown`. Il rendering supporta Markdown sicuro per titoli, elenchi, grassetto, corsivo, codice inline, link Markdown, URL automatici, colori e dimensioni font controllate. Il testo colorato usa una sintassi controllata `{color:nome}testo{/color}` o `{color:#RRGGBB}testo{/color}`; la dimensione usa `{size:large}testo{/size}` o valori pixel ammessi come `{size:14px}testo{/size}`. L'HTML libero resta escapato. Il template `incident_detail.html` usa contenitori `workflow-markdown` sia per gli step sia per gli avvisi procedurali; questi ultimi mostrano anche il nome del task associato. `style.css` definisce la resa compatta dentro le card del workflow e negli avvisi. La documentazione utente e amministrativa include esempi di Markdown, colori e dimensioni.
 
-## Aggiornamento 0.4.0-4 - Tag notifica configurabili sui template modulo
+## Aggiornamento 0.5.0-1 - Tag notifica configurabili sui template modulo
 
 Ogni template PDF configurato in **Moduli → Configurazione** può avere uno o più tag di tipo notifica associati tramite drag and drop. I tag sono presentati con il nome del tipo notifica e salvati nel campo `FormTemplateConfig.notification_tags` come codici tecnici stabili. Quando un PDF viene generato da quel template, il record `Document` creato eredita solo tali tag, senza derivazioni automatiche dai template di notifica manuale.
 
 
-## Aggiornamento 0.4.0-4 - Rimozione tag dai template modulo
+## Aggiornamento 0.5.0-1 - Rimozione tag dai template modulo
 
 Nel template `modules_configuration.html` i tag notifica selezionati per un template modulo sono resi come chip non più basati su `<label>`, ma su contenitori dedicati con checkbox nascosta e pulsante `×`. Il pulsante imposta la checkbox a non selezionata, applica `hidden`/classe `hidden` al chip e aggiorna il messaggio di stato vuoto. Al submit, `routes.py` continua a leggere `request.form.getlist('template_notification_tags')`: l'assenza del valore rimosso nel POST aggiorna `FormTemplateConfig.notification_tags` con l'insieme effettivamente rimasto selezionato. In questo modo l'amministratore può aggiungere e rimuovere tag nello stesso flusso drag & drop e i documenti generati successivamente ereditano solo i tag ancora associati al template.
 
-### 0.4.0-4 - Rischio per diritti e libertà e pending actions condizionate
+### 0.5.0-1 - Rischio per diritti e libertà e pending actions condizionate
 
 Il campo booleano storico `Incident.personal_data` resta invariato a livello di schema per compatibilità con database, export/import e template esistenti, ma l’interfaccia lo presenta come **Rischio per diritti e libertà**. La condizione workflow tecnica `personal_data` resta invariata nel database, ma viene visualizzata come **Rischio per diritti e libertà** nella configurazione dei flussi operativi e nei dettagli delle condizioni.
 
 La funzione `pending_deadline_actions_for_incident()` non costruisce più `%pending_actions%` partendo da tutte le label azione con `max_completion_hours`. Il calcolo usa ora `workflow_steps_for_incident(inc)` e quindi include solo gli step realmente applicabili allo specifico incidente, dopo la valutazione delle condizioni workflow su rischio per diritti e libertà, gravità e dati interessati. Gli step con tempo massimo già completati dalle azioni registrate non compaiono nella lista; `%pending_actions_count%` è il conteggio della stessa lista filtrata.
 
-### 0.4.0-4 - Risk to rights and freedoms and conditioned pending actions
+### 0.5.0-1 - Risk to rights and freedoms and conditioned pending actions
 
 The historical boolean field `Incident.personal_data` is kept unchanged at schema level for compatibility with existing databases, export/import and templates, but the UI now presents it as **Risk to rights and freedoms**. The technical workflow condition `personal_data` is also kept unchanged in the database, but it is displayed as **Risk to rights and freedoms** in workflow configuration and condition details.
 
@@ -1776,21 +1776,21 @@ Il widget globale del plugin **AI Chatbot** usa un renderer Markdown client-side
 
 ## AGID secure development compliance
 
-Version 0.4.0-4 build 20260522 introduces the final hardening layer for AGID alignment: static fallback secrets were removed, production startup fails on weak secrets, sensitive configuration values are encrypted before being stored in the `Setting` table, LDAP user input is escaped before filter substitution, uploads are validated by type and content signature, destructive full imports are accepted only after archive safety checks, and the default Content-Security-Policy uses per-response nonces instead of unsafe inline scripts. Operational deployments must provide stable secret material through the environment or an orchestrator secret manager.
+Version 0.5.0-1 build 20260522 introduces the final hardening layer for AGID alignment: static fallback secrets were removed, production startup fails on weak secrets, sensitive configuration values are encrypted before being stored in the `Setting` table, LDAP user input is escaped before filter substitution, uploads are validated by type and content signature, destructive full imports are accepted only after archive safety checks, and the default Content-Security-Policy uses per-response nonces instead of unsafe inline scripts. Operational deployments must provide stable secret material through the environment or an orchestrator secret manager.
 
 
 ### Final AGID compliance closure
 
-Version 0.4.0-4 build 20260522 now closes the remaining application-level findings: HTTP TRACE and TRACK are rejected before route dispatch and audited as `security:method_blocked`; encrypted LDAP bind credentials are decrypted before LDAP binds in login, connection tests and UID searches; `pytest.ini` makes the test suite executable from the repository root; generated `__pycache__` and `.pytest_cache` directories are excluded from the release archive. Reverse proxies should still block TRACE/TRACK as a defense-in-depth control, but compliance no longer depends only on the infrastructure layer.
+Version 0.5.0-1 build 20260522 now closes the remaining application-level findings: HTTP TRACE and TRACK are rejected before route dispatch and audited as `security:method_blocked`; encrypted LDAP bind credentials are decrypted before LDAP binds in login, connection tests and UID searches; `pytest.ini` makes the test suite executable from the repository root; generated `__pycache__` and `.pytest_cache` directories are excluded from the release archive. Reverse proxies should still block TRACE/TRACK as a defense-in-depth control, but compliance no longer depends only on the infrastructure layer.
 
 
 ### Server-side login lockout for AGID compliance
 
 The remaining AGID finding on authentication throttling has been closed by replacing the previous session-scoped failure counter with the persistent `LoginFailure` model/table. Each failed login is recorded server-side by a SHA-256 key derived from client IP and normalized username, with failure count, first/last failure timestamps and `blocked_until`. Successful authentication removes the corresponding server-side record. This makes the account/IP lockout independent from client cookies and suitable for multi-session deployments. The related audit events are `security:login_failure` and `security:login_blocked`; old tracker rows are pruned opportunistically.
 
-## Hardening AGID 0.4.0-4
+## Hardening AGID 0.5.0-1
 
-La versione 0.4.0-4 rafforza la conformità alle linee guida AGID per lo sviluppo sicuro:
+La versione 0.5.0-1 rafforza la conformità alle linee guida AGID per lo sviluppo sicuro:
 
 - il parsing XML dei template usa `defusedxml`, evitando parser XML standard su contenuti potenzialmente non fidati;
 - i file temporanei sono creati con API atomiche (`mkstemp`/`NamedTemporaryFile`) e non tramite nomi prevedibili;
@@ -1845,13 +1845,18 @@ Identical existing items are detected by comparing persisted values with the imp
 Il pacchetto distribuisce in `docs/` le versioni PDF della documentazione utente e amministrativa e una brochure riepilogativa di massimo due pagine (`brochure_cybersecurity_incident_registry.pdf`). Il generatore `scripts/build_documentation_pdfs.py` e gli endpoint PDF dell’applicazione rimuovono dalla resa PDF elementi di navigazione e sessione non utili alla stampa, tra cui skip link, pulsanti di menu desktop/mobile, nome utente, pulsante Alex/AlBot, logout e link di download interni. Le figure vengono mantenute vicino al capitolo che le introduce. I modelli DOCX di esempio precedentemente inclusi in `docs/source_models/` non vengono più distribuiti nella cartella `docs` del pacchetto. La brochure è prodotta in formato A4 verticale con background/filigrana ispirati alla cybersecurity e con contenuti pubblicitari sintetici: logo, versione, scopo, screenshot, autenticazione integrabile, workflow configurabili, notifiche automatiche con allegati, import workflow, compilazione PDF, compliance AGID, knowledge base AI opzionale, licenza EUPL, distribuzione Docker Hub `desalvo/cybersecurity-incident-registry`, supporto Docker Compose/Kubernetes e riferimenti del creatore/progetto GitHub.
 
 
-## Aggiornamento 0.4.0-4 - Chiusura automatica con azione e avvisi procedurali aggiornati
+## Aggiornamento 0.5.0-1 - Chiusura automatica con azione e avvisi procedurali aggiornati
 
 La valutazione degli avvisi procedurali usa ora una lettura aggiornata delle azioni dell'incidente, evitando cache di relazione già caricate nella stessa richiesta. Quando viene inserita o aggiornata un'azione con il tag **Chiusura del task in assenza di avvisi procedurali**, l'incidente viene impostato a **chiuso** e vengono valorizzate data e ora correnti nella timezone applicativa solo se, dopo l'azione appena registrata, non esistono avvisi procedurali attivi. Se restano altri step richiesti mancanti, la chiusura resta bloccata e viene mostrato l'avviso nella sezione Azioni.
 
 
-## Aggiornamento 0.4.0-4 - Knowledge base AlBot e riferimenti brochure
+## Aggiornamento 0.5.0-1 - Knowledge base AlBot e riferimenti brochure
 
 La knowledge base automatica del plugin AI Chatbot include ora il documento curato `docs/AI_CHATBOT_KNOWLEDGE.md` prima delle altre fonti progettuali. Il documento sintetizza le funzionalità correnti dell'applicazione, le modalità di setup Docker/Docker Compose/Kubernetes, la configurabilità amministrativa, i workflow, le notifiche con allegati, i PDF compilabili, il full backup della knowledge base, il rendering Markdown, la compliance AGID e le regole operative del plugin AlBot/Alex. Questo riduce il rischio che il contesto del chatbot venga dominato da sezioni storiche molto lunghe della documentazione e mantiene le risposte allineate allo stato corrente della release.
 
 Le brochure statiche ITA/ENG sono state rigenerate aggiornando il riferimento e-mail del creatore a `Alessandro.DeSalvo@roma1.infn.it`, mantenendo layout verticale, massimo due pagine, filigrana professionale a tema cybersecurity e link al repository GitHub.
+
+
+## Aggiornamento 0.5.0-1 - Configurazione form incidente, fasi procedurali e LDAP
+
+La release 0.5.0-1 introduce una configurazione amministrativa `incident_form_default_visible_fields` per stabilire quali campi della form di nuovo incidente sono visibili per default. I campi obbligatori essenziali restano sempre visibili per evitare submit non validi. Il dettaglio incidente rinomina il blocco workflow in “Fasi procedurali” e separa ogni step in un riquadro superiore descrittivo del flusso e un riquadro inferiore cliccabile relativo al task. Le label azione dispongono del flag `description_required`, migrato in modo idempotente su `config_label`, che rende obbligatoria la “Descrizione operazioni compiute”. La configurazione LDAP contiene ora filtro `{q}`, attributi di ricerca e attributi per auto-fill di Riferimento ed E-mail destinatario nelle form incidente.

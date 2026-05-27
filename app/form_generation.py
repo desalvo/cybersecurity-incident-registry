@@ -35,6 +35,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 
 from .consequences import incident_consequences_text
 from .models import db, Incident, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, Setting
+from .timeutils import utcnow
 
 # I campi compilabili dei modelli DOCX sono identificati esclusivamente
 # dal costrutto %<testo>%. Il nome del campo è il testo racchiuso tra
@@ -173,7 +174,7 @@ def save_template_pdf(template_name: str, source_pdf_bytes: bytes) -> Path:
     else:
         row.filename = f'{safe}.pdf'
         row.pdf_data = source_pdf_bytes
-        row.updated_at = datetime.utcnow()
+        row.updated_at = utcnow()
     db.session.commit()
     return out
 
@@ -269,7 +270,7 @@ def first_initial_information_action(inc: Incident):
     return sorted(candidates, key=lambda x: x.when_at or datetime.min)[0] if candidates else None
 
 def _setting_value(key: str, default: str = '') -> str:
-    s = Setting.query.get(key)
+    s = db.session.get(Setting, key)
     return s.value if s and s.value is not None else default
 
 def incident_value(inc: Incident, field_name: str) -> str:
@@ -312,14 +313,14 @@ def incident_value(inc: Incident, field_name: str) -> str:
         return action.when_at.strftime('%H:%M') if action and action.when_at else ''
     if field_name == 'documents': return ', '.join([d.filename for d in inc.documents])
     if field_name == 'created_at': return fmt(inc.created_at)
-    if field_name == 'security_owner': return (Setting.query.get('security_owner_name').value if Setting.query.get('security_owner_name') else '')
-    if field_name == 'security_owner_role': return (Setting.query.get('security_owner_role').value if Setting.query.get('security_owner_role') else '')
-    if field_name == 'security_owner_email': return (Setting.query.get('security_owner_email').value if Setting.query.get('security_owner_email') else '')
-    if field_name == 'structure': return (Setting.query.get('structure_name').value if Setting.query.get('structure_name') else '')
-    if field_name == 'security_responsible': return (Setting.query.get('security_responsible_name').value if Setting.query.get('security_responsible_name') else '')
-    if field_name == 'security_responsible_email': return (Setting.query.get('security_responsible_email').value if Setting.query.get('security_responsible_email') else '')
-    if field_name == 'security_responsible_phone': return (Setting.query.get('security_responsible_phone').value if Setting.query.get('security_responsible_phone') else '-')
-    if field_name == 'security_responsible_function': return (Setting.query.get('security_responsible_function').value if Setting.query.get('security_responsible_function') else '')
+    if field_name == 'security_owner': return (db.session.get(Setting, 'security_owner_name').value if db.session.get(Setting, 'security_owner_name') else '')
+    if field_name == 'security_owner_role': return (db.session.get(Setting, 'security_owner_role').value if db.session.get(Setting, 'security_owner_role') else '')
+    if field_name == 'security_owner_email': return (db.session.get(Setting, 'security_owner_email').value if db.session.get(Setting, 'security_owner_email') else '')
+    if field_name == 'structure': return (db.session.get(Setting, 'structure_name').value if db.session.get(Setting, 'structure_name') else '')
+    if field_name == 'security_responsible': return (db.session.get(Setting, 'security_responsible_name').value if db.session.get(Setting, 'security_responsible_name') else '')
+    if field_name == 'security_responsible_email': return (db.session.get(Setting, 'security_responsible_email').value if db.session.get(Setting, 'security_responsible_email') else '')
+    if field_name == 'security_responsible_phone': return (db.session.get(Setting, 'security_responsible_phone').value if db.session.get(Setting, 'security_responsible_phone') else '-')
+    if field_name == 'security_responsible_function': return (db.session.get(Setting, 'security_responsible_function').value if db.session.get(Setting, 'security_responsible_function') else '')
     if field_name == 'consequences': return incident_consequences(inc)
     if field_name == 'measures_adopted': return incident_measures(inc)
     if field_name == 'privacy_authority_non_notification_reason': return _setting_value('privacy_authority_non_notification_reason')

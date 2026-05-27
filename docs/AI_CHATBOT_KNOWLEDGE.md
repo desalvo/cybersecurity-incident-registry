@@ -1,6 +1,6 @@
 # Knowledge base operativa AlBot/Alex
 
-Questo documento sintetico è caricato automaticamente nel contesto interno del plugin AI Chatbot. Serve a mantenere AlBot, chiamabile anche Alex, allineato alle funzionalità e ai setup correnti di Cybersecurity Incident Registry 0.4.0-4.
+Questo documento sintetico è caricato automaticamente nel contesto interno del plugin AI Chatbot. Serve a mantenere AlBot, chiamabile anche Alex, allineato alle funzionalità e ai setup correnti di Cybersecurity Incident Registry 0.5.0-1.
 
 ## Identità e scopo
 
@@ -70,3 +70,8 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 - Licenza: European Union Public Licence (EUPL).
 - Creatore: Alessandro De Salvo, Alessandro.DeSalvo@roma1.infn.it.
 - Repository GitHub: https://github.com/desalvo/cybersecurity-incident-registry.
+
+
+## Aggiornamento 0.5.0-1
+
+La versione 0.5.0-1 aggiunge la configurazione amministrativa dei campi visualizzati per default nella form di nuovo incidente, riorganizza le “Operazioni previste” in “Fasi procedurali” con descrizione del flusso separata dal task cliccabile, introduce pulsanti link sicuri nella sintassi Markdown degli step workflow tramite `{button:Etichetta|https://...}`, consente di rendere obbligatoria per singolo task la “Descrizione operazioni compiute” e integra la ricerca LDAP nelle form di creazione/modifica incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili per Riferimento ed E-mail destinatario.

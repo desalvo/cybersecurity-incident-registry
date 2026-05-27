@@ -13,3 +13,15 @@
   <p class="muted">La rubrica può compilare Riferimento, Destinatario o E-mail Destinatario. Una nuova e-mail destinatario viene aggiunta automaticamente alla rubrica al salvataggio.</p>
 </div>
 {% endif %}
+
+{% if incident_ldap_lookup_enabled %}
+<div class="wide ldap-recipient-loader" data-reference-target="{{ reference_target }}" data-recipient-target="{{ recipient_target }}" data-email-target="{{ email_target }}" data-search-url="{{ url_for('main.ldap_incident_recipient_search') }}">
+  <label>Cerca in LDAP</label>
+  <div class="inline-actions">
+    <input class="ldap-recipient-query" type="search" placeholder="Cerca utente LDAP per nome, uid o e-mail" aria-label="Cerca utente LDAP">
+    <button type="button" class="secondary ldap-recipient-search-button">Cerca</button>
+  </div>
+  <div class="ldap-recipient-results" aria-live="polite"></div>
+  <p class="muted">La ricerca usa la configurazione LDAP amministrativa e può compilare Riferimento, Destinatario ed E-mail destinatario.</p>
+</div>
+{% endif %}
