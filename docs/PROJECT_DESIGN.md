@@ -1848,3 +1848,10 @@ Il pacchetto distribuisce in `docs/` le versioni PDF della documentazione utente
 ## Aggiornamento 0.4.0-4 - Chiusura automatica con azione e avvisi procedurali aggiornati
 
 La valutazione degli avvisi procedurali usa ora una lettura aggiornata delle azioni dell'incidente, evitando cache di relazione già caricate nella stessa richiesta. Quando viene inserita o aggiornata un'azione con il tag **Chiusura del task in assenza di avvisi procedurali**, l'incidente viene impostato a **chiuso** e vengono valorizzate data e ora correnti nella timezone applicativa solo se, dopo l'azione appena registrata, non esistono avvisi procedurali attivi. Se restano altri step richiesti mancanti, la chiusura resta bloccata e viene mostrato l'avviso nella sezione Azioni.
+
+
+## Aggiornamento 0.4.0-4 - Knowledge base AlBot e riferimenti brochure
+
+La knowledge base automatica del plugin AI Chatbot include ora il documento curato `docs/AI_CHATBOT_KNOWLEDGE.md` prima delle altre fonti progettuali. Il documento sintetizza le funzionalità correnti dell'applicazione, le modalità di setup Docker/Docker Compose/Kubernetes, la configurabilità amministrativa, i workflow, le notifiche con allegati, i PDF compilabili, il full backup della knowledge base, il rendering Markdown, la compliance AGID e le regole operative del plugin AlBot/Alex. Questo riduce il rischio che il contesto del chatbot venga dominato da sezioni storiche molto lunghe della documentazione e mantiene le risposte allineate allo stato corrente della release.
+
+Le brochure statiche ITA/ENG sono state rigenerate aggiornando il riferimento e-mail del creatore a `Alessandro.DeSalvo@roma1.infn.it`, mantenendo layout verticale, massimo due pagine, filigrana professionale a tema cybersecurity e link al repository GitHub.

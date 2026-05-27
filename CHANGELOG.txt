@@ -1,3 +1,9 @@
+0.4.0-4 - Brochure e knowledge base AlBot aggiornate
+- Aggiornate le brochure ITA/ENG sostituendo il riferimento e-mail del creatore con Alessandro.DeSalvo@roma1.infn.it.
+- Aggiunto `docs/AI_CHATBOT_KNOWLEDGE.md`, documento sintetico caricato automaticamente nel contesto di AlBot/Alex con funzionalità, setup, distribuzione container, workflow, notifiche, PDF, compliance e note operative correnti.
+- Estesa la knowledge base progettuale del chatbot per includere per primo il riepilogo operativo aggiornato e aumentato il limite del contesto progettuale.
+- Rigenerate le versioni PDF statiche nei `docs/`; non sono stati salvati nuovi risultati AGID.
+
 0.4.0-4 - Chiusura automatica azioni senza avvisi procedurali
 - Corretto il calcolo degli avvisi procedurali durante l'inserimento di un'azione: la chiusura automatica considera anche l'azione appena salvata e non resta bloccata da cache di relazione obsolete.
 - Le azioni con tag "Chiusura del task in assenza di avvisi procedurali" impostano l'incidente a chiuso e valorizzano data/ora correnti nella timezone applicativa solo se non rimangono avvisi attivi.

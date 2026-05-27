@@ -510,7 +510,7 @@ def _build_brochure() -> None:
     value = Table(
         [[
             [Paragraph("Output principali", h2), Paragraph("Report PDF, moduli compilati, audit CSV, backup completi, evidenze documentali, export/import dei dati, workflow esterni importabili e deployment Docker/Docker Compose/Kubernetes.", normal)],
-            [Paragraph("Riferimenti", h2), Paragraph("Creatore: Alessandro De Salvo - braket71@gmail.com<br/>GitHub: https://github.com/desalvo/cybersecurity-incident-registry", normal)],
+            [Paragraph("Riferimenti", h2), Paragraph("Creatore: Alessandro De Salvo - Alessandro.DeSalvo@roma1.infn.it<br/>GitHub: https://github.com/desalvo/cybersecurity-incident-registry", normal)],
         ]],
         colWidths=[8.95 * cm, 8.95 * cm],
     )
@@ -691,7 +691,7 @@ def _build_brochure_en() -> None:
     value = Table(
         [[
             [Paragraph("Main outputs", h2), Paragraph("PDF reports, filled forms, CSV audits, full backups, documentary evidence, data export/import, importable external workflows and Docker/Docker Compose/Kubernetes deployment.", normal)],
-            [Paragraph("References", h2), Paragraph("Creator: Alessandro De Salvo - braket71@gmail.com<br/>GitHub: https://github.com/desalvo/cybersecurity-incident-registry", normal)],
+            [Paragraph("References", h2), Paragraph("Creator: Alessandro De Salvo - Alessandro.DeSalvo@roma1.infn.it<br/>GitHub: https://github.com/desalvo/cybersecurity-incident-registry", normal)],
         ]],
         colWidths=[8.95 * cm, 8.95 * cm],
     )

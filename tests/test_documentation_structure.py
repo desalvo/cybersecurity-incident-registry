@@ -222,3 +222,16 @@ def test_static_english_brochure_is_portrait_two_pages():
         "https://github.com/desalvo/cybersecurity-incident-registry",
     ):
         assert fragment in text
+
+
+def test_brochures_use_infn_creator_email():
+    from pypdf import PdfReader
+
+    for name in (
+        'brochure_cybersecurity_incident_registry.pdf',
+        'brochure_cybersecurity_incident_registry_en.pdf',
+    ):
+        pdf = ROOT / 'docs' / name
+        text = '\n'.join(page.extract_text() or '' for page in PdfReader(str(pdf)).pages)
+        assert 'Alessandro.DeSalvo@roma1.infn.it' in text
+        assert 'braket71@gmail.com' not in text

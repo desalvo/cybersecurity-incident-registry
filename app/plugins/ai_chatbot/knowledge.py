@@ -5,6 +5,7 @@ from ...models import AIChatbotDocument
 from .database_context import database_context_enabled, sanitized_database_context
 
 PROJECT_FILES = [
+    'docs/AI_CHATBOT_KNOWLEDGE.md',
     'docs/PROJECT_DESIGN.md',
     'README.md',
     'README_en.md',
@@ -31,7 +32,7 @@ def read_text_file(path: Path, limit=20000):
     return ''
 
 
-def project_knowledge(max_chars=50000):
+def project_knowledge(max_chars=90000):
     root = project_root()
     chunks = []
     for rel in PROJECT_FILES + TEMPLATE_DOCS:
