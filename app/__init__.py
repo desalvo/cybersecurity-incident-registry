@@ -88,6 +88,7 @@ def create_app():
         return data
     from .routes import bp, start_deadline_notification_scheduler, start_incident_reminder_scheduler, start_backup_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
     from .plugins.ai_chatbot import register_plugin as register_ai_chatbot_plugin; register_ai_chatbot_plugin(app)
+    from .plugins.alfresco import register_plugin as register_alfresco_plugin; register_alfresco_plugin(app)
     with app.app_context():
         wait_db(db)
         bootstrap(app)
@@ -507,6 +508,17 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE document ADD COLUMN notification_tags TEXT NOT NULL DEFAULT ''"))
                 app.logger.info('Schema migration applied: document.notification_tags added')
+            cols = {c['name'] for c in inspector.get_columns('document')}
+            document_extra_columns = {
+                'alfresco_node_id': 'VARCHAR(255)',
+                'alfresco_path': 'TEXT',
+                'alfresco_uploaded_at': 'TIMESTAMP',
+            }
+            for col_name, col_type in document_extra_columns.items():
+                if col_name not in cols:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f'ALTER TABLE document ADD COLUMN {col_name} {col_type}'))
+                    app.logger.info('Schema migration applied: document.%s added', col_name)
         if 'user' in tables:
             cols = {c['name'] for c in inspector.get_columns('user')}
             if 'mfa_enabled' not in cols:

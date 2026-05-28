@@ -597,7 +597,7 @@ During import the JSON file is analysed first: new elements are created, while e
 
 The **Admin → Plugins** menu can enable the optional **AI Chatbot** plugin, disabled by default. The plugin provides a support chat for application features, operating instructions and security incident procedures.
 
-Supported engines: ChatGPT, Claude, Gemini, Ollama and Perplexity. Each engine has its own configuration, but only one engine can be active at a time. The chatbot uses the project documentation as built-in knowledge and can be enriched by uploading additional procedural documents to the plugin knowledge base.
+Supported engines: ChatGPT, Claude, Gemini, Ollama and Perplexity. Each engine has its own configuration, but only one engine can be active at a time. The chatbot uses the project documentation as built-in knowledge and can be enriched by uploading additional procedural documents to the plugin knowledge base. The screen always shows the correct ChatGPT name and includes both a global button to reset all AI backend configurations to the default values, clearing saved API keys and restoring endpoints, models and the active engine, and per-engine buttons to reset only the selected backend. These resets do not change plugin enablement or the database-context option.
 
 
 AI Chatbot update: the plugin configuration now provides **Allow the AI engine to also use a sanitized snapshot of the current database**. The option is disabled by default. When enabled, the context sent to the selected engine also includes a JSON view of the current application database, filtered to exclude personal data, sensitive data, credentials, tokens, email addresses, binary attachments and free-text fields that may identify individuals.
@@ -707,3 +707,11 @@ The release package includes updated static PDFs under `docs/`:
 - `brochure_cybersecurity_incident_registry.pdf` and `brochure_cybersecurity_incident_registry_en.pdf` for the two-page product brochure in Italian and English.
 
 All static PDFs can be regenerated with `python scripts/build_documentation_pdfs.py`.
+
+### Procedural phase and incident-list status indicators
+
+The incident detail page highlights the first incomplete procedural phase with a large red arrow. The incident list now uses separate icons for active procedural warnings, finalised workflows that are not yet closed, and closed incidents without active warnings.
+
+### Plugin Alfresco
+
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.

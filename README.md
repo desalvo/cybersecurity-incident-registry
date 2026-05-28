@@ -344,7 +344,7 @@ Il campo derivato `measures_adopted` include solo le azioni marcate come **expor
 
 ## Avvisi procedurali
 
-Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step del workflow applicabile marcati come richiesti e non ancora completati. Ogni avviso riporta la descrizione operativa dello step, se disponibile, altrimenti la descrizione o il nome del task. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome, con tooltip riepilogativo degli avvisi presenti. La sezione "Avvisi procedurali" è collocata subito sotto "Operazioni previste". In assenza di avvisi attivi, l’inserimento dell’azione di conclusione porta automaticamente l’incidente allo stato "chiuso".
+Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step del workflow applicabile marcati come richiesti e non ancora completati. Ogni avviso riporta la descrizione operativa dello step, se disponibile, altrimenti la descrizione o il nome del task. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome, con tooltip riepilogativo degli avvisi presenti. Gli incidenti senza avvisi procedurali attivi ma non ancora chiusi mostrano invece il simbolo di finalizzato, mentre gli incidenti chiusi senza avvisi attivi mostrano il simbolo di ok. La sezione "Avvisi procedurali" è collocata subito sotto "Fasi procedurali"; nella sezione delle fasi, la prima fase non completata è segnalata con una grande freccia rossa. In assenza di avvisi attivi, l’inserimento dell’azione di conclusione porta automaticamente l’incidente allo stato "chiuso".
 
 
 ## Documentazione utente e logo applicativo
@@ -792,7 +792,7 @@ In fase di import il file JSON viene prima analizzato: gli elementi nuovi sarann
 
 Il menu **Admin → Plugins** permette di attivare il plugin opzionale **AI Chatbot**, disattivato per default. Il plugin fornisce una chat di supporto sulle funzionalità dell’applicazione, sulle operazioni e sulle procedure per gli incidenti di sicurezza.
 
-Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha configurazione separata, ma solo uno può essere attivo alla volta. Il chatbot usa la documentazione progettuale dell’applicazione e può essere arricchito caricando documenti procedurali aggiuntivi nella knowledge base del plugin.
+Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha configurazione separata, ma solo uno può essere attivo alla volta. Il chatbot usa la documentazione progettuale dell’applicazione e può essere arricchito caricando documenti procedurali aggiuntivi nella knowledge base del plugin. La schermata mostra sempre il nome corretto ChatGPT e include sia un pulsante globale per ripristinare tutte le configurazioni dei backend AI ai valori di default, cancellando le API key salvate e riportando endpoint, modelli e motore attivo alla configurazione iniziale, sia pulsanti nei singoli motori per ripristinare solo il backend selezionato. I reset non modificano l’abilitazione del plugin o l’opzione di contesto database.
 
 
 Aggiornamento AI Chatbot: nella configurazione del plugin è disponibile l'opzione **Consenti al motore AI di usare anche uno snapshot sanitizzato del database corrente**. L'opzione è disattivata per default. Se abilitata, il contesto inviato al motore selezionato include anche una vista JSON del database applicativo corrente, filtrata per escludere dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari e campi di testo libero potenzialmente identificativi.
@@ -924,3 +924,7 @@ La cartella `docs/` include anche le versioni PDF aggiornate della documentazion
 ### Clonazione workflow e priorità categoria
 
 In **Admin → Flussi operativi incidenti** è disponibile la funzione **Clona workflow**, che consente di copiare tutti gli step da un workflow sorgente a un workflow destinazione, scegliendo sia il flusso di default sia una categoria specifica. Se la destinazione contiene già step, occorre confermare esplicitamente la sovrascrittura. Per gli incidenti con più categorie, il workflow applicato è quello della prima categoria selezionata nell'ordine drag-and-drop; se non esiste un workflow per quella categoria, viene applicato il flusso di default.
+
+### Plugin Alfresco
+
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.

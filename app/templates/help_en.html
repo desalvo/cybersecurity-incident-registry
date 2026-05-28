@@ -46,3 +46,5 @@ Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte l
 - `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
 
 L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.
+
+<section class="doc-chapter" data-doc-title="procedural phases status icons"><h2>Procedural phase status indicators</h2><p>On the incident detail page, the first incomplete procedural phase is marked with a large red arrow. On the incident list, incidents with active procedural warnings show a warning icon; incidents with no active procedural warnings but not yet closed show a finalised icon; closed incidents with no active procedural warnings show an ok icon.</p></section>

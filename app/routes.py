@@ -60,7 +60,7 @@ _TEXT_UPLOAD_EXTENSIONS = {'.txt','.csv','.json','.xml'}
 _SECRET_SETTING_KEYS = {
     'smtp_password', 'ldap_bind_password', 'sso_client_secret',
     'ai_chatbot_chatgpt_api_key', 'ai_chatbot_claude_api_key', 'ai_chatbot_gemini_api_key',
-    'ai_chatbot_ollama_api_key', 'ai_chatbot_perplexity_api_key', 'sso_profiles_json'
+    'ai_chatbot_ollama_api_key', 'ai_chatbot_perplexity_api_key', 'alfresco_password', 'sso_profiles_json'
 }
 _ENC_PREFIX = 'enc:v1:'
 
@@ -880,11 +880,19 @@ def incident_procedural_status(inc):
     return status
 
 def annotate_procedural_status(incidents):
-    """Aggiunge attributi transienti usati dalla lista principale."""
+    """Aggiunge attributi transienti usati dalla lista principale.
+
+    La lista incidenti distingue tre stati operativi del workflow:
+    warning, se esistono avvisi procedurali attivi; finalizzato, se non ci
+    sono avvisi attivi ma l'incidente non è ancora chiuso; ok, se non ci sono
+    avvisi attivi e l'incidente è chiuso.
+    """
     for inc in incidents:
         status = incident_procedural_status(inc)
         inc.procedural_warnings = status['warnings'] or [step.get('warning_text') or step.get('label') or step.get('task_name') for step in status.get('missing_steps', [])]
-        inc.has_procedural_warnings = bool(status.get('has_open_incomplete_workflow'))
+        has_active_warnings = bool(status.get('has_warnings'))
+        inc.has_procedural_warnings = has_active_warnings
+        inc.workflow_list_state = 'warning' if has_active_warnings else ('ok' if (getattr(inc, 'status', '') or '').strip().lower() == 'chiuso' else 'finalized')
     return incidents
 
 def unique_int_list(field_name):
@@ -1009,6 +1017,28 @@ def save_action_attachment_file(file_storage, action):
     att = ActionAttachment(action_id=action.id, filename=name, stored_name=stored)
     db.session.add(att)
     return att
+
+
+def alfresco_is_enabled_safe():
+    try:
+        from .plugins.alfresco.client import is_enabled as _alfresco_enabled
+        return _alfresco_enabled()
+    except Exception:
+        return False
+
+
+def attach_document_to_alfresco(doc):
+    """Upload an incident document to Alfresco when the plugin is enabled."""
+    from .plugins.alfresco.client import upload_file
+    if not doc or not doc.stored_name:
+        raise RuntimeError('Documento locale non valido per upload Alfresco.')
+    local_path = os.path.join(current_app.config['UPLOAD_DIR'], doc.stored_name)
+    info = upload_file(local_path, doc.filename or doc.stored_name, incident_id=doc.incident_id)
+    doc.alfresco_node_id = info.get('node_id')
+    doc.alfresco_path = info.get('path')
+    doc.alfresco_uploaded_at = application_now()
+    return info
+
 
 def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc):
     """Genera un PDF con il testo della mail inviata, da allegare all'azione automatica."""
@@ -1423,6 +1453,7 @@ def incident_workflow_status(inc):
             action_counts[action.label_id] = action_counts.get(action.label_id, 0) + 1
     used_counts = {}
     items = []
+    first_missing_found = False
     start = first_initial_information_at(inc)
     now = application_now()
     for step in steps:
@@ -1454,6 +1485,9 @@ def incident_workflow_status(inc):
         ntype = get_notification_type(required_notification_type) if required_notification_type else None
         document_generation_enabled = bool(getattr(step, 'document_generation_enabled', False))
         document_template_name = (getattr(step, 'document_template_name', None) or '').strip()
+        first_incomplete = (not done and not first_missing_found)
+        if first_incomplete:
+            first_missing_found = True
         items.append({
             'id': step.id,
             'action_label_id': label_id,
@@ -1486,6 +1520,7 @@ def incident_workflow_status(inc):
             'position': step.position,
             'done': done,
             'missing': not done,
+            'first_incomplete': first_incomplete,
             'max_completion_hours': max_hours,
             'due_at': due_at,
             'due_at_text': format_application_datetime(due_at) if due_at else '',
@@ -2778,11 +2813,30 @@ def upload(iid):
     if can_write():
         try:
             saved = 0
+            alfresco_saved = 0
+            alfresco_errors = []
+            upload_to_alfresco = request.form.get('upload_to_alfresco') == '1' and alfresco_is_enabled_safe()
             for f in request.files.getlist('files'):
                 if f.filename:
-                    name, stored = save_validated_upload(f, current_app.config['UPLOAD_DIR']); db.session.add(Document(incident_id=iid,filename=name,stored_name=stored)); saved += 1
+                    name, stored = save_validated_upload(f, current_app.config['UPLOAD_DIR'])
+                    doc = Document(incident_id=iid,filename=name,stored_name=stored)
+                    db.session.add(doc)
+                    db.session.flush()
+                    saved += 1
+                    if upload_to_alfresco:
+                        try:
+                            attach_document_to_alfresco(doc)
+                            alfresco_saved += 1
+                        except Exception as exc:
+                            current_app.logger.exception('Upload Alfresco fallito per %s', name)
+                            alfresco_errors.append(f'{name}: {exc}')
             db.session.commit()
-            section_flash(f'Documenti caricati: {saved}', 'incident-documents', 'success')
+            if upload_to_alfresco:
+                section_flash(f'Documenti caricati: {saved}; inviati ad Alfresco: {alfresco_saved}', 'incident-documents', 'success')
+                if alfresco_errors:
+                    section_flash('Errori Alfresco: ' + '; '.join(alfresco_errors[:3]), 'incident-documents', 'warning')
+            else:
+                section_flash(f'Documenti caricati: {saved}', 'incident-documents', 'success')
         except Exception as exc:
             db.session.rollback(); current_app.logger.exception('Errore upload documenti'); section_flash(f'Errore upload documenti: {exc}', 'incident-documents', 'error')
     return incident_detail_redirect(iid, 'incident-documents')
@@ -2790,6 +2844,38 @@ def upload(iid):
 @login_required
 def download_doc(did):
     d=model_or_404(Document, did); visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404(); return send_file(os.path.join(current_app.config['UPLOAD_DIR'],d.stored_name),download_name=d.filename,as_attachment=True)
+
+@bp.route('/document/<int:did>/alfresco/upload', methods=['POST'])
+@login_required
+def upload_doc_to_alfresco(did):
+    d=model_or_404(Document, did); visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404()
+    if can_write():
+        if not alfresco_is_enabled_safe():
+            section_flash('Plugin Alfresco non abilitato.', 'incident-documents', 'warning')
+        else:
+            try:
+                attach_document_to_alfresco(d)
+                db.session.commit()
+                section_flash(f'Documento {d.filename} caricato su Alfresco.', 'incident-documents', 'success')
+            except Exception as exc:
+                db.session.rollback(); current_app.logger.exception('Upload documento Alfresco fallito'); section_flash(f'Errore upload Alfresco: {exc}', 'incident-documents', 'error')
+    return incident_detail_redirect(d.incident_id, 'incident-documents')
+
+@bp.route('/document/<int:did>/alfresco/download')
+@login_required
+def download_doc_from_alfresco(did):
+    d=model_or_404(Document, did); visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404()
+    if not alfresco_is_enabled_safe():
+        section_flash('Plugin Alfresco non abilitato.', 'incident-documents', 'warning')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
+    try:
+        from .plugins.alfresco.client import download_file
+        content, mimetype = download_file(d.alfresco_node_id)
+        return Response(content, mimetype=mimetype, headers={'Content-Disposition': f'attachment; filename="{d.filename or "alfresco-document"}"'})
+    except Exception as exc:
+        current_app.logger.exception('Download documento Alfresco fallito')
+        section_flash(f'Errore download Alfresco: {exc}', 'incident-documents', 'error')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
 @bp.route('/document/<int:did>/delete',methods=['POST'])
 @login_required
 def del_doc(did):

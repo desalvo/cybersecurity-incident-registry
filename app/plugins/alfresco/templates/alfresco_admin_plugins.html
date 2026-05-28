@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>Plugin Alfresco</h2>
+  <p class="muted">Il plugin consente di caricare e scaricare documenti incidente anche da Alfresco tramite API REST. È disabilitato per default.</p>
+  <form method="post" class="stacked-form">
+    <label class="checkbox-row"><input type="checkbox" name="plugin_alfresco_enabled" value="1" {% if config.enabled %}checked{% endif %}> <span>Abilita plugin Alfresco</span></label>
+    <label for="alfresco_base_url">URL base Alfresco</label>
+    <input id="alfresco_base_url" name="alfresco_base_url" value="{{ config.base_url }}" placeholder="https://alfresco.example.org">
+    <label for="alfresco_username">Username API</label>
+    <input id="alfresco_username" name="alfresco_username" value="{{ config.username }}" autocomplete="username">
+    <label for="alfresco_password">Password/API secret</label>
+    {% if config.has_password %}<p class="muted secret-presence">Password Alfresco presente. Il valore reale non viene visualizzato; inserisci un nuovo valore solo per sovrascriverla.</p>{% else %}<p class="muted secret-presence">Nessuna password Alfresco salvata.</p>{% endif %}
+    <input id="alfresco_password" name="alfresco_password" type="password" value="" autocomplete="new-password" placeholder="Nuova password; lascia vuoto per mantenere quella esistente">
+    <label class="checkbox-row"><input type="checkbox" name="clear_alfresco_password" value="1"> <span>Cancella password salvata</span></label>
+    <label for="alfresco_site">Site Alfresco opzionale</label>
+    <input id="alfresco_site" name="alfresco_site" value="{{ config.site }}" placeholder="es. cybersecurity">
+    <label for="alfresco_target_path">Cartella destinazione</label>
+    <input id="alfresco_target_path" name="alfresco_target_path" value="{{ config.target_path }}" placeholder="Cybersecurity Incident Registry">
+    <label for="alfresco_timeout">Timeout API secondi</label>
+    <input id="alfresco_timeout" name="alfresco_timeout" type="number" min="5" max="300" value="{{ config.timeout }}">
+    <label class="checkbox-row"><input type="checkbox" name="alfresco_verify_tls" value="1" {% if config.verify_tls %}checked{% endif %}> <span>Verifica certificato TLS</span></label>
+    <div class="button-row">
+      <button type="submit" name="action" value="save" class="btn primary">Salva configurazione Alfresco</button>
+      <button type="submit" name="action" value="reset_alfresco_defaults" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare Alfresco ai valori di default? Il plugin verrà disabilitato e la password salvata verrà cancellata.');">Reset configurazione Alfresco</button>
+    </div>
+  </form>
+</section>
+<section class="card">
+  <h3>Uso nei documenti incidente</h3>
+  <p>Quando il plugin è abilitato, nella sezione <strong>Documenti</strong> degli incidenti compare l’opzione per caricare i file anche su Alfresco. I documenti già collegati a un nodo Alfresco espongono anche il download diretto tramite API.</p>
+</section>
+{% endblock %}

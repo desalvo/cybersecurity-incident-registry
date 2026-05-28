@@ -10,6 +10,16 @@
   {%- endif -%}
 {%- endmacro %}
 
+{% macro workflow_status_icon(i) -%}
+  {%- if i.workflow_list_state == 'warning' -%}
+    <span class="procedure-status-icon procedure-danger-icon" title="Avvisi procedurali attivi: {{ i.procedural_warnings|join(', ') }}" aria-label="Avvisi procedurali attivi">⚠</span>
+  {%- elif i.workflow_list_state == 'ok' -%}
+    <span class="procedure-status-icon procedure-ok-icon" title="Incidente chiuso senza avvisi procedurali attivi" aria-label="Incidente chiuso senza avvisi procedurali attivi">✓</span>
+  {%- elif i.workflow_list_state == 'finalized' -%}
+    <span class="procedure-status-icon procedure-finalized-icon" title="Workflow finalizzato: nessun avviso procedurale attivo, incidente non ancora chiuso" aria-label="Workflow finalizzato, incidente non ancora chiuso">◆</span>
+  {%- endif -%}
+{%- endmacro %}
+
 <div class="card">
   <div class="page-header">
     <div>
@@ -57,8 +67,8 @@
   
   <div class="incident-mobile-list" aria-label="Lista incidenti mobile">
     {% for i in incidents %}
-    <article class="incident-card-mobile {% if i.has_procedural_warnings %}incident-warning-row{% endif %}">
-      <h3>{% if i.has_procedural_warnings %}<span class="procedure-danger-icon" title="Avvisi procedurali presenti" aria-label="Avvisi procedurali presenti">⚠</span>{% endif %}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></h3>
+    <article class="incident-card-mobile {% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
+      <h3>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></h3>
       <div class="mobile-meta">
         <div><strong>Inizio / fine</strong>{{ i.start_at }}{% if i.end_at %}<br>{{ i.end_at }}{% endif %}</div>
         <div><strong>Compilatore</strong>{{ i.creator_name }}</div>
@@ -94,8 +104,8 @@
     </thead>
     <tbody>
       {% for i in incidents %}
-      <tr class="{% if i.has_procedural_warnings %}incident-warning-row{% endif %}">
-        <td>{% if i.has_procedural_warnings %}<span class="procedure-danger-icon" title="Avvisi procedurali presenti: {{ i.procedural_warnings|join(', ') }}" aria-label="Avvisi procedurali presenti">⚠</span>{% endif %}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
+      <tr class="{% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
+        <td>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
         <td>{{ i.start_at }}<br>{{ i.end_at or '' }}</td>
         <td>{{ i.creator_name }}</td>
         <td>{{ i.people|map(attribute='name')|sort|join(', ') }}</td>

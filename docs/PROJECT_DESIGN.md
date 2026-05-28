@@ -1879,3 +1879,7 @@ Ogni `IncidentWorkflowStep` dispone del campo `step_type`, migrato in modo idemp
 ### Clonazione workflow e scelta deterministica per categoria
 
 La configurazione dei workflow supporta la clonazione completa degli step tra sorgente e destinazione, dove sorgente e destinazione possono essere il flusso di default o una categoria. La sovrascrittura di una destinazione già popolata richiede conferma esplicita lato UI ed è verificata anche lato server. Gli incidenti memorizzano l'ordine delle categorie selezionate nel campo `category_order`: il risolutore del workflow usa solo la prima categoria nell'ordine scelto dall'operatore tramite drag-and-drop, con fallback al workflow di default se la categoria non ha step configurati.
+
+### Plugin Alfresco
+
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.

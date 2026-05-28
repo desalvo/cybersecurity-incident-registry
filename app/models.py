@@ -279,7 +279,7 @@ class Action(db.Model):
 class ActionAttachment(db.Model):
     id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=utcnow)
 class Document(db.Model):
-    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True); notification_tags=db.Column(db.Text,default='',nullable=False)
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True); notification_tags=db.Column(db.Text,default='',nullable=False); alfresco_node_id=db.Column(db.String(255),nullable=True,index=True); alfresco_path=db.Column(db.Text,nullable=True); alfresco_uploaded_at=db.Column(db.DateTime,nullable=True)
 
     @property
     def notification_tag_list(self):

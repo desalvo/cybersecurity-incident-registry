@@ -14,6 +14,20 @@ bp = Blueprint('ai_chatbot', __name__, url_prefix='/ai-chatbot', template_folder
 
 PLUGIN_CODE = 'ai_chatbot'
 ENGINE_NAMES = ['chatgpt', 'claude', 'gemini', 'ollama', 'perplexity']
+ENGINE_LABELS = {
+    'chatgpt': 'ChatGPT',
+    'claude': 'Claude',
+    'gemini': 'Gemini',
+    'ollama': 'Ollama',
+    'perplexity': 'Perplexity',
+}
+DEFAULT_BACKEND_CONFIGS = {
+    'chatgpt': {'api_key': '', 'endpoint': '', 'model': 'gpt-4o-mini'},
+    'claude': {'api_key': '', 'endpoint': '', 'model': 'claude-3-5-sonnet-latest'},
+    'gemini': {'api_key': '', 'endpoint': '', 'model': 'gemini-1.5-flash'},
+    'ollama': {'api_key': '', 'endpoint': 'http://localhost:11434/api/chat', 'model': 'llama3.1'},
+    'perplexity': {'api_key': '', 'endpoint': '', 'model': 'sonar'},
+}
 
 
 def _get_setting(key, default=''):
@@ -49,15 +63,50 @@ def plugin_config():
     engine = _get_setting('ai_chatbot_engine', 'chatgpt') or 'chatgpt'
     configs = {}
     for name in ENGINE_NAMES:
-        api_key = _get_setting(f'ai_chatbot_{name}_api_key', '')
+        defaults = DEFAULT_BACKEND_CONFIGS.get(name, {})
+        api_key = _get_setting(f'ai_chatbot_{name}_api_key', defaults.get('api_key', ''))
         configs[name] = {
             'api_key': api_key,
             'has_api_key': bool(api_key),
             'masked_api_key': _mask_secret(api_key),
-            'endpoint': _get_setting(f'ai_chatbot_{name}_endpoint', ''),
-            'model': _get_setting(f'ai_chatbot_{name}_model', ''),
+            'endpoint': _get_setting(f'ai_chatbot_{name}_endpoint', defaults.get('endpoint', '')),
+            'model': _get_setting(f'ai_chatbot_{name}_model', defaults.get('model', '')),
+            'label': ENGINE_LABELS.get(name, name.capitalize()),
         }
-    return {'enabled': is_enabled(), 'engine': engine, 'configs': configs, 'include_database_context': database_context_enabled()}
+    return {
+        'enabled': is_enabled(),
+        'engine': engine,
+        'configs': configs,
+        'include_database_context': database_context_enabled(),
+        'engine_labels': ENGINE_LABELS,
+    }
+
+
+def reset_single_backend_defaults(name):
+    """Restore one AI backend/motor configuration to application defaults.
+
+    Only endpoint, model and API key for the selected backend are reset.  The
+    active engine, plugin enablement and database-context option are intentionally
+    left unchanged.
+    """
+    if name not in ENGINE_NAMES:
+        raise ValueError('Motore AI non valido.')
+    defaults = DEFAULT_BACKEND_CONFIGS[name]
+    for field in ('api_key', 'endpoint', 'model'):
+        set_setting_value(f'ai_chatbot_{name}_{field}', defaults[field])
+
+
+def reset_backend_defaults():
+    """Restore all AI backend settings to application defaults.
+
+    This intentionally resets only backend-related settings: active engine,
+    endpoint, model and API key for every supported provider.  Plugin enablement
+    and the database-context option are left unchanged because they are global
+    plugin settings, not backend credentials or backend connection details.
+    """
+    set_setting_value('ai_chatbot_engine', 'chatgpt')
+    for name in ENGINE_NAMES:
+        reset_single_backend_defaults(name)
 
 
 def docs_dir():
@@ -140,6 +189,31 @@ def admin_plugins():
         flash('Accesso riservato agli amministratori.', 'danger')
         return redirect(url_for('main.index'))
     if request.method == 'POST':
+        action = request.form.get('action') or 'save'
+        if action == 'reset_backend_defaults':
+            reset_backend_defaults()
+            audit_log('ai_chatbot:backend_config_reset', {
+                'engine': 'chatgpt',
+                'backends': ENGINE_NAMES,
+            }, actor_type='user')
+            db.session.commit()
+            flash('Configurazioni dei backend AI ripristinate ai valori di default.', 'success')
+            return redirect(url_for('ai_chatbot.admin_plugins'))
+        if action.startswith('reset_backend_defaults:'):
+            backend_name = action.split(':', 1)[1]
+            try:
+                reset_single_backend_defaults(backend_name)
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('ai_chatbot.admin_plugins'))
+            audit_log('ai_chatbot:single_backend_config_reset', {
+                'backend': backend_name,
+                'label': ENGINE_LABELS.get(backend_name, backend_name),
+            }, actor_type='user')
+            db.session.commit()
+            flash(f'Configurazione del backend {ENGINE_LABELS.get(backend_name, backend_name)} ripristinata ai valori di default.', 'success')
+            return redirect(url_for('ai_chatbot.admin_plugins'))
+
         set_setting_value('plugin_ai_chatbot_enabled', '1' if request.form.get('plugin_ai_chatbot_enabled') == '1' else '0')
         engine = request.form.get('ai_chatbot_engine') or 'chatgpt'
         if engine not in ENGINE_NAMES:
@@ -175,7 +249,7 @@ def admin_plugins():
         db.session.commit()
         flash('Configurazione plugin aggiornata.', 'success')
         return redirect(url_for('ai_chatbot.admin_plugins'))
-    return render_template('ai_chatbot_admin_plugins.html', config=plugin_config(), engines=ENGINE_NAMES)
+    return render_template('ai_chatbot_admin_plugins.html', config=plugin_config(), engines=ENGINE_NAMES, engine_labels=ENGINE_LABELS)
 
 
 @bp.route('/admin/documents', methods=['GET','POST'])

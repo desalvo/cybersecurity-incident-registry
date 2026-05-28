@@ -314,3 +314,56 @@ def test_incident_workflow_steps_show_sequence_and_emphasized_clickable_task_box
     assert '.workflow-step-sequence{position:absolute;' in css
     assert '.workflow-step-task{cursor:pointer;border:3px solid #2563eb;' in css
     assert '.workflow-step-task:hover,.workflow-step-task:focus{border-color:#1d4ed8;' in css
+
+
+def test_workflow_first_incomplete_phase_and_list_status_icons_are_present():
+    routes = Path('app/routes.py').read_text()
+    detail = Path('app/templates/incident_detail.html').read_text()
+    index = Path('app/templates/index.html').read_text()
+    css = Path('app/static/style.css').read_text()
+    assert "first_incomplete = (not done and not first_missing_found)" in routes
+    assert "'first_incomplete': first_incomplete" in routes
+    assert 'workflow-first-incomplete-arrow' in detail
+    assert 'Prima fase non completata' in detail
+    assert 'workflow_list_state' in routes
+    assert "'warning' if has_active_warnings" in routes
+    assert 'procedure-finalized-icon' in index
+    assert 'procedure-ok-icon' in index
+    assert 'workflow_status_icon(i)' in index
+    assert '.workflow-step.first-incomplete' in css
+    assert '.workflow-first-incomplete-arrow' in css
+    assert '.procedure-finalized-icon' in css
+    assert '.procedure-ok-icon' in css
+
+
+def test_incident_list_status_icons_follow_active_warning_and_closed_state(monkeypatch, tmp_path):
+    _configure_test_env(monkeypatch, tmp_path)
+    from app import create_app, db
+    from app.models import ConfigLabel, Incident, IncidentWorkflowStep
+    from app.routes import annotate_procedural_status
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        action = ConfigLabel(kind='action_label', group='workflow-list-icons', value='Azione richiesta')
+        db.session.add(action)
+        db.session.flush()
+        db.session.add(IncidentWorkflowStep(action_label_id=action.id, position=10, required=True))
+        inc_warning = Incident(name='Warning', reference='W', status='aperto', creator_name='Test', creator_email='test@example.invalid')
+        inc_finalized = Incident(name='Finalizzato', reference='F', status='in lavorazione', creator_name='Test', creator_email='test@example.invalid')
+        inc_ok = Incident(name='Ok', reference='O', status='chiuso', creator_name='Test', creator_email='test@example.invalid')
+        db.session.add_all([inc_warning, inc_finalized, inc_ok])
+        db.session.flush()
+        # I due incidenti senza workflow applicabile attivo non hanno avvisi pendenti.
+        IncidentWorkflowStep.query.delete()
+        db.session.commit()
+
+        annotate_procedural_status([inc_finalized, inc_ok])
+        assert inc_finalized.workflow_list_state == 'finalized'
+        assert inc_ok.workflow_list_state == 'ok'
+
+        db.session.add(IncidentWorkflowStep(action_label_id=action.id, position=10, required=True))
+        db.session.commit()
+        annotate_procedural_status([inc_warning])
+        assert inc_warning.workflow_list_state == 'warning'
+        assert inc_warning.has_procedural_warnings is True

@@ -34,8 +34,9 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 
 - Il plugin si chiama AlBot nell'interfaccia; l'utente può chiamarlo anche Alex.
 - Icona AlBot: usata nel launcher, nell'intestazione e accanto alle risposte del bot.
-- Motori supportati: ChatGPT/OpenAI, Claude, Gemini, Ollama e Perplexity, configurabili per endpoint, modello e API key.
+- Motori supportati: ChatGPT/OpenAI, Claude, Gemini, Ollama e Perplexity, configurabili per endpoint, modello e API key; nell'interfaccia il motore ChatGPT è mostrato con capitalizzazione corretta.
 - Le API key già presenti sono mostrate solo in forma offuscata; il valore reale non è reso nel markup HTML. Lasciando il campo vuoto si mantiene la chiave esistente, inserendo un nuovo valore la chiave viene sovrascritta.
+- La configurazione plugin consente il reset globale delle configurazioni backend AI ai valori di default: motore attivo ChatGPT, endpoint e modelli iniziali e API key vuote. Ogni singolo motore dispone inoltre di un reset dedicato che ripristina solo endpoint, modello e API key del backend selezionato, senza modificare motore attivo, altri backend, abilitazione plugin o opzione di contesto database.
 - Endpoint AI validati per ridurre rischi SSRF/egress non controllato.
 - Knowledge base chatbot: include documentazione progettuale, README, changelog, help utente/amministratore, questo documento operativo e documenti caricati dagli amministratori.
 - Knowledge base caricabile: supporta documenti testuali e file validati; l'uso con dati anonimizzati è raccomandato.
@@ -82,3 +83,9 @@ Aggiornamento 0.5.0-1: nella pagina **Flussi operativi incidenti** è possibile 
 
 - Modelli incidente: il salvataggio mantiene l’ordine delle categorie selezionate tramite drag and drop, così la successiva modifica del modello ripropone le categorie nello stesso ordine operativo.
 - Admin → Altre configurazioni: il pulsante "Cleanup documenti orfani" elimina da uploads solo i file generati dall’applicazione che non sono più collegati ad alcun incidente/documento/allegato, preservando gli allegati caricati manualmente.
+
+- Nelle Fasi procedurali del dettaglio incidente, la prima fase non ancora completata è evidenziata con una grande freccia rossa. Nella lista incidenti le icone distinguono avvisi procedurali attivi, incidente finalizzato ma non chiuso e incidente chiuso senza avvisi attivi.
+
+### Plugin Alfresco
+
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.

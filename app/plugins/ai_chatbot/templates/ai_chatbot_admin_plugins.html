@@ -6,7 +6,7 @@
     <label class="checkbox-row"><input type="checkbox" name="plugin_ai_chatbot_enabled" value="1" {% if config.enabled %}checked{% endif %}> <span>Abilita plugin AI Chatbot</span></label>
     <label for="ai_chatbot_engine">Motore AI attivo</label>
     <select id="ai_chatbot_engine" name="ai_chatbot_engine">
-      {% for engine in engines %}<option value="{{ engine }}" {% if config.engine==engine %}selected{% endif %}>{{ engine|capitalize }}</option>{% endfor %}
+      {% for engine in engines %}<option value="{{ engine }}" {% if config.engine==engine %}selected{% endif %}>{{ engine_labels.get(engine, engine|capitalize) }}</option>{% endfor %}
     </select>
     <p class="muted">È possibile configurare più motori, ma solo quello selezionato viene usato dal chatbot.</p>
     <label class="checkbox-row">
@@ -16,7 +16,7 @@
     <p class="muted">Se abilitato, il chatbot invia al motore AI anche dati applicativi correnti depurati da dati personali, dati sensibili, credenziali, token, allegati binari e contenuti potenzialmente identificativi.</p>
     {% for engine in engines %}
     <details class="collapsible-card" {% if config.engine==engine %}open{% endif %}>
-      <summary>{{ engine|capitalize }}</summary>
+      <summary>{{ engine_labels.get(engine, engine|capitalize) }}</summary>
       <label for="{{ engine }}_model">Modello</label>
       <input id="{{ engine }}_model" name="{{ engine }}_model" value="{{ config.configs[engine].model }}" placeholder="Modello da usare">
       <label for="{{ engine }}_endpoint">Endpoint</label>
@@ -28,14 +28,27 @@
       <p class="muted secret-presence">Nessuna API key salvata per questo motore.</p>
       {% endif %}
       <input id="{{ engine }}_api_key" name="{{ engine }}_api_key" value="" type="password" autocomplete="new-password" placeholder="Nuova API key; lascia vuoto per mantenere quella esistente">
+      <div class="button-row compact-row">
+        <button type="submit" name="action" value="reset_backend_defaults:{{ engine }}" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare endpoint, modello e API key del backend {{ engine_labels.get(engine, engine|capitalize) }} ai valori di default? L\'API key salvata per questo backend verrà cancellata.');">Reset {{ engine_labels.get(engine, engine|capitalize) }}</button>
+      </div>
+      <p class="muted">Il reset di questo singolo motore ripristina endpoint, modello e API key del backend {{ engine_labels.get(engine, engine|capitalize) }}. Il motore attivo, gli altri backend, l’abilitazione del plugin e l’opzione sul contesto database non vengono modificati.</p>
     </details>
     {% endfor %}
-    <button type="submit" class="btn primary">Salva configurazione plugin</button>
+    <div class="button-row">
+      <button type="submit" name="action" value="save" class="btn primary">Salva configurazione plugin</button>
+      <button type="submit" name="action" value="reset_backend_defaults" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare endpoint, modelli, motore attivo e API key dei backend AI ai valori di default? Le API key salvate verranno cancellate.');">Reset configurazioni backend</button>
+    </div>
+    <p class="muted">Il reset globale dei backend ripristina motore attivo, endpoint, modelli e API key ai valori iniziali dell’applicazione. I pulsanti nei singoli motori ripristinano solo il backend corrispondente. L’abilitazione del plugin e l’opzione sul contesto database non vengono modificate.</p>
   </form>
 </section>
 <section class="card">
   <h3>Knowledge base chatbot</h3>
   <p>Il chatbot usa sempre le definizioni progettuali e la documentazione incluse nel progetto. È possibile aggiungere procedure e documenti operativi dedicati.</p>
   <a class="btn" href="{{ url_for('ai_chatbot.admin_documents') }}">Gestisci documenti chatbot</a>
+</section>
+<section class="card">
+  <h3>Plugin Alfresco</h3>
+  <p class="muted">Il plugin Alfresco è opzionale e disabilitato per default. Quando è abilitato rende disponibili upload e download documenti tramite API Alfresco nella sezione Documenti degli incidenti.</p>
+  <a class="btn secondary" href="{{ url_for('alfresco.admin_plugins') }}">Configura plugin Alfresco</a>
 </section>
 {% endblock %}
