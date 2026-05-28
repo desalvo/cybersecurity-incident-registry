@@ -303,3 +303,14 @@ def test_desktop_workflow_layout_limits_steps_to_three_per_row():
     assert 'content: "→";' in css
     assert '@media (max-width: 720px) { .workflow-steps, .workflow-steps-ordered { grid-template-columns: 1fr;' in css
     assert 'content: "↓";' in css
+
+
+def test_incident_workflow_steps_show_sequence_and_emphasized_clickable_task_box():
+    html = Path('app/templates/incident_detail.html').read_text()
+    css = Path('app/static/style.css').read_text()
+    assert 'class="workflow-step-sequence"' in html
+    assert 'aria-label="Fase {{ loop.index }}"' in html
+    assert '{{ loop.index }}</span>' in html
+    assert '.workflow-step-sequence{position:absolute;' in css
+    assert '.workflow-step-task{cursor:pointer;border:3px solid #2563eb;' in css
+    assert '.workflow-step-task:hover,.workflow-step-task:focus{border-color:#1d4ed8;' in css
