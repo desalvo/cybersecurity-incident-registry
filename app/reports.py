@@ -16,16 +16,17 @@ except Exception:
     svg2rlg = None
 import matplotlib.pyplot as plt
 try:
-    from .models import Setting
+    from .models import db, Setting
     from .consequences import incident_consequence_list
 except Exception:
+    db=None
     Setting=None
     incident_consequence_list=None
 
 def _setting_value(key, default=''):
-    if not Setting:
+    if not Setting or db is None:
         return default
-    obj=db.session.get(Setting, key)
+    obj = db.session.get(Setting, key)
     return obj.value if obj and obj.value is not None else default
 
 def _incident_consequences(inc):

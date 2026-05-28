@@ -257,15 +257,15 @@ input[type="checkbox"]{width:.85rem;height:.85rem;min-width:.85rem;vertical-alig
 .inline-actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.inline-actions select{min-width:260px;flex:1 1 260px}.inline-actions button{white-space:nowrap}
 
 .workflow-card { border-left: 6px solid #2f6f9f; }
-.workflow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: .75rem; }
-.workflow-steps-ordered { display: flex; flex-wrap: wrap; align-items: stretch; gap: .5rem; }
-.workflow-steps-ordered .workflow-step { flex: 0 1 calc((100% - 4.5rem) / 3); max-width: calc((100% - 4.5rem) / 3); min-width: 220px; }
-.workflow-step-arrow { align-self: center; font-size: 1.7rem; font-weight: 700; color: #64748b; padding: 0 .15rem; }
+.workflow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: .75rem; align-items: stretch; }
+.workflow-steps-ordered { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.workflow-steps-ordered .workflow-step { width: 100%; min-width: 0; max-width: none; }
+.workflow-step-arrow { display: none; }
 .incident-page-title { margin-bottom: 1rem; }
 .incident-page-title p { margin: 0 0 .2rem; }
 .incident-page-title h1 { margin: 0; font-size: clamp(1.6rem, 2.4vw, 2.25rem); line-height: 1.15; word-break: break-word; }
-@media (max-width: 980px) { .workflow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workflow-steps-ordered .workflow-step { flex-basis: calc((100% - 2.5rem) / 2); max-width: calc((100% - 2.5rem) / 2); } }
-@media (max-width: 720px) { .workflow-steps { grid-template-columns: 1fr; } .workflow-steps-ordered .workflow-step { flex-basis: 100%; max-width: none; } .workflow-step-arrow { transform: rotate(90deg); width: 100%; text-align: center; line-height: 1; } }
+@media (max-width: 980px) { .workflow-steps, .workflow-steps-ordered { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .workflow-steps, .workflow-steps-ordered { grid-template-columns: 1fr; } }
 .workflow-step { display: flex; gap: .65rem; align-items: flex-start; border: 1px solid #d7dee8; border-radius: 10px; padding: .75rem; background: #fff; }
 .workflow-step.done { border-color: #6fa878; background: #eef8f0; }
 .workflow-step.missing { border-color: #d39a4a; background: #fff7e8; }

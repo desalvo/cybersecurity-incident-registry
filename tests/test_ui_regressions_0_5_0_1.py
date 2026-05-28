@@ -295,5 +295,7 @@ def test_incident_detail_shows_incident_name_at_top_before_workflow():
 def test_desktop_workflow_layout_limits_steps_to_three_per_row():
     css = Path('app/static/style.css').read_text()
     assert '.workflow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));' in css
-    assert '.workflow-steps-ordered .workflow-step { flex: 0 1 calc((100% - 4.5rem) / 3);' in css
-    assert '@media (max-width: 720px) { .workflow-steps { grid-template-columns: 1fr; }' in css
+    assert '.workflow-steps-ordered { grid-template-columns: repeat(3, minmax(0, 1fr)); }' in css
+    assert '.workflow-steps-ordered .workflow-step { width: 100%; min-width: 0; max-width: none; }' in css
+    assert '.workflow-step-arrow { display: none; }' in css
+    assert '@media (max-width: 720px) { .workflow-steps, .workflow-steps-ordered { grid-template-columns: 1fr; }' in css
