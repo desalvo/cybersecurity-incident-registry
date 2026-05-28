@@ -283,3 +283,17 @@ def test_admin_labels_has_restore_missing_defaults_button():
     assert "admin_labels_restore_defaults" in html
     assert "@bp.route('/admin/labels/restore-defaults'" in routes
     assert 'restore_missing_default_config_labels()' in routes
+
+
+def test_incident_detail_shows_incident_name_at_top_before_workflow():
+    html = Path('app/templates/incident_detail.html').read_text()
+    assert 'id="incident-page-title-heading"' in html
+    assert '<h1 id="incident-page-title-heading">{{ inc.name }}</h1>' in html
+    assert html.index('incident-page-title-heading') < html.index('id="incident-workflow"')
+
+
+def test_desktop_workflow_layout_limits_steps_to_three_per_row():
+    css = Path('app/static/style.css').read_text()
+    assert '.workflow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));' in css
+    assert '.workflow-steps-ordered .workflow-step { flex: 0 1 calc((100% - 4.5rem) / 3);' in css
+    assert '@media (max-width: 720px) { .workflow-steps { grid-template-columns: 1fr; }' in css
