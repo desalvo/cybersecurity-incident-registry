@@ -3,6 +3,7 @@
 <div class="card">
   <h2>Altre configurazioni</h2>
   <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="save">
     <div class="wide">
       <label>Motivazione non comunicazione al Garante della Privacy</label>
       <textarea name="privacy_authority_non_notification_reason">{{ privacy_authority_non_notification_reason or '' }}</textarea>
@@ -134,6 +135,15 @@
       <p class="muted">Periodo di conservazione delle registrazioni di audit espresso in mesi, giorni, ore e minuti. Il default è 6 mesi; valore corrente: {{ audit_retention_label }}. La pulizia viene applicata automaticamente in modo opportunistico.</p>
     </div>
     <button class="admin-config-save-button">Salva configurazione</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Cleanup documenti orfani</h3>
+  <p class="muted">Rimuove da <code>uploads</code> solo i file generati dall’applicazione che non risultano più collegati ad alcun incidente, documento o allegato azione. Gli allegati caricati manualmente non referenziati non vengono eliminati automaticamente.</p>
+  <form method="post" onsubmit="return confirm('Eseguire il cleanup dei documenti orfani generati dall'applicazione?')">
+    <input type="hidden" name="action" value="cleanup_orphan_generated_documents">
+    <button class="danger">Cleanup documenti orfani</button>
   </form>
 </div>
 

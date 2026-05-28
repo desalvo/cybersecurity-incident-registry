@@ -6,6 +6,10 @@ Le guide utente e amministrativa sono state ristrutturate per integrare nei capi
 - Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.
 
+### Aggiornamento 0.5.0-17 - Template incidente e cleanup documenti orfani
+
+Il salvataggio dei modelli incidente conserva ora l’ordine delle categorie selezionate tramite drag and drop, così la modifica successiva del modello mantiene la sequenza operativa definita dall’amministratore. In **Admin → Altre configurazioni** è stato aggiunto il pulsante **Cleanup documenti orfani**, che rimuove da `uploads` solo i file generati dall’applicazione non più collegati ad alcun incidente, documento o allegato azione, senza cancellare gli allegati caricati manualmente.
+
 ### Aggiornamento 0.5.0-1 - Markdown con colore/dimensione e notifiche schedulate plain text
 
 Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}`, `{size:<valore>}testo{/size}` e `{button:Etichetta|URL}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I pulsanti possono usare URL HTTP/HTTPS, percorsi relativi e ancore della pagina corrente come `#incident-main`. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.

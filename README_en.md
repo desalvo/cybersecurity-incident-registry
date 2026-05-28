@@ -478,6 +478,10 @@ Supported examples:
 
 Colour syntax is `{color:colour-name}text{/color}` or `{color:#RRGGBB}text{/color}`. Font-size syntax is `{size:small|normal|large|x-large|xx-large}text{/size}` or `{size:8px..32px}text{/size}`. The same Markdown renderer is also used for procedural warnings, which now show the associated task name. Free HTML markup is escaped.
 
+### Update 0.5.0-17 - Incident templates and orphan document cleanup
+
+Incident template saving now preserves the category order selected by drag and drop, so editing the template later keeps the operational sequence defined by the administrator. **Admin → Other configurations** now includes an **Orphan document cleanup** button that removes from `uploads` only application-generated files no longer linked to any incident, document or action attachment, without deleting manually uploaded attachments.
+
 ### Update 0.5.0-1 - Serial notification scheduler
 
 Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially. Deadline summaries keep their persistent type/window claim, while one-off reminders use `sent_at` as the only functional delivery flag and a temporary claim only for concurrency protection, so different reminders in the same period are not suppressed.

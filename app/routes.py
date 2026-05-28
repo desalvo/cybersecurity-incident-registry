@@ -2169,6 +2169,22 @@ def _objects_by_ids(model, ids):
             pass
     return model.query.filter(model.id.in_(clean)).all() if clean else []
 
+
+def _objects_by_ids_preserving_order(model, ids):
+    """Return objects in the exact order supplied by the caller/form."""
+    clean=[]
+    for x in ids or []:
+        try:
+            value = int(x)
+        except (TypeError, ValueError):
+            continue
+        if value not in clean:
+            clean.append(value)
+    if not clean:
+        return []
+    by_id = {obj.id: obj for obj in model.query.filter(model.id.in_(clean)).all()}
+    return [by_id[x] for x in clean if x in by_id]
+
 def incident_template_form_payload():
     return dict(
         name=(request.form.get('template_name') or request.form.get('name') or '').strip(),
@@ -2242,6 +2258,10 @@ def incident_template_context(template=None):
     return dict(
         template=template,
         selected_template=template,
+        selected_template_categories=_objects_by_ids_preserving_order(ConfigLabel, template.category_id_list()) if template else [],
+        selected_template_data_types=_objects_by_ids_preserving_order(ConfigLabel, template.data_type_id_list()) if template else [],
+        selected_template_people=_objects_by_ids_preserving_order(Person, template.people_id_list()) if template else [],
+        selected_template_recommendations=_objects_by_ids_preserving_order(Recommendation, template.recommendation_id_list()) if template else [],
         severities=labels('severity'),
         categories=labels('category'),
         data_types=labels('data_type'),
@@ -9159,6 +9179,99 @@ def admin_ssl():
             return redirect(url_for('main.admin_ssl'))
     return render_template('admin_ssl.html', status=ssl_config_status())
 
+
+
+def _generated_document_name_matcher():
+    template_names = {secure_filename(t.name or '') for t in list_templates()}
+    template_names.update(secure_filename(row.template_name or '') for row in FormTemplateBinary.query.all())
+    template_names = {x for x in template_names if x}
+    notification_re = re.compile(r'^[0-9a-fA-F-]{36}_notifica-\d+\.pdf$')
+    generated_re = re.compile(r'^(.+)-\d+-[0-9a-fA-F]{8}\.(?:pdf|docx)$')
+
+    def is_generated(name, generated_template_name=None):
+        safe_name = Path(name or '').name
+        if not safe_name:
+            return False
+        if generated_template_name:
+            return True
+        if notification_re.match(safe_name):
+            return True
+        match = generated_re.match(safe_name)
+        return bool(match and secure_filename(match.group(1)) in template_names)
+
+    return is_generated
+
+
+def _valid_document_storage_names():
+    valid_incident_ids = {row[0] for row in db.session.query(Incident.id).all()}
+    names = set()
+    for doc in Document.query.all():
+        if doc.incident_id in valid_incident_ids and doc.stored_name:
+            names.add(Path(doc.stored_name).name)
+    for att in db.session.query(ActionAttachment).join(Action, Action.id == ActionAttachment.action_id).filter(Action.incident_id.in_(valid_incident_ids)).all():
+        if att.stored_name:
+            names.add(Path(att.stored_name).name)
+    return names
+
+
+def _generated_document_orphan_candidates(upload_dir):
+    """Find application-generated files in uploads that are no longer linked to incidents."""
+    upload_path = Path(upload_dir or '')
+    if not upload_path.exists() or not upload_path.is_dir():
+        return []
+    referenced = _valid_document_storage_names()
+    is_generated = _generated_document_name_matcher()
+    candidates = []
+    for path in upload_path.iterdir():
+        if not path.is_file():
+            continue
+        name = path.name
+        if name in referenced:
+            continue
+        if is_generated(name):
+            candidates.append(path)
+    return sorted(candidates, key=lambda p: p.name)
+
+
+def cleanup_orphan_generated_documents(upload_dir):
+    upload_path = Path(upload_dir or '')
+    valid_incident_ids = {row[0] for row in db.session.query(Incident.id).all()}
+    is_generated = _generated_document_name_matcher()
+    removed = []
+    errors = []
+    stale_documents = []
+
+    for doc in Document.query.all():
+        if doc.incident_id in valid_incident_ids:
+            continue
+        filename = Path(doc.stored_name or doc.filename or '').name
+        if not is_generated(filename, getattr(doc, 'generated_template_name', None)):
+            continue
+        stale_documents.append(doc)
+        path = upload_path / filename if filename else None
+        if path and path.exists() and path.is_file():
+            try:
+                size = path.stat().st_size
+                path.unlink()
+                removed.append({'name': path.name, 'size': size})
+            except Exception as exc:
+                errors.append({'name': path.name, 'error': str(exc)})
+
+    for path in _generated_document_orphan_candidates(upload_dir):
+        try:
+            size = path.stat().st_size
+            path.unlink()
+            removed.append({'name': path.name, 'size': size})
+        except Exception as exc:
+            errors.append({'name': path.name, 'error': str(exc)})
+
+    for doc in stale_documents:
+        db.session.delete(doc)
+    if stale_documents:
+        db.session.commit()
+    return removed, errors
+
+
 @bp.route('/admin/other-configurations', methods=['GET','POST'])
 @login_required
 def admin_other_configurations():
@@ -9167,6 +9280,16 @@ def admin_other_configurations():
     keys = ['privacy_authority_non_notification_reason', 'documentation_location', 'application_external_url', 'application_timezone', 'interface_language', 'consequence_fallback_text']
     retention_keys = ['audit_retention_months_part', 'audit_retention_days_part', 'audit_retention_hours_part', 'audit_retention_minutes_part']
     if request.method == 'POST':
+        action = request.form.get('action') or 'save'
+        if action == 'cleanup_orphan_generated_documents':
+            removed, errors = cleanup_orphan_generated_documents(current_app.config.get('UPLOAD_DIR'))
+            if removed:
+                flash(f'Documenti orfani generati rimossi: {len(removed)}.', 'success')
+            else:
+                flash('Nessun documento orfano generato da rimuovere.', 'info')
+            if errors:
+                flash(f'Errori durante la rimozione di {len(errors)} file: ' + '; '.join(x['name'] for x in errors[:5]), 'error')
+            return redirect(url_for('main.admin_other_configurations'))
         for key in keys:
             set_setting_value(key, request.form.get(key, ''))
         for key in retention_keys:
