@@ -8,7 +8,7 @@ Le guide utente e amministrativa sono state ristrutturate per integrare nei capi
 
 ### Aggiornamento 0.5.0-1 - Markdown con colore/dimensione e notifiche schedulate plain text
 
-Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}` e `{size:<valore>}testo{/size}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
+Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}`, `{size:<valore>}testo{/size}` e `{button:Etichetta|URL}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I pulsanti possono usare URL HTTP/HTTPS, percorsi relativi e ancore della pagina corrente come `#incident-main`. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
 
 
 0.5.0-1 - Anteprima CC precompilata e svuotamento manuale
@@ -358,6 +358,8 @@ Le azioni dell’incidente includono ora anche il campo **Conseguenze associate 
 
 In **Admin → Liste configurabili** le sezioni sono visualizzate in verticale, una sotto l’altra, per migliorare la leggibilità dei campi modificabili e delle descrizioni estese.
 
+Se il database è già popolato, il bootstrap applicativo non reinserisce automaticamente i valori predefiniti mancanti per **Gravità**, **Dati interessati**, **Categorie incidente** e **Label azioni**. In **Admin → Liste configurabili** è disponibile il pulsante **Reinserisci valori predefiniti mancanti**, che ripristina solo le label assenti senza duplicare quelle già presenti.
+
 Le label configurabili hanno un campo **Descrizione** amministrabile da **Admin → Liste configurabili**. La descrizione è disponibile per le label delle azioni e per le categorie incidente. Nel campo modulo `measures_adopted` le azioni esportabili sono riportate usando la descrizione della label, se presente, al posto del nome tecnico della label; seguono l’eventuale descrizione dell’azione e la data/ora. Per le categorie incidente, il nuovo campo modulo `category_descriptions` / “Descrizione e causa” restituisce l’elenco delle descrizioni delle categorie associate, usando il nome categoria come fallback.
 
 Gli incidenti includono i nuovi campi **Numero di interessati** e **Volume dati**, modificabili nella scheda incidente ed esportati/importati nel full export come tutte le colonne reali del database. In **Moduli → Configurazione** sono disponibili anche i nuovi campi database: `data_subjects_count`, `data_volume`, `privacy_authority_non_notification_reason` e `documentation_location`. Questi ultimi due leggono i valori configurati in **Admin → Altre configurazioni**: “Motivazione non comunicazione al Garante della Privacy” e “Luogo documentazione”.
@@ -665,7 +667,7 @@ Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono int
 
 ### Descrizioni workflow, Markdown, colori e dimensioni
 
-In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati, link e dimensioni font controllate. Gli URL `http://` e `https://` presenti nel testo sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati, link, pulsanti `{button:Etichetta|URL}` e dimensioni font controllate. Gli URL `http://` e `https://`, i percorsi relativi e le ancore presenti nei pulsanti sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
 
 Esempi supportati:
 
@@ -797,7 +799,7 @@ Il plugin AI Chatbot si presenta agli utenti come **AlBot**, chiamabile anche **
 
 ### AI Chatbot globale
 
-Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice e link vengono formattati nella chat; HTML libero e script restano escapati.
+Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice, link e pulsanti `{button:Etichetta|URL}` vengono formattati nella chat; HTML libero e script restano escapati.
 
 ## Compliance AGID - hardening 0.5.0-1 build 20260522
 
@@ -894,11 +896,12 @@ Gli stessi dati sono salvati nella directory del run AGID, insieme ai log comple
 
 ### Rendering Markdown sicuro con colori e dimensioni
 
-Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS, è possibile evidenziare il testo con colori e dimensioni controllate:
+Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice, link HTTP/HTTPS e pulsanti `{button:Etichetta|URL}` con URL assoluti o relativi/ancore, è possibile evidenziare il testo con colori e dimensioni controllate:
 
 - `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
 - `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
 - `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
+- `{button:Dati generali|#incident-main}`, `{button:Azioni|#incident-actions}` o `{button:Guida|/help#cap-markdown-rendering}`
 
 L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.
 
@@ -913,3 +916,7 @@ L’import mostra solo gli elementi esistenti con valori diversi e richiede una 
 ## Documentazione PDF
 
 La cartella `docs/` include anche le versioni PDF aggiornate della documentazione e la brochure riepilogativa `brochure_cybersecurity_incident_registry.pdf`. I PDF sono generati con `scripts/build_documentation_pdfs.py`, che esclude elementi di navigazione non utili alla stampa. La brochure è in formato verticale, massimo due pagine, con filigrana professionale a tema cybersecurity, logo/versione, scopo, funzionalità principali, immagini di esempio, riferimento alla licenza EUPL, disponibilità Docker Hub `desalvo/cybersecurity-incident-registry`, supporto Docker Compose/Kubernetes e link al progetto GitHub.
+
+### Clonazione workflow e priorità categoria
+
+In **Admin → Flussi operativi incidenti** è disponibile la funzione **Clona workflow**, che consente di copiare tutti gli step da un workflow sorgente a un workflow destinazione, scegliendo sia il flusso di default sia una categoria specifica. Se la destinazione contiene già step, occorre confermare esplicitamente la sovrascrittura. Per gli incidenti con più categorie, il workflow applicato è quello della prima categoria selezionata nell'ordine drag-and-drop; se non esiste un workflow per quella categoria, viene applicato il flusso di default.

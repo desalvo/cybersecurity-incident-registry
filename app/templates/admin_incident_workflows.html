@@ -4,16 +4,32 @@
   <div class="workflow-condition-picker" data-condition-picker>
     <div class="condition-palette" aria-label="Condizioni disponibili">
       <span class="condition-chip" draggable="true" data-token="personal_data">Rischio per diritti e libertà</span>
-      {% for sev in severities %}<span class="condition-chip" draggable="true" data-token="severity:{{sev.id}}">Gravità: {{sev.value}}</span>{% endfor %}
-      {% for dt in data_types %}<span class="condition-chip" draggable="true" data-token="data_type:{{dt.id}}">Dati interessati: {{dt.value}}</span>{% endfor %}
+      <span class="condition-chip negated" draggable="true" data-token="!personal_data">NON rischio per diritti e libertà</span>
+      {% for sev in severities %}<span class="condition-chip" draggable="true" data-token="severity:{{sev.id}}">Gravità: {{sev.value}}</span><span class="condition-chip negated" draggable="true" data-token="!severity:{{sev.id}}">NON gravità: {{sev.value}}</span>{% endfor %}
+      {% for dt in data_types %}<span class="condition-chip" draggable="true" data-token="data_type:{{dt.id}}">Dati interessati: {{dt.value}}</span><span class="condition-chip negated" draggable="true" data-token="!data_type:{{dt.id}}">NON dati interessati: {{dt.value}}</span>{% endfor %}
     </div>
     <div class="condition-dropzone" tabindex="0" aria-label="Condizioni associate allo step">
       <span class="muted condition-placeholder">Trascina qui le condizioni. Vuoto = sempre applicabile.</span>
     </div>
     <div class="condition-hidden">
       <label class="condition-selected" data-token="personal_data"><input type="checkbox" name="{{name}}" value="personal_data" {% if 'personal_data' in selected %}checked{% endif %}> Rischio per diritti e libertà <button type="button" class="link-button condition-remove">×</button></label>
-      {% for sev in severities %}<label class="condition-selected" data-token="severity:{{sev.id}}"><input type="checkbox" name="{{name}}" value="severity:{{sev.id}}" {% if ('severity:' ~ sev.id) in selected %}checked{% endif %}> Gravità: {{sev.value}} <button type="button" class="link-button condition-remove">×</button></label>{% endfor %}
-      {% for dt in data_types %}<label class="condition-selected" data-token="data_type:{{dt.id}}"><input type="checkbox" name="{{name}}" value="data_type:{{dt.id}}" {% if ('data_type:' ~ dt.id) in selected %}checked{% endif %}> Dati interessati: {{dt.value}} <button type="button" class="link-button condition-remove">×</button></label>{% endfor %}
+      <label class="condition-selected" data-token="!personal_data"><input type="checkbox" name="{{name}}" value="!personal_data" {% if '!personal_data' in selected %}checked{% endif %}> NON rischio per diritti e libertà <button type="button" class="link-button condition-remove">×</button></label>
+      {% for sev in severities %}<label class="condition-selected" data-token="severity:{{sev.id}}"><input type="checkbox" name="{{name}}" value="severity:{{sev.id}}" {% if ('severity:' ~ sev.id) in selected %}checked{% endif %}> Gravità: {{sev.value}} <button type="button" class="link-button condition-remove">×</button></label><label class="condition-selected" data-token="!severity:{{sev.id}}"><input type="checkbox" name="{{name}}" value="!severity:{{sev.id}}" {% if ('!severity:' ~ sev.id) in selected %}checked{% endif %}> NON gravità: {{sev.value}} <button type="button" class="link-button condition-remove">×</button></label>{% endfor %}
+      {% for dt in data_types %}<label class="condition-selected" data-token="data_type:{{dt.id}}"><input type="checkbox" name="{{name}}" value="data_type:{{dt.id}}" {% if ('data_type:' ~ dt.id) in selected %}checked{% endif %}> Dati interessati: {{dt.value}} <button type="button" class="link-button condition-remove">×</button></label><label class="condition-selected" data-token="!data_type:{{dt.id}}"><input type="checkbox" name="{{name}}" value="!data_type:{{dt.id}}" {% if ('!data_type:' ~ dt.id) in selected %}checked{% endif %}> NON dati interessati: {{dt.value}} <button type="button" class="link-button condition-remove">×</button></label>{% endfor %}
+    </div>
+  </div>
+{%- endmacro %}
+{% macro tag_picker(name, selected) -%}
+  {% set selected = selected or [] %}
+  <div class="workflow-tag-picker" data-tag-picker>
+    <div class="tag-palette" aria-label="Tag documento disponibili">
+      {% for nt in document_tag_options %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}">{{ nt.label }}</span>{% endfor %}
+    </div>
+    <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tag da applicare automaticamente al documento">
+      <span class="muted tag-empty">Nessun auto tag documento. Trascina qui un tag notifica.</span>
+    </div>
+    <div class="tag-hidden">
+      {% for nt in document_tag_options %}<label class="tag-selected" data-tag-code="{{ nt.code }}"><input type="checkbox" name="{{name}}" value="{{ nt.code }}" {% if nt.code in selected %}checked{% endif %}> {{ nt.label }} <button type="button" class="link-button tag-remove">×</button></label>{% endfor %}
     </div>
   </div>
 {%- endmacro %}
@@ -42,7 +58,74 @@
       <input type="file" name="workflow_file" accept="application/json,.json" required>
       <button>Analizza import</button>
     </form>
+    <form method="post" data-workflow-clone-form>
+      <input type="hidden" name="action" value="clone_workflow">
+      <h4>Clona workflow</h4>
+      <p class="muted">Copia tutti gli step da un workflow sorgente al default o a una categoria destinazione.</p>
+      <label>Sorgente</label>
+      <select name="clone_source" required>
+        {% for opt in workflow_scope_options %}<option value="{{ opt.value }}">{{ opt.label }}{% if not opt.has_workflow %} - vuoto{% endif %}</option>{% endfor %}
+      </select>
+      <label>Destinazione</label>
+      <select name="clone_destination" required>
+        {% for opt in workflow_scope_options %}<option value="{{ opt.value }}" data-has-workflow="{{ 1 if opt.has_workflow else 0 }}">{{ opt.label }}{% if opt.has_workflow %} - esistente{% endif %}</option>{% endfor %}
+      </select>
+      <label class="inline-check"><input type="checkbox" name="clone_overwrite_confirm" value="1"> Confermo la sovrascrittura se la destinazione contiene già step</label>
+      <button>Clona workflow</button>
+    </form>
   </div>
+</div>
+
+<div class="card">
+  <h3>Tipologie di step</h3>
+  <p class="muted">Gestisci le tipologie usate dagli step workflow. Le tipologie di default non possono essere eliminate e hanno nome fisso; la descrizione resta modificabile. Le tipologie aggiunte possono essere rinominate, descritte o cancellate.</p>
+  <form method="post">
+    <input type="hidden" name="action" value="save_step_types">
+    <div class="table-responsive">
+      <table>
+        <thead><tr><th>Tipologia</th><th>Descrizione mostrata nelle Fasi procedurali</th><th>Stato</th><th>Azioni</th></tr></thead>
+        <tbody>
+        {% for item in workflow_step_type_records %}
+          <tr>
+            <td>
+              <input type="hidden" name="step_type_code" value="{{ item.code }}">
+              {% if item.protected %}
+                <strong>{{ item.label }}</strong>
+                <input type="hidden" name="step_type_label_{{ item.code }}" value="{{ item.label }}">
+              {% else %}
+                <input name="step_type_label_{{ item.code }}" value="{{ item.label }}" maxlength="80" required>
+                <small class="muted">Codice interno: {{ item.code }}</small>
+              {% endif %}
+            </td>
+            <td><input name="step_type_description_{{ item.code }}" value="{{ item.description }}" maxlength="120" required></td>
+            <td>{% if item.protected %}<span class="badge">Default protetta</span>{% else %}<span class="badge">Personalizzata</span>{% endif %}</td>
+            <td>
+              {% if not item.protected %}
+                <button class="danger" type="submit" form="delete-step-type-{{ item.code }}">Elimina</button>
+              {% else %}
+                <span class="muted">Non eliminabile</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button>Salva tipologie</button>
+  </form>
+  {% for item in workflow_step_type_records if not item.protected %}
+    <form id="delete-step-type-{{ item.code }}" method="post">
+      <input type="hidden" name="action" value="delete_step_type">
+      <input type="hidden" name="step_type_code" value="{{ item.code }}">
+    </form>
+  {% endfor %}
+  <hr>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="add_step_type">
+    <div><label>Nuova tipologia</label><input name="new_step_type_label" maxlength="80" placeholder="Es. Verifica" required></div>
+    <div><label>Descrizione mostrata</label><input name="new_step_type_description" maxlength="120" placeholder="Es. Verifica fase"></div>
+    <div><button>Aggiungi tipologia</button></div>
+  </form>
 </div>
 
 <div class="card">
@@ -52,48 +135,79 @@
     <div><label>Ambito</label><select name="scope" id="workflow-scope"><option value="default">Flusso di default</option><option value="category">Categoria specifica</option></select></div>
     <div><label>Categoria</label><select name="category_id"><option value="">-- default --</option>{% for c in categories %}<option value="{{c.id}}">{{c.value}}</option>{% endfor %}</select></div>
     <div><label>Azione prevista</label><select name="action_label_id" required>{% for a in action_labels %}<option value="{{a.id}}">{{a.value}}</option>{% endfor %}</select></div>
+    <div><label>Tipologia di step</label><select name="step_type">{% for code,label in workflow_step_types %}<option value="{{code}}">{{label}}</option>{% endfor %}</select></div>
     <div><label>Ordine</label><input type="number" name="position" placeholder="automatico"></div>
     <div class="wide"><label>Descrizione operativa</label><textarea name="description" maxlength="500" rows="3" placeholder="Descrizione specifica del passo nel flusso, anche su più righe (max 500 caratteri)"></textarea><small class="muted">Massimo 500 caratteri. Sono ammessi URL, che nella pagina incidente saranno cliccabili.</small></div>
     <div class="wide"><label>Condizioni</label>{{ condition_picker('conditions', []) }}</div>
     <div><label><input type="checkbox" name="required" value="1" checked> Richiesto per gli avvisi procedurali</label></div>
     <div><label><input type="checkbox" name="requires_notification" value="1"> Dipende da una notifica</label></div>
     <div><label>Notifica richiesta</label><select name="required_notification_type"><option value="">-- nessuna --</option>{% for nt in notification_types %}<option value="{{nt.code}}">{{nt.label}}</option>{% endfor %}</select></div>
+    <div><label><input type="checkbox" name="document_generation_enabled" value="1"> Step relativo a documento da generare</label></div>
+    <div><label>Modello template documento</label><select name="document_template_name"><option value="">-- nessuno --</option>{% for tmpl in form_templates %}<option value="{{tmpl.name}}">{{tmpl.name}}</option>{% endfor %}</select></div>
+    <div class="wide"><label>Auto tag documento</label>{{ tag_picker('document_auto_tags', []) }}</div>
     <div><button>Aggiungi</button></div>
   </form>
 </div>
 
 {% for key, rows in grouped.items() %}
-  <div class="card">
-    <h3>{% if key == 0 %}Flusso di default{% else %}Categoria: {{ (categories|selectattr('id','equalto',key)|list|first).value if (categories|selectattr('id','equalto',key)|list) else key }}{% endif %}</h3>
+  {% set workflow_anchor = 'workflow-' ~ key %}
+  <details class="card workflow-admin-workflow" id="{{ workflow_anchor }}">
+    <summary><h3>{% if key == 0 %}Flusso di default{% else %}Categoria: {{ (categories|selectattr('id','equalto',key)|list|first).value if (categories|selectattr('id','equalto',key)|list) else key }}{% endif %}</h3><span class="muted">{{ rows|length }} step</span></summary>
     <form method="post">
       <input type="hidden" name="action" value="save">
+      <input type="hidden" name="return_anchor" value="{{ workflow_anchor }}">
       <div class="workflow-admin-list">
       {% for step in rows %}
         {% set selected_conditions = step.condition_tokens() if step.condition_tokens is defined else [] %}
-        <section class="workflow-admin-step">
+        <details class="workflow-admin-step" id="step-{{step.id}}">
+          <summary><strong>{{ step.position }} · {{ step.action_label.value if step.action_label else 'Step' }}</strong><span class="muted">{{ step.description[:90] if step.description else 'Nessuna descrizione' }}</span></summary>
           <input type="hidden" name="step_id" value="{{step.id}}">
           <div class="workflow-admin-main">
             <div><label>Ordine</label><input type="number" name="position_{{step.id}}" value="{{step.position}}"></div>
             <div><label>Azione</label><select name="action_label_id_{{step.id}}">{% for a in action_labels %}<option value="{{a.id}}" {% if step.action_label_id==a.id %}selected{% endif %}>{{a.value}}</option>{% endfor %}</select></div>
+            <div><label>Tipologia</label><select name="step_type_{{step.id}}">{% for code,label in workflow_step_types %}<option value="{{code}}" {% if (step.step_type or "confirm") == code %}selected{% endif %}>{{label}}</option>{% endfor %}</select></div>
             <div class="workflow-admin-description"><label>Descrizione nel flusso</label><textarea name="description_{{step.id}}" maxlength="500" rows="3">{{step.description or ''}}</textarea><small class="muted">Max 500 caratteri, anche su più righe. Supporta Markdown sicuro, colori con {color:red}testo{/color} o {color:#c00}testo{/color} e dimensioni con {size:large}testo{/size} o {size:14px}testo{/size}.</small></div>
           </div>
           <div class="workflow-admin-options">
             <div><label>Condizioni</label>{{ condition_picker('conditions_' ~ step.id, selected_conditions) }}</div>
-            <div><label><input type="checkbox" name="required_{{step.id}}" value="1" {% if step.required %}checked{% endif %}> Richiesto</label></div>
+            <div><label><input type="checkbox" name="required_{{step.id}}" value="1" {% if step.required %}checked{% endif %}> Richiesto per avvisi procedurali</label></div>
             <div><label><input type="checkbox" name="requires_notification_{{step.id}}" value="1" {% if step.requires_notification %}checked{% endif %}> Richiede notifica</label><br><select name="required_notification_type_{{step.id}}"><option value="">-- seleziona --</option>{% for nt in notification_types %}<option value="{{nt.code}}" {% if step.required_notification_type==nt.code %}selected{% endif %}>{{nt.label}}</option>{% endfor %}</select></div>
+            <div><label><input type="checkbox" name="document_generation_enabled_{{step.id}}" value="1" {% if step.document_generation_enabled %}checked{% endif %}> Step relativo a documento da generare</label><br><select name="document_template_name_{{step.id}}"><option value="">-- nessuno --</option>{% for tmpl in form_templates %}<option value="{{tmpl.name}}" {% if step.document_template_name==tmpl.name %}selected{% endif %}>{{tmpl.name}}</option>{% endfor %}</select></div>
+            <div class="wide"><label>Auto tag documento</label>{{ tag_picker('document_auto_tags_' ~ step.id, step.document_auto_tag_list) }}</div>
           </div>
           <div class="workflow-admin-actions"><button type="submit" class="secondary">Salva</button> <button class="danger" type="submit" form="del-step-{{step.id}}">Elimina</button></div>
-        </section>
+        </details>
       {% endfor %}
       </div>
     </form>
+    <form method="post" class="workflow-renumber-form">
+      <input type="hidden" name="action" value="renumber_workflow">
+      <input type="hidden" name="renumber_scope" value="{{ 'default' if key == 0 else 'category:' ~ key }}">
+      <input type="hidden" name="return_anchor" value="{{ workflow_anchor }}">
+      <button type="submit" class="secondary">Risistema ordine step a intervalli di 10</button>
+    </form>
     {% for step in rows %}<form id="del-step-{{step.id}}" method="post" action="{{ url_for('main.admin_incident_workflow_delete', sid=step.id) }}"></form>{% endfor %}
-  </div>
+  </details>
 {% else %}
   <div class="card"><p class="muted">Nessun flusso configurato. Aggiungi almeno un passo nel flusso di default.</p></div>
 {% endfor %}
 <script>
 (function(){
+  document.querySelectorAll('[data-workflow-clone-form]').forEach(form=>{
+    form.addEventListener('submit', ev=>{
+      const dest = form.querySelector('[name="clone_destination"]');
+      const confirmBox = form.querySelector('[name="clone_overwrite_confirm"]');
+      const selected = dest && dest.selectedOptions ? dest.selectedOptions[0] : null;
+      if(selected && selected.dataset.hasWorkflow === '1' && !confirmBox.checked){
+        ev.preventDefault();
+        alert('La destinazione contiene già un workflow: selezionare la conferma di sovrascrittura prima di clonare.');
+        return;
+      }
+      if(selected && selected.dataset.hasWorkflow === '1' && confirmBox.checked && !confirm('Il workflow destinazione verrà sovrascritto. Continuare?')){
+        ev.preventDefault();
+      }
+    });
+  });
   function syncPicker(picker){
     const dz=picker.querySelector('.condition-dropzone');
     const placeholder=picker.querySelector('.condition-placeholder');
@@ -110,9 +224,26 @@
     dz.addEventListener('drop', ev=>{ ev.preventDefault(); dz.classList.remove('drag-over'); const token=ev.dataTransfer.getData('text/plain'); const label=picker.querySelector('.condition-selected[data-token="'+CSS.escape(token)+'"]'); if(label){ label.querySelector('input').checked=true; syncPicker(picker); }});
     picker.addEventListener('click', ev=>{ if(ev.target.classList.contains('condition-remove')){ ev.preventDefault(); const label=ev.target.closest('.condition-selected'); label.querySelector('input').checked=false; syncPicker(picker); }});
   });
+  function syncTagPicker(picker){
+    const dz=picker.querySelector('.tag-drop-zone');
+    const empty=picker.querySelector('.tag-empty');
+    const hidden=picker.querySelector('.tag-hidden');
+    const labels=[...picker.querySelectorAll('.tag-selected')];
+    labels.forEach(l=>{ if(l.querySelector('input').checked){ dz.appendChild(l); l.style.display='inline-flex'; } else { hidden.appendChild(l); l.style.display='none'; }});
+    if(empty) empty.style.display = labels.some(l=>l.querySelector('input').checked) ? 'none' : 'inline';
+  }
+  document.querySelectorAll('[data-tag-picker]').forEach(picker=>{
+    syncTagPicker(picker);
+    picker.querySelectorAll('.tag-chip').forEach(chip=>chip.addEventListener('dragstart', ev=>ev.dataTransfer.setData('application/x-notification-tag', chip.dataset.tagCode)));
+    const dz=picker.querySelector('.tag-drop-zone');
+    dz.addEventListener('dragover', ev=>{ ev.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', ev=>{ ev.preventDefault(); dz.classList.remove('drag-over'); const code=ev.dataTransfer.getData('application/x-notification-tag') || ev.dataTransfer.getData('text/plain'); const label=picker.querySelector('.tag-selected[data-tag-code="'+CSS.escape(code)+'"]'); if(label){ label.querySelector('input').checked=true; syncTagPicker(picker); }});
+    picker.addEventListener('click', ev=>{ if(ev.target.classList.contains('tag-remove')){ ev.preventDefault(); const label=ev.target.closest('.tag-selected'); label.querySelector('input').checked=false; syncTagPicker(picker); }});
+  });
 })();
 </script>
 <style>
-.condition-palette,.condition-dropzone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-dropzone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over{outline:2px solid currentColor}.condition-hidden{display:none}.condition-selected{cursor:default}.condition-selected input{display:none}.condition-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 10rem 16rem;margin-top:.5rem}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
+.condition-palette,.condition-dropzone,.tag-palette,.tag-drop-zone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected,.tag-chip,.tag-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-chip.negated{border-style:dashed}.condition-dropzone,.tag-drop-zone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over,.tag-drop-zone.drag-over{outline:2px solid currentColor}.condition-hidden,.tag-hidden{display:none}.condition-selected,.tag-selected{cursor:default}.condition-selected input,.tag-selected input{display:none}.condition-remove,.tag-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 12rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 12rem 16rem 16rem; margin-top:.5rem}.workflow-admin-options .wide{grid-column:1 / -1}.workflow-admin-workflow>summary,.workflow-admin-step>summary{cursor:pointer;display:flex;gap:.75rem;align-items:center;justify-content:space-between}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
 </style>
 {% endblock %}

@@ -233,8 +233,8 @@
 
   <section id="cap-markdown-rendering" class="doc-chapter" data-doc-title="markdown sicuro colori dimensioni testo">
     <h2>17. Rendering Markdown sicuro</h2>
-    <p>Le viste che mostrano Markdown applicativo, incluse descrizioni workflow, avvisi procedurali, pagina chatbot e widget chatbot, supportano un sottoinsieme sicuro: titoli, elenchi, grassetto, corsivo, codice e link HTTP/HTTPS.</p>
-    <p>Per evidenziare il testo sono disponibili tag controllati come <code>{color:red}testo{/color}</code>, <code>{color:#0b7285}testo{/color}</code>, <code>{size:large}testo{/size}</code>, <code>{size:14px}testo{/size}</code>, <code>{size:1.2em}testo{/size}</code> e <code>{size:120%}testo{/size}</code>. L’HTML libero resta escapato; le notifiche schedulate rimuovono la formattazione Markdown prima dell’invio.</p>
+    <p>Le viste che mostrano Markdown applicativo, incluse descrizioni workflow, avvisi procedurali, pagina chatbot e widget chatbot, supportano un sottoinsieme sicuro: titoli, elenchi, grassetto, corsivo, codice, link HTTP/HTTPS e pulsanti link con sintassi <code>{button:Etichetta|URL}</code>.</p>
+    <p>I pulsanti possono puntare sia a URL assoluti HTTP/HTTPS sia a destinazioni relative alla pagina corrente, ad esempio <code>{button:Dati generali|#incident-main}</code>, <code>{button:Azioni|#incident-actions}</code> o <code>{button:Apri guida|/help#cap-markdown-rendering}</code>. Per evidenziare il testo sono disponibili tag controllati come <code>{color:red}testo{/color}</code>, <code>{color:#0b7285}testo{/color}</code>, <code>{size:large}testo{/size}</code>, <code>{size:14px}testo{/size}</code>, <code>{size:1.2em}testo{/size}</code> e <code>{size:120%}testo{/size}</code>. L’HTML libero resta escapato; le notifiche schedulate rimuovono la formattazione Markdown prima dell’invio.</p>
   </section>
 
 </div>

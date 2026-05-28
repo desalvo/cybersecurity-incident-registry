@@ -57,7 +57,7 @@
   
   <div class="incident-mobile-list" aria-label="Lista incidenti mobile">
     {% for i in incidents %}
-    <article class="incident-card-mobile">
+    <article class="incident-card-mobile {% if i.has_procedural_warnings %}incident-warning-row{% endif %}">
       <h3>{% if i.has_procedural_warnings %}<span class="procedure-danger-icon" title="Avvisi procedurali presenti" aria-label="Avvisi procedurali presenti">⚠</span>{% endif %}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></h3>
       <div class="mobile-meta">
         <div><strong>Inizio / fine</strong>{{ i.start_at }}{% if i.end_at %}<br>{{ i.end_at }}{% endif %}</div>
@@ -94,7 +94,7 @@
     </thead>
     <tbody>
       {% for i in incidents %}
-      <tr>
+      <tr class="{% if i.has_procedural_warnings %}incident-warning-row{% endif %}">
         <td>{% if i.has_procedural_warnings %}<span class="procedure-danger-icon" title="Avvisi procedurali presenti: {{ i.procedural_warnings|join(', ') }}" aria-label="Avvisi procedurali presenti">⚠</span>{% endif %}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
         <td>{{ i.start_at }}<br>{{ i.end_at or '' }}</td>
         <td>{{ i.creator_name }}</td>
@@ -119,4 +119,5 @@
     </tbody>
   </table>
 </div>
+<style>.incident-warning-row{background:rgba(245,158,11,.14)}.incident-warning-row td{border-top-color:rgba(245,158,11,.45)}.procedure-danger-icon{margin-right:.35rem}</style>
 {% endblock %}

@@ -25,6 +25,35 @@ _ALLOWED_SIZE_RE = re.compile(
     re.IGNORECASE,
 )
 _URL_RE = re.compile(r"(https?://[^\s<]+)", re.IGNORECASE)
+_BUTTON_RE = re.compile(r"\{button:([^|{}\n]{1,80})\|([^\s{}<>\"']{1,300})\}", re.IGNORECASE)
+
+
+def _is_safe_link_target(target):
+    """Allow http(s), root-relative paths, same-page anchors and relative URLs.
+
+    The renderer intentionally rejects JavaScript/data schemes, protocol-relative
+    URLs and control characters. Relative targets make it possible to create
+    buttons to sections of the current page, for example #incident-main.
+    """
+    if not target:
+        return False
+    value = str(target).strip()
+    if not value or any(ch.isspace() for ch in value):
+        return False
+    lowered = value.lower()
+    if lowered.startswith(("javascript:", "data:", "vbscript:", "file:")):
+        return False
+    if value.startswith("//"):
+        return False
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", value):
+        return lowered.startswith(("http://", "https://"))
+    if value.startswith(("#", "?", "/", "./", "../")):
+        return True
+    return bool(re.match(r"^[A-Za-z0-9._~!$&'()*+,;=:@%/-]+(?:[?#][A-Za-z0-9._~!$&'()*+,;=:@%/?-]*)?$", value))
+
+
+def _is_external_link_target(target):
+    return str(target or "").lower().startswith(("http://", "https://"))
 
 
 def _split_trailing_url_punctuation(raw_url):
@@ -98,8 +127,19 @@ def _apply_inline_markdown(text):
         safe_size = escape(size)
         return f'<span class="safe-markdown-size workflow-markdown-size" data-md-size="{safe_size}">{body}</span>'
 
+    def button_repl(match):
+        label = match.group(1).strip()
+        target = match.group(2).strip()
+        if not _is_safe_link_target(target):
+            return label
+        target_attr = f' href="{target}"'
+        if _is_external_link_target(target):
+            target_attr += ' target="_blank" rel="noopener noreferrer"'
+        return f'<a class="workflow-button-link safe-markdown-button"{target_attr}>{label}</a>'
+
     text = re.sub(r"\{color:([^}]+)\}(.+?)\{/color\}", color_repl, text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"\{size:([^}]+)\}(.+?)\{/size\}", size_repl, text, flags=re.IGNORECASE | re.DOTALL)
+    text = _BUTTON_RE.sub(button_repl, text)
     return text
 
 
@@ -123,7 +163,7 @@ def workflow_markdown(value):
 
     Supported syntax is intentionally limited to headings, unordered/ordered
     lists, bold, italic, inline code, Markdown links, auto-linked http(s) URLs,
-    button links using {button:Etichetta|https://example.org}, color spans using {color:red}text{/color}, {color:#c00}text{/color},
+    button links using {button:Etichetta|https://example.org}, {button:Sezione|#incident-main} or relative URLs, color spans using {color:red}text{/color}, {color:#c00}text{/color},
     {color:rgb(200,0,0)}text{/color} or {color:hsl(210,80%,40%)}text{/color}
     and size spans using {size:large}text{/size}, {size:14px}text{/size},
     {size:1.2em}text{/size}, {size:1.1rem}text{/size} or {size:120%}text{/size}.
@@ -185,7 +225,13 @@ def strip_markdown_formatting(value):
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"\{color:[^}]+\}(.+?)\{/color\}", r"\1", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"\{size:[^}]+\}(.+?)\{/size\}", r"\1", text, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r"\{button:([^|{}\n]{1,80})\|(https?://[^\s{}]+)\}", r"\1 (\2)", text, flags=re.IGNORECASE)
+
+    def plain_button_repl(match):
+        label = match.group(1).strip()
+        target = match.group(2).strip()
+        return f"{label} ({target})" if _is_safe_link_target(target) else label
+
+    text = _BUTTON_RE.sub(plain_button_repl, text)
     text = re.sub(r"```(?:[^`]|`(?!``))*```", lambda m: m.group(0).strip('`'), text, flags=re.DOTALL)
     text = re.sub(r"`([^`]+)`", r"\1", text)
     text = re.sub(r"!\[([^\]\n]*)\]\([^)]*\)", r"\1", text)

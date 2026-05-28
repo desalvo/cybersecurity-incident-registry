@@ -13,7 +13,7 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 
 - Dashboard con incidenti, avvisi procedurali e stato operativo.
 - Creazione e modifica incidenti con dati generali, gravità, stato, rischio per diritti e libertà, categorie, dati interessati, conseguenze, raccomandazioni e destinatari esterni.
-- Modelli incidente selezionabili: quando un modello viene scelto in creazione o nel dettaglio incidente, i campi principali vengono autocompilati lato client e salvati solo quando l'utente conferma con Salva.
+- Modelli incidente selezionabili solo durante la creazione di un nuovo incidente: quando un modello viene scelto nella form di creazione, i campi principali vengono autocompilati lato client e salvati solo quando l'utente conferma con Salva. Gli incidenti già esistenti non espongono più il comando per applicare un modello.
 - Timeline azioni incidente con allegati, note, utenti coinvolti e collegamento agli step procedurali.
 - Chiusura automatica condizionata: se un'azione ha il tag "Chiusura del task in assenza di avvisi procedurali" e non restano avvisi procedurali attivi, l'incidente viene impostato a chiuso con data e ora correnti nella timezone applicativa.
 - Reportistica con grafici e report PDF incidente.
@@ -43,7 +43,7 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 
 ## Markdown e notifiche
 
-- Rendering Markdown sicuro server-side e client-side: titoli, elenchi, grassetto, corsivo, codice, link HTTP/HTTPS, colori e dimensioni controllate.
+- Rendering Markdown sicuro server-side e client-side: titoli, elenchi, grassetto, corsivo, codice, link HTTP/HTTPS, pulsanti `{button:Etichetta|URL}` con URL assoluti o relativi/ancore, colori e dimensioni controllate.
 - Sintassi colore supportata: `{color:red}testo{/color}`, `{color:#0b7285}testo{/color}`, `rgb(...)`, `hsl(...)` quando valida.
 - Sintassi dimensione supportata: `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:120%}testo{/size}` entro limiti controllati.
 - Le formattazioni Markdown nelle notifiche schedulate vengono rimosse prima dell'invio email.
@@ -74,4 +74,8 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 
 ## Aggiornamento 0.5.0-1
 
-La versione 0.5.0-1 aggiunge la configurazione amministrativa dei campi visualizzati per default nella form di nuovo incidente, riorganizza le “Operazioni previste” in “Fasi procedurali” con descrizione del flusso separata dal task cliccabile, introduce pulsanti link sicuri nella sintassi Markdown degli step workflow tramite `{button:Etichetta|https://...}`, consente di rendere obbligatoria per singolo task la “Descrizione operazioni compiute” e integra la ricerca LDAP nelle form di creazione/modifica incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili per Riferimento ed E-mail destinatario.
+La versione 0.5.0-1 aggiunge la configurazione amministrativa “Layout campi incidenti” per scegliere i campi visibili nella form di nuovo incidente e i riquadri di ricerca visibili nella sezione Dati generali. La ricerca destinatari esterni e la ricerca utente LDAP sono opzioni separate. La release riorganizza le “Operazioni previste” in “Fasi procedurali” con descrizione del flusso separata dal task cliccabile, introduce pulsanti link sicuri nella sintassi Markdown tramite `{button:Etichetta|URL}`, consente di rendere obbligatoria per singolo task la “Descrizione operazioni compiute” e integra la ricerca LDAP nelle form di creazione/modifica incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili per Riferimento ed E-mail destinatario.
+
+Aggiornamento 0.5.0-1: la ricerca LDAP negli incidenti mostra tutti i risultati restituiti dalla query e, per ogni riga, tutti gli attributi configurati in “Attributi di ricerca incidenti”; l'utente seleziona la riga da usare per compilare Riferimento/Destinatario/E-mail. In “Layout campi incidenti”, in assenza di configurazioni salvate, tutte le voci sono selezionate per default. Nei “Flussi operativi incidenti” ogni step ha una “Tipologia di step”: le tipologie di default Conferma ed Esecuzione non sono eliminabili ma hanno descrizione modificabile, mentre tipologie personalizzate possono essere aggiunte, rinominate, descritte o cancellate. La descrizione della tipologia selezionata viene usata come intestazione del riquadro inferiore delle “Fasi procedurali”.
+
+Aggiornamento 0.5.0-1: nella pagina **Flussi operativi incidenti** è possibile clonare un intero workflow scegliendo sorgente e destinazione tra flusso di default e categorie. Se la destinazione contiene già step, l'interfaccia richiede conferma di sovrascrittura e il server blocca la clonazione finché la conferma non è esplicita. Quando un incidente ha più categorie, il workflow applicabile è quello della prima categoria nell'ordine scelto con drag-and-drop; se tale categoria non ha workflow specifico, viene usato il flusso di default.

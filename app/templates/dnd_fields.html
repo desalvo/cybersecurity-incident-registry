@@ -11,7 +11,7 @@
   </div>
   <div>
     <h4>Categorie selezionate</h4>
-    <div class="dropzone" data-target="categories">{% if inc %}{% for l in inc.categories %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% elif selected_template is defined and selected_template %}{% for l in categories if l.id in selected_template.category_id_list() %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
+    <div class="dropzone" data-target="categories">{% if inc %}{% for l in (selected_categories if selected_categories is defined else inc.categories) %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% elif selected_template is defined and selected_template %}{% for l in categories if l.id in selected_template.category_id_list() %}<span class="chip">{{l.value}} ×<input type="hidden" name="categories" value="{{l.id}}"></span>{% endfor %}{% endif %}</div>
   </div>
   <div>
     <h4>Dati interessati disponibili</h4>

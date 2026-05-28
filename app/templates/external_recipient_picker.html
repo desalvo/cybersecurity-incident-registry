@@ -1,4 +1,6 @@
-{% if external_recipients %}
+{% if show_external_recipient_lookup is not defined %}{% set show_external_recipient_lookup = true %}{% endif %}
+{% if show_ldap_recipient_lookup is not defined %}{% set show_ldap_recipient_lookup = true %}{% endif %}
+{% if show_external_recipient_lookup and external_recipients %}
 <div class="wide external-recipient-loader" data-reference-target="{{ reference_target }}" data-recipient-target="{{ recipient_target }}" data-email-target="{{ email_target }}">
   <label>Carica da destinatari esterni</label>
   <div class="inline-actions">
@@ -14,14 +16,14 @@
 </div>
 {% endif %}
 
-{% if incident_ldap_lookup_enabled %}
+{% if show_ldap_recipient_lookup and incident_ldap_lookup_enabled %}
 <div class="wide ldap-recipient-loader" data-reference-target="{{ reference_target }}" data-recipient-target="{{ recipient_target }}" data-email-target="{{ email_target }}" data-search-url="{{ url_for('main.ldap_incident_recipient_search') }}">
-  <label>Cerca in LDAP</label>
+  <label>Cerca i dati dell’interessato all’incidente in LDAP</label>
   <div class="inline-actions">
     <input class="ldap-recipient-query" type="search" placeholder="Cerca utente LDAP per nome, uid o e-mail" aria-label="Cerca utente LDAP">
     <button type="button" class="secondary ldap-recipient-search-button">Cerca</button>
   </div>
   <div class="ldap-recipient-results" aria-live="polite"></div>
-  <p class="muted">La ricerca usa la configurazione LDAP amministrativa e può compilare Riferimento, Destinatario ed E-mail destinatario.</p>
+  <p class="muted">La ricerca con LDAP può compilare Riferimento, Destinatario ed E-mail destinatario.</p>
 </div>
 {% endif %}

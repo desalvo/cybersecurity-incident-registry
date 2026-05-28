@@ -3,10 +3,10 @@ from pathlib import Path
 from email.message import EmailMessage
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g, has_app_context
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g, has_app_context, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_, and_, text, Table, MetaData, select, func
+from sqlalchemy import or_, and_, text, Table, MetaData, select, func, inspect
 from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from ldap3 import Server, Connection, ALL
 from ldap3.utils.conv import escape_filter_chars
@@ -24,6 +24,7 @@ from .form_generation import list_templates, available_incident_fields, FormFiel
 from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
 from .text_filters import strip_markdown_formatting
 from .timeutils import utcnow
+from . import restore_missing_default_config_labels, DEFAULT_CONFIG_LABELS
 bp=Blueprint('main',__name__)
 
 def model_or_404(model, ident):
@@ -787,13 +788,13 @@ AUTOMATIC_ACTION_OPERATIONS = {
 def action_automatic_operation_list(label=None):
     if not label or getattr(label, 'kind', None) != 'action_label':
         return []
-    if hasattr(label, 'automatic_operation_list'):
-        return label.automatic_operation_list()
     values = []
+    label_to_code = {text: code for code, text in AUTOMATIC_ACTION_OPERATIONS.items()}
     for item in (getattr(label, 'automatic_operations', '') or '').split(','):
         item = item.strip()
-        if item and item not in values:
-            values.append(item)
+        code = item if item in AUTOMATIC_ACTION_OPERATIONS else label_to_code.get(item, '')
+        if code and code not in values:
+            values.append(code)
     return values
 
 
@@ -815,6 +816,10 @@ def apply_action_automatic_operations(incident_id, action):
     inc = db.session.get(Incident, incident_id)
     if not inc:
         return False
+    db.session.flush()
+    state = inspect(inc)
+    if state.persistent:
+        db.session.expire(inc, ['actions'])
     now = application_now()
     changed = False
     if 'end_breach' in operations:
@@ -826,6 +831,7 @@ def apply_action_automatic_operations(incident_id, action):
         if incident_procedural_status(inc)['has_warnings']:
             setattr(inc, '_closure_blocked_by_procedural_warnings', True)
         else:
+            setattr(inc, '_closure_blocked_by_procedural_warnings', False)
             inc.status = 'chiuso'
             inc.end_at = now
             inc.end_date = now.date()
@@ -855,10 +861,14 @@ def incident_procedural_status(inc):
         if step.get('required', True) and not step.get('done')
     ]
     warnings = [step.get('warning_text') or step.get('label') or step.get('task_name') for step in missing_required]
+    missing_any = [step for step in workflow.get('steps', []) if not step.get('done')]
+    open_incomplete = ((getattr(inc, 'status', '') or '').strip().lower() == 'aperto' and bool(missing_any))
     status = {
         'warnings': warnings,
         'warning_steps': missing_required,
+        'missing_steps': missing_any,
         'has_warnings': bool(warnings),
+        'has_open_incomplete_workflow': open_incomplete,
         # Compatibilità con template/route storici: i nuovi avvisi non dipendono
         # più da questi flag specifici, ma li manteniamo veri quando non esiste
         # un avviso esplicito della relativa famiglia.
@@ -873,8 +883,8 @@ def annotate_procedural_status(incidents):
     """Aggiunge attributi transienti usati dalla lista principale."""
     for inc in incidents:
         status = incident_procedural_status(inc)
-        inc.procedural_warnings = status['warnings']
-        inc.has_procedural_warnings = status['has_warnings']
+        inc.procedural_warnings = status['warnings'] or [step.get('warning_text') or step.get('label') or step.get('task_name') for step in status.get('missing_steps', [])]
+        inc.has_procedural_warnings = bool(status.get('has_open_incomplete_workflow'))
     return incidents
 
 def unique_int_list(field_name):
@@ -1045,37 +1055,60 @@ def workflow_step_key(step):
         bool(getattr(step, 'personal_data_only', False)),
         bool(getattr(step, 'requires_notification', False)),
         (getattr(step, 'required_notification_type', None) or '').strip(),
+        bool(getattr(step, 'document_generation_enabled', False)),
+        (getattr(step, 'document_template_name', None) or '').strip(),
+        tuple(getattr(step, 'document_auto_tag_list', []) if hasattr(step, 'document_auto_tag_list') else []),
         tuple(step.condition_tokens() if hasattr(step, 'condition_tokens') else []),
     )
 
 
 def workflow_condition_token_label(token):
     token=(token or '').strip()
-    if token == 'personal_data':
-        return 'Rischio per diritti e libertà'
-    if token.startswith('severity:'):
+    negated = token.startswith('!')
+    base = token[1:] if negated else token
+    prefix = 'NON ' if negated else ''
+    if base == 'personal_data':
+        return prefix + 'Rischio per diritti e libertà'
+    if base.startswith('severity:'):
         try:
-            lab=db.session.get(ConfigLabel, int(token.split(':',1)[1]))
-            return f"Gravità: {lab.value}" if lab else f"Gravità #{token.split(':',1)[1]}"
+            lab=db.session.get(ConfigLabel, int(base.split(':',1)[1]))
+            return prefix + (f"Gravità: {lab.value}" if lab else f"Gravità #{base.split(':',1)[1]}")
         except Exception:
-            return 'Gravità non valida'
-    if token.startswith('data_type:'):
+            return prefix + 'Gravità non valida'
+    if base.startswith('data_type:'):
         try:
-            lab=db.session.get(ConfigLabel, int(token.split(':',1)[1]))
-            return f"Dati interessati: {lab.value}" if lab else f"Dato interessato #{token.split(':',1)[1]}"
+            lab=db.session.get(ConfigLabel, int(base.split(':',1)[1]))
+            return prefix + (f"Dati interessati: {lab.value}" if lab else f"Dato interessato #{base.split(':',1)[1]}")
         except Exception:
-            return 'Dato interessato non valido'
+            return prefix + 'Dato interessato non valido'
     return token
 
 def workflow_condition_tokens_from_form(prefix='conditions'):
-    allowed={'personal_data'}
-    allowed.update(f'severity:{x.id}' for x in labels('severity'))
-    allowed.update(f'data_type:{x.id}' for x in labels('data_type'))
+    base_allowed={'personal_data'}
+    base_allowed.update(f'severity:{x.id}' for x in labels('severity'))
+    base_allowed.update(f'data_type:{x.id}' for x in labels('data_type'))
+    allowed=set(base_allowed) | {f'!{x}' for x in base_allowed}
     out=[]
     for token in request.form.getlist(prefix):
         token=(token or '').strip()
         if token in allowed and token not in out:
             out.append(token)
+    return out
+
+def workflow_document_template_names():
+    return {getattr(t, 'name', '') for t in list_templates() if getattr(t, 'name', '')}
+
+def workflow_document_template_from_form(field_name):
+    value = (request.form.get(field_name) or '').strip()
+    return value if value in workflow_document_template_names() else None
+
+def workflow_document_auto_tags_from_form(field_name):
+    valid = {t.code for t in notification_type_tag_options(enabled_only=False)}
+    out=[]
+    for code in request.form.getlist(field_name):
+        code=(code or '').strip()
+        if code in valid and code not in out:
+            out.append(code)
     return out
 
 def workflow_step_condition_status(step, inc):
@@ -1086,21 +1119,25 @@ def workflow_step_condition_status(step, inc):
     details=[]
     ok=True
     for token in tokens:
+        negated = token.startswith('!')
+        base = token[1:] if negated else token
         passed=False
-        if token == 'personal_data':
+        if base == 'personal_data':
             passed=bool(getattr(inc, 'personal_data', False))
-        elif token.startswith('severity:'):
+        elif base.startswith('severity:'):
             try:
-                passed=int(token.split(':',1)[1]) == int(inc.severity_id or 0)
+                passed=int(base.split(':',1)[1]) == int(inc.severity_id or 0)
             except Exception:
                 passed=False
-        elif token.startswith('data_type:'):
+        elif base.startswith('data_type:'):
             try:
-                passed=int(token.split(':',1)[1]) in incident_data_type_ids
+                passed=int(base.split(':',1)[1]) in incident_data_type_ids
             except Exception:
                 passed=False
         else:
             passed=False
+        if negated:
+            passed = not passed
         ok = ok and passed
         details.append({'token': token, 'label': workflow_condition_token_label(token), 'passed': passed})
     return ok, details
@@ -1156,11 +1193,30 @@ def workflow_notification_document_status(inc, kind):
         }
     return {'required': bool(linked or notification_needs_documents(kind, tmpl.id)), 'ready': True, 'section': 'incident-documents', 'message': ''}
 
+def incident_category_order_ids(inc):
+    available = {c.id for c in (getattr(inc, 'categories', None) or []) if getattr(c, 'id', None)}
+    ordered = []
+    for raw in (getattr(inc, 'category_order', '') or '').split(','):
+        try:
+            value = int(raw.strip())
+        except (TypeError, ValueError):
+            continue
+        if value in available and value not in ordered:
+            ordered.append(value)
+    for cat in (getattr(inc, 'categories', None) or []):
+        if getattr(cat, 'id', None) in available and cat.id not in ordered:
+            ordered.append(cat.id)
+    return ordered
+
+def incident_ordered_categories(inc):
+    order = {cid: idx for idx, cid in enumerate(incident_category_order_ids(inc))}
+    return sorted(list(getattr(inc, 'categories', None) or []), key=lambda item: order.get(getattr(item, 'id', None), 10**9))
+
 def workflow_steps_for_incident(inc):
-    category_ids = [c.id for c in (inc.categories or [])]
+    category_ids = incident_category_order_ids(inc)
     rows = []
     if category_ids:
-        rows = IncidentWorkflowStep.query.filter(IncidentWorkflowStep.category_id.in_(category_ids)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+        rows = IncidentWorkflowStep.query.filter_by(category_id=category_ids[0]).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     if not rows:
         rows = IncidentWorkflowStep.query.filter(IncidentWorkflowStep.category_id.is_(None)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     seen = set()
@@ -1189,6 +1245,175 @@ def incident_workflow_actions(inc):
         return list(getattr(inc, 'actions', None) or [])
     return Action.query.filter_by(incident_id=inc.id).order_by(Action.when_at.asc(), Action.id.asc()).all()
 
+
+
+DEFAULT_WORKFLOW_STEP_TYPES = [
+    {'code': 'confirm', 'label': 'Conferma', 'description': 'Conferma fase', 'protected': True},
+    {'code': 'execution', 'label': 'Esecuzione', 'description': 'Esecuzione fase', 'protected': True},
+]
+WORKFLOW_STEP_TYPES_JSON_SETTING = 'workflow_step_types_json'
+
+
+def _workflow_step_type_code_from_label(label, existing=None):
+    base = re.sub(r'[^a-z0-9]+', '_', (label or '').strip().lower()).strip('_')
+    if not base:
+        base = 'step'
+    if base in {'confirm', 'execution'}:
+        base = f'custom_{base}'
+    code = base[:40].strip('_') or 'step'
+    existing = set(existing or [])
+    candidate = code
+    idx = 2
+    while candidate in existing:
+        suffix = f'_{idx}'
+        candidate = f'{code[:40-len(suffix)]}{suffix}'.strip('_')
+        idx += 1
+    return candidate
+
+
+def workflow_step_type_records():
+    """Restituisce le tipologie di step workflow configurate.
+
+    Le tipologie standard sono sempre presenti e non eliminabili; le loro
+    descrizioni restano modificabili. Le tipologie custom sono memorizzate in
+    JSON nei setting per evitare una migrazione di schema invasiva.
+    """
+    raw = setting_value(WORKFLOW_STEP_TYPES_JSON_SETTING, '')
+    configured = []
+    if raw:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                configured = data
+        except (TypeError, ValueError):
+            configured = []
+
+    by_code = {}
+    order = []
+    for default in DEFAULT_WORKFLOW_STEP_TYPES:
+        code = default['code']
+        desc = setting_value(f'workflow_step_type_{code}_description', default['description']) or default['description']
+        rec = {**default, 'description': desc, 'protected': True}
+        by_code[code] = rec
+        order.append(code)
+
+    for item in configured:
+        if not isinstance(item, dict):
+            continue
+        code = re.sub(r'[^a-z0-9_]+', '_', (item.get('code') or '').strip().lower()).strip('_')
+        if not code:
+            continue
+        if code in by_code:
+            if item.get('description'):
+                by_code[code]['description'] = str(item.get('description') or '').strip()[:120] or by_code[code]['description']
+            continue
+        label = str(item.get('label') or code.replace('_', ' ').title()).strip()[:80]
+        description = str(item.get('description') or label).strip()[:120] or label
+        by_code[code] = {'code': code, 'label': label, 'description': description, 'protected': False}
+        order.append(code)
+    return [by_code[code] for code in order if code in by_code]
+
+
+def save_workflow_step_type_records(records):
+    cleaned = []
+    default_by_code = {item['code']: item for item in DEFAULT_WORKFLOW_STEP_TYPES}
+    existing = set()
+    for item in records or []:
+        code = re.sub(r'[^a-z0-9_]+', '_', (item.get('code') or '').strip().lower()).strip('_')
+        if not code or code in existing:
+            continue
+        if code in default_by_code:
+            default = default_by_code[code]
+            label = default['label']
+            protected = True
+        else:
+            label = str(item.get('label') or code.replace('_', ' ').title()).strip()[:80]
+            protected = False
+        description = str(item.get('description') or label).strip()[:120] or label
+        cleaned.append({'code': code, 'label': label, 'description': description, 'protected': protected})
+        existing.add(code)
+    for default in DEFAULT_WORKFLOW_STEP_TYPES:
+        if default['code'] not in existing:
+            cleaned.insert(len([r for r in cleaned if r.get('protected')]), dict(default))
+            existing.add(default['code'])
+    by_code = {item['code']: item for item in cleaned}
+    for default in DEFAULT_WORKFLOW_STEP_TYPES:
+        set_setting_value(f"workflow_step_type_{default['code']}_description", by_code[default['code']]['description'])
+    set_setting_value(WORKFLOW_STEP_TYPES_JSON_SETTING, json.dumps(cleaned, ensure_ascii=False))
+
+
+def workflow_step_type_pairs():
+    return [(item['code'], item['label']) for item in workflow_step_type_records()]
+
+
+def workflow_step_type_codes():
+    return {item['code'] for item in workflow_step_type_records()}
+
+
+def normalize_workflow_step_type(value):
+    value = (value or 'confirm').strip().lower()
+    return value if value in workflow_step_type_codes() else 'confirm'
+
+
+def parse_workflow_scope_value(value):
+    raw = (value or 'default').strip()
+    if raw in {'', 'default'}:
+        return None
+    if raw.startswith('category:'):
+        raw = raw.split(':', 1)[1]
+    try:
+        cid = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return cid if db.session.get(ConfigLabel, cid) else None
+
+def workflow_scope_display_name(category_id):
+    if not category_id:
+        return 'Flusso di default'
+    lab = db.session.get(ConfigLabel, int(category_id))
+    return f"Categoria: {lab.value}" if lab else f"Categoria: {category_id}"
+
+def workflow_scope_options(category_map=None):
+    cats = category_map.values() if isinstance(category_map, dict) else (category_map or labels('category'))
+    counts = { (cid or 0): count for cid, count in db.session.query(IncidentWorkflowStep.category_id, func.count(IncidentWorkflowStep.id)).group_by(IncidentWorkflowStep.category_id).all() }
+    opts = [{'value':'default','label':'Flusso di default','has_workflow': counts.get(0,0)>0}]
+    for c in sorted(cats, key=lambda x: (x.value or '').lower()):
+        opts.append({'value': f'category:{c.id}', 'label': f'Categoria: {c.value}', 'has_workflow': counts.get(c.id,0)>0})
+    return opts
+
+def clone_workflow_steps(source_category_id, destination_category_id, overwrite=False):
+    source_steps = IncidentWorkflowStep.query.filter_by(category_id=source_category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    if not source_steps:
+        return {'ok': False, 'message': 'Il workflow sorgente non contiene step da clonare.'}
+    existing = IncidentWorkflowStep.query.filter_by(category_id=destination_category_id).count()
+    if existing and not overwrite:
+        return {'ok': False, 'message': f'Il workflow destinazione contiene già {existing} step: confermare la sovrascrittura prima di clonare.'}
+    if existing and overwrite:
+        for row in IncidentWorkflowStep.query.filter_by(category_id=destination_category_id).all():
+            db.session.delete(row)
+        db.session.flush()
+    for src in source_steps:
+        clone = IncidentWorkflowStep(category_id=destination_category_id, action_label_id=src.action_label_id, description=src.description or '', step_type=normalize_workflow_step_type(getattr(src, 'step_type', 'confirm')), personal_data_only=bool(getattr(src, 'personal_data_only', False)), conditions=src.conditions or '', required=bool(src.required), requires_notification=bool(getattr(src, 'requires_notification', False)), required_notification_type=getattr(src, 'required_notification_type', None), document_generation_enabled=bool(getattr(src, 'document_generation_enabled', False)), document_template_name=getattr(src, 'document_template_name', None), position=src.position)
+        clone.set_document_auto_tags(getattr(src, 'document_auto_tag_list', []))
+        db.session.add(clone)
+    db.session.commit()
+    return {'ok': True, 'message': f'Workflow clonato da {workflow_scope_display_name(source_category_id)} a {workflow_scope_display_name(destination_category_id)}: {len(source_steps)} step copiati.'}
+
+
+def workflow_step_type_description(step_type):
+    code = normalize_workflow_step_type(step_type)
+    for item in workflow_step_type_records():
+        if item['code'] == code:
+            return item.get('description') or item.get('label') or 'Conferma fase'
+    return 'Conferma fase'
+
+
+def workflow_step_type_label(step_type):
+    code = normalize_workflow_step_type(step_type)
+    for item in workflow_step_type_records():
+        if item['code'] == code:
+            return item.get('label') or code
+    return 'Conferma'
 
 def incident_workflow_status(inc):
     steps = workflow_steps_for_incident(inc)
@@ -1227,6 +1452,8 @@ def incident_workflow_status(inc):
         notification_done = incident_has_notification_action(inc, required_notification_type) if requires_notification else True
         doc_status = workflow_notification_document_status(inc, required_notification_type) if requires_notification and not notification_done else {'required': False, 'ready': True, 'section': 'incident-documents', 'message': ''}
         ntype = get_notification_type(required_notification_type) if required_notification_type else None
+        document_generation_enabled = bool(getattr(step, 'document_generation_enabled', False))
+        document_template_name = (getattr(step, 'document_template_name', None) or '').strip()
         items.append({
             'id': step.id,
             'action_label_id': label_id,
@@ -1236,6 +1463,9 @@ def incident_workflow_status(inc):
             'description': step.description or '',
             'flow_description': step.description or '',
             'description_required': bool(getattr(label, 'description_required', False)) if label else False,
+            'step_type': normalize_workflow_step_type(getattr(step, 'step_type', 'confirm')),
+            'step_type_label': workflow_step_type_label(getattr(step, 'step_type', 'confirm')), 
+            'step_type_description': workflow_step_type_description(getattr(step, 'step_type', 'confirm')),
             'personal_data_only': bool(getattr(step, 'personal_data_only', False)),
             'conditions': [workflow_condition_token_label(t) for t in (step.condition_tokens() if hasattr(step, 'condition_tokens') else [])],
             'required': bool(getattr(step, 'required', True)),
@@ -1249,6 +1479,10 @@ def incident_workflow_status(inc):
             'notification_docs_ready': bool(doc_status.get('ready')),
             'notification_docs_section': doc_status.get('section') or 'incident-documents',
             'notification_docs_message': doc_status.get('message') or '',
+            'document_generation_enabled': document_generation_enabled,
+            'document_template_name': document_template_name,
+            'document_generation_url': url_for('main.workflow_step_generate_document', iid=inc.id, sid=step.id) if document_generation_enabled and document_template_name else '',
+            'document_auto_tags': list(getattr(step, 'document_auto_tag_list', []) if hasattr(step, 'document_auto_tag_list') else []),
             'position': step.position,
             'done': done,
             'missing': not done,
@@ -2016,6 +2250,7 @@ def incident_template_context(template=None):
         recommendations_max_per_incident=recommendations_limit(),
         external_recipients=get_external_recipients(),
         incident_form_visible_fields=incident_form_visible_fields(),
+        incident_detail_visible_fields=incident_detail_general_visible_fields(),
         incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
     )
 
@@ -2024,15 +2259,25 @@ def incident_template_context(template=None):
 @login_required
 def admin_incident_form_fields():
     if not can_admin(): return redirect(url_for('main.index'))
-    all_codes = [code for code, _label, _required in INCIDENT_FORM_FIELDS]
+    new_all_codes = [code for code, _label, _required in INCIDENT_FORM_FIELDS]
+    detail_all_codes = [code for code, _label, _required in INCIDENT_DETAIL_VISIBILITY_FIELDS]
     if request.method == 'POST':
-        selected = [code for code in request.form.getlist('visible_field') if code in all_codes]
-        selected = list(dict.fromkeys(selected + list(incident_form_required_field_codes())))
-        set_setting_value('incident_form_default_visible_fields', ','.join(selected))
+        selected_new = [code for code in request.form.getlist('new_visible_field') if code in new_all_codes]
+        selected_new = list(dict.fromkeys(selected_new + list(incident_form_required_field_codes())))
+        selected_detail = [code for code in request.form.getlist('detail_visible_field') if code in detail_all_codes]
+        selected_detail = list(dict.fromkeys(selected_detail))
+        set_setting_value('incident_form_default_visible_fields', ','.join(selected_new))
+        set_setting_value('incident_detail_general_visible_fields', ','.join(selected_detail))
         db.session.commit()
-        flash('Configurazione campi nuovo incidente salvata.', 'success')
+        flash('Configurazione layout campi incidenti salvata.', 'success')
         return redirect(url_for('main.admin_incident_form_fields'))
-    return render_template('admin_incident_form_fields.html', incident_form_fields=INCIDENT_FORM_FIELDS, visible_fields=incident_form_visible_fields())
+    return render_template(
+        'admin_incident_form_fields.html',
+        incident_form_fields=INCIDENT_FORM_FIELDS,
+        incident_detail_fields=INCIDENT_DETAIL_VISIBILITY_FIELDS,
+        visible_fields=incident_form_visible_fields(),
+        detail_visible_fields=incident_detail_general_visible_fields(),
+    )
 
 @bp.route('/admin/incident-templates',methods=['GET','POST'])
 @login_required
@@ -2109,6 +2354,7 @@ def incident_new():
         inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
         sync_incident_split_datetime(inc)
         inc.categories = labels_from_form('category', 'categories')
+        inc.category_order = _csv_ids_from_form('categories')
         inc.data_types = labels_from_form('data_type', 'data_types')
         inc.people = people_from_form('people')
         inc.recommendations = recommendations_from_form('recommendations')
@@ -2151,6 +2397,7 @@ def incident_detail(iid):
         else:
             inc.status=requested_status
         inc.categories = labels_from_form('category', 'categories')
+        inc.category_order = _csv_ids_from_form('categories')
         inc.data_types = labels_from_form('data_type', 'data_types')
         inc.people = people_from_form('people')
         inc.recommendations = recommendations_from_form('recommendations')
@@ -2164,9 +2411,11 @@ def incident_detail(iid):
             flash(f'Errore durante l\'aggiornamento dell\'incidente: {exc}', 'error')
         return incident_detail_redirect(iid, 'incident-main')
     procedural_status = incident_procedural_status(inc)
+    selected_categories = incident_ordered_categories(inc)
     return render_template(
         'incident_detail.html',
         inc=inc,
+        selected_categories=selected_categories,
         severities=labels('severity'),
         categories=labels('category'),
         data_types=labels('data_type'),
@@ -2182,8 +2431,6 @@ def incident_detail(iid):
         form_templates=list_templates(),
         recommendations=Recommendation.query.order_by(Recommendation.text).all(),
         recommendations_max_per_incident=recommendations_limit(),
-        incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(),
-        incident_template_payloads=incident_template_client_payloads(),
         owner_name=setting_value('security_owner_name'),
         owner_role=setting_value('security_owner_role'),
         owner_email=setting_value('security_owner_email'),
@@ -2202,6 +2449,7 @@ def incident_detail(iid):
         split_email_list=_split_email_list,
         external_recipients=get_external_recipients(),
         incident_form_visible_fields=incident_form_visible_fields(),
+        incident_detail_visible_fields=incident_detail_general_visible_fields(),
         incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
     )
 
@@ -2297,7 +2545,7 @@ def incident_delete(iid):
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
     src=model_or_404(Incident, iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto')
-    sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
+    sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.category_order=getattr(src, 'category_order', '') or _csv_ids_from_objects(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
 
 def workflow_notification_blocking_message(inc, label_id):
     if not label_id:
@@ -2646,8 +2894,9 @@ def build_workflow_export_payload(category_id=None):
     for step in steps:
         add_label(step.action_label)
         for token in step.condition_tokens():
-            if ':' in token:
-                kind, sid = token.split(':', 1)
+            base_token = token[1:] if str(token).startswith('!') else token
+            if ':' in base_token:
+                kind, sid = base_token.split(':', 1)
                 if kind in {'severity', 'data_type'}:
                     lab = db.session.get(ConfigLabel, int(sid)) if sid.isdigit() else None
                     add_label(lab)
@@ -2667,10 +2916,14 @@ def build_workflow_export_payload(category_id=None):
             'position': step.position,
             'action_label': _workflow_label_payload(step.action_label),
             'description': step.description or '',
+            'step_type': normalize_workflow_step_type(getattr(step, 'step_type', 'confirm')),
             'conditions': step.condition_tokens(),
             'required': bool(step.required),
             'requires_notification': bool(step.requires_notification),
             'required_notification_type': step.required_notification_type or '',
+            'document_generation_enabled': bool(getattr(step, 'document_generation_enabled', False)),
+            'document_template_name': getattr(step, 'document_template_name', None) or '',
+            'document_auto_tags': list(getattr(step, 'document_auto_tag_list', [])),
         })
     return {
         'format': 'cybersecurity-incident-registry.workflow.v1',
@@ -2775,17 +3028,25 @@ def workflow_import_diff(payload):
             changes={}
             comparable = {
                 'description': cur.description or '',
+                'step_type': normalize_workflow_step_type(getattr(cur, 'step_type', 'confirm')),
                 'conditions': ','.join(cur.condition_tokens()),
                 'required': bool(cur.required),
                 'requires_notification': bool(cur.requires_notification),
                 'required_notification_type': cur.required_notification_type or '',
+                'document_generation_enabled': bool(getattr(cur, 'document_generation_enabled', False)),
+                'document_template_name': getattr(cur, 'document_template_name', None) or '',
+                'document_auto_tags': list(getattr(cur, 'document_auto_tag_list', [])),
             }
             incoming = {
                 'description': st.get('description') or '',
+                'step_type': normalize_workflow_step_type(st.get('step_type')),
                 'conditions': ','.join(st.get('conditions') or []),
                 'required': bool(st.get('required')),
                 'requires_notification': bool(st.get('requires_notification')),
                 'required_notification_type': st.get('required_notification_type') or '',
+                'document_generation_enabled': bool(st.get('document_generation_enabled')),
+                'document_template_name': st.get('document_template_name') or '',
+                'document_auto_tags': list(st.get('document_auto_tags') or []),
             }
             for k,v in incoming.items():
                 if comparable[k] != v:
@@ -2955,10 +3216,14 @@ def apply_workflow_import(payload, overwrite_keys):
             db.session.add(obj)
         obj.action_label_id = label.id
         obj.description = st.get('description') or ''
+        obj.step_type = normalize_workflow_step_type(st.get('step_type'))
         obj.set_condition_tokens(st.get('conditions') or [])
         obj.required = bool(st.get('required'))
         obj.requires_notification = bool(st.get('requires_notification'))
         obj.required_notification_type = st.get('required_notification_type') or None
+        obj.document_generation_enabled = bool(st.get('document_generation_enabled'))
+        obj.document_template_name = (st.get('document_template_name') or '').strip() or None
+        obj.set_document_auto_tags(st.get('document_auto_tags') or [])
         created += 0 if exists else 1
         updated += 1 if exists else 0
     db.session.commit()
@@ -2970,32 +3235,90 @@ def admin_incident_workflows():
     if not can_admin(): return redirect(url_for('main.index'))
     if request.method=='POST':
         action = request.form.get('action') or 'add'
-        if action == 'add':
+        if action == 'add_step_type':
+            records = workflow_step_type_records()
+            existing = {item['code'] for item in records}
+            label = (request.form.get('new_step_type_label') or '').strip()[:80]
+            description = (request.form.get('new_step_type_description') or '').strip()[:120]
+            if not label:
+                flash('Inserire il nome della nuova tipologia di step','error')
+            else:
+                code = _workflow_step_type_code_from_label(label, existing)
+                records.append({'code': code, 'label': label, 'description': description or label, 'protected': False})
+                save_workflow_step_type_records(records)
+                flash('Tipologia di step aggiunta','success')
+        elif action == 'save_step_types':
+            current = {item['code']: item for item in workflow_step_type_records()}
+            records = []
+            for code in request.form.getlist('step_type_code'):
+                item = current.get(code)
+                if not item:
+                    continue
+                if item.get('protected'):
+                    label = item['label']
+                else:
+                    label = (request.form.get(f'step_type_label_{code}') or item['label']).strip()[:80]
+                description = (request.form.get(f'step_type_description_{code}') or label).strip()[:120]
+                records.append({'code': code, 'label': label, 'description': description or label, 'protected': bool(item.get('protected'))})
+            save_workflow_step_type_records(records)
+            flash('Tipologie di step aggiornate','success')
+        elif action == 'delete_step_type':
+            code = normalize_workflow_step_type(request.form.get('step_type_code'))
+            records = workflow_step_type_records()
+            selected = next((item for item in records if item['code'] == code), None)
+            if not selected:
+                flash('Tipologia di step non trovata','error')
+            elif selected.get('protected'):
+                flash('Le tipologie di default non possono essere eliminate','error')
+            else:
+                IncidentWorkflowStep.query.filter_by(step_type=code).update({'step_type': 'confirm'}, synchronize_session=False)
+                save_workflow_step_type_records([item for item in records if item['code'] != code])
+                db.session.commit()
+                flash('Tipologia di step eliminata; gli step associati sono stati riassegnati a Conferma','info')
+        elif action == 'clone_workflow':
+            source_category_id = parse_workflow_scope_value(request.form.get('clone_source'))
+            destination_category_id = parse_workflow_scope_value(request.form.get('clone_destination'))
+            overwrite = bool(request.form.get('clone_overwrite_confirm'))
+            if source_category_id == destination_category_id:
+                flash('Sorgente e destinazione devono essere diverse per clonare un workflow','error')
+            else:
+                result = clone_workflow_steps(source_category_id, destination_category_id, overwrite=overwrite)
+                flash(result['message'], 'success' if result.get('ok') else 'error')
+        elif action == 'renumber_workflow':
+            category_id = parse_workflow_scope_value(request.form.get('renumber_scope'))
+            rows = IncidentWorkflowStep.query.filter_by(category_id=category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+            for idx, row in enumerate(rows, start=1):
+                row.position = idx * 10
+            db.session.commit()
+            flash(f'Ordine workflow risistemato per {workflow_scope_display_name(category_id)}', 'success')
+            return redirect(url_for('main.admin_incident_workflows') + '#' + (request.form.get('return_anchor') or ''))
+        elif action == 'add':
             scope = request.form.get('scope') or 'default'
             category_id = request.form.get('category_id', type=int) if scope == 'category' else None
             action_label_id = request.form.get('action_label_id', type=int)
             description = (request.form.get('description') or '').strip()[:500]
+            step_type = normalize_workflow_step_type(request.form.get('step_type'))
             condition_tokens = workflow_condition_tokens_from_form('conditions')
             personal_data_only = ('personal_data' in condition_tokens)
             required = bool(request.form.get('required'))
             requires_notification = bool(request.form.get('requires_notification'))
             required_notification_type = (request.form.get('required_notification_type') or '').strip() or None
+            document_generation_enabled = bool(request.form.get('document_generation_enabled'))
+            document_template_name = workflow_document_template_from_form('document_template_name') if document_generation_enabled else None
+            document_auto_tags = workflow_document_auto_tags_from_form('document_auto_tags') if document_generation_enabled else []
             position = request.form.get('position', type=int)
             if not action_label_id:
                 flash('Selezionare una azione del flusso','error')
+            elif document_generation_enabled and not document_template_name:
+                flash('Selezionare un modello template valido per lo step di generazione documento','error')
             else:
                 if position is None:
                     q = IncidentWorkflowStep.query.filter_by(category_id=category_id)
                     last = q.order_by(IncidentWorkflowStep.position.desc()).first()
                     position = (last.position + 10) if last else 10
-                # Dopo Full import/restore con ID espliciti la sequence PostgreSQL
-                # della tabella incident_workflow_step può restare indietro e
-                # generare duplicate-key sul successivo inserimento. Riallineiamo
-                # prima dell'INSERT e, se il database segnala comunque una
-                # collisione concorrente, ricostruiamo l'oggetto dopo rollback e
-                # ritentiamo con sequence riallineata.
                 align_table_sequence('incident_workflow_step')
-                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
+                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, position=position)
+                step.set_document_auto_tags(document_auto_tags)
                 db.session.add(step)
                 try:
                     db.session.commit()
@@ -3005,7 +3328,8 @@ def admin_incident_workflows():
                         raise
                     current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
                     align_table_sequence('incident_workflow_step')
-                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, position=position)
+                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, position=position)
+                    step.set_document_auto_tags(document_auto_tags)
                     db.session.add(step)
                     db.session.commit()
                 flash('Passo del flusso aggiunto','success')
@@ -3016,20 +3340,27 @@ def admin_incident_workflows():
                 if not step: continue
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()[:500]
+                step.step_type = normalize_workflow_step_type(request.form.get(f'step_type_{sid}'))
                 condition_tokens = workflow_condition_tokens_from_form(f'conditions_{sid}')
                 step.set_condition_tokens(condition_tokens)
                 step.required = bool(request.form.get(f'required_{sid}'))
                 step.requires_notification = bool(request.form.get(f'requires_notification_{sid}'))
                 step.required_notification_type = (request.form.get(f'required_notification_type_{sid}') or '').strip() or None
+                step.document_generation_enabled = bool(request.form.get(f'document_generation_enabled_{sid}'))
+                step.document_template_name = workflow_document_template_from_form(f'document_template_name_{sid}') if step.document_generation_enabled else None
+                step.set_document_auto_tags(workflow_document_auto_tags_from_form(f'document_auto_tags_{sid}') if step.document_generation_enabled else [])
                 new_label = request.form.get(f'action_label_id_{sid}', type=int)
                 if new_label: step.action_label_id = new_label
             db.session.commit(); flash('Flussi aggiornati','success')
+            return redirect(url_for('main.admin_incident_workflows') + '#' + (request.form.get('return_anchor') or ''))
         return redirect(url_for('main.admin_incident_workflows'))
     steps = IncidentWorkflowStep.query.order_by(IncidentWorkflowStep.category_id, IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     grouped = {}
     for step in steps:
         grouped.setdefault(step.category_id or 0, []).append(step)
-    return render_template('admin_incident_workflows.html', categories=labels('category'), action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), severities=labels('severity'), data_types=labels('data_type'), grouped=grouped)
+    step_type_records = workflow_step_type_records()
+    category_list = labels('category')
+    return render_template('admin_incident_workflows.html', categories=category_list, action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), document_tag_options=notification_type_tag_options(enabled_only=False), form_templates=list_templates(), severities=labels('severity'), data_types=labels('data_type'), grouped=grouped, workflow_scope_options=workflow_scope_options(category_list), workflow_step_types=workflow_step_type_pairs(), workflow_step_type_records=step_type_records, workflow_step_type_descriptions={item['code']: item['description'] for item in step_type_records})
 
 @bp.route('/admin/incident-workflows/<int:sid>/delete',methods=['POST'])
 @login_required
@@ -3125,7 +3456,29 @@ def admin_labels():
             except Exception as exc:
                 current_app.logger.exception('Errore durante il salvataggio della label')
                 db.session.rollback(); flash(f'Errore salvataggio label: {exc}','error')
-    return render_template('admin_labels.html',items=ConfigLabel.query.order_by(ConfigLabel.kind,ConfigLabel.group,ConfigLabel.value).all(), automatic_action_operations=AUTOMATIC_ACTION_OPERATIONS)
+    return render_template('admin_labels.html',items=ConfigLabel.query.order_by(ConfigLabel.kind,ConfigLabel.group,ConfigLabel.value).all(), automatic_action_operations=AUTOMATIC_ACTION_OPERATIONS, default_config_labels=DEFAULT_CONFIG_LABELS)
+
+@bp.route('/admin/labels/restore-defaults', methods=['POST'])
+@login_required
+def admin_labels_restore_defaults():
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    try:
+        added = restore_missing_default_config_labels()
+        db.session.commit()
+    except Exception as exc:
+        current_app.logger.exception('Errore durante il ripristino delle label predefinite')
+        db.session.rollback()
+        flash(f'Errore ripristino valori predefiniti: {exc}', 'error')
+        return redirect(url_for('main.admin_labels'))
+    if added:
+        names = ', '.join(value for _kind, value in added[:12])
+        suffix = '…' if len(added) > 12 else ''
+        flash(f'Valori predefiniti mancanti reinseriti: {len(added)} ({names}{suffix})', 'success')
+    else:
+        flash('Tutti i valori predefiniti sono già presenti: nessuna label aggiunta.', 'info')
+    return redirect(url_for('main.admin_labels'))
+
 @bp.route('/admin/labels/<int:lid>/update',methods=['POST'])
 @login_required
 def admin_label_update(lid):
@@ -3570,10 +3923,13 @@ def ldap_incident_recipient_search():
         return jsonify({'ok': True, 'entries': []})
     cfg=setting_map()
     try:
-        attrs=_ldap_attr_list(cfg.get('ldap_incident_search_attributes'))
-        ref_attr=(cfg.get('ldap_incident_reference_attribute') or 'displayName').strip() or 'displayName'
-        email_attr=(cfg.get('ldap_incident_email_attribute') or 'mail').strip() or 'mail'
-        for extra in [ref_attr, email_attr, 'cn', 'uid', 'displayName', 'mail']:
+        display_attrs=_ldap_attr_list(cfg.get('ldap_incident_search_attributes'))
+        attrs=list(display_attrs)
+        configured_ref=(cfg.get('ldap_incident_reference_attribute') or '').strip()
+        configured_email=(cfg.get('ldap_incident_email_attribute') or '').strip()
+        ref_attr=configured_ref or (display_attrs[0] if display_attrs else 'uid')
+        email_attr=configured_email or ('mail' if 'mail' in display_attrs else '')
+        for extra in [configured_ref, configured_email]:
             if extra and extra not in attrs:
                 attrs.append(extra)
         filt=make_incident_ldap_filter(cfg, q)
@@ -3588,10 +3944,17 @@ def ldap_incident_recipient_search():
                     v=getattr(e, name)
                     if hasattr(v, 'values') and v.values: return str(v.values[0])
                     return str(v) if str(v) != '[]' else ''
-                reference=aval(ref_attr) or aval('displayName') or aval('cn') or aval('uid')
-                email=aval(email_attr) or aval('mail')
-                entries.append({'dn': e.entry_dn, 'reference': reference, 'recipient': reference, 'email': email})
-        return jsonify({'ok': True, 'entries': entries})
+                reference=aval(ref_attr)
+                if not reference:
+                    for candidate in display_attrs:
+                        reference = aval(candidate)
+                        if reference:
+                            break
+                email=aval(email_attr) if email_attr else ''
+                attr_values = {attr: aval(attr) for attr in display_attrs}
+                entries.append({'dn': e.entry_dn, 'reference': reference or e.entry_dn, 'recipient': reference or e.entry_dn, 'email': email, 'attributes': attr_values})
+        attrs = display_attrs
+        return jsonify({'ok': True, 'entries': entries, 'attribute_order': attrs})
     except Exception as exc:
         current_app.logger.exception('Ricerca LDAP destinatario incidente fallita')
         return jsonify({'ok': False, 'error': str(exc)}), 400
@@ -4032,7 +4395,8 @@ def set_setting_value(key, value):
 INCIDENT_FORM_FIELDS = [
     ('template', 'Modello predefinito', False),
     ('name', 'Nome', True),
-    ('external_recipients', 'Rubrica destinatari esterni / LDAP', False),
+    ('external_recipient_lookup', 'Ricerca destinatari esterni', False),
+    ('ldap_recipient_lookup', 'Ricerca utente via LDAP', False),
     ('reference', 'Riferimento', True),
     ('recipient', 'Destinatario', False),
     ('recipient_email', 'E-mail destinatario', False),
@@ -4049,9 +4413,29 @@ INCIDENT_FORM_FIELDS = [
     ('dnd_fields', 'Label, personale e raccomandazioni', False),
 ]
 
+INCIDENT_DETAIL_VISIBILITY_FIELDS = [
+    ('external_recipient_lookup', 'Ricerca destinatari esterni nella sezione Dati generali', False),
+    ('ldap_recipient_lookup', 'Ricerca utente via LDAP nella sezione Dati generali', False),
+]
+
+_LEGACY_INCIDENT_FIELD_ALIASES = {
+    'external_recipients': {'external_recipient_lookup', 'ldap_recipient_lookup'},
+}
+
 
 def incident_form_required_field_codes():
     return {code for code, _label, required in INCIDENT_FORM_FIELDS if required}
+
+
+def _expand_incident_field_codes(raw, allowed_codes):
+    visible = set()
+    for item in (raw or '').split(','):
+        code = item.strip()
+        if code in allowed_codes:
+            visible.add(code)
+        elif code in _LEGACY_INCIDENT_FIELD_ALIASES:
+            visible.update(_LEGACY_INCIDENT_FIELD_ALIASES[code] & set(allowed_codes))
+    return visible
 
 
 def incident_form_visible_fields():
@@ -4059,8 +4443,17 @@ def incident_form_visible_fields():
     all_codes = [code for code, _label, _required in INCIDENT_FORM_FIELDS]
     if not raw:
         return set(all_codes)
-    visible = {x.strip() for x in raw.split(',') if x.strip() in all_codes}
+    visible = _expand_incident_field_codes(raw, all_codes)
     return visible | incident_form_required_field_codes()
+
+
+def incident_detail_general_visible_fields():
+    setting = db.session.get(Setting, 'incident_detail_general_visible_fields')
+    all_codes = [code for code, _label, _required in INCIDENT_DETAIL_VISIBILITY_FIELDS]
+    if setting is None:
+        return set(all_codes)
+    raw = decrypt_setting_value('incident_detail_general_visible_fields', setting.value) if setting.value is not None else ''
+    return _expand_incident_field_codes(raw, all_codes)
 
 
 def incident_ldap_lookup_enabled():
@@ -8331,6 +8724,65 @@ def modules_configuration():
         current_mappings = {m.template_field:m.db_field for m in FormFieldMapping.query.filter_by(template_name=selected).all()}
     return render_template('modules_configuration.html', templates=templates, selected=selected, db_fields=available_incident_fields(), mappings=current_mappings, template_configs={t.name:get_template_config(t.name) for t in templates}, notification_type_tags=notification_type_tags, preview=preview)
 
+def add_workflow_document_action(inc, step, saved_documents):
+    if not inc or not step or not saved_documents:
+        return None
+    label = step.action_label
+    names = ', '.join(doc.filename for doc in saved_documents[:5])
+    if len(saved_documents) > 5:
+        names += ', ...'
+    description = (
+        f"Generazione documento da workflow: template '{step.document_template_name}'. "
+        f"Documenti allegati: {names}."
+    )
+    align_table_sequence('action')
+    action = Action(
+        incident_id=inc.id,
+        when_at=application_now(),
+        person_name=getattr(current_user, 'name', None) or getattr(current_user, 'username', '') or 'Utente',
+        description=description,
+        consequence_text=None,
+        label_id=step.action_label_id,
+        exportable=action_exportable_default(label, description),
+    )
+    db.session.add(action)
+    db.session.flush()
+    close_incident_from_conclusion_action(inc.id, action)
+    return action
+
+@bp.route('/incident/<int:iid>/workflow-step/<int:sid>/document')
+@login_required
+def workflow_step_generate_document(iid, sid):
+    inc = visible(Incident.query).filter(Incident.id == iid).first_or_404()
+    if not can_write():
+        section_flash('Permessi insufficienti', 'incident-forms', 'error')
+        return incident_detail_redirect(iid, 'incident-forms')
+    step = db.session.get(IncidentWorkflowStep, sid)
+    if not step or step not in workflow_steps_for_incident(inc):
+        section_flash('Step workflow non applicabile a questo incidente.', 'incident-workflow', 'error')
+        return incident_detail_redirect(iid, 'incident-workflow')
+    if not getattr(step, 'document_generation_enabled', False) or not (step.document_template_name or '').strip():
+        section_flash('Lo step selezionato non è configurato per la generazione documento.', 'incident-workflow', 'error')
+        return incident_detail_redirect(iid, 'incident-workflow')
+    template_name = step.document_template_name.strip()
+    missing_fields = missing_required_incident_fields_for_templates(inc, [template_name])
+    if missing_fields:
+        section_flash(format_missing_required_incident_fields(missing_fields), 'incident-forms', 'error')
+        return incident_detail_redirect(iid, 'incident-forms')
+    upload_dir = Path(current_app.config['UPLOAD_DIR'])
+    try:
+        pdf_path = generate_pdf_from_template(inc, template_name, upload_dir)
+    except Exception as exc:
+        current_app.logger.exception('Errore anteprima generazione modulo workflow %s', template_name)
+        section_flash(f'Errore generazione anteprima {template_name}: {exc}', 'incident-forms', 'error')
+        return incident_detail_redirect(iid, 'incident-forms')
+    previews = [{
+        'template': template_name,
+        'pdf_stored': pdf_path.name,
+        'suggested_name': f"{template_name}-{inc.id}",
+    }]
+    return render_template('generated_forms_preview.html', inc=inc, previews=previews, workflow_step=step)
+
 @bp.route('/incident/<int:iid>/forms/generate', methods=['POST'])
 @login_required
 def generate_incident_forms(iid):
@@ -8384,6 +8836,10 @@ def confirm_generated_forms(iid):
     action = request.form.get('decision','reject')
     pdf_files = request.form.getlist('pdf_stored')
     names = request.form.getlist('document_name')
+    workflow_step_id = request.form.get('workflow_step_id', type=int)
+    workflow_step = db.session.get(IncidentWorkflowStep, workflow_step_id) if workflow_step_id else None
+    if workflow_step and workflow_step not in workflow_steps_for_incident(inc):
+        workflow_step = None
     if action != 'accept':
         for stored in pdf_files:
             try:
@@ -8393,6 +8849,7 @@ def confirm_generated_forms(iid):
         section_flash('Generazione rifiutata: i file temporanei sono stati eliminati.', 'incident-forms', 'info')
         return incident_detail_redirect(iid, 'incident-forms')
     saved = 0
+    saved_docs = []
     for pdf_stored, name in zip(pdf_files, names):
         base = secure_filename(name.strip()) if name and name.strip() else Path(pdf_stored).stem
         if not base:
@@ -8414,12 +8871,23 @@ def confirm_generated_forms(iid):
             stored_name=final_path.name,
             generated_template_name=generated_template,
         )
-        doc.set_notification_tags(notification_tags_for_generated_form_template(generated_template))
+        tags = notification_tags_for_generated_form_template(generated_template)
+        if workflow_step and getattr(workflow_step, 'document_generation_enabled', False):
+            for code in workflow_step.document_auto_tag_list:
+                if code not in tags:
+                    tags.append(code)
+        doc.set_notification_tags(tags)
         db.session.add(doc)
+        saved_docs.append(doc)
         saved += 1
     try:
+        if workflow_step and saved_docs:
+            add_workflow_document_action(inc, workflow_step, saved_docs)
         db.session.commit()
-        section_flash(f'Documenti generati e allegati: {saved}', 'incident-forms', 'success')
+        msg = f'Documenti generati e allegati: {saved}'
+        if workflow_step and saved_docs:
+            msg += '. Azione workflow inserita automaticamente.'
+        section_flash(msg, 'incident-forms', 'success')
     except Exception as exc:
         db.session.rollback()
         current_app.logger.exception('Errore salvataggio documenti generati dopo anteprima')

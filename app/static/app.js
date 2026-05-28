@@ -317,6 +317,10 @@ function makeIncidentWorkflowStepsClickable(){
   if(!actionForm || !actionSelect)return;
   const description=actionForm.querySelector('textarea[name="description"]');
   const activate=(step)=>{
+    if(step.dataset.documentGenerationUrl){
+      window.location.href = step.dataset.documentGenerationUrl;
+      return;
+    }
     if(step.dataset.requiresNotification === '1'){
       if(step.dataset.notificationDocsReady !== '1'){
         const message = step.dataset.notificationDocsMessage || 'Prima dell’invio della notifica sono necessari documenti generati o taggati per questo tipo di notifica.';
@@ -446,6 +450,25 @@ function initAIChatbotWidget(){
     return isAllowedSafeMarkdownSize(value);
   }
 
+
+  function isSafeMarkdownLinkTarget(target){
+    target = String(target || '').trim();
+    if(!target || /\s/.test(target)) return false;
+    const lower = target.toLowerCase();
+    if(lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:') || lower.startsWith('file:')) return false;
+    if(target.startsWith('//')) return false;
+    if(/^[a-z][a-z0-9+.-]*:/i.test(target)){
+      return lower.startsWith('http://') || lower.startsWith('https://');
+    }
+    if(target.startsWith('#') || target.startsWith('?') || target.startsWith('/') || target.startsWith('./') || target.startsWith('../')) return true;
+    return /^[A-Za-z0-9._~!$&'()*+,;=:@%/-]+(?:[?#][A-Za-z0-9._~!$&'()*+,;=:@%/?-]*)?$/.test(target);
+  }
+
+  function isExternalMarkdownLinkTarget(target){
+    const lower = String(target || '').toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://');
+  }
+
   function renderInlineChatMarkdown(value){
     return value
       .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -453,6 +476,13 @@ function initAIChatbotWidget(){
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\{button:([^|{}\n]{1,80})\|([^\s{}<>"']{1,300})\}/gi, function(match, label, target){
+        label = String(label || '').trim();
+        target = String(target || '').trim();
+        if(!isSafeMarkdownLinkTarget(target)) return label;
+        const externalAttrs = isExternalMarkdownLinkTarget(target) ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return '<a class="workflow-button-link safe-markdown-button" href="' + target + '"' + externalAttrs + '>' + label + '</a>';
+      })
       .replace(/\{color:([^}]+)\}([\s\S]+?)\{\/color\}/gi, function(match, color, body){
         color = (color || '').trim();
         return isAllowedMarkdownColor(color) ? '<span class="safe-markdown-color workflow-markdown-color" data-md-color="' + color.replace(/&quot;/g, '') + '">' + body + '</span>' : body;
@@ -613,17 +643,42 @@ function initLdapRecipientLookup(){
       if(q.length < 2){ results.innerHTML='<p class="muted">Inserire almeno 2 caratteri.</p>'; return; }
       results.innerHTML='<p class="muted">Ricerca LDAP in corso...</p>';
       try{
-        const response=await fetch(box.dataset.searchUrl + '?q=' + encodeURIComponent(q), {headers:{'Accept':'application/json'}});
-        const data=await response.json();
+        const response=await fetch(box.dataset.searchUrl + '?q=' + encodeURIComponent(q), {credentials:'same-origin', headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
+        const contentType=(response.headers.get('content-type') || '').toLowerCase();
+        let data={ok:false,error:'Risposta non valida dal server.'};
+        if(contentType.includes('application/json')){
+          data=await response.json().catch(()=>({ok:false,error:'Risposta JSON non valida dal server.'}));
+        }else{
+          const text=await response.text().catch(()=>'');
+          const loginHint=/login|accedi|password/i.test(text) ? ' Sessione scaduta o accesso richiesto: ricaricare la pagina ed effettuare di nuovo il login.' : '';
+          throw new Error('La ricerca LDAP non ha restituito JSON valido.' + loginHint);
+        }
         if(!response.ok || !data.ok){ throw new Error(data.error || 'Ricerca non riuscita'); }
         if(!data.entries || !data.entries.length){ results.innerHTML='<p class="muted">Nessun utente LDAP trovato.</p>'; return; }
         results.innerHTML='';
+        const attrOrder=Array.isArray(data.attribute_order) ? data.attribute_order : [];
         data.entries.forEach(entry=>{
-          const row=document.createElement('div'); row.className='ldap-recipient-result';
-          const label=document.createElement('span'); label.textContent=(entry.reference || entry.recipient || entry.dn || 'Utente LDAP') + (entry.email ? ' <' + entry.email + '>' : '');
-          const use=document.createElement('button'); use.type='button'; use.className='secondary small'; use.textContent='Usa';
-          use.addEventListener('click', ()=>{ setValue(box.dataset.referenceTarget, entry.reference); setValue(box.dataset.recipientTarget, entry.recipient || entry.reference); setValue(box.dataset.emailTarget, entry.email); });
-          row.appendChild(label); row.appendChild(use); results.appendChild(row);
+          const row=document.createElement('div'); row.className='ldap-recipient-result ldap-recipient-result-expanded';
+          const details=document.createElement('div'); details.className='ldap-recipient-result-details';
+          const title=document.createElement('strong'); title.textContent=(entry.reference || entry.recipient || entry.dn || 'Utente LDAP') + (entry.email ? ' <' + entry.email + '>' : '');
+          details.appendChild(title);
+          const attrs=entry.attributes || {};
+          const keys=attrOrder.length ? attrOrder : Object.keys(attrs);
+          if(keys.length){
+            const table=document.createElement('table'); table.className='ldap-recipient-attributes compact-table';
+            const tbody=document.createElement('tbody');
+            keys.forEach(key=>{
+              if(!Object.prototype.hasOwnProperty.call(attrs, key))return;
+              const tr=document.createElement('tr');
+              const th=document.createElement('th'); th.textContent=key;
+              const td=document.createElement('td'); td.textContent=attrs[key] || '—';
+              tr.appendChild(th); tr.appendChild(td); tbody.appendChild(tr);
+            });
+            table.appendChild(tbody); details.appendChild(table);
+          }
+          const use=document.createElement('button'); use.type='button'; use.className='secondary small'; use.textContent='Seleziona';
+          use.addEventListener('click', ()=>{ setValue(box.dataset.referenceTarget, entry.reference); setValue(box.dataset.recipientTarget, entry.recipient || entry.reference); setValue(box.dataset.emailTarget, entry.email); results.innerHTML=''; if(input) input.value=''; });
+          row.appendChild(details); row.appendChild(use); results.appendChild(row);
         });
       }catch(e){ results.innerHTML='<p class="error">'+String(e.message || e)+'</p>'; }
     }

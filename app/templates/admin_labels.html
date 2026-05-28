@@ -4,6 +4,10 @@
   <h2>Liste configurabili</h2>
   <p class="muted">Aggiungi o cancella label separatamente per ciascuna categoria. Per aggiungere una label basta inserire il nome nella categoria corretta.</p>
   <p class="muted">La sezione <strong>Label azioni</strong> usa una vista a schede: i campi principali, il tempo massimo, il flag esportabile e le operazioni automatiche sono separati per rendere più chiara la configurazione dei task.</p>
+  <form method="post" action="{{ url_for('main.admin_labels_restore_defaults') }}" class="inline-form" onsubmit="return confirm('Reinserire i valori predefiniti mancanti per Gravità, Dati interessati, Categorie incidente e Azioni? Le label già presenti non verranno duplicate.');">
+    <button type="submit" class="secondary">Reinserisci valori predefiniti mancanti</button>
+  </form>
+  <p class="muted">All’avvio dell’applicazione, se il database è già popolato, questi valori non vengono più aggiunti automaticamente: usa questo pulsante per ripristinare solo quelli mancanti.</p>
 </div>
 
 {% set sections = [

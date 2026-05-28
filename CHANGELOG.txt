@@ -1,10 +1,12 @@
 0.5.0-1 - Campi incidenti, workflow procedurale e LDAP
 - Aggiornata la versione applicativa a 0.5.0-1 in configurazioni, documentazione e manifest di rilascio.
-- Aggiunta la voce Admin → Campi nuovo incidente per scegliere i campi visualizzati per default nella form di creazione incidente, mantenendo visibili i campi obbligatori essenziali.
+- Rinominata la voce Admin → Campi nuovo incidente in Admin → Layout campi incidenti, con pagina riorganizzata e più leggibile.
+- Separate le opzioni di visibilità per ricerca destinatari esterni e ricerca utente LDAP nella form di creazione incidente.
+- Aggiunta la configurazione della visibilità dei riquadri ricerca destinatari esterni e LDAP anche nella sezione Dati generali del dettaglio incidente.
 - Rinominato il riquadro “Operazioni previste” in “Fasi procedurali” e separato ogni fase in descrizione del flusso e task cliccabile.
-- Estesa la sintassi Markdown degli step workflow con pulsanti link `{button:Etichetta|https://...}`.
+- Estesa la sintassi Markdown condivisa con pulsanti link `{button:Etichetta|URL}` disponibili in tutte le sezioni che renderizzano Markdown; i pulsanti accettano URL HTTP/HTTPS, percorsi relativi e ancore della pagina corrente come `#incident-main`.
 - Nelle azioni, “Aggiungi azione” diventa “Salva” e “Descrizione opzionale” diventa “Descrizione operazioni compiute”, configurabile come obbligatoria per singolo task.
-- Aggiunta ricerca LDAP nelle form incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili.
+- Aggiunta ricerca LDAP nelle form incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili; corretta la risposta JSON della ricerca LDAP nel dettaglio incidente importando esplicitamente jsonify; aggiornata la dicitura della ricerca LDAP nei Dati generali incidente.
 - Rimossi i warning applicativi da `datetime.utcnow()` e `Query.get()`; i warning residui di dipendenze terze sono filtrati in pytest.
 
 0.5.0-1 - Brochure e knowledge base AlBot aggiornate
@@ -1320,3 +1322,17 @@ Versione 0.5.0-1 - aggiornamento compliance AGID
 - Updated `scripts/build_documentation_pdfs.py` to generate Italian and English static PDF artifacts in a single run.
 - Added regression checks ensuring the English PDF artifacts are packaged and the English brochure remains portrait and no longer than two pages.
 - No new AGID compliance evidence was generated for this documentation-only update.
+
+0.5.0-1 - Workflow documentale e LDAP incidenti
+- La ricerca LDAP per destinatari degli incidenti mostra nei risultati solo gli attributi configurati in `ldap_incident_search_attributes`, senza aggiungere forzatamente `displayName`; dopo la selezione di un utente i risultati vengono svuotati dalla pagina.
+- Le condizioni degli step workflow supportano anche la negazione della condizione tramite chip drag-and-drop dedicati.
+- Ogni step workflow può essere configurato come step di generazione documento, con template PDF associato e auto tag documento basati sugli stessi tag notifica usati nei documenti degli incidenti.
+- Il click su uno step documentale avvia la generazione guidata; se il PDF viene approvato e allegato, viene registrata automaticamente l'azione dello step con riepilogo dell'operazione e tag automatici configurati.
+- Gli step di conclusione nel workflow di default non vengono marcati come richiesti per gli avvisi procedurali.
+- La pagina principale evidenzia con icona e riga colorata gli incidenti aperti con workflow non ancora completato.
+- La configurazione workflow raggruppa i workflow per categoria e mostra workflow e step collassabili; sono disponibili salvataggio con ritorno alla posizione corrente e rinumerazione degli step a intervalli di 10.
+
+0.5.0-17 - Restrizione modelli incidente alla creazione
+- I modelli incidente possono essere applicati solo nella form di creazione nuovo incidente.
+- Rimossi dal dettaglio incidente i controlli di applicazione modello e i payload client relativi.
+- Aggiornati test e documentazione amministrativa/knowledge base.

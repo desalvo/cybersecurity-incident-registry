@@ -462,7 +462,7 @@ All schedules, cron times and maximum-task intervals are interpreted in the appl
 
 ### Workflow step descriptions, Markdown, colours and font sizes
 
-In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, workflow step text is rendered with a safe Markdown subset: bold, italic, inline code, headings, unordered/ordered lists, links and controlled font sizes. `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
+In **Admin → Incident workflows** the procedural step description is multiline and limited to 500 characters. In the incident detail page, workflow step text is rendered with a safe Markdown subset: bold, italic, inline code, headings, unordered/ordered lists, links, button links with `{button:Label|URL}` and controlled font sizes. `http://` and `https://` URLs included in the step text are rendered as clickable links; clicking the rest of the card still starts the guided workflow behaviour.
 
 Supported examples:
 
@@ -600,7 +600,7 @@ AI Chatbot update: the plugin configuration now provides **Allow the AI engine t
 
 ### Global AI Chatbot
 
-When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel preferably stay in the bottom-right area above the decorative application logo; an anti-collision script automatically calculates spacing from the logo and viewport edges to avoid overlap with fixed page elements. On mobile the chat opens from a top button next to the menu, with responsive layout rules that avoid overlapping the logo/header. The panel can be minimized back to the icon without leaving the page. The widget panel renders answers with safe Markdown: bold, italic, headings, lists, inline code/code blocks and links are formatted inside the chat, while free HTML and scripts remain escaped.
+When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel preferably stay in the bottom-right area above the decorative application logo; an anti-collision script automatically calculates spacing from the logo and viewport edges to avoid overlap with fixed page elements. On mobile the chat opens from a top button next to the menu, with responsive layout rules that avoid overlapping the logo/header. The panel can be minimized back to the icon without leaving the page. The widget panel renders answers with safe Markdown: bold, italic, headings, lists, inline code/code blocks, links and button links are formatted inside the chat, while free HTML and scripts remain escaped.
 
 ## AGID compliance hardening - 0.5.0-1 build 20260522
 
@@ -670,7 +670,7 @@ Full instructions are available in `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID
 
 ### Safe Markdown rendering with colours and font sizes
 
-Application Markdown rendering uses the same safe subset in all views that display Markdown: workflow descriptions, procedural warnings, the chatbot page and the chatbot widget. In addition to headings, lists, bold, italic, code and HTTP/HTTPS links, text can be highlighted with controlled colours and font sizes:
+Application Markdown rendering uses the same safe subset in all views that display Markdown: workflow descriptions, procedural warnings, the chatbot page and the chatbot widget. In addition to headings, lists, bold, italic, code and HTTP/HTTPS links, and button links with absolute or relative targets such as `{button:General data|#incident-main}`, text can be highlighted with controlled colours and font sizes:
 
 - `{color:red}text{/color}` or `{color:#0b7285}text{/color}`
 - `{color:rgb(200,0,0)}text{/color}` or `{color:hsl(210,80%,40%)}text{/color}`

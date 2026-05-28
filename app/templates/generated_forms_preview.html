@@ -4,7 +4,7 @@
   <h2>Anteprima PDF generati</h2>
   <p class="muted">Verifica i PDF generati per l’incidente <strong>{{ inc.name }}</strong>. In fondo alla pagina puoi accettare il salvataggio come allegati oppure rifiutarli.</p>
 </div>
-<form method="post" action="{{ url_for('main.confirm_generated_forms', iid=inc.id) }}" data-scroll-anchor="incident-forms"><input type="hidden" name="scroll_anchor" value="incident-forms">
+<form method="post" action="{{ url_for('main.confirm_generated_forms', iid=inc.id) }}" data-scroll-anchor="incident-forms"><input type="hidden" name="scroll_anchor" value="incident-forms">{% if workflow_step %}<input type="hidden" name="workflow_step_id" value="{{ workflow_step.id }}"><div class="card"><p class="muted"><strong>Step workflow:</strong> {{ workflow_step.action_label.value if workflow_step.action_label else workflow_step.id }}. Se il documento viene accettato e allegato, l’azione dello step verrà inserita automaticamente nell’incidente.</p></div>{% endif %}
   {% for item in previews %}
     <section class="card generated-preview-card">
       <h3>Template: {{ item.template }}</h3>

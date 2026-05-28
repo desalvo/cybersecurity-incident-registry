@@ -46,3 +46,31 @@ def test_strip_markdown_formatting_for_scheduled_notifications():
     assert 'rosso' in text
     assert 'grande' in text
     assert 'link (https://example.org)' in text
+
+
+def test_markdown_buttons_support_absolute_relative_and_anchor_targets():
+    html = str(workflow_markdown(
+        '{button:Esterno|https://example.org/run} '
+        '{button:Dati generali|#incident-main} '
+        '{button:Guida|/help#cap-markdown-rendering} '
+        '{button:Query|?open=incident#incident-actions}'
+    ))
+    assert '<a class="workflow-button-link safe-markdown-button" href="https://example.org/run" target="_blank" rel="noopener noreferrer">Esterno</a>' in html
+    assert '<a class="workflow-button-link safe-markdown-button" href="#incident-main">Dati generali</a>' in html
+    assert '<a class="workflow-button-link safe-markdown-button" href="/help#cap-markdown-rendering">Guida</a>' in html
+    assert '<a class="workflow-button-link safe-markdown-button" href="?open=incident#incident-actions">Query</a>' in html
+
+
+def test_markdown_buttons_reject_unsafe_targets():
+    html = str(workflow_markdown('{button:Male|javascript:alert(1)} {button:Data|data:text/html,x} {button:Proto|//evil.example/x}'))
+    assert '<a class="workflow-button-link' not in html
+    assert 'javascript:' not in html
+    assert 'data:text' not in html
+    assert '//evil.example' not in html
+    assert 'Male' in html and 'Data' in html and 'Proto' in html
+
+
+def test_strip_markdown_formatting_handles_relative_buttons():
+    text = strip_markdown_formatting('{button:Dati generali|#incident-main} e {button:Guida|/help#cap-markdown-rendering}')
+    assert 'Dati generali (#incident-main)' in text
+    assert 'Guida (/help#cap-markdown-rendering)' in text

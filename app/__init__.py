@@ -110,22 +110,66 @@ def ensure_setting(key, value):
     if not s:
         db.session.add(Setting(key=key,value=value))
 
-def ensure_label(kind, value, group='default'):
-    label = ConfigLabel.query.filter_by(kind=kind,value=value).first()
+DEFAULT_CONFIG_LABELS = {
+    'severity': {
+        'group': 'gravità',
+        'values': ['molto bassa', 'bassa', 'media', 'alta', 'critica'],
+    },
+    'data_type': {
+        'group': 'dati interessati',
+        'values': ['password', 'dati personali'],
+    },
+    'category': {
+        'group': 'categorie',
+        'values': ['furto di credenziali', 'phishing', 'SPAM', 'altro'],
+    },
+    'action_label': {
+        'group': 'azioni',
+        'values': ['01-informazione iniziale', '02-analisi', '03-blocco', '04-comunicazione allo CSIRT', '05-comunicazione al DPO', '06-comunicazione al Garante della Privacy', '07-notifica all’utente', '08-conclusione'],
+    },
+}
+
+def default_label_metadata(kind, value):
     default_exportable = True
     automatic_operations = ''
     if kind == 'action_label':
-        text = (value or '').lower().replace('’', "'")
-        default_exportable = not any(k in text for k in ('notifica','comunicazione','informazione iniziale','analisi','conclusione'))
-        if 'conclusione' in text:
+        text_value = (value or '').lower().replace('’', "'")
+        default_exportable = not any(k in text_value for k in ('notifica', 'comunicazione', 'informazione iniziale', 'analisi', 'conclusione'))
+        if 'conclusione' in text_value:
             automatic_operations = 'close_without_warnings,end_breach'
+    return default_exportable, automatic_operations
+
+def ensure_label(kind, value, group='default'):
+    label = ConfigLabel.query.filter_by(kind=kind,value=value).first()
+    default_exportable, automatic_operations = default_label_metadata(kind, value)
     if not label:
         db.session.add(ConfigLabel(kind=kind,value=value,group=group,default_exportable=default_exportable,automatic_operations=automatic_operations))
-    elif kind == 'action_label':
+        return True
+    if kind == 'action_label':
         if getattr(label, 'default_exportable', None) is None:
             label.default_exportable = default_exportable
         if automatic_operations and not (getattr(label, 'automatic_operations', '') or '').strip():
             label.automatic_operations = automatic_operations
+    return False
+
+def restore_missing_default_config_labels():
+    added = []
+    for kind, spec in DEFAULT_CONFIG_LABELS.items():
+        group = spec.get('group') or kind
+        for value in spec.get('values') or []:
+            if ensure_label(kind, value, group):
+                added.append((kind, value))
+    return added
+
+def database_has_existing_operational_data():
+    checks = [User, ConfigLabel, Setting]
+    for model in checks:
+        try:
+            if db.session.query(model.id if hasattr(model, 'id') else model.key).limit(1).first():
+                return True
+        except Exception:
+            db.session.rollback()
+    return False
 
 
 
@@ -158,6 +202,16 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident ADD COLUMN recipient_email VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident.recipient_email added')
+            cols = {c['name'] for c in inspector.get_columns('incident')}
+            if 'category_order' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE incident ADD COLUMN category_order TEXT"))
+                    if 'incident_categories' in tables:
+                        if str(db.engine.url).startswith('postgresql'):
+                            conn.execute(text('''UPDATE incident SET category_order = ordered.ids FROM (SELECT incident_id, string_agg(label_id::text, ',' ORDER BY label_id) AS ids FROM incident_categories GROUP BY incident_id) ordered WHERE incident.id = ordered.incident_id AND (incident.category_order IS NULL OR incident.category_order = '')'''))
+                        else:
+                            conn.execute(text('''UPDATE incident SET category_order = (SELECT group_concat(label_id, ',') FROM incident_categories WHERE incident_categories.incident_id = incident.id) WHERE category_order IS NULL OR category_order = '' '''))
+                app.logger.info('Schema migration applied: incident.category_order added')
             if 'reference' in cols or 'reference' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
@@ -247,7 +301,7 @@ def run_schema_migrations(app):
             cols = {c['name'] for c in inspector.get_columns('config_label')}
             if 'description_required' not in cols:
                 with db.engine.begin() as conn:
-                    conn.execute(text('ALTER TABLE config_label ADD COLUMN description_required BOOLEAN DEFAULT 0 NOT NULL'))
+                    conn.execute(text('ALTER TABLE config_label ADD COLUMN description_required BOOLEAN DEFAULT FALSE NOT NULL'))
                 app.logger.info('Schema migration applied: config_label.description_required added')
             if 'description' not in cols:
                 with db.engine.begin() as conn:
@@ -360,6 +414,39 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text("UPDATE incident_workflow_step SET conditions = 'personal_data' WHERE personal_data_only = TRUE AND (conditions IS NULL OR conditions = '')"))
                     conn.execute(text("UPDATE incident_workflow_step SET conditions = '' WHERE conditions IS NULL"))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'step_type' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN step_type VARCHAR(20) DEFAULT 'confirm' NOT NULL"))
+                    conn.execute(text("UPDATE incident_workflow_step SET step_type = 'confirm' WHERE step_type IS NULL OR step_type = ''"))
+                app.logger.info('Schema migration applied: incident_workflow_step.step_type added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE incident_workflow_step SET step_type = 'confirm' WHERE step_type IS NULL OR step_type = ''"))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'document_generation_enabled' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN document_generation_enabled BOOLEAN'))
+                    conn.execute(text('UPDATE incident_workflow_step SET document_generation_enabled = FALSE WHERE document_generation_enabled IS NULL'))
+                app.logger.info('Schema migration applied: incident_workflow_step.document_generation_enabled added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text('UPDATE incident_workflow_step SET document_generation_enabled = FALSE WHERE document_generation_enabled IS NULL'))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'document_template_name' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN document_template_name VARCHAR(255)'))
+                app.logger.info('Schema migration applied: incident_workflow_step.document_template_name added')
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'document_auto_tags' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN document_auto_tags TEXT NOT NULL DEFAULT ''"))
+                app.logger.info('Schema migration applied: incident_workflow_step.document_auto_tags added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE incident_workflow_step SET document_auto_tags = '' WHERE document_auto_tags IS NULL"))
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE incident_workflow_step SET required = FALSE WHERE category_id IS NULL AND action_label_id IN (SELECT id FROM config_label WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%')"))
 
         if 'incident_template' in tables:
             cols = {c['name'] for c in inspector.get_columns('incident_template')}
@@ -496,7 +583,8 @@ def ensure_default_incident_workflow():
             action_label_id=label.id,
             position=idx * 10,
             description='',
-            personal_data_only=personal_data_only
+            personal_data_only=personal_data_only,
+            required=('conclusione' not in (label.value or '').lower())
         ))
 
 def ensure_default_workflow_required_steps():
@@ -518,6 +606,8 @@ def ensure_default_workflow_required_steps():
         if step.action_label and 'garante' in (step.action_label.value or '').lower():
             step.personal_data_only = True
     conclusion = next((s for s in default_steps if s.action_label and 'conclusione' in s.action_label.value.lower()), None)
+    if conclusion:
+        conclusion.required = False
     base_pos = (conclusion.position if conclusion else max((s.position for s in default_steps), default=40) + 30)
     inserted = 0
     for caption, needle, personal_data_only in additions:
@@ -627,6 +717,7 @@ def bootstrap(app):
         db.create_all()
         run_schema_migrations(app)
         repair_postgres_sequences(app)
+        database_already_populated = database_has_existing_operational_data()
         try:
             from .form_generation import restore_missing_template_files_from_db
             restore_missing_template_files_from_db()
@@ -642,12 +733,12 @@ def bootstrap(app):
             db.session.add(admin)
         else:
             admin.role='admin'; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
-        for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti'}.items(): ensure_setting(k,v)
+        for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','workflow_step_type_confirm_description':'Conferma fase','workflow_step_type_execution_description':'Esecuzione fase','workflow_step_types_json':''}.items(): ensure_setting(k,v)
         for k,v in default_consequence_settings().items(): ensure_setting(k,v)
-        for v in ['molto bassa','bassa','media','alta','critica']: ensure_label('severity',v,'gravità')
-        for v in ['password','dati personali']: ensure_label('data_type',v,'dati interessati')
-        for v in ['furto di credenziali','phishing','SPAM','altro']: ensure_label('category',v,'categorie')
-        for v in ['01-informazione iniziale','02-analisi','03-blocco','04-comunicazione allo CSIRT','05-comunicazione al DPO','06-comunicazione al Garante della Privacy','07-notifica all’utente','08-conclusione']: ensure_label('action_label',v,'azioni')
+        if not database_already_populated:
+            restore_missing_default_config_labels()
+        else:
+            app.logger.info('Database già popolato: bootstrap label configurabili predefinite saltato. Usare il pulsante Admin per reinserire solo i default mancanti.')
         ensure_default_incident_workflow()
         ensure_default_workflow_required_steps()
         ensure_notification_type('user','Notifica utente','Notifica generica configurata tramite template','manual','','')
