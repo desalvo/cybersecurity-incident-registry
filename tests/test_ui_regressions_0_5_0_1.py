@@ -367,3 +367,116 @@ def test_incident_list_status_icons_follow_active_warning_and_closed_state(monke
         annotate_procedural_status([inc_warning])
         assert inc_warning.workflow_list_state == 'warning'
         assert inc_warning.has_procedural_warnings is True
+
+
+def test_superuser_cross_tenant_workflow_clone_reuses_destination_labels(monkeypatch, tmp_path):
+    _configure_test_env(monkeypatch, tmp_path)
+    from app import create_app, db
+    from app.models import ConfigLabel, IncidentWorkflowStep, Tenant
+    from app.routes import clone_workflow_steps
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        source_tenant = Tenant(name='workflow-source', description='source')
+        dest_tenant = Tenant(name='workflow-dest', description='dest')
+        db.session.add_all([source_tenant, dest_tenant])
+        db.session.flush()
+        src_category = ConfigLabel(tenant_id=source_tenant.id, kind='category', value='Categoria sorgente')
+        dst_category = ConfigLabel(tenant_id=dest_tenant.id, kind='category', value='Categoria destinazione')
+        src_action = ConfigLabel(tenant_id=source_tenant.id, kind='action_label', value='Azione condivisa')
+        dst_action = ConfigLabel(tenant_id=dest_tenant.id, kind='action_label', value='Azione condivisa')
+        src_severity = ConfigLabel(tenant_id=source_tenant.id, kind='severity', value='Alta')
+        dst_severity = ConfigLabel(tenant_id=dest_tenant.id, kind='severity', value='Alta')
+        db.session.add_all([src_category, dst_category, src_action, dst_action, src_severity, dst_severity])
+        db.session.flush()
+        step = IncidentWorkflowStep(
+            tenant_id=source_tenant.id,
+            category_id=src_category.id,
+            action_label_id=src_action.id,
+            position=10,
+            description='Step cross tenant',
+            conditions=f'severity:{src_severity.id}',
+        )
+        db.session.add(step)
+        db.session.commit()
+
+        result = clone_workflow_steps(
+            src_category.id,
+            dst_category.id,
+            overwrite=True,
+            source_tenant_id=source_tenant.id,
+            destination_tenant_id=dest_tenant.id,
+        )
+
+        assert result['ok'] is True
+        cloned = IncidentWorkflowStep.query.filter_by(tenant_id=dest_tenant.id, category_id=dst_category.id).one()
+        assert cloned.action_label_id == dst_action.id
+        assert cloned.conditions == f'severity:{dst_severity.id}'
+
+
+def test_workflow_cross_tenant_clone_ui_and_overwrite_label_present():
+    html = Path('app/templates/admin_incident_workflows.html').read_text()
+    assert 'clone_workflow_cross_tenant' in html
+    assert 'Clona workflow tra tenant' in html
+    assert '<span>Sovrascrivi</span>' in html
+    assert 'Confermo la sovrascrittura' not in html
+
+
+def test_cross_tenant_workflow_clone_lists_only_real_sources_and_new_destination_option():
+    html = Path('app/templates/admin_incident_workflows.html').read_text()
+    routes = Path('app/routes.py').read_text()
+    assert 'Nuovo workflow' in html
+    assert 'data-new-workflow="1"' in html
+    assert 'group.source_options' in html
+    assert 'group.destination_options' in html
+    assert 'data-empty-workflow' not in html
+    assert "dest_scope_raw or '').strip() == '__new__'" in routes
+    assert 'create_new_workflow_destination_for_clone' in routes
+
+
+def test_cross_tenant_workflow_clone_to_new_destination_creates_category_and_steps(monkeypatch, tmp_path):
+    _configure_test_env(monkeypatch, tmp_path)
+    from app import create_app, db
+    from app.models import ConfigLabel, IncidentWorkflowStep, Tenant
+    from app.routes import create_new_workflow_destination_for_clone, clone_workflow_steps
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        source_tenant = Tenant(name='new-workflow-source', description='source')
+        dest_tenant = Tenant(name='new-workflow-dest', description='dest')
+        db.session.add_all([source_tenant, dest_tenant])
+        db.session.flush()
+        src_category = ConfigLabel(tenant_id=source_tenant.id, kind='category', value='Categoria clonabile', group='incidenti')
+        src_action = ConfigLabel(tenant_id=source_tenant.id, kind='action_label', value='Azione clonabile', group='azioni')
+        src_data_type = ConfigLabel(tenant_id=source_tenant.id, kind='data_type', value='Dati clonabili', group='dati')
+        db.session.add_all([src_category, src_action, src_data_type])
+        db.session.flush()
+        db.session.add(IncidentWorkflowStep(
+            tenant_id=source_tenant.id,
+            category_id=src_category.id,
+            action_label_id=src_action.id,
+            position=10,
+            description='Step da clonare',
+            conditions=f'data_type:{src_data_type.id}',
+            required=True,
+        ))
+        db.session.commit()
+
+        destination_category_id, err = create_new_workflow_destination_for_clone(src_category.id, source_tenant.id, dest_tenant.id)
+        assert err is None
+        result = clone_workflow_steps(src_category.id, destination_category_id, overwrite=False, source_tenant_id=source_tenant.id, destination_tenant_id=dest_tenant.id)
+
+        assert result['ok'] is True
+        destination_category = db.session.get(ConfigLabel, destination_category_id)
+        assert destination_category.tenant_id == dest_tenant.id
+        assert destination_category.kind == 'category'
+        assert destination_category.value == 'Categoria clonabile'
+        cloned_step = IncidentWorkflowStep.query.filter_by(tenant_id=dest_tenant.id, category_id=destination_category_id).one()
+        assert cloned_step.description == 'Step da clonare'
+        cloned_action = db.session.get(ConfigLabel, cloned_step.action_label_id)
+        assert cloned_action.tenant_id == dest_tenant.id
+        assert cloned_action.value == 'Azione clonabile'
+        cloned_data_type = ConfigLabel.query.filter_by(tenant_id=dest_tenant.id, kind='data_type', value='Dati clonabili').one()
+        assert cloned_step.conditions == f'data_type:{cloned_data_type.id}'

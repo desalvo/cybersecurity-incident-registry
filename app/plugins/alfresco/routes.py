@@ -8,7 +8,7 @@ bp = Blueprint('alfresco', __name__, url_prefix='/alfresco', template_folder='te
 
 
 def admin_required():
-    return getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) == 'admin'
+    return getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) in ['admin','superuser']
 
 
 @bp.route('/admin/plugins', methods=['GET', 'POST'])

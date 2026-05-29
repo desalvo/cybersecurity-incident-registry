@@ -1,9 +1,9 @@
 import os, time, shutil, secrets
-from flask import Flask
+from flask import Flask, session
 from .text_filters import register_text_filters
 from sqlalchemy import text, inspect, Table, MetaData, select, func
 from sqlalchemy.exc import OperationalError
-from .models import db, User, ConfigLabel, Setting, NotificationType, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob, AIChatbotDocument
+from .models import db, Tenant, User, UserTenantRole, ConfigLabel, Setting, NotificationType, NotificationTemplate, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob, AIChatbotDocument, Incident, IncidentTemplate, Person, Recommendation
 from .auth import login_manager, hash_password
 from .security import init_security
 from .consequences import default_consequence_settings
@@ -23,8 +23,8 @@ def create_app():
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.5.0-1'),
-        'build': os.getenv('APP_BUILD','20260522'),
+        'version': os.getenv('APP_VERSION','0.6.0-3'),
+        'build': os.getenv('APP_BUILD','20260528'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
@@ -74,15 +74,29 @@ def create_app():
         # o con schema non ancora aggiornato.
         try:
             from flask_login import current_user
-            if getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) == 'admin':
-                data['notification_menu_types'] = NotificationType.query.filter_by(enabled=True).order_by(NotificationType.label).all()
+            from sqlalchemy import or_
+            from .routes import current_tenant_id, is_superuser, user_role_for_tenant, user_accessible_tenant_ids
+            if getattr(current_user, 'is_authenticated', False) and user_role_for_tenant() in ['admin','superuser']:
+                tid = current_tenant_id()
+                data['notification_menu_types'] = NotificationType.query.filter(or_(NotificationType.tenant_id == tid, NotificationType.tenant_id.is_(None))).filter_by(enabled=True).order_by(NotificationType.label).all()
             else:
                 data['notification_menu_types'] = []
+            
+            ids = user_accessible_tenant_ids()
+            data['available_tenants'] = Tenant.query.order_by(Tenant.name).all() if ids is None else Tenant.query.filter(Tenant.id.in_(ids or [])).order_by(Tenant.name).all()
+            data['active_tenant'] = db.session.get(Tenant, current_tenant_id()) if getattr(current_user, 'is_authenticated', False) else None
+            data['current_tenant_role'] = user_role_for_tenant() if getattr(current_user, 'is_authenticated', False) else 'disabled'
+            data['current_user_is_superuser'] = is_superuser()
         except Exception:
             data['notification_menu_types'] = []
+            data['available_tenants'] = []
+            data['active_tenant'] = None
+            data['current_tenant_role'] = 'disabled'
+            data['current_user_is_superuser'] = False
         try:
             from flask_login import current_user
-            data['modules_menu_visible'] = bool(getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) == 'admin')
+            from .routes import user_role_for_tenant
+            data['modules_menu_visible'] = bool(getattr(current_user, 'is_authenticated', False) and user_role_for_tenant() in ['admin','superuser'])
         except Exception:
             data['modules_menu_visible'] = False
         return data
@@ -105,6 +119,15 @@ def wait_db(db):
         except OperationalError as e:
             last=e; db.session.rollback(); time.sleep(2)
     raise last
+
+
+def ensure_default_tenant():
+    tenant = Tenant.query.filter_by(name='default').first()
+    if tenant is None:
+        tenant = Tenant(name='default', description='Tenant predefinito')
+        db.session.add(tenant)
+        db.session.flush()
+    return tenant
 
 def ensure_setting(key, value):
     s=db.session.get(Setting, key)
@@ -162,6 +185,47 @@ def restore_missing_default_config_labels():
                 added.append((kind, value))
     return added
 
+
+def ensure_user_tenant_role(user, tenant_id=None, role=None):
+    if not user:
+        return None
+    tid = tenant_id or user.tenant_id or ensure_default_tenant().id
+    effective_role = (role or user.role or 'disabled').strip().lower()
+    # ``superuser`` is now stored as an effective tenant membership too; the
+    # account becomes global superuser if any membership has that role.
+    membership = UserTenantRole.query.filter_by(user_id=user.id, tenant_id=tid).first()
+    if not membership:
+        membership = UserTenantRole(user_id=user.id, tenant_id=tid, role=effective_role)
+        db.session.add(membership)
+    else:
+        membership.role = effective_role
+    return membership
+
+
+def sync_user_tenant_roles():
+    default = ensure_default_tenant()
+    for user in User.query.all():
+        if not user.tenant_id:
+            user.tenant_id = default.id
+        if getattr(user, 'is_builtin_admin', False):
+            user.role = 'superuser'
+            user.default_tenant_id = None
+            ensure_user_tenant_role(user, user.tenant_id, 'superuser')
+        else:
+            ensure_user_tenant_role(user, user.default_tenant_id or user.tenant_id, user.role)
+            if not getattr(user, 'default_tenant_id', None):
+                user.default_tenant_id = user.tenant_id
+
+
+def assign_default_tenant_to_unscoped(default_tenant):
+    scoped_models = [User, ConfigLabel, IncidentWorkflowStep, Person, Recommendation, Incident, IncidentTemplate, NotificationType, NotificationTemplate, ExternalRecipient, BackupJob, AIChatbotDocument, AuditLog]
+    for model in scoped_models:
+        try:
+            model.query.filter(model.tenant_id.is_(None)).update({'tenant_id': default_tenant.id}, synchronize_session=False)
+        except Exception:
+            db.session.rollback()
+            raise
+
 def database_has_existing_operational_data():
     checks = [User, ConfigLabel, Setting]
     for model in checks:
@@ -184,6 +248,115 @@ def run_schema_migrations(app):
     try:
         inspector = inspect(db.engine)
         tables = set(inspector.get_table_names())
+
+        if 'tenant' not in tables:
+            with db.engine.begin() as conn:
+                conn.execute(text('CREATE TABLE tenant (id INTEGER PRIMARY KEY, name VARCHAR(80) NOT NULL UNIQUE, description TEXT, created_at TIMESTAMP)'))
+            app.logger.info('Schema migration applied: tenant table created')
+            inspector = inspect(db.engine); tables = set(inspector.get_table_names())
+        # Ensure the default tenant exists before backfilling tenant_id columns.
+        with db.engine.begin() as conn:
+            if str(db.engine.url).startswith('postgresql'):
+                conn.execute(text("INSERT INTO tenant (name, description, created_at) VALUES ('default', 'Tenant predefinito', CURRENT_TIMESTAMP) ON CONFLICT (name) DO NOTHING"))
+            else:
+                conn.execute(text("INSERT OR IGNORE INTO tenant (id, name, description, created_at) VALUES (1, 'default', 'Tenant predefinito', CURRENT_TIMESTAMP)"))
+        tenant_scoped_tables = ['user','incident','config_label','incident_workflow_step','person','recommendation','incident_template','notification_type','notification_template','external_recipient','backup_job','ai_chatbot_document','audit_log']
+        # Prima di popolare user_tenant_role aggiungiamo/backfilliamo tenant_id
+        # sulle tabelle legacy, inclusa "user". Su PostgreSQL un SELECT non può
+        # referenziare user.tenant_id se la colonna non esiste ancora: l'ordine
+        # precedente causava un crash in migrazione su database pre-multitenant.
+        for table_name in tenant_scoped_tables:
+            if table_name in tables:
+                cols_for_table = {c['name'] for c in inspector.get_columns(table_name)}
+                if 'tenant_id' not in cols_for_table:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN tenant_id INTEGER'))  # nosec B608
+                        conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec B608
+                    app.logger.info('Schema migration applied: %s.tenant_id added', table_name)
+                else:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec B608
+        if 'user' in tables:
+            user_cols = {c['name'] for c in inspector.get_columns('user')}
+            if 'default_tenant_id' not in user_cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE "user" ADD COLUMN default_tenant_id INTEGER'))
+                    conn.execute(text("UPDATE \"user\" SET default_tenant_id = tenant_id WHERE default_tenant_id IS NULL AND tenant_id IS NOT NULL AND username <> 'admin'"))
+                app.logger.info('Schema migration applied: user.default_tenant_id added')
+            else:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE \"user\" SET default_tenant_id = tenant_id WHERE default_tenant_id IS NULL AND tenant_id IS NOT NULL AND username <> 'admin'"))
+
+        inspector = inspect(db.engine); tables = set(inspector.get_table_names())
+
+        if 'user_tenant_role' not in tables:
+            with db.engine.begin() as conn:
+                if str(db.engine.url).startswith('postgresql'):
+                    conn.execute(text("CREATE TABLE user_tenant_role (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, tenant_id INTEGER NOT NULL, role VARCHAR(20) NOT NULL DEFAULT 'disabled', created_at TIMESTAMP, updated_at TIMESTAMP, UNIQUE(user_id, tenant_id))"))
+                else:
+                    conn.execute(text("CREATE TABLE user_tenant_role (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, tenant_id INTEGER NOT NULL, role VARCHAR(20) NOT NULL DEFAULT 'disabled', created_at TIMESTAMP, updated_at TIMESTAMP, UNIQUE(user_id, tenant_id))"))
+            app.logger.info('Schema migration applied: user_tenant_role table created')
+            inspector = inspect(db.engine); tables = set(inspector.get_table_names())
+        if 'user_tenant_role' in tables and 'user' in tables:
+            user_cols = {c['name'] for c in inspector.get_columns('user')}
+            tenant_expr = 'u.tenant_id' if 'tenant_id' in user_cols else "(SELECT id FROM tenant WHERE name = 'default')"
+            with db.engine.begin() as conn:
+                if str(db.engine.url).startswith('postgresql'):
+                    conn.execute(text(f'''INSERT INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), COALESCE(NULLIF(u.role, ''), 'disabled'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        FROM "user" AS u
+                        WHERE COALESCE(u.role, '') <> 'superuser'
+                        ON CONFLICT (user_id, tenant_id) DO NOTHING'''))
+                    conn.execute(text(f'''INSERT INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), 'superuser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        FROM "user" AS u
+                        WHERE u.role = 'superuser' AND u.username <> 'admin'
+                        ON CONFLICT (user_id, tenant_id) DO NOTHING'''))
+                else:
+                    conn.execute(text(f'''INSERT OR IGNORE INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), COALESCE(NULLIF(u.role, ''), 'disabled'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        FROM "user" AS u
+                        WHERE COALESCE(u.role, '') <> 'superuser' '''))
+                    conn.execute(text(f'''INSERT OR IGNORE INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), 'superuser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        FROM "user" AS u
+                        WHERE u.role = 'superuser' AND u.username <> 'admin' '''))
+
+        if 'user' in tables:
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE \"user\" SET role = 'superuser', default_tenant_id = NULL WHERE username = 'admin' AND auth_provider = 'local'"))
+
+        if str(db.engine.url).startswith('postgresql'):
+            tenant_unique_specs = {
+                'config_label': (['kind','value'], 'uq_label_tenant_kind_value', ['tenant_id','kind','value']),
+                'notification_type': (['code'], 'uq_notification_type_tenant_code', ['tenant_id','code']),
+                'notification_template': (['kind','name'], 'uq_notification_template_tenant_kind_name', ['tenant_id','kind','name']),
+                'external_recipient': (['email'], 'uq_external_recipient_tenant_email', ['tenant_id','email']),
+                'incident_template': (['name'], 'uq_incident_template_tenant_name', ['tenant_id','name']),
+                'person': (['name'], 'uq_person_tenant_name', ['tenant_id','name']),
+                'recommendation': (['text'], 'uq_recommendation_tenant_text', ['tenant_id','text']),
+            }
+            for table_name, (legacy_cols, new_name, new_cols) in tenant_unique_specs.items():
+                if table_name not in tables:
+                    continue
+                try:
+                    unique_constraints = inspector.get_unique_constraints(table_name)
+                    with db.engine.begin() as conn:
+                        has_new = False
+                        for constraint in unique_constraints:
+                            cols_for_constraint = constraint.get('column_names') or []
+                            name = constraint.get('name')
+                            if cols_for_constraint == new_cols:
+                                has_new = True
+                            if name and cols_for_constraint == legacy_cols:
+                                safe_name = name.replace('"', '')
+                                conn.execute(text(f'ALTER TABLE "{table_name}" DROP CONSTRAINT IF EXISTS "{safe_name}"'))
+                        if not has_new:
+                            quoted_cols = ', '.join(f'"{col}"' for col in new_cols)
+                            conn.execute(text(f'ALTER TABLE "{table_name}" ADD CONSTRAINT "{new_name}" UNIQUE ({quoted_cols})'))
+                    app.logger.info('Schema migration applied: %s unique constraints tenantized', table_name)
+                except Exception:
+                    app.logger.exception('Unable to tenantize unique constraints for %s', table_name)
         if 'incident' in tables:
             cols = {c['name'] for c in inspector.get_columns('incident')}
             for col_name, col_type in {'data_subjects_count':'VARCHAR(255)', 'data_volume':'TEXT'}.items():
@@ -259,6 +432,12 @@ def run_schema_migrations(app):
                 app.logger.info('Schema migration applied: action.exportable added')
         if 'user' in tables:
             cols = {c['name'] for c in inspector.get_columns('user')}
+            if 'default_tenant_id' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE "user" ADD COLUMN default_tenant_id INTEGER'))
+                    conn.execute(text("UPDATE \"user\" SET default_tenant_id = tenant_id WHERE default_tenant_id IS NULL AND tenant_id IS NOT NULL AND username <> 'admin'"))
+                app.logger.info('Schema migration applied: user.default_tenant_id added')
+                cols = {c['name'] for c in inspector.get_columns('user')}
             if 'auth_provider' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE \"user\" ADD COLUMN auth_provider VARCHAR(40)"))
@@ -567,10 +746,13 @@ def ensure_notification_type(code, label, description='', recipient_mode='manual
 def ensure_default_incident_workflow():
     """Create the editable default incident workflow on fresh installations.
 
-    The function is intentionally conservative: if any default workflow step already
-    exists, it leaves the administrator-customised workflow unchanged.
+    The function is tenant-aware: it only inspects and creates baseline steps
+    for the default tenant, so cloning or creating another tenant never causes
+    hidden/global workflow rows to appear in multiple tenants.
     """
-    if IncidentWorkflowStep.query.filter_by(category_id=None).first():
+    default_tenant = ensure_default_tenant()
+    default_tenant_id = default_tenant.id
+    if IncidentWorkflowStep.query.filter_by(tenant_id=default_tenant_id, category_id=None).first():
         return
     desired = [
         ('Informazione iniziale', 'informazione iniziale', False),
@@ -583,14 +765,16 @@ def ensure_default_incident_workflow():
     ]
     for idx, (caption, needle, personal_data_only) in enumerate(desired, start=1):
         label = ConfigLabel.query.filter(
+            ConfigLabel.tenant_id == default_tenant_id,
             ConfigLabel.kind == 'action_label',
             ConfigLabel.value.ilike(f'%{needle}%')
         ).order_by(ConfigLabel.value).first()
         if not label:
-            label = ConfigLabel(kind='action_label', value=caption, group='azioni', description=caption, default_exportable=False)
+            label = ConfigLabel(tenant_id=default_tenant_id, kind='action_label', value=caption, group='azioni', description=caption, default_exportable=False)
             db.session.add(label)
             db.session.flush()
         db.session.add(IncidentWorkflowStep(
+            tenant_id=default_tenant_id,
             category_id=None,
             action_label_id=label.id,
             position=idx * 10,
@@ -602,11 +786,11 @@ def ensure_default_incident_workflow():
 def ensure_default_workflow_required_steps():
     """Keep the editable default workflow aligned with mandatory baseline steps.
 
-    Existing administrator customisations are preserved: the function only adds
-    the two baseline steps introduced after DPO notification when they are
-    missing from the default workflow.
+    Existing administrator customisations are preserved and the check is scoped
+    to the default tenant only.
     """
-    default_steps = IncidentWorkflowStep.query.filter_by(category_id=None).all()
+    default_tenant_id = ensure_default_tenant().id
+    default_steps = IncidentWorkflowStep.query.filter_by(tenant_id=default_tenant_id, category_id=None).all()
     if not default_steps:
         return
     existing_values = {((step.action_label.value or '').lower()) for step in default_steps if step.action_label}
@@ -626,14 +810,16 @@ def ensure_default_workflow_required_steps():
         if any(needle in value for value in existing_values):
             continue
         label = ConfigLabel.query.filter(
+            ConfigLabel.tenant_id == default_tenant_id,
             ConfigLabel.kind == 'action_label',
             ConfigLabel.value.ilike(f'%{needle}%')
         ).order_by(ConfigLabel.value).first()
         if not label:
-            label = ConfigLabel(kind='action_label', value=caption, group='azioni', description=caption, default_exportable=False)
+            label = ConfigLabel(tenant_id=default_tenant_id, kind='action_label', value=caption, group='azioni', description=caption, default_exportable=False)
             db.session.add(label)
             db.session.flush()
         db.session.add(IncidentWorkflowStep(
+            tenant_id=default_tenant_id,
             category_id=None,
             action_label_id=label.id,
             position=base_pos - 20 + inserted * 10,
@@ -729,6 +915,7 @@ def bootstrap(app):
         db.create_all()
         run_schema_migrations(app)
         repair_postgres_sequences(app)
+        default_tenant = ensure_default_tenant()
         database_already_populated = database_has_existing_operational_data()
         try:
             from .form_generation import restore_missing_template_files_from_db
@@ -741,10 +928,12 @@ def bootstrap(app):
             initial_password = os.getenv('ADMIN_INITIAL_PASSWORD') or secrets.token_urlsafe(18)
             if not os.getenv('ADMIN_INITIAL_PASSWORD'):
                 app.logger.warning('ADMIN_INITIAL_PASSWORD non impostata: generata password iniziale temporanea per admin; impostarla esplicitamente prima del deploy.')
-            admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='admin', is_ldap=False, auth_provider='local', password_hash=hash_password(initial_password))
+            admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='superuser', tenant_id=default_tenant.id, is_ldap=False, auth_provider='local', password_hash=hash_password(initial_password))
             db.session.add(admin)
         else:
-            admin.role='admin'; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
+            admin.role='superuser'; admin.tenant_id=admin.tenant_id or default_tenant.id; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
+        db.session.flush()
+        sync_user_tenant_roles()
         for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','workflow_step_type_confirm_description':'Conferma fase','workflow_step_type_execution_description':'Esecuzione fase','workflow_step_types_json':''}.items(): ensure_setting(k,v)
         for k,v in default_consequence_settings().items(): ensure_setting(k,v)
         if not database_already_populated:
@@ -778,7 +967,9 @@ def bootstrap(app):
             for template_field, db_field in mapping.items():
                 ensure_form_mapping(template_name, template_field, db_field)
         if BackupJob.query.count() == 0:
-            db.session.add(BackupJob(name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories='incidents,database,templates,logos,uploads', destination='local', local_path=os.getenv('BACKUP_DIR','/data/backups')))
+            db.session.add(BackupJob(tenant_id=default_tenant.id, name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories='incidents,database,templates,logos,uploads', destination='local', local_path=os.getenv('BACKUP_DIR','/data/backups')))
+        db.session.flush()
+        assign_default_tenant_to_unscoped(default_tenant)
         db.session.commit()
 
     except Exception:

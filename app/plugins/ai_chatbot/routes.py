@@ -42,7 +42,7 @@ def is_enabled():
 
 
 def admin_required():
-    return getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) == 'admin'
+    return getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) in ['admin','superuser']
 
 
 def _mask_secret(value):

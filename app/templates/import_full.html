@@ -2,8 +2,8 @@
 {% block content %}
 <div class="card">
   <h2>Full import</h2>
-  <p class="muted">Importa un archivio compresso prodotto da “Export completo”. Funzione riservata agli amministratori.</p>
-  <div class="alert alert-warning">Il Full import è distruttivo: dopo la validazione dell'archivio il database applicativo viene eliminato e ricreato completamente prima del ripristino dei dati contenuti nell'export. Eseguire un backup recente prima di procedere.</div>
+  <p class="muted">Importa un archivio compresso prodotto da “Export completo”. I superuser e l’utente locale admin possono importare tutto; gli admin di tenant possono importare solo archivi tenant-scoped del tenant attivo.</p>
+  <div class="alert alert-warning">Il Full import globale è distruttivo: dopo la validazione dell'archivio il database applicativo viene eliminato e ricreato completamente prima del ripristino dei dati contenuti nell'export. L’import eseguito da un admin di tenant è invece limitato al tenant attivo e non modifica altri tenant, utenti globali o configurazioni condivise. Eseguire un backup recente prima di procedere.</div>
   <form method="post" enctype="multipart/form-data">
     <label>File export completo</label>
     <input type="file" name="file" accept=".gz,.tgz,.tar.gz,application/gzip" required>

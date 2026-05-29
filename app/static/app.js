@@ -153,7 +153,42 @@ function makeAccessibleMenus(){
   document.addEventListener('click',ev=>{if(!ev.target.closest('.dropdown'))closeAll();});
 }
 
-document.addEventListener('DOMContentLoaded',()=>{makeDnd();initIncidentTemplateAutofill();makeAccessibleMenus();});
+
+function initTenantSwitcher(){
+  const forms = [...document.querySelectorAll('form[data-tenant-switcher-form]')];
+  forms.forEach((form)=>{
+    if(form.dataset.tenantSwitcherReady === 'true') return;
+    form.dataset.tenantSwitcherReady = 'true';
+    const select = form.querySelector('[data-tenant-switch-select]');
+    const nextInput = form.querySelector('[data-tenant-switch-next]');
+    if(!select) return;
+    const updateNext = ()=>{
+      if(nextInput){
+        nextInput.value = window.location.pathname + window.location.search + window.location.hash;
+      }
+    };
+    const submitSwitch = ()=>{
+      if(form.dataset.tenantSwitcherSubmitted === 'true') return;
+      form.dataset.tenantSwitcherSubmitted = 'true';
+      updateNext();
+      form.classList.add('tenant-switcher-pending');
+      if(typeof form.requestSubmit === 'function'){
+        form.requestSubmit();
+      }else{
+        form.submit();
+      }
+    };
+    select.addEventListener('change', submitSwitch);
+    select.addEventListener('input', ()=>{
+      // Alcuni browser mobili aggiornano il valore su input prima del change:
+      // il timeout evita doppi submit ma rende lo switch percepibilmente immediato.
+      window.setTimeout(submitSwitch, 0);
+    });
+    form.addEventListener('submit', updateNext);
+  });
+}
+
+document.addEventListener('DOMContentLoaded',()=>{makeDnd();initIncidentTemplateAutofill();makeAccessibleMenus();initTenantSwitcher();});
 
 
 function makeMobileMenu(){
@@ -687,3 +722,89 @@ function initLdapRecipientLookup(){
   });
 }
 document.addEventListener('DOMContentLoaded', initLdapRecipientLookup);
+
+function initIncidentTenantMoveMenus(){
+  document.querySelectorAll('.tenant-move-menu').forEach(menu=>{
+    const search=menu.querySelector('.tenant-move-search');
+    const options=Array.from(menu.querySelectorAll('.tenant-move-option'));
+    function filter(){
+      const q=(search && search.value || '').trim().toLowerCase();
+      options.forEach(opt=>{
+        const name=(opt.dataset.tenantName || opt.textContent || '').toLowerCase();
+        opt.style.display = !q || name.includes(q) ? '' : 'none';
+      });
+    }
+    if(search){
+      search.addEventListener('input', filter);
+      menu.addEventListener('toggle', ()=>{ if(menu.open){ search.value=''; filter(); setTimeout(()=>search.focus(), 0); }});
+      search.addEventListener('keydown', event=>{
+        if(event.key === 'Escape'){
+          event.preventDefault();
+          menu.open = false;
+        }
+      });
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', initIncidentTenantMoveMenus);
+
+function initBulkIncidentSelection(){
+  const checkboxes=()=>Array.from(document.querySelectorAll('.incident-select'));
+  const selectAlls=Array.from(document.querySelectorAll('[data-incident-select-all]'));
+  function uniqueSelected(){
+    const seen=new Set();
+    const values=[];
+    checkboxes().forEach(cb=>{
+      if(cb.checked && !seen.has(cb.value)){
+        seen.add(cb.value);
+        values.push(cb.value);
+      }
+    });
+    return values;
+  }
+  function syncSelectAlls(){
+    const boxes=checkboxes();
+    const selected=boxes.filter(cb=>cb.checked).length;
+    selectAlls.forEach(cb=>{
+      cb.checked = boxes.length > 0 && selected === boxes.length;
+      cb.indeterminate = selected > 0 && selected < boxes.length;
+    });
+  }
+  selectAlls.forEach(master=>{
+    master.addEventListener('change',()=>{
+      checkboxes().forEach(cb=>{ cb.checked = master.checked; });
+      syncSelectAlls();
+    });
+  });
+  document.addEventListener('change',ev=>{
+    if(ev.target && ev.target.classList && ev.target.classList.contains('incident-select')) syncSelectAlls();
+  });
+  document.querySelectorAll('[data-bulk-incidents-form]').forEach(form=>{
+    const container=form.querySelector('[data-selected-container]');
+    form.addEventListener('submit',ev=>{
+      const values=uniqueSelected();
+      if(!values.length){
+        ev.preventDefault();
+        alert('Selezionare almeno un incidente.');
+        return;
+      }
+      const message=form.dataset.confirmMessage;
+      if(message && !confirm(message)){
+        ev.preventDefault();
+        return;
+      }
+      if(container){
+        container.innerHTML='';
+        values.forEach(value=>{
+          const input=document.createElement('input');
+          input.type='hidden';
+          input.name='incident_ids';
+          input.value=value;
+          container.appendChild(input);
+        });
+      }
+    });
+  });
+  syncSelectAlls();
+}
+document.addEventListener('DOMContentLoaded', initBulkIncidentSelection);

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Tenant</h2>
+  <p class="muted">I tenant separano utenti, incidenti e configurazioni operative. Le configurazioni dei moduli documento, HTTPS/SSL, URL applicazione e fuso orario applicazione restano condivise.</p>
+  <p><strong>Tenant attivo:</strong> {{ active_tenant.name if active_tenant else 'default' }}. Il tenant attivo determina quali configurazioni tenant-specifiche vengono visualizzate e modificate dai superuser.</p>
+  <details><summary>Ambito delle configurazioni</summary>
+    <p><strong>Specifiche del tenant attivo:</strong> {{ tenant_scoped_admin_areas|join(', ') }}.</p>
+    <p><strong>Condivise tra tenant:</strong> {{ tenant_shared_admin_areas|join(', ') }}.</p>
+  </details>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="create">
+    <div><label>Nome nuovo tenant</label><input name="name" required></div>
+    <div><label>Clona configurazioni da</label><select name="clone_from_tenant_id">
+      {% for t in tenants %}<option value="{{ t.id }}" {% if t.name=='default' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+    </select></div>
+    <div class="wide"><label>Descrizione</label><textarea name="description"></textarea></div>
+    <button>Aggiungi tenant</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Tenant configurati</h3>
+  <table class="table">
+    <tr><th>Nome</th><th>Descrizione</th><th>Attivo</th><th>Salva</th><th>Elimina</th></tr>
+    {% for t in tenants %}
+    <tr>
+      <td>
+        <form method="post" id="tenant-update-{{ t.id }}">
+          <input type="hidden" name="action" value="update">
+          <input type="hidden" name="tenant_id" value="{{ t.id }}">
+          <input name="name" value="{{ t.name }}" {% if t.name=='default' %}readonly{% endif %}>
+        </form>
+      </td>
+      <td><textarea name="description" form="tenant-update-{{ t.id }}">{{ t.description or '' }}</textarea></td>
+      <td>
+        {% if active_tenant_id == t.id %}<span class="badge">attivo</span>{% else %}
+        <form method="post" action="{{ url_for('main.admin_tenant_activate') }}">
+          <input type="hidden" name="active_tenant_id" value="{{ t.id }}">
+          <input type="hidden" name="next" value="{{ url_for('main.admin_tenants') }}">
+          <button type="submit" class="secondary">Attiva</button>
+        </form>
+        {% endif %}
+      </td>
+      <td><button form="tenant-update-{{ t.id }}">Salva</button></td>
+      <td>
+        {% if t.name != 'default' %}
+        <form method="post" onsubmit="return confirm('Eliminare il tenant {{ t.name }}? L\'operazione è possibile solo se non ha utenti o incidenti associati.')">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="tenant_id" value="{{ t.id }}">
+          <button class="danger" type="submit">Elimina</button>
+        </form>
+        {% else %}
+        <span class="muted">non eliminabile</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

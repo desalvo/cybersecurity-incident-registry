@@ -100,7 +100,7 @@ def _text_lines_from_template(template_name: str) -> list[str]:
     text = unescape(re.sub(r"<[^>]+>", " ", html))
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
     lines = [
-        line.replace("Versione applicativa: 0.5.0-1 · Build: · Autore: .", "Versione applicativa: 0.5.0-1 · Build: 20260522 · Autore: Alessandro De Salvo.")
+        line.replace("Versione applicativa: 0.6.0-3 · Build: · Autore: .", "Versione applicativa: 0.6.0-3 · Build: 20260528 · Autore: Alessandro De Salvo.")
         for line in lines
     ]
     return [line for line in lines if not _is_documentation_noise(line)]
@@ -141,12 +141,12 @@ def _build_pdf(kind: str, template_name: str, output_name: str, title: str, subt
     if template_name == "help_en.html":
         lines = _trim_english_preface_after_version_marker(
             lines,
-            "Version 0.5.0-1 of the user guide, aligned with build",
+            "Version 0.6.0-3 of the user guide, aligned with build",
         )
     elif template_name == "admin_help_en.html":
         lines = _trim_english_preface_after_version_marker(
             lines,
-            "Application version: 0.5.0-1 · Version 0.5.0-1 of the administrator guide.",
+            "Application version: 0.6.0-3 · Version 0.6.0-3 of the administrator guide.",
         )
 
     doc = SimpleDocTemplate(
@@ -398,7 +398,7 @@ def _build_brochure() -> None:
     header = Table(
         [[logo, [
             Paragraph("Cybersecurity Incident Registry", title),
-            Paragraph("Versione applicativa 0.5.0-1 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
+            Paragraph("Versione applicativa 0.6.0-3 - Registro operativo containerizzato per incidenti cyber, workflow, notifiche, audit e documentazione probatoria.", subtitle),
         ]]],
         colWidths=[2.25 * cm, 15.9 * cm],
     )
@@ -583,7 +583,7 @@ def _build_brochure_en() -> None:
     header = Table(
         [[logo, [
             Paragraph("Cybersecurity Incident Registry", title),
-            Paragraph("Application version 0.5.0-1 - Container-ready operational registry for cyber incidents, workflows, notifications, audit evidence and documentation.", subtitle),
+            Paragraph("Application version 0.6.0-3 - Container-ready operational registry for cyber incidents, workflows, notifications, audit evidence and documentation.", subtitle),
         ]]],
         colWidths=[2.25 * cm, 15.9 * cm],
     )

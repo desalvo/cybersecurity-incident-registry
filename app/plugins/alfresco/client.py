@@ -84,9 +84,11 @@ def upload_file(local_path, filename, incident_id=None, mimetype=None):
         'relativePath': relative_path,
         'overwrite': 'true',
     }
+    request_timeout = float(cfg.get('timeout') or 20)
+    verify_tls = bool(cfg.get('verify_tls', True))
     with path.open('rb') as fh:
         files = {'filedata': (filename, fh, mimetype or 'application/octet-stream')}
-        response = requests.post(url, auth=_auth(cfg), data=data, files=files, timeout=cfg['timeout'], verify=cfg['verify_tls'])
+        response = requests.post(url, auth=_auth(cfg), data=data, files=files, timeout=request_timeout, verify=verify_tls)
     if response.status_code >= 400:
         raise RuntimeError(f'Errore upload Alfresco {response.status_code}: {response.text[:300]}')
     entry = (response.json() or {}).get('entry') or {}
@@ -109,7 +111,9 @@ def download_file(node_id):
     if not node_id:
         raise RuntimeError('Node id Alfresco non disponibile per questo documento.')
     url = _api_url(cfg, f'nodes/{node_id}/content')
-    response = requests.get(url, auth=_auth(cfg), timeout=cfg['timeout'], verify=cfg['verify_tls'])
+    request_timeout = float(cfg.get('timeout') or 20)
+    verify_tls = bool(cfg.get('verify_tls', True))
+    response = requests.get(url, auth=_auth(cfg), timeout=request_timeout, verify=verify_tls)
     if response.status_code >= 400:
         raise RuntimeError(f'Errore download Alfresco {response.status_code}: {response.text[:300]}')
     return response.content, response.headers.get('Content-Type') or 'application/octet-stream'

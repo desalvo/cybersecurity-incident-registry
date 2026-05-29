@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import shutil
 import uuid
 import html
 import base64
@@ -553,8 +554,11 @@ def generate_docx_from_xml(inc: Incident, template_name: str, output_dir: Path) 
 def convert_docx_to_pdf(docx_path: Path, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     try:
+        libreoffice_bin = shutil.which('libreoffice') or shutil.which('soffice')
+        if not libreoffice_bin:
+            raise FileNotFoundError('LibreOffice/soffice non disponibile nel PATH')
         subprocess.run([
-            'libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', str(output_dir), str(docx_path)
+            libreoffice_bin, '--headless', '--convert-to', 'pdf', '--outdir', str(output_dir), str(docx_path)
         ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
         pdf = output_dir / (docx_path.stem + '.pdf')
         if pdf.exists() and pdf.stat().st_size > 0:

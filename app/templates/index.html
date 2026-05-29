@@ -1,8 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
+{% macro index_url(page_value=None, per_page_value=None, sort_value=None, direction_value=None) -%}
+  {{ url_for('main.index', q=request.args.get('q',''), label=request.args.get('label',''), start=request.args.get('start',''), end=request.args.get('end',''), sort=sort_value or sort, dir=direction_value or direction, per_page=per_page_value or per_page, page=page_value or page) }}
+{%- endmacro %}
 {% macro sort_url(column) -%}
   {%- set next_dir = 'desc' if sort == column and direction == 'asc' else 'asc' -%}
-  {{ url_for('main.index', q=request.args.get('q',''), label=request.args.get('label',''), start=request.args.get('start',''), end=request.args.get('end',''), sort=column, dir=next_dir) }}
+  {{ index_url(1, per_page, column, next_dir) }}
 {%- endmacro %}
 {% macro sort_indicator(column) -%}
   {%- if sort == column -%}
@@ -20,23 +23,50 @@
   {%- endif -%}
 {%- endmacro %}
 
+{% macro tenant_move_control(i, compact=False) -%}
+  {%- if current_user_is_superuser and incident_move_tenants|selectattr('id', 'ne', i.tenant_id)|list|length > 0 -%}
+    <details class="tenant-move-menu {{ 'tenant-move-menu-mobile' if compact else '' }}">
+      <summary class="button tenant-move-button">Sposta</summary>
+      <div class="tenant-move-panel">
+        <label for="tenant-move-search-{{ i.id }}{{ '-m' if compact else '' }}">Cerca tenant destinazione</label>
+        <input id="tenant-move-search-{{ i.id }}{{ '-m' if compact else '' }}" type="search" class="tenant-move-search" placeholder="Digita per filtrare..." autocomplete="off">
+        <div class="tenant-move-list" role="listbox" aria-label="Tenant destinazione">
+          {%- for tenant in incident_move_tenants -%}
+            {%- if tenant.id != i.tenant_id -%}
+              <form method="post" action="{{ url_for('main.incident_move_tenant', iid=i.id) }}" class="tenant-move-option" data-tenant-name="{{ tenant.name|lower }}" onsubmit="return confirm('Spostare questo incidente nel tenant {{ tenant.name }}?')">
+                <input type="hidden" name="target_tenant_id" value="{{ tenant.id }}">
+                <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+                <button type="submit" class="tenant-move-choice">{{ tenant.name }}</button>
+              </form>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    </details>
+  {%- endif -%}
+{%- endmacro %}
+
 <div class="card">
   <div class="page-header">
     <div>
       <h2>Incidenti registrati</h2>
-      <p class="muted"><b>Totale incidenti:</b> {{ total }}</p>
+      <p class="muted"><b>Totale incidenti:</b> {{ total }}{% if total %} · visualizzati {{ page_start }}-{{ page_end }}{% endif %}</p>
     </div>
-    {% if current_user.role in ['admin','writer'] %}
+    {% if current_tenant_role in ['superuser','admin','writer'] %}
       <a class="button" href="{{ url_for('main.incident_new') }}">Nuovo incidente</a>
     {% endif %}
   </div>
   <form class="toolbar" method="get" action="{{ url_for('main.index') }}">
     <input type="hidden" name="sort" value="{{ sort }}">
     <input type="hidden" name="dir" value="{{ direction }}">
+    <input type="hidden" name="page" value="1">
     <div><label>Parole chiave</label><input name="q" value="{{ request.args.get('q','') }}"></div>
     <div><label>Label azione</label><input name="label" value="{{ request.args.get('label','') }}"></div>
     <div><label>Da</label><input name="start" type="datetime-local" value="{{ request.args.get('start','') }}"></div>
     <div><label>A</label><input name="end" type="datetime-local" value="{{ request.args.get('end','') }}"></div>
+    <div><label>Incidenti per pagina</label><select name="per_page" onchange="this.form.submit()">
+      {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+    </select></div>
     <button>Cerca</button>
     <a class="button secondary" href="{{ url_for('main.index') }}">Reset</a>
   </form>
@@ -46,6 +76,7 @@
       <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
       <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
       <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
+      <input type="hidden" name="page" value="1">
       <div><label>Ordina per</label><select name="sort">
         <option value="name" {% if sort=='name' %}selected{% endif %}>Nome</option>
         <option value="start_at" {% if sort=='start_at' %}selected{% endif %}>Inizio / fine</option>
@@ -58,16 +89,60 @@
         <option value="asc" {% if direction=='asc' %}selected{% endif %}>Crescente</option>
         <option value="desc" {% if direction=='desc' %}selected{% endif %}>Decrescente</option>
       </select></div>
+      <div><label>Incidenti per pagina</label><select name="per_page">
+        {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+      </select></div>
       <button class="wide">Applica ordinamento</button>
     </form>
   </div>
 </div>
 
+{% if incidents and (current_user_is_superuser or current_tenant_role in ['superuser','admin','writer']) %}
+<div class="card bulk-incident-card">
+  <div class="bulk-incident-header">
+    <div>
+      <h3>Azioni sugli incidenti selezionati</h3>
+      <p class="muted">Seleziona uno o più incidenti nella lista oppure usa “seleziona tutto” per la pagina corrente.</p>
+    </div>
+    <label class="select-all-inline"><input type="checkbox" data-incident-select-all> Seleziona tutto</label>
+  </div>
+  <div class="bulk-incident-actions">
+    {% if current_user_is_superuser and incident_move_tenants|length > 1 %}
+    <details class="tenant-move-menu bulk-tenant-move-menu">
+      <summary class="button tenant-move-button">Sposta selezionati</summary>
+      <div class="tenant-move-panel bulk-tenant-move-panel">
+        <input type="search" class="tenant-move-search" placeholder="Digita per cercare un tenant..." autocomplete="off" aria-label="Cerca tenant destinazione">
+        <div class="tenant-move-list" role="listbox" aria-label="Tenant destinazione per spostamento massivo">
+          {% for tenant in incident_move_tenants %}
+            {% if tenant.id != current_tenant_id %}
+              <form method="post" action="{{ url_for('main.incidents_bulk_move_tenant') }}" class="tenant-move-option" data-bulk-incidents-form data-tenant-name="{{ tenant.name|lower }}" data-confirm-message="Spostare gli incidenti selezionati nel tenant {{ tenant.name }}?">
+                <input type="hidden" name="target_tenant_id" value="{{ tenant.id }}">
+                <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+                <div class="bulk-hidden-selected" data-selected-container></div>
+                <button type="submit" class="tenant-move-choice">{{ tenant.name }}</button>
+              </form>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </details>
+    {% endif %}
+    {% if current_tenant_role in ['superuser','admin','writer'] %}
+    <form method="post" action="{{ url_for('main.incidents_bulk_delete') }}" class="bulk-incident-form" data-bulk-incidents-form data-confirm-message="Cancellare definitivamente gli incidenti selezionati?">
+      <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+      <div class="bulk-hidden-selected" data-selected-container></div>
+      <button type="submit" class="danger">Elimina selezionati</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <div class="card table-card">
-  
   <div class="incident-mobile-list" aria-label="Lista incidenti mobile">
     {% for i in incidents %}
     <article class="incident-card-mobile {% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
+      <label class="incident-select-mobile"><input type="checkbox" class="incident-select" value="{{ i.id }}"> Seleziona</label>
       <h3>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></h3>
       <div class="mobile-meta">
         <div><strong>Inizio / fine</strong>{{ i.start_at }}{% if i.end_at %}<br>{{ i.end_at }}{% endif %}</div>
@@ -78,8 +153,9 @@
       </div>
       <div class="mobile-actions">
         <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
-        {% if current_user.role in ['admin','writer'] %}<a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>{% endif %}
-        {% if current_user.role in ['admin','writer'] %}
+        {{ tenant_move_control(i, compact=True) }}
+        {% if current_tenant_role in ['superuser','admin','writer'] %}<a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>{% endif %}
+        {% if current_tenant_role in ['superuser','admin','writer'] %}
           <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
             <button class="danger" type="submit">Elimina</button>
           </form>
@@ -93,6 +169,7 @@
   <table class="table incident-table">
     <thead>
       <tr>
+        <th class="incident-select-col"><input type="checkbox" data-incident-select-all aria-label="Seleziona tutti gli incidenti visualizzati"></th>
         <th><a class="sort-link" href="{{ sort_url('name') }}">Nome dell’incidente{{ sort_indicator('name') }}</a></th>
         <th><a class="sort-link" href="{{ sort_url('start_at') }}">Inizio / fine{{ sort_indicator('start_at') }}</a></th>
         <th><a class="sort-link" href="{{ sort_url('creator_name') }}">Compilatore{{ sort_indicator('creator_name') }}</a></th>
@@ -105,6 +182,7 @@
     <tbody>
       {% for i in incidents %}
       <tr class="{% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
+        <td class="incident-select-col"><input type="checkbox" class="incident-select" value="{{ i.id }}" aria-label="Seleziona incidente {{ i.name }}"></td>
         <td>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
         <td>{{ i.start_at }}<br>{{ i.end_at or '' }}</td>
         <td>{{ i.creator_name }}</td>
@@ -112,11 +190,12 @@
         <td>{{ i.status }}</td>
         <td>{% if i.effective_duration %}{{ i.effective_duration }}{% endif %}</td>
         <td class="actions">
-          {% if current_user.role in ['admin','writer'] %}
+          {% if current_tenant_role in ['superuser','admin','writer'] %}
             <a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>
           {% endif %}
           <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
-          {% if current_user.role in ['admin','writer'] %}
+          {{ tenant_move_control(i) }}
+          {% if current_tenant_role in ['superuser','admin','writer'] %}
             <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="inline-form" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
               <button class="danger" type="submit">Elimina</button>
             </form>
@@ -124,10 +203,25 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="7" class="empty">Nessun incidente trovato.</td></tr>
+      <tr><td colspan="8" class="empty">Nessun incidente trovato.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
+{% if total_pages > 1 %}
+<nav class="pagination-nav card" aria-label="Paginazione incidenti">
+  <div class="pagination-summary">Pagina {{ page }} di {{ total_pages }}</div>
+  <div class="pagination-actions">
+    {% if page > 1 %}<a class="button secondary" href="{{ index_url(page-1) }}">Precedente</a>{% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      {% if p == 1 or p == total_pages or (p >= page-2 and p <= page+2) %}
+        {% if p == page %}<span class="button disabled" aria-current="page">{{ p }}</span>{% else %}<a class="button secondary" href="{{ index_url(p) }}">{{ p }}</a>{% endif %}
+      {% elif p == page-3 or p == page+3 %}<span class="pagination-ellipsis">…</span>{% endif %}
+    {% endfor %}
+    {% if page < total_pages %}<a class="button secondary" href="{{ index_url(page+1) }}">Successiva</a>{% endif %}
+  </div>
+</nav>
+{% endif %}
 <style>.incident-warning-row{background:rgba(245,158,11,.14)}.incident-warning-row td{border-top-color:rgba(245,158,11,.45)}.procedure-danger-icon{margin-right:.35rem}</style>
 {% endblock %}

@@ -10,8 +10,9 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy import func
+from flask_login import current_user
 from ...models import db
-from ...routes import setting_value
+from ...routes import setting_value, current_tenant_id, is_superuser
 
 # Tables entirely excluded because their content is inherently personal,
 # credential-like, binary, or already injected through the dedicated chatbot KB.
@@ -71,6 +72,20 @@ SAFE_SETTING_KEYS = {
 }
 
 
+
+
+def _tenant_filtered_statement(table, columns=None):
+    stmt = db.select(*(columns or [table]))
+    if 'tenant_id' in table.c and not is_superuser():
+        stmt = stmt.where(table.c.tenant_id == current_tenant_id())
+    return stmt
+
+def _tenant_filtered_count(table):
+    stmt = db.select(func.count()).select_from(table)
+    if 'tenant_id' in table.c and not is_superuser():
+        stmt = stmt.where(table.c.tenant_id == current_tenant_id())
+    return db.session.execute(stmt).scalar() or 0
+
 def _json_default(value):
     if isinstance(value, (datetime, date, time)):
         return value.isoformat()
@@ -99,11 +114,11 @@ def _sanitize_setting_row(row):
 
 def _table_payload(table, row_limit):
     table_name = table.name
-    total = db.session.execute(db.select(func.count()).select_from(table)).scalar() or 0
+    total = _tenant_filtered_count(table)
     columns = [c for c in table.columns if _column_allowed(table_name, c.name)]
     rows = []
     if columns and row_limit > 0:
-        stmt = db.select(*columns).limit(row_limit)
+        stmt = _tenant_filtered_statement(table, columns).limit(row_limit)
         for raw in db.session.execute(stmt).mappings():
             row = dict(raw)
             if table_name == 'setting':

@@ -70,8 +70,53 @@
       <select name="clone_destination" required>
         {% for opt in workflow_scope_options %}<option value="{{ opt.value }}" data-has-workflow="{{ 1 if opt.has_workflow else 0 }}">{{ opt.label }}{% if opt.has_workflow %} - esistente{% endif %}</option>{% endfor %}
       </select>
-      <label class="inline-check"><input type="checkbox" name="clone_overwrite_confirm" value="1"> Confermo la sovrascrittura se la destinazione contiene già step</label>
+      <label class="inline-check workflow-overwrite-check"><input type="checkbox" name="clone_overwrite_confirm" value="1"><span>Sovrascrivi</span></label>
       <button>Clona workflow</button>
+    </form>
+
+    {% if current_user_is_superuser %}
+    <form method="post" data-workflow-clone-form>
+      <input type="hidden" name="action" value="clone_workflow_cross_tenant">
+      <h4>Clona workflow tra tenant</h4>
+      <p class="muted">Copia un workflow dal tenant sorgente al tenant destinazione. Le azioni e le condizioni basate sulle liste configurabili vengono riusate o clonate nel tenant destinazione.</p>
+      <label>Tenant sorgente</label>
+      <select name="clone_source_tenant_id" required>
+        {% for group in workflow_tenant_scope_options %}<option value="{{ group.tenant.id }}">{{ group.tenant.name }}</option>{% endfor %}
+      </select>
+      <label>Workflow sorgente</label>
+      <select name="clone_cross_source" required>
+        {% for group in workflow_tenant_scope_options %}
+          <optgroup label="{{ group.tenant.name }}">
+            {% for opt in group.source_options %}<option value="{{ opt.value }}" data-tenant-id="{{ group.tenant.id }}" data-has-workflow="1">{{ opt.label }}</option>{% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+      <label>Tenant destinazione</label>
+      <select name="clone_destination_tenant_id" required>
+        {% for group in workflow_tenant_scope_options %}<option value="{{ group.tenant.id }}">{{ group.tenant.name }}</option>{% endfor %}
+      </select>
+      <label>Workflow destinazione</label>
+      <select name="clone_cross_destination" required>
+        {% for group in workflow_tenant_scope_options %}
+          <optgroup label="{{ group.tenant.name }}">
+            <option value="__new__" data-tenant-id="{{ group.tenant.id }}" data-has-workflow="0" data-new-workflow="1">Nuovo workflow</option>
+            {% for opt in group.destination_options %}<option value="{{ opt.value }}" data-tenant-id="{{ group.tenant.id }}" data-has-workflow="1">{{ opt.label }} - esistente</option>{% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+      <label class="inline-check workflow-overwrite-check"><input type="checkbox" name="clone_cross_overwrite_confirm" value="1"><span>Sovrascrivi</span></label>
+      <button>Clona tra tenant</button>
+    </form>
+    {% endif %}
+    <form method="post" data-workflow-delete-form>
+      <input type="hidden" name="action" value="delete_workflow">
+      <h4>Elimina workflow</h4>
+      <p class="muted">Elimina tutti gli step definiti per il flusso selezionato nel tenant attivo.</p>
+      <label>Workflow da eliminare</label>
+      <select name="delete_scope" required>
+        {% for opt in workflow_scope_options %}<option value="{{ opt.value }}" data-has-workflow="{{ 1 if opt.has_workflow else 0 }}">{{ opt.label }}{% if not opt.has_workflow %} - vuoto{% endif %}</option>{% endfor %}
+      </select>
+      <button class="danger">Elimina workflow</button>
     </form>
   </div>
 </div>
@@ -193,17 +238,56 @@
 {% endfor %}
 <script>
 (function(){
+  function syncTenantScopedWorkflowSelect(tenantSelect, workflowSelect){
+    if(!tenantSelect || !workflowSelect) return;
+    const tenantId = tenantSelect.value;
+    let firstVisible = null;
+    workflowSelect.querySelectorAll('option').forEach(opt=>{
+      const visible = !opt.dataset.tenantId || opt.dataset.tenantId === tenantId;
+      opt.hidden = !visible;
+      opt.disabled = !visible;
+      if(visible && !firstVisible) firstVisible = opt;
+    });
+    workflowSelect.querySelectorAll('optgroup').forEach(group=>{
+      const visibleOptions = [...group.querySelectorAll('option')].some(opt=>!opt.hidden);
+      group.hidden = !visibleOptions;
+      group.disabled = !visibleOptions;
+    });
+    const selected = workflowSelect.selectedOptions && workflowSelect.selectedOptions.length ? workflowSelect.selectedOptions[0] : null;
+    if((!selected || selected.hidden || selected.disabled) && firstVisible) firstVisible.selected = true;
+    if(!workflowSelect.value && firstVisible) firstVisible.selected = true;
+  }
+  document.querySelectorAll('[name="clone_source_tenant_id"], [name="clone_destination_tenant_id"]').forEach(tenantSelect=>{
+    const form = tenantSelect.closest('form');
+    const workflowSelect = tenantSelect.name === 'clone_source_tenant_id' ? form.querySelector('[name="clone_cross_source"]') : form.querySelector('[name="clone_cross_destination"]');
+    syncTenantScopedWorkflowSelect(tenantSelect, workflowSelect);
+    tenantSelect.addEventListener('change', ()=>syncTenantScopedWorkflowSelect(tenantSelect, workflowSelect));
+  });
   document.querySelectorAll('[data-workflow-clone-form]').forEach(form=>{
     form.addEventListener('submit', ev=>{
-      const dest = form.querySelector('[name="clone_destination"]');
-      const confirmBox = form.querySelector('[name="clone_overwrite_confirm"]');
+      const dest = form.querySelector('[name="clone_destination"], [name="clone_cross_destination"]');
+      const confirmBox = form.querySelector('[name="clone_overwrite_confirm"], [name="clone_cross_overwrite_confirm"]');
       const selected = dest && dest.selectedOptions ? dest.selectedOptions[0] : null;
-      if(selected && selected.dataset.hasWorkflow === '1' && !confirmBox.checked){
+      if(selected && selected.dataset.hasWorkflow === '1' && confirmBox && !confirmBox.checked){
         ev.preventDefault();
-        alert('La destinazione contiene già un workflow: selezionare la conferma di sovrascrittura prima di clonare.');
+        alert('La destinazione contiene già un workflow: selezionare Sovrascrivi prima di clonare.');
         return;
       }
-      if(selected && selected.dataset.hasWorkflow === '1' && confirmBox.checked && !confirm('Il workflow destinazione verrà sovrascritto. Continuare?')){
+      if(selected && selected.dataset.hasWorkflow === '1' && confirmBox && confirmBox.checked && !confirm('Il workflow destinazione verrà sovrascritto. Continuare?')){
+        ev.preventDefault();
+      }
+    });
+  });
+  document.querySelectorAll('[data-workflow-delete-form]').forEach(form=>{
+    form.addEventListener('submit', ev=>{
+      const scope = form.querySelector('[name="delete_scope"]');
+      const selected = scope && scope.selectedOptions ? scope.selectedOptions[0] : null;
+      if(selected && selected.dataset.hasWorkflow !== '1'){
+        ev.preventDefault();
+        alert('Il workflow selezionato non contiene step da eliminare.');
+        return;
+      }
+      if(!confirm("Eliminare interamente il workflow selezionato? L'operazione rimuove tutti gli step del flusso nel tenant attivo.")){
         ev.preventDefault();
       }
     });
@@ -244,6 +328,6 @@
 })();
 </script>
 <style>
-.condition-palette,.condition-dropzone,.tag-palette,.tag-drop-zone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected,.tag-chip,.tag-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-chip.negated{border-style:dashed}.condition-dropzone,.tag-drop-zone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over,.tag-drop-zone.drag-over{outline:2px solid currentColor}.condition-hidden,.tag-hidden{display:none}.condition-selected,.tag-selected{cursor:default}.condition-selected input,.tag-selected input{display:none}.condition-remove,.tag-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 12rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 12rem 16rem 16rem; margin-top:.5rem}.workflow-admin-options .wide{grid-column:1 / -1}.workflow-admin-workflow>summary,.workflow-admin-step>summary{cursor:pointer;display:flex;gap:.75rem;align-items:center;justify-content:space-between}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
+.condition-palette,.condition-dropzone,.tag-palette,.tag-drop-zone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected,.tag-chip,.tag-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-chip.negated{border-style:dashed}.condition-dropzone,.tag-drop-zone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over,.tag-drop-zone.drag-over{outline:2px solid currentColor}.condition-hidden,.tag-hidden{display:none}.condition-selected,.tag-selected{cursor:default}.condition-selected input,.tag-selected input{display:none}.condition-remove,.tag-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1rem}.workflow-overwrite-check{justify-content:flex-start;margin:.35rem 0 .75rem!important}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:8rem 16rem 12rem 1fr;gap:.75rem;align-items:start}.workflow-admin-options{grid-template-columns:1fr 12rem 16rem 16rem; margin-top:.5rem}.workflow-admin-options .wide{grid-column:1 / -1}.workflow-admin-workflow>summary,.workflow-admin-step>summary{cursor:pointer;display:flex;gap:.75rem;align-items:center;justify-content:space-between}.workflow-admin-description textarea{width:100%;min-height:5rem;resize:vertical}.workflow-admin-actions{margin-top:.6rem}@media(max-width:1100px){.workflow-transfer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
 </style>
 {% endblock %}

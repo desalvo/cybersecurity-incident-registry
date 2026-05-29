@@ -1,6 +1,6 @@
 # Knowledge base operativa AlBot/Alex
 
-Questo documento sintetico è caricato automaticamente nel contesto interno del plugin AI Chatbot. Serve a mantenere AlBot, chiamabile anche Alex, allineato alle funzionalità e ai setup correnti di Cybersecurity Incident Registry 0.5.0-1.
+Questo documento sintetico è caricato automaticamente nel contesto interno del plugin AI Chatbot. Serve a mantenere AlBot, chiamabile anche Alex, allineato alle funzionalità e ai setup correnti di Cybersecurity Incident Registry 0.6.0-3.
 
 ## Identità e scopo
 
@@ -73,13 +73,13 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 - Repository GitHub: https://github.com/desalvo/cybersecurity-incident-registry.
 
 
-## Aggiornamento 0.5.0-1
+## Aggiornamento 0.6.0-3
 
-La versione 0.5.0-1 aggiunge la configurazione amministrativa “Layout campi incidenti” per scegliere i campi visibili nella form di nuovo incidente e i riquadri di ricerca visibili nella sezione Dati generali. La ricerca destinatari esterni e la ricerca utente LDAP sono opzioni separate. La release riorganizza le “Operazioni previste” in “Fasi procedurali” con descrizione del flusso separata dal task cliccabile, introduce pulsanti link sicuri nella sintassi Markdown tramite `{button:Etichetta|URL}`, consente di rendere obbligatoria per singolo task la “Descrizione operazioni compiute” e integra la ricerca LDAP nelle form di creazione/modifica incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili per Riferimento ed E-mail destinatario.
+La versione 0.6.0-3 aggiunge la configurazione amministrativa “Layout campi incidenti” per scegliere i campi visibili nella form di nuovo incidente e i riquadri di ricerca visibili nella sezione Dati generali. La ricerca destinatari esterni e la ricerca utente LDAP sono opzioni separate. La release riorganizza le “Operazioni previste” in “Fasi procedurali” con descrizione del flusso separata dal task cliccabile, introduce pulsanti link sicuri nella sintassi Markdown tramite `{button:Etichetta|URL}`, consente di rendere obbligatoria per singolo task la “Descrizione operazioni compiute” e integra la ricerca LDAP nelle form di creazione/modifica incidente con filtro, attributi di ricerca e attributi di auto-fill configurabili per Riferimento ed E-mail destinatario.
 
-Aggiornamento 0.5.0-1: la ricerca LDAP negli incidenti mostra tutti i risultati restituiti dalla query e, per ogni riga, tutti gli attributi configurati in “Attributi di ricerca incidenti”; l'utente seleziona la riga da usare per compilare Riferimento/Destinatario/E-mail. In “Layout campi incidenti”, in assenza di configurazioni salvate, tutte le voci sono selezionate per default. Nei “Flussi operativi incidenti” ogni step ha una “Tipologia di step”: le tipologie di default Conferma ed Esecuzione non sono eliminabili ma hanno descrizione modificabile, mentre tipologie personalizzate possono essere aggiunte, rinominate, descritte o cancellate. La descrizione della tipologia selezionata viene usata come intestazione del riquadro inferiore delle “Fasi procedurali”.
+Aggiornamento 0.6.0-3: la ricerca LDAP negli incidenti mostra tutti i risultati restituiti dalla query e, per ogni riga, tutti gli attributi configurati in “Attributi di ricerca incidenti”; l'utente seleziona la riga da usare per compilare Riferimento/Destinatario/E-mail. In “Layout campi incidenti”, in assenza di configurazioni salvate, tutte le voci sono selezionate per default. Nei “Flussi operativi incidenti” ogni step ha una “Tipologia di step”: le tipologie di default Conferma ed Esecuzione non sono eliminabili ma hanno descrizione modificabile, mentre tipologie personalizzate possono essere aggiunte, rinominate, descritte o cancellate. La descrizione della tipologia selezionata viene usata come intestazione del riquadro inferiore delle “Fasi procedurali”.
 
-Aggiornamento 0.5.0-1: nella pagina **Flussi operativi incidenti** è possibile clonare un intero workflow scegliendo sorgente e destinazione tra flusso di default e categorie. Se la destinazione contiene già step, l'interfaccia richiede conferma di sovrascrittura e il server blocca la clonazione finché la conferma non è esplicita. Quando un incidente ha più categorie, il workflow applicabile è quello della prima categoria nell'ordine scelto con drag-and-drop; se tale categoria non ha workflow specifico, viene usato il flusso di default.
+Aggiornamento 0.6.0-3: nella pagina **Flussi operativi incidenti** è possibile clonare un intero workflow scegliendo sorgente e destinazione tra flusso di default e categorie. Se la destinazione contiene già step, l'interfaccia richiede conferma di sovrascrittura e il server blocca la clonazione finché la conferma non è esplicita. Quando un incidente ha più categorie, il workflow applicabile è quello della prima categoria nell'ordine scelto con drag-and-drop; se tale categoria non ha workflow specifico, viene usato il flusso di default. I workflow sono sempre tenant-specifici: creazione, clonazione, import/export, modifica ed eliminazione operano solo sul tenant attivo. La stessa pagina consente anche di eliminare interamente un workflow selezionato, rimuovendo tutti gli step del flusso nel tenant attivo.
 
 - Modelli incidente: il salvataggio mantiene l’ordine delle categorie selezionate tramite drag and drop, così la successiva modifica del modello ripropone le categorie nello stesso ordine operativo.
 - Admin → Altre configurazioni: il pulsante "Cleanup documenti orfani" elimina da uploads solo i file generati dall’applicazione che non sono più collegati ad alcun incidente/documento/allegato, preservando gli allegati caricati manualmente.
@@ -89,3 +89,37 @@ Aggiornamento 0.5.0-1: nella pagina **Flussi operativi incidenti** è possibile 
 ### Plugin Alfresco
 
 È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+
+
+## Multi-tenancy
+
+L'applicazione supporta tenant multipli. Il tenant default viene creato automaticamente; l'utente admin locale è sempre superuser e può gestire tutti i tenant. Ogni utente può appartenere a più tenant con ruoli differenti; gli utenti admin gestiscono, esportano e importano solo i tenant in cui hanno ruolo admin. Incidenti, workflow, liste, notifiche, plugin e configurazioni operative sono separati per tenant; moduli PDF, configurazioni dei moduli, HTTPS/SSL, URL applicazione e fuso orario applicazione sono condivisi.
+
+Aggiornamento 0.6.0-3: la gestione multi-tenant è completa. Ogni utente può appartenere a più tenant con ruoli differenti; il tenant `default` viene creato automaticamente e non può essere cancellato. Gli utenti vedono incidenti, configurazioni operative e dati correlati del tenant attivo. I superuser, incluso l'utente locale `admin`, possono amministrare tutti i tenant, eseguire export/import globale e dispongono di un selettore “tenant attivo” nella barra superiore e nella pagina Admin → Tenant; lo switch filtra immediatamente la home sugli incidenti del tenant selezionato. Il tenant attivo determina quali configurazioni tenant-specifiche vengono lette e modificate: liste configurabili, workflow, modelli incidente, notifiche, destinatari esterni, backup e knowledge base/plugin AI. Restano condivisi fra tenant i moduli documento e le relative configurazioni, HTTPS/SSL, URL applicazione e time zone applicazione. Quando si crea un nuovo tenant è possibile clonare la configurazione da un tenant esistente; se non viene indicata una sorgente viene usato il tenant corrente/default.
+
+- La pagina Admin -> Utenti usa record collassabili chiusi per default; per ogni utente non builtin admin consente aggiunta, rimozione e modifica dei tenant associati e del ruolo specifico nel tenant. Permette inoltre di impostare il tenant attivo predefinito dell’utente, usato al login o quando la sessione non ha ancora uno switch esplicito. Gli utenti con più tenant accessibili hanno un selettore nella barra superiore: scegliendo un tenant lo switch è immediato nella sessione corrente e aggiorna subito il perimetro degli incidenti visualizzati. L’utente locale admin resta sempre superuser globale e non espone modifiche tenant-specifiche.
+
+- I superuser e l'utente locale admin possono spostare un incidente tra tenant dal dettaglio incidente. Durante lo spostamento l'applicazione riallinea etichette, persone, raccomandazioni e label delle azioni al tenant di destinazione, riusando elementi esistenti o clonandoli se mancanti.
+
+- Admin -> Flussi operativi incidenti: i superuser possono clonare workflow tra tenant diversi. La destinazione può essere sovrascritta selezionando Sovrascrivi; le label operative e le condizioni vengono riallineate al tenant destinazione.
+
+- Lo spostamento di incidenti tra tenant e disponibile solo ai superuser dalla pagina principale: il pulsante Sposta nella riga dell'incidente apre una lista ricercabile dei tenant di destinazione, escluso il tenant sorgente, e ricarica la lista dopo il trasferimento.
+
+Aggiornamento workflow cross-tenant: nella sezione di clonazione dei flussi, quando un superuser seleziona il tenant sorgente vengono mostrati solo i workflow esistenti in quel tenant. Il tenant di destinazione mostra solo i workflow gia' definiti nel tenant selezionato piu' la voce "Nuovo workflow". Scegliendo "Nuovo workflow" viene creata nel tenant destinazione una nuova categoria workflow e vengono clonate le dipendenze operative dal tenant sorgente, incluse action label e condizioni basate sulle liste configurabili.
+
+
+Aggiornamento 0.6.0-3: creazione tenant, clonazione tenant e clonazione workflow cross-tenant sono idempotenti. Prima di creare label, categorie, action label, notifiche, destinatari, template, raccomandazioni o altre dipendenze, l'applicazione cerca elementi equivalenti nel tenant destinazione e li riusa se presenti. Anche la voce "Nuovo workflow" riusa una categoria equivalente gia' presente nel tenant destinazione, evitando duplicazioni in operazioni ripetute.
+
+Aggiornamento 0.6.0-3: dopo full import o restore PostgreSQL con ID espliciti, l’applicazione riallinea le sequence anche in una transazione successiva al commit e prima delle clonazioni tenant/workflow. Questo evita errori `duplicate key value violates unique constraint "config_label_pkey"` durante la creazione di un tenant clonato o la clonazione di workflow che crea nuove categorie/label.
+
+
+- In Admin -> Utenti la sezione Cerca utenti consente filtri separati per username, nome, email, backend, ruolo e tenant di appartenenza. Il filtro tenant mostra gli account con membership attiva nel tenant selezionato e rispetta il perimetro dell'amministratore collegato.
+
+- La clonazione tenant e la clonazione workflow sono idempotenti: label e dipendenze già presenti nel tenant destinazione vengono riusate. Le label legacy/globali importate da backup precedenti vengono assorbite o fuse nel tenant corretto per evitare duplicazioni.
+- In Gestione label, anche un superuser vede e modifica le label del solo tenant attivo; per operare su un altro tenant deve prima selezionarlo dal menu.
+
+
+
+## Gestione utenti - stato scheda e password locali
+
+In Admin -> Utenti, dopo il salvataggio dei dati account o delle membership la pagina conserva i filtri applicati, torna al record modificato e lo riapre automaticamente. L'utente locale admin e i superuser possono reimpostare dalla scheda utente le password degli account con login locale; gli account LDAP e SSO mantengono la gestione password nel provider esterno.

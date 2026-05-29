@@ -1,13 +1,13 @@
-0.5.0-1 - Manual notification CC enable switch
+0.6.0-3 - Manual notification CC enable switch
 - Manual notification previews now include a “Use CC for this notification” checkbox, enabled by default.
 - When disabled, the CC field is hidden and ignored for both real sending and “Confirm without sending”.
 
-### Aggiornamento 0.5.0-1 - Markdown con colore/dimensione e notifiche schedulate plain text
+### Aggiornamento 0.6.0-3 - Markdown con colore/dimensione e notifiche schedulate plain text
 
 Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}` e `{size:<valore>}testo{/size}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
 
 
-0.5.0-1 - Prefilled CC preview and manual clearing
+0.6.0-3 - Prefilled CC preview and manual clearing
 - Manual notification previews prefill editable CC with the template default when present.
 - If the operator clears the CC field before confirmation, sending ignores CC and proceeds without copied recipients.
 
@@ -24,11 +24,11 @@ Flask/Gunicorn application for a cybersecurity incident registry backed by Postg
 
 ## Application state
 
-The operational documentation describes the current state of platform 0.5.0-1, build 20260522. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
+The operational documentation describes the current state of platform 0.6.0-3, build 20260528. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
 
-## Secure development compliance - build 20260522
+## Secure development compliance - build 20260528
 
-Build 0.5.0-1 adds application hardening aligned with the attached secure development guidelines:
+Build 0.6.0-3 adds application hardening aligned with the attached secure development guidelines:
 
 - stronger server-side validation for passwords, email addresses, usernames, text fields and uploads;
 - local password policy with at least 12 characters, complexity rules, common/default password blocking and username/email exclusion;
@@ -41,7 +41,7 @@ Build 0.5.0-1 adds application hardening aligned with the attached secure develo
 
 For operational compliance, the release pipeline should also run `pytest`, `bandit`, `pip-audit` and a container scan, and TRACE/TRACK must be disabled on the reverse proxy.
 
-## Production hardening build 20260522
+## Production hardening build 20260528
 
 This build introduces an application security baseline for production use:
 
@@ -134,8 +134,8 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.5.0-1
-- Build: 20260522
+- Version: 0.6.0-3
+- Build: 20260528
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 The information is visible from **Info → Application** and can be configured through the environment variables `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
@@ -454,7 +454,7 @@ User and administrator documentation has been reorganised into clearer chapters 
 Version changes are collected in `CHANGELOG.txt` and in **Help → Release notes** inside the application. Operational guides keep only current usage instructions.
 
 
-## Update 0.5.0-1 - Notification scheduler, anti-flooding and time zone
+## Update 0.6.0-3 - Notification scheduler, anti-flooding and time zone
 
 Scheduled notifications for maximum-time tasks are now more robust against simultaneous duplicate sends. Before sending, the scheduler persistently claims the notification slot for each incident; if another worker or replica tries to send the same notification in the same interval, the send is skipped. Each scheduler cycle also cleans up stale notification states left by deleted incidents.
 
@@ -478,32 +478,32 @@ Supported examples:
 
 Colour syntax is `{color:colour-name}text{/color}` or `{color:#RRGGBB}text{/color}`. Font-size syntax is `{size:small|normal|large|x-large|xx-large}text{/size}` or `{size:8px..32px}text{/size}`. The same Markdown renderer is also used for procedural warnings, which now show the associated task name. Free HTML markup is escaped.
 
-### Update 0.5.0-17 - Incident templates and orphan document cleanup
+### Update 0.6.0-37 - Incident templates and orphan document cleanup
 
 Incident template saving now preserves the category order selected by drag and drop, so editing the template later keeps the operational sequence defined by the administrator. **Admin → Other configurations** now includes an **Orphan document cleanup** button that removes from `uploads` only application-generated files no longer linked to any incident, document or action attachment, without deleting manually uploaded attachments.
 
-### Update 0.5.0-1 - Serial notification scheduler
+### Update 0.6.0-3 - Serial notification scheduler
 
 Scheduled notifications are no longer sent from the web-request hook: automatic delivery is handled only by the dedicated scheduler thread. Scheduled emails are sent sequentially. Deadline summaries keep their persistent type/window claim, while one-off reminders use `sent_at` as the only functional delivery flag and a temporary claim only for concurrency protection, so different reminders in the same period are not suppressed.
 
-## Update 0.5.0-1 - Audit for incidents skipped by the notification scheduler
+## Update 0.6.0-3 - Audit for incidents skipped by the notification scheduler
 
 Whenever the notification scheduler skips an incident, a dedicated audit record is now written with the affected incident and the skip reason. Periodic deadline notifications use `scheduler:deadline_notification_skipped`; incident-specific reminders use `scheduler:incident_reminder_skipped`. Details include the scheduler source, schedule slot or planned reminder time, reason code and readable reason, so **Admin → Audit** can distinguish already-sent notifications, concurrent claims, missing recipients/SMTP errors and application exceptions.
 
-## Update 0.5.0-1 - Manual deadline check and one-off reminders
+## Update 0.6.0-3 - Manual deadline check and one-off reminders
 
 The **Run check now** button in the **Action deadline check** section now realigns PostgreSQL sequences before execution, and audit-log insertion immediately handles possible `audit_log_pkey` collisions. The manual check no longer fails at commit time after import/restore operations or when a sequence is out of sync.
 
 For incident-specific one-off reminders, the functional delivery block is based only on `incident_reminder.sent_at`: when it is set the reminder is not sent again, when it is empty the reminder can be sent or retried. The technical claim in `deadline_notification_state` remains only a temporary concurrency guard for the same reminder record and no longer uses delivery slots/windows.
 
-## Update 0.5.0-1 - Manual one-off reminder check
+## Update 0.6.0-3 - Manual one-off reminder check
 
 The **Notifications → Settings** page now ends with a **One-off reminder check** section and a **Run reminder check now** button. The manual check immediately processes due one-off reminders configured on individual incidents, using the same serialised logic as the automatic scheduler.
 
 For one-off reminders, the functional delivery block remains only `incident_reminder.sent_at`: schedule slots, windows or periods are not used. The technical claim in `deadline_notification_state` only prevents two concurrent cycles from sending the same reminder at the same time.
 
 When a reminder is skipped, either by the scheduler or by the manual button, the `scheduler:incident_reminder_skipped` audit record includes the incident, reminder id, scheduled date/time, shortened message, configured recipients/CC, last available error, check source, reason code and human-readable reason.
-## Update 0.5.0-1 - One-off reminder check fix
+## Update 0.6.0-3 - One-off reminder check fix
 
 The **Run reminder check now** button in the **One-off reminder check** section no longer accesses a non-existing `IncidentReminder` model attribute. Effective recipients are resolved from the people linked to the incident, as in SMTP delivery, and the same logic is reused when writing audit records for skipped reminders.
 
@@ -516,11 +516,11 @@ The **Run reminder check now** button now reports skipped incident reminders, in
 
 The **Upcoming scheduled notifications** section now uses the same recipient resolution as deadline-task email delivery and displays the effective recipients for recently sent notifications as well.
 
-### Update 0.5.0-1 - Specific reminders are not blocked by technical claims
+### Update 0.6.0-3 - Specific reminders are not blocked by technical claims
 
 For incident-specific reminders, a technical claim held by another scheduler cycle or by a concurrent manual check is no longer a functional blocking reason. Delivery is decided only by `incident_reminder.sent_at`: when it is empty the reminder can be sent, when it is set the reminder is already considered sent. Concurrency is handled by atomically rechecking the reminder record, while `deadline_notification_state` remains diagnostic only and does not use slots or windows.
 
-### Update 0.5.0-1 - Reminder scheduler and service status page
+### Update 0.6.0-3 - Reminder scheduler and service status page
 
 The scheduler thread now runs both deadline-task notification checks and incident-specific reminder checks on every cycle. The two checks are independent: an error or disabled deadline-task check no longer prevents due, unsent incident-specific reminders from being processed. Incident-specific reminders still use only `incident_reminder.sent_at` as the functional send guard: empty means eligible, populated means already sent.
 
@@ -530,13 +530,13 @@ A new **Admin → Control and audit → Status** page shows the complete applica
 
 Incident-specific reminders are checked by a separate thread from the periodic deadline-task notification scheduler. The interval is configurable in **Settings → Notifications**, defaulting to 60 seconds. Every reminder check writes an audit record, even when no due reminders are found. The **Admin → Status** page reports the thread status, configured interval and date/time of the last incident-specific reminder check.
 
-### Notes 0.5.0-1
+### Notes 0.6.0-3
 
 - Fixed the dedicated incident-reminder thread: incident links in emails no longer depend on a Flask request context.
 - Added a configurable poll interval for deadline-task checks, default 60 seconds.
 - Admin → Status now shows colored dots for active/inactive threads and latest scheduler cycles.
 
-### Notes 0.5.0-1
+### Notes 0.6.0-3
 
 Fixed `RuntimeError: Working outside of application context` in scheduler threads. Configurable automatic-check intervals are now read from the `setting` table only inside `app.app_context()`, while diagnostic calls outside an application context use a safe fallback.
 
@@ -574,7 +574,7 @@ The full export contains the complete application state required to reproduce th
 
 The `export.json` manifest includes `files.persistent_files`, covering files under `uploads`, `form_templates`, `custom_logos`, `sso_logos`, and `ssl`. This makes the archive restorable even when an operational file is not directly referenced by a single database record. Full import recreates the database and restores the files into the corresponding application directories.
 
-### 0.5.0-1 - Risk to rights and freedoms and workflow-aware deadline notifications
+### 0.6.0-3 - Risk to rights and freedoms and workflow-aware deadline notifications
 
 The historical incident checkbox backed by `personal_data` is now shown in forms as **Risk to rights and freedoms**. The same wording is used in workflow configuration for the corresponding condition; the technical token remains `personal_data` for compatibility with existing databases and exports.
 
@@ -606,12 +606,12 @@ AI Chatbot update: the plugin configuration now provides **Allow the AI engine t
 
 When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel preferably stay in the bottom-right area above the decorative application logo; an anti-collision script automatically calculates spacing from the logo and viewport edges to avoid overlap with fixed page elements. On mobile the chat opens from a top button next to the menu, with responsive layout rules that avoid overlapping the logo/header. The panel can be minimized back to the icon without leaving the page. The widget panel renders answers with safe Markdown: bold, italic, headings, lists, inline code/code blocks, links and button links are formatted inside the chat, while free HTML and scripts remain escaped.
 
-## AGID compliance hardening - 0.5.0-1 build 20260522
+## AGID compliance hardening - 0.6.0-3 build 20260528
 
 This build adds further secure-development controls aligned with the AGID secure coding guidelines: no static default secret, protected cookies and sessions, server-side CSRF, nonce-based CSP, password policy, login rate limiting, upload validation with extension whitelist and magic-byte checks, LDAP filter escaping, encryption at rest for secret settings, and pre-validation of full-import tar.gz archives. In production always set `CIR_PRODUCTION=1`, a strong `SECRET_KEY`, a strong `ADMIN_INITIAL_PASSWORD`, a PostgreSQL `DATABASE_URL`, and preferably a stable `SETTING_ENCRYPTION_KEY` stored as an infrastructure secret.
 
 
-## AGID compliance refinement - 0.5.0-1 build 20260522
+## AGID compliance refinement - 0.6.0-3 build 20260528
 
 The application blocks HTTP `TRACE` and `TRACK` directly and emits `security:method_blocked` audit records for attempts. The LDAP bind password is decrypted through the same secret-setting path used for the other encrypted configuration values, so the at-rest encrypted value remains usable by login, connection testing and UID search. Release archives exclude Python and pytest caches. A `pytest.ini` file is included so tests can be run with `pytest` from the project root.
 
@@ -715,3 +715,14 @@ The incident detail page highlights the first incomplete procedural phase with a
 ### Plugin Alfresco
 
 È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+
+### Multi-tenancy
+
+The application supports multiple tenants. Every user can belong to multiple tenants with a role per tenant and an optional default active tenant used at login. Users with more than one accessible tenant can switch the active tenant immediately from the top-bar selector. `default` remains the initial tenant. The `superuser` role can manage all tenants from **Admin → Tenants**; the `admin` role manages only its own tenant. Incidents and operational settings are tenant-isolated, while PDF forms/mapping, HTTPS/SSL, application URL and application timezone are shared.
+
+Cross-tenant workflow cloning update: in the workflow cloning section, when a superuser selects a source tenant, only workflows that actually exist in that tenant are shown. The destination tenant list shows only existing workflows for that tenant plus the "Nuovo workflow" option. Selecting "Nuovo workflow" creates a new category workflow in the destination tenant and clones the operational dependencies from the source tenant, including action labels and configurable-list conditions.
+
+Tenant cloning and cross-tenant workflow cloning are idempotent: labels, categories, action labels, notifications, recipients, templates, recommendations and other dependencies are looked up in the destination tenant first and reused when already present. The "Nuovo workflow" option reuses an equivalent destination category instead of creating a copy, preventing duplicates during repeated creation or cloning.
+
+Multi-tenant note: tenant and workflow cloning is idempotent and does not duplicate labels already available in the destination tenant. Legacy labels without a tenant are absorbed or merged into the appropriate tenant during clone/migration flows.
+

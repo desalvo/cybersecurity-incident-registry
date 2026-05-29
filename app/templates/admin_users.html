@@ -1,50 +1,197 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card">
-  <h2>Utenti</h2>
-  <form method="post" class="form-grid">
-    <div><label>Username</label><input name="username" required></div>
-    <div><label>Nome</label><input name="name"></div>
-    <div><label>Email</label><input name="email"></div>
-    <div><label>Password locale</label><input name="password" type="password"></div>
-    <div><label>Backend</label><select name="auth_provider">
-      {% for value, label in auth_provider_labels.items() %}
-      <option value="{{ value }}">{{ label }}</option>
-      {% endfor %}
-    </select></div>
-    <div><label>Ruolo</label><select name="role">{% for r in ['admin','operator','reader','writer','disabled'] %}<option>{{r}}</option>{% endfor %}</select></div>
-    <button>Aggiungi</button>
-  </form>
-  <form method="get" class="form-grid"><div><label>Ricerca utenti</label><input name="q" value="{{ search_query or '' }}" placeholder="username, nome, email, backend o ruolo"></div><button>Cerca</button>{% if search_query %}<a class="button secondary" href="{{ url_for('main.admin_users') }}">Mostra tutti</a>{% endif %}</form><p class="muted">L’identità utente è definita dalla combinazione <strong>username + backend</strong>: lo stesso username può esistere come account locale, LDAP o SSO/OAuth2 di profili diversi. Nel tipo di login gli account SSO sono mostrati con nome provider e id profilo, oltre al backend tecnico. La rimozione elimina l’account e i relativi token MFA. Incidenti, promemoria e audit vengono conservati svincolando il riferimento tecnico all’utente.</p>
+<div class="card users-admin-intro">
+  <div class="page-header users-page-header">
+    <div>
+      <h2>Utenti</h2>
+      <p class="muted">Gestione account, tenant e ruoli. Ogni scheda utente è chiusa per default: aprila per modificare dettagli e membership.</p>
+    </div>
+  </div>
+  <div class="users-admin-grid">
+    <section class="user-admin-panel" aria-labelledby="add-user-title">
+      <h3 id="add-user-title">Aggiungi utente</h3>
+      <form method="post" class="user-create-form">
+        <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+        <div><label>Username</label><input name="username" required></div>
+        <div><label>Nome</label><input name="name"></div>
+        <div><label>Email</label><input name="email"></div>
+        <div><label>Password locale</label><input name="password" type="password"></div>
+        <div><label>Backend</label><select name="auth_provider">
+          {% for value, label in auth_provider_labels.items() %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select></div>
+        <div><label>Ruolo iniziale</label><select name="role">{% for r in role_options %}<option>{{r}}</option>{% endfor %}</select></div>
+        <div><label>Tenant iniziale</label><select name="tenant_id" {% if not current_user_is_superuser %}disabled{% endif %}>{% for t in tenants %}<option value="{{ t.id }}" {% if t.id==current_tenant_id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+        <div class="user-form-actions"><button type="submit">Aggiungi utente</button></div>
+      </form>
+    </section>
+    <section class="user-admin-panel" aria-labelledby="search-user-title">
+      <h3 id="search-user-title">Cerca utenti</h3>
+      <form method="get" class="user-search-form user-search-form-detailed">
+        <div><label>Username</label><input name="username" value="{{ user_search_filters.username or '' }}" placeholder="es. mario.rossi"></div>
+        <div><label>Nome</label><input name="name" value="{{ user_search_filters.name or '' }}" placeholder="nome o cognome"></div>
+        <div><label>Email</label><input name="email" value="{{ user_search_filters.email or '' }}" placeholder="indirizzo email"></div>
+        <div><label>Backend</label><select name="auth_provider">
+          <option value="" {% if not user_search_filters.auth_provider %}selected{% endif %}>Tutti i backend</option>
+          {% for value, label in auth_provider_labels.items() %}
+          <option value="{{ value }}" {% if user_search_filters.auth_provider==value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select></div>
+        <div><label>Ruolo</label><select name="role">
+          <option value="" {% if not user_search_filters.role %}selected{% endif %}>Tutti i ruoli</option>
+          {% for r in role_options %}<option value="{{ r }}" {% if user_search_filters.role==r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+        </select></div>
+        <div><label>Tenant di appartenenza</label><select name="tenant_id">
+          <option value="" {% if not user_search_tenant_id %}selected{% endif %}>Tutti i tenant accessibili</option>
+          {% for t in searchable_tenants %}
+            <option value="{{ t.id }}" {% if user_search_tenant_id==t.id %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select></div>
+        <div class="user-form-actions"><button type="submit">Cerca</button>{% if user_search_active %}<a class="button secondary" href="{{ url_for('main.admin_users') }}">Mostra tutti</a>{% endif %}</div>
+      </form>
+      <p class="muted user-admin-note">Ogni utente può appartenere a più tenant con ruoli differenti. Il tenant attivo predefinito sostituisce il vecchio tenant principale; il ruolo operativo deriva dalla membership del tenant attivo. Una membership <strong>superuser</strong> rende l’utente superuser su tutti i tenant. L’utente locale <strong>admin</strong> resta sempre superuser e non ha membership tenant modificabili.</p>
+    </section>
+  </div>
 </div>
-<div class="card">
-  <table class="table">
-    <tr><th>Username</th><th>Nome</th><th>Email</th><th>Tipo login</th><th>MFA</th><th>Ruolo</th><th>Salva</th><th>Rimuovi</th></tr>
+
+<div class="card users-list-card">
+  <div class="users-list-header">
+    <h3>Record utenti</h3>
+    <span class="muted">{{ users|length }} record</span>
+  </div>
+  <div class="user-record-list">
     {% for u in users %}
-    <tr>
-      <td>{{u.username}}</td>
-      <td>{{u.name}}</td>
-      <td>
-        <form method="post" action="{{url_for('main.user_role',uid=u.id, q=search_query) if search_query else url_for('main.user_role',uid=u.id)}}" id="user-update-{{u.id}}">
-          <input name="email" value="{{u.email or ''}}">
-        </form>
-      </td>
-      {% set provider_code = u.auth_provider or ('ldap' if u.is_ldap else 'local') %}
-      <td><strong>{{ auth_provider_display(provider_code) }}</strong><br><code>{{ provider_code }}</code></td>
-      <td>{{ 'attiva' if u.mfa_enabled else 'disattivata' }} · <a href="{{ url_for('main.admin_user_mfa', uid=u.id) }}">gestisci</a></td>
-      <td><select name="role" form="user-update-{{u.id}}">{% for r in ['admin','operator','reader','writer','disabled'] %}<option {% if u.role==r %}selected{% endif %}>{{r}}</option>{% endfor %}</select></td>
-      <td><button form="user-update-{{u.id}}">Salva</button></td>
-      <td>
-        {% if current_user.id != u.id %}
-        <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id, q=search_query) if search_query else url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
-          <button class="danger" type="submit">Rimuovi</button>
-        </form>
-        {% else %}
-        <span class="muted">utente corrente</span>
+    {% set provider_code = u.auth_provider or ('ldap' if u.is_ldap else 'local') %}
+    {% set memberships = user_membership_summary(u) %}
+    <details class="user-record-card" id="user-card-{{ u.id }}" {% if open_user_id == u.id %}open{% endif %}>
+      <summary class="user-record-summary">
+        <span class="user-summary-main">
+          <span class="user-summary-title">{{ u.username }}</span>
+          <span class="user-summary-subtitle">{{ u.name or 'Nome non indicato' }} · {{ auth_provider_display(provider_code) }}</span>
+        </span>
+        <span class="user-summary-meta">
+          <span class="user-badge {{ 'superuser' if u.is_global_superuser else '' }}">{{ 'superuser globale' if u.is_global_superuser else user_role_for_tenant(u, u.default_tenant_id or current_tenant_id) }}</span>
+          <span class="user-badge">{{ memberships|length }} tenant</span>
+          <span class="user-badge {{ 'enabled' if u.mfa_enabled else '' }}">MFA {{ 'attiva' if u.mfa_enabled else 'off' }}</span>
+        </span>
+      </summary>
+
+      <div class="user-record-body">
+        <section class="user-record-section">
+          <h4>Dati account</h4>
+          <form method="post" action="{{url_for('main.user_role',uid=u.id, q=search_query) if search_query else url_for('main.user_role',uid=u.id)}}" id="user-update-{{u.id}}" class="user-detail-form">
+            <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+            <div><label>Username</label><input value="{{ u.username }}" disabled></div>
+            <div><label>Nome</label><input value="{{ u.name or '' }}" disabled></div>
+            <div><label>Email</label><input name="email" value="{{u.email or ''}}"></div>
+            <div><label>Tipo login</label><input value="{{ auth_provider_display(provider_code) }} ({{ provider_code }})" disabled></div>
+            <div><label>MFA</label><div class="user-inline-info">{{ 'attiva' if u.mfa_enabled else 'disattivata' }} · <a href="{{ url_for('main.admin_user_mfa', uid=u.id) }}">gestisci</a></div></div>
+            <div><label>Ruolo effettivo</label>
+              {% if u.is_builtin_admin %}
+                <input value="superuser globale" disabled>
+                <p class="muted compact-help">L’utente locale admin è sempre superuser.</p>
+              {% else %}
+                <input value="{{ user_role_for_tenant(u, u.default_tenant_id or current_tenant_id) }}" disabled>
+                <p class="muted compact-help">Il ruolo non è globale: deriva dal tenant attivo/predefinito e si modifica nella sezione “Tenant e ruoli”.</p>
+              {% endif %}
+            </div>
+            <div><label>Tenant attivo predefinito</label>
+              {% if u.is_builtin_admin %}
+                <input value="superuser globale" disabled>
+                <p class="muted compact-help">L’utente admin non ha un tenant predefinito: può operare globalmente.</p>
+              {% else %}
+                {% set default_options = user_default_tenant_options(u) %}
+                <select name="default_tenant_id" {% if default_options|length == 0 %}disabled{% endif %}>
+                  <option value="" {% if not u.default_tenant_id %}selected{% endif %}>Usa la prima membership attiva</option>
+                  {% for t in default_options %}<option value="{{ t.id }}" {% if u.default_tenant_id==t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+                </select>
+                <p class="muted compact-help">Al login determina tenant e ruolo iniziali dell’utente.</p>
+              {% endif %}
+            </div>
+            <div class="user-form-actions wide"><button type="submit">Salva dati account</button></div>
+          </form>
+        </section>
+
+        <section class="user-record-section">
+          <h4>Tenant e ruoli</h4>
+          {% if u.is_builtin_admin %}
+            <div class="notice compact-notice">L’utente locale <strong>admin</strong> è sempre <strong>superuser</strong> globale. Non è necessario né possibile associare, rimuovere o modificare tenant specifici.</div>
+          {% else %}
+            <div class="membership-list">
+              {% for membership in memberships %}
+              <div class="membership-row">
+                <div class="membership-title"><strong>{{ membership.tenant_name }}</strong><span class="muted">Ruolo corrente: {{ membership.role }}</span></div>
+                <form method="post" action="{{ url_for('main.admin_user_tenant_role', uid=u.id, q=search_query) if search_query else url_for('main.admin_user_tenant_role', uid=u.id) }}" class="membership-actions">
+                  <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+                  <input type="hidden" name="membership_tenant_id" value="{{ membership.tenant_id }}">
+                  <select name="tenant_role" aria-label="Ruolo per {{ membership.tenant_name }}">
+                    {% for r in role_options %}<option {% if membership.role==r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+                  </select>
+                  <button type="submit">Modifica ruolo</button>
+                </form>
+                <form method="post" action="{{ url_for('main.admin_user_tenant_role_delete', uid=u.id, q=search_query) if search_query else url_for('main.admin_user_tenant_role_delete', uid=u.id) }}" class="membership-delete" onsubmit="return confirm('Rimuovere la membership del tenant {{ membership.tenant_name }} per l\'utente {{ u.username }}?')">
+                  <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+                  <input type="hidden" name="membership_tenant_id" value="{{ membership.tenant_id }}">
+                  <button class="secondary" type="submit">Rimuovi tenant</button>
+                </form>
+              </div>
+              {% else %}
+              <p class="muted">Nessuna membership tenant esplicita.</p>
+              {% endfor %}
+            </div>
+            <form method="post" action="{{ url_for('main.admin_user_tenant_role', uid=u.id, q=search_query) if search_query else url_for('main.admin_user_tenant_role', uid=u.id) }}" class="membership-add-form">
+              <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+              <div><label>Aggiungi o aggiorna tenant</label>
+                {% if current_user_is_superuser %}
+                  <select name="membership_tenant_id">{% for t in tenants %}<option value="{{ t.id }}" {% if t.id==current_tenant_id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>
+                {% else %}
+                  <input type="hidden" name="membership_tenant_id" value="{{ current_tenant_id }}">
+                  <input value="Tenant attivo" disabled>
+                {% endif %}
+              </div>
+              <div><label>Ruolo nel tenant</label><select name="tenant_role">{% for r in role_options %}<option>{{ r }}</option>{% endfor %}</select></div>
+              <div class="user-form-actions"><button type="submit">Aggiungi/Aggiorna tenant</button></div>
+            </form>
+          {% endif %}
+        </section>
+
+
+        {% if current_user_is_superuser %}
+        <section class="user-record-section">
+          <h4>Password locale</h4>
+          {% if provider_code == 'local' and not u.is_ldap %}
+          <form method="post" action="{{ url_for('main.admin_user_password', uid=u.id) }}" class="user-password-form" onsubmit="return confirm('Aggiornare la password locale dell\'utente {{ u.username }}?')">
+            <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+            <div><label>Nuova password</label><input name="new_password" type="password" autocomplete="new-password" required minlength="12"></div>
+            <div><label>Conferma password</label><input name="new_password2" type="password" autocomplete="new-password" required minlength="12"></div>
+            <div class="user-form-actions wide"><button type="submit">Aggiorna password locale</button></div>
+          </form>
+          <p class="muted compact-help">Disponibile solo per utenti locali. LDAP e SSO mantengono la password nel provider esterno.</p>
+          {% else %}
+          <span class="muted">Password non gestita dall’applicazione per account {{ auth_provider_display(provider_code) }}.</span>
+          {% endif %}
+        </section>
         {% endif %}
-      </td>
-    </tr>
+
+        <section class="user-record-section user-danger-zone">
+          <h4>Rimozione account</h4>
+          {% if current_user.id != u.id and not u.is_builtin_admin %}
+          <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id, q=search_query) if search_query else url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
+            <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
+            <button class="danger" type="submit">Rimuovi utente</button>
+          </form>
+          {% elif u.is_builtin_admin %}
+          <span class="muted">L’utente locale admin non è rimuovibile da questa schermata.</span>
+          {% else %}
+          <span class="muted">Utente corrente.</span>
+          {% endif %}
+        </section>
+      </div>
+    </details>
+    {% else %}
+    <p class="empty">Nessun utente trovato.</p>
     {% endfor %}
-  </table>
+  </div>
 </div>
 {% endblock %}

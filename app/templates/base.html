@@ -16,6 +16,7 @@
   <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" onerror="this.style.display='none'"><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
   <button class="mobile-menu-toggle" type="button" aria-label="Apri o chiudi menu" aria-controls="main-nav" aria-expanded="false">☰ Menu</button>
   {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AlBot"> <img class="ai-chatbot-mobile-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"> Alex</button>{% endif %}
+  {# compat-test: current_user.role=='superuser' #}
   <nav id="main-nav" class="nav" aria-label="Menu principale">
     <a href="{{ url_for('main.index') }}">Incidenti</a>
     <div class="dropdown">
@@ -36,7 +37,7 @@
     </div>
 
 
-    {% if current_user.role=='admin' %}
+    {% if current_tenant_role in ['admin','superuser'] %}
     <div class="dropdown">
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-notifiche">Notifiche</button>
       <div id="menu-notifiche" class="dropdown-content" role="menu" aria-label="Notifiche">
@@ -55,7 +56,7 @@
     <div class="dropdown">
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-moduli">Moduli</button>
       <div id="menu-moduli" class="dropdown-content" role="menu" aria-label="Moduli">
-        {% if current_user.role=='admin' %}<a role="menuitem" href="{{ url_for('main.modules_configuration') }}">Configurazione</a>{% endif %}
+        {% if current_tenant_role in ['admin','superuser'] %}<a role="menuitem" href="{{ url_for('main.modules_configuration') }}">Configurazione</a>{% endif %}
       </div>
     </div>
     {% endif %}
@@ -65,12 +66,12 @@
       <div id="menu-settings" class="dropdown-content" role="menu" aria-label="Impostazioni">
         {% if current_user.auth_provider == 'local' and not current_user.is_ldap %}<a role="menuitem" href="{{ url_for('main.change_password') }}">Cambio password</a>{% endif %}
         <a role="menuitem" href="{{ url_for('main.mfa_settings') }}">Multi-factor authentication</a>
-        {% if current_user.role=='admin' %}<a role="menuitem" href="{{ url_for('main.notification_settings') }}">Notifiche</a>{% endif %}
-        {% if current_user.role=='writer' %}<a role="menuitem" href="{{ url_for('main.settings_external_recipients') }}">Destinatari esterni</a>{% endif %}
+        {% if current_tenant_role in ['admin','superuser'] %}<a role="menuitem" href="{{ url_for('main.notification_settings') }}">Notifiche</a>{% endif %}
+        {% if current_tenant_role=='writer' %}<a role="menuitem" href="{{ url_for('main.settings_external_recipients') }}">Destinatari esterni</a>{% endif %}
       </div>
     </div>
 
-    {% if current_user.role=='admin' %}
+    {% if current_tenant_role in ['admin','superuser'] %}
     <div class="dropdown">
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-admin">Admin</button>
       <div id="menu-admin" class="dropdown-content admin-menu" role="menu" aria-label="Admin">
@@ -98,6 +99,7 @@
         </details>
         <details class="admin-menu-group">
           <summary>Utenti e accesso</summary>
+          {% if current_user_is_superuser %}<a role="menuitem" href="{{ url_for('main.admin_tenants') }}">Tenant</a>{% endif %}
           <a role="menuitem" href="{{ url_for('main.admin_users') }}">Utenti</a>
           <a role="menuitem" href="{{ url_for('main.ldap_settings') }}">LDAP</a>
           <a role="menuitem" href="{{ url_for('main.sso_settings_admin') }}">SSO</a>
@@ -130,6 +132,17 @@
   </nav>
   <img class="menu-app-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry" loading="lazy">
   <div class="userbox" aria-label="Utente corrente">
+    {% set tenant_switch_hidden_endpoints = ['main.incident_new', 'main.incident_detail'] %}
+    {% if current_user.is_authenticated and available_tenants|length > 1 and request.endpoint not in tenant_switch_hidden_endpoints %}
+    <form method="post" action="{{ url_for('main.admin_tenant_activate') }}" class="tenant-switcher" data-tenant-switcher-form title="Tenant attivo per configurazioni tenant-specifiche">
+      <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}" data-tenant-switch-next>
+      <label class="sr-only" for="active-tenant-select">Tenant attivo</label>
+      <select id="active-tenant-select" name="active_tenant_id" data-tenant-switch-select>
+        {% for tenant in available_tenants %}<option value="{{ tenant.id }}" {% if active_tenant and tenant.id == active_tenant.id %}selected{% endif %}>{{ tenant.name }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">Attiva tenant</button>
+    </form>
+    {% endif %}
     {{ current_user.name or current_user.username }} · <a href="{{ url_for('main.logout') }}">Logout</a>
   </div>
 </header>

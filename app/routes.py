@@ -1,4 +1,4 @@
-import os, csv, io, json, tarfile, uuid, shutil, tempfile, smtplib, base64, secrets, re
+import os, csv, io, json, tarfile, uuid, shutil, tempfile, smtplib, base64, secrets, re, sys
 from pathlib import Path
 from email.message import EmailMessage
 from datetime import datetime, timedelta
@@ -10,7 +10,7 @@ from sqlalchemy import or_, and_, text, Table, MetaData, select, func, inspect
 from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from ldap3 import Server, Connection, ALL
 from ldap3.utils.conv import escape_filter_chars
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qsl
 from cryptography.fernet import Fernet, InvalidToken
 import hashlib
 import requests
@@ -25,13 +25,632 @@ from .consequences import incident_consequence_list, configured_consequence_rule
 from .text_filters import strip_markdown_formatting
 from .timeutils import utcnow
 from . import restore_missing_default_config_labels, DEFAULT_CONFIG_LABELS
+from .route_modules.tenancy import TENANT_SHARED_CONFIGURATION_KEYS, TENANT_SCOPED_ADMIN_AREAS, TENANT_SHARED_ADMIN_AREAS
+from .route_modules.permissions import accessible_tenant_ids as _accessible_tenant_ids, is_builtin_admin_account, is_global_superuser, role_for_tenant as _role_for_tenant
 bp=Blueprint('main',__name__)
+
+GLOBAL_SETTING_KEYS = set(TENANT_SHARED_CONFIGURATION_KEYS)
+TENANT_SCOPED_MODELS = ()  # populated lazily after models are imported
+
+
+def tenant_setting_key(key, tenant_id=None):
+    """Return the physical Setting.key, keeping global settings shared."""
+    key = str(key or '')
+    if key in GLOBAL_SETTING_KEYS:
+        return key
+    tid = tenant_id if tenant_id is not None else current_tenant_id(default_to_default=True)
+    if not tid:
+        return key
+    return f'tenant:{int(tid)}:{key}'
+
+
+def is_builtin_admin_user(user=None):
+    user = user or current_user
+    return bool(getattr(user, 'is_authenticated', False) and is_builtin_admin_account(user))
+
+
+def is_superuser(user=None):
+    user = user or current_user
+    return bool(getattr(user, 'is_authenticated', False) and is_global_superuser(user))
+
+
+def user_role_for_tenant(user=None, tenant_id=None):
+    user = user or current_user
+    if not getattr(user, 'is_authenticated', False):
+        return 'disabled'
+    tid = tenant_id if tenant_id is not None else current_tenant_id(default_to_default=True)
+    return _role_for_tenant(user, tid)
+
+
+def user_accessible_tenant_ids(user=None, roles=None):
+    user = user or current_user
+    if not getattr(user, 'is_authenticated', False):
+        return []
+    return _accessible_tenant_ids(user, roles=roles)
+
+
+def default_tenant():
+    tenant = Tenant.query.filter_by(name='default').first()
+    if tenant is None:
+        tenant = Tenant(name='default', description='Tenant predefinito')
+        db.session.add(tenant)
+        db.session.flush()
+    return tenant
+
+
+def active_tenant_id(default_to_default=True):
+    """Tenant operativo per dati e configurazioni tenant-specifiche.
+
+    Il tenant attivo in sessione ha sempre precedenza. In assenza di scelta
+    esplicita si usa il tenant attivo predefinito dell'utente; i vecchi campi
+    ``User.tenant_id``/``User.role`` sono solo fallback di migrazione.
+    """
+    if getattr(current_user, 'is_authenticated', False):
+        raw_tid = session.get('active_tenant_id')
+        if raw_tid:
+            try:
+                tid = int(raw_tid)
+                if db.session.get(Tenant, tid) and (is_superuser() or tid in (user_accessible_tenant_ids() or [])):
+                    return tid
+            except Exception:
+                session.pop('active_tenant_id', None)
+        ids = user_accessible_tenant_ids()
+        default_tid = getattr(current_user, 'default_tenant_id', None)
+        if default_tid and db.session.get(Tenant, int(default_tid)) and (is_superuser() or int(default_tid) in (ids or [])):
+            return int(default_tid)
+        ids = ids or []
+        if ids:
+            return ids[0]
+        # Fallback esclusivamente per database/import legacy senza membership.
+        legacy_tid = getattr(current_user, 'tenant_id', None)
+        if legacy_tid and db.session.get(Tenant, int(legacy_tid)) and (is_superuser() or user_role_for_tenant(current_user, legacy_tid) != 'disabled'):
+            return int(legacy_tid)
+        if is_superuser():
+            return default_tenant().id if default_to_default else None
+    if default_to_default:
+        try:
+            return default_tenant().id
+        except Exception:
+            return None
+    return None
+
+
+def current_tenant_id(default_to_default=True):
+    return active_tenant_id(default_to_default=default_to_default)
+
+
+def current_tenant(default_to_default=True):
+    tid = current_tenant_id(default_to_default=default_to_default)
+    return db.session.get(Tenant, int(tid)) if tid else None
+
+
+def tenant_query(model, include_all_for_superuser=False):
+    q = model.query
+    if hasattr(model, 'tenant_id'):
+        if include_all_for_superuser and is_superuser():
+            return q
+        tid = current_tenant_id()
+        if is_superuser():
+            q = q.filter(or_(model.tenant_id == tid, model.tenant_id.is_(None)))
+        else:
+            q = q.filter(or_(model.tenant_id == tid, model.tenant_id.is_(None)))
+    return q
+
+
+def assign_current_tenant(obj, tenant_id=None):
+    if hasattr(obj, 'tenant_id') and not getattr(obj, 'tenant_id', None):
+        obj.tenant_id = tenant_id if tenant_id is not None else current_tenant_id()
+    return obj
+
+
+
+
+def sync_user_legacy_identity(user):
+    """Mirror default-tenant membership into legacy fields for old code/imports.
+
+    UI and authorization do not expose these fields anymore. They are kept in
+    sync so old backups, tests and external scripts that still read User.role or
+    User.tenant_id keep receiving a coherent value.
+    """
+    if not user:
+        return
+    if getattr(user, 'is_builtin_admin', False):
+        user.role = 'superuser'
+        user.tenant_id = getattr(user, 'tenant_id', None) or default_tenant().id
+        user.default_tenant_id = None
+        return
+    memberships = [m for m in (user.tenant_roles or []) if m.normalized_role() != 'disabled']
+    if any(m.normalized_role() == 'superuser' for m in memberships):
+        user.role = 'superuser'
+    else:
+        default_tid = getattr(user, 'default_tenant_id', None)
+        selected = next((m for m in memberships if m.tenant_id == default_tid), None)
+        if selected is None:
+            selected = memberships[0] if memberships else None
+        if selected:
+            if not default_tid:
+                user.default_tenant_id = selected.tenant_id
+            user.tenant_id = selected.tenant_id
+            user.role = selected.normalized_role()
+        else:
+            user.tenant_id = None
+            user.default_tenant_id = None
+            user.role = 'disabled'
+
+def upsert_user_tenant_role(user, tenant_id, role):
+    if not user or not tenant_id:
+        return None
+    normalized = (role or 'disabled').strip().lower() or 'disabled'
+    membership = UserTenantRole.query.filter_by(user_id=user.id, tenant_id=int(tenant_id)).first()
+    if membership is None:
+        membership = UserTenantRole(user_id=user.id, tenant_id=int(tenant_id), role=normalized)
+        db.session.add(membership)
+    else:
+        membership.role = normalized
+    if normalized != 'disabled' and not getattr(user, 'default_tenant_id', None):
+        user.default_tenant_id = int(tenant_id)
+    sync_user_legacy_identity(user)
+    return membership
+
+
+def remove_user_tenant_role(user, tenant_id):
+    membership = UserTenantRole.query.filter_by(user_id=user.id, tenant_id=int(tenant_id)).first()
+    if membership:
+        db.session.delete(membership)
+        db.session.flush()
+        sync_user_legacy_identity(user)
+
+
+
+def _copy_label_to_tenant(label, target_tenant_id):
+    if label is None:
+        return None
+    existing = ConfigLabel.query.filter_by(tenant_id=target_tenant_id, kind=label.kind, value=label.value).first()
+    if existing:
+        return existing
+    # Non riallineare la sequence qui: questa funzione può essere chiamata
+    # più volte nello stesso restore/clone prima del commit. Riallineare da una
+    # connessione separata tra due INSERT non vede le righe non ancora
+    # committate e può riportare la sequence indietro, causando duplicate key
+    # su config_label_pkey. Le sequence vengono riallineate una sola volta
+    # all'inizio dei flussi di creazione/clonazione/import.
+    clone = ConfigLabel(
+        tenant_id=target_tenant_id,
+        kind=label.kind,
+        group=label.group,
+        value=label.value,
+        description=label.description,
+        max_completion_hours=getattr(label, 'max_completion_hours', 0) or 0,
+        default_exportable=getattr(label, 'default_exportable', True),
+        description_required=getattr(label, 'description_required', False),
+        automatic_operations=getattr(label, 'automatic_operations', '') or '',
+    )
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def _copy_or_update_label_to_tenant(label, target_tenant_id):
+    """Riusa una label equivalente nel tenant destinazione o la crea se assente.
+
+    La chiave funzionale è tenant/kind/value: clonazioni ripetute di tenant o
+    workflow non devono produrre duplicati.  Se la label esiste già, i metadati
+    vengono riallineati ai valori sorgente senza cambiare l'identità usata da
+    eventuali incidenti/template già presenti.
+    """
+    existing = _copy_label_to_tenant(label, target_tenant_id)
+    if existing and label is not None:
+        existing.group = label.group
+        existing.description = label.description
+        existing.max_completion_hours = getattr(label, 'max_completion_hours', 0) or 0
+        existing.default_exportable = getattr(label, 'default_exportable', True)
+        existing.description_required = getattr(label, 'description_required', False)
+        existing.automatic_operations = getattr(label, 'automatic_operations', '') or ''
+    return existing
+
+
+def _remap_config_label_csv_ids(raw, label_id_map):
+    values = []
+    for item in (raw or '').split(','):
+        item = (item or '').strip()
+        if not item:
+            continue
+        try:
+            mapped = int(label_id_map.get(int(item), int(item)))
+        except Exception:
+            continue
+        text_value = str(mapped)
+        if text_value not in values:
+            values.append(text_value)
+    return ','.join(values)
+
+
+def _remap_config_label_condition_tokens(raw, label_id_map):
+    values = []
+    for token in (raw or '').split(','):
+        token = (token or '').strip()
+        if not token:
+            continue
+        negated = token.startswith('!')
+        base = token[1:] if negated else token
+        mapped_base = base
+        if base.startswith('severity:') or base.startswith('data_type:'):
+            prefix, raw_id = base.split(':', 1)
+            try:
+                mapped_base = f'{prefix}:{int(label_id_map.get(int(raw_id), int(raw_id)))}'
+            except Exception:
+                continue
+        mapped = f'!{mapped_base}' if negated else mapped_base
+        if mapped not in values:
+            values.append(mapped)
+    return ','.join(values)
+
+
+def _merge_config_label_references(source_label_id, target_label_id):
+    """Move all references from a duplicate ConfigLabel to the canonical row."""
+    if not source_label_id or not target_label_id or int(source_label_id) == int(target_label_id):
+        return
+    source_label_id = int(source_label_id)
+    target_label_id = int(target_label_id)
+    label_id_map = {source_label_id: target_label_id}
+
+    Incident.query.filter_by(severity_id=source_label_id).update({'severity_id': target_label_id}, synchronize_session=False)
+    IncidentTemplate.query.filter_by(severity_id=source_label_id).update({'severity_id': target_label_id}, synchronize_session=False)
+    IncidentWorkflowStep.query.filter_by(category_id=source_label_id).update({'category_id': target_label_id}, synchronize_session=False)
+    IncidentWorkflowStep.query.filter_by(action_label_id=source_label_id).update({'action_label_id': target_label_id}, synchronize_session=False)
+    NotificationTemplate.query.filter_by(action_label_id=source_label_id).update({'action_label_id': target_label_id}, synchronize_session=False)
+    Action.query.filter_by(label_id=source_label_id).update({'label_id': target_label_id}, synchronize_session=False)
+
+    for template in IncidentTemplate.query.filter(
+        or_(IncidentTemplate.category_ids.like(f'%{source_label_id}%'), IncidentTemplate.data_type_ids.like(f'%{source_label_id}%'))
+    ).all():
+        template.category_ids = _remap_config_label_csv_ids(template.category_ids, label_id_map)
+        template.data_type_ids = _remap_config_label_csv_ids(template.data_type_ids, label_id_map)
+
+    for step in IncidentWorkflowStep.query.filter(IncidentWorkflowStep.conditions.like(f'%{source_label_id}%')).all():
+        step.conditions = _remap_config_label_condition_tokens(step.conditions, label_id_map)
+
+    # Many-to-many tables have composite primary keys.  Insert canonical links
+    # only when missing, then remove the duplicate links to avoid PK conflicts.
+    for table in (incident_categories, incident_data_types):
+        rows = db.session.execute(select(table.c.incident_id).where(table.c.label_id == source_label_id)).fetchall()
+        for row in rows:
+            incident_id = row[0]
+            existing = db.session.execute(
+                select(table.c.incident_id).where(and_(table.c.incident_id == incident_id, table.c.label_id == target_label_id))
+            ).first()
+            if not existing:
+                db.session.execute(table.insert().values(incident_id=incident_id, label_id=target_label_id))
+        db.session.execute(table.delete().where(table.c.label_id == source_label_id))
+
+
+def deduplicate_config_labels_for_tenant(tenant_id, include_legacy_global=False):
+    """Ensure one label per tenant/kind/value and optionally absorb legacy global labels.
+
+    Legacy imports can contain ConfigLabel rows with tenant_id NULL.  Those rows
+    are useful as a compatibility fallback, but they must not appear as a second
+    copy next to the tenant-specific label.  When include_legacy_global is true
+    the rows are assigned to the tenant if no equivalent exists; otherwise their
+    references are merged into the tenant-specific canonical row and the legacy
+    duplicate is removed.
+    """
+    try:
+        tenant_id = int(tenant_id)
+    except Exception:
+        return 0
+    changed = 0
+    if include_legacy_global:
+        for global_label in ConfigLabel.query.filter(ConfigLabel.tenant_id.is_(None)).order_by(ConfigLabel.id).all():
+            canonical = ConfigLabel.query.filter_by(tenant_id=tenant_id, kind=global_label.kind, value=global_label.value).order_by(ConfigLabel.id).first()
+            if canonical:
+                _merge_config_label_references(global_label.id, canonical.id)
+                db.session.delete(global_label)
+                changed += 1
+            else:
+                global_label.tenant_id = tenant_id
+                changed += 1
+        db.session.flush()
+
+    rows = ConfigLabel.query.filter_by(tenant_id=tenant_id).order_by(ConfigLabel.kind, ConfigLabel.value, ConfigLabel.id).all()
+    seen = {}
+    for label in rows:
+        key = ((label.kind or '').strip(), (label.value or '').strip())
+        if key not in seen:
+            seen[key] = label
+            continue
+        canonical = seen[key]
+        # Preserve the richest metadata while keeping the oldest/canonical ID.
+        if not canonical.description and label.description:
+            canonical.description = label.description
+        if not canonical.group and label.group:
+            canonical.group = label.group
+        canonical.max_completion_hours = max(getattr(canonical, 'max_completion_hours', 0) or 0, getattr(label, 'max_completion_hours', 0) or 0)
+        canonical.default_exportable = bool(getattr(canonical, 'default_exportable', True) and getattr(label, 'default_exportable', True))
+        canonical.description_required = bool(getattr(canonical, 'description_required', False) or getattr(label, 'description_required', False))
+        ops = []
+        for raw_ops in (getattr(canonical, 'automatic_operations', '') or '', getattr(label, 'automatic_operations', '') or ''):
+            for op in raw_ops.split(','):
+                op = op.strip()
+                if op and op not in ops:
+                    ops.append(op)
+        canonical.automatic_operations = ','.join(ops)
+        _merge_config_label_references(label.id, canonical.id)
+        db.session.delete(label)
+        changed += 1
+    if changed:
+        db.session.flush()
+        align_table_sequence('config_label')
+    return changed
+
+
+def effective_config_labels_query(kind=None):
+    """Labels visible in the active tenant, without duplicate legacy/global rows."""
+    tid = current_tenant_id()
+    q = ConfigLabel.query.filter(ConfigLabel.tenant_id == tid)
+    if kind:
+        q = q.filter(ConfigLabel.kind == kind)
+    return q
+
+
+def _copy_person_to_tenant(person, target_tenant_id):
+    if person is None:
+        return None
+    q = Person.query.filter_by(tenant_id=target_tenant_id, name=person.name)
+    if getattr(person, 'email', None):
+        q = q.filter_by(email=person.email)
+    existing = q.first()
+    if existing:
+        if getattr(person, 'group', None):
+            existing.group = person.group
+        return existing
+    clone = Person(tenant_id=target_tenant_id, name=person.name, email=getattr(person, 'email', None), group=getattr(person, 'group', None) or 'personale')
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def _copy_recommendation_to_tenant(recommendation, target_tenant_id):
+    if recommendation is None:
+        return None
+    existing = Recommendation.query.filter_by(tenant_id=target_tenant_id, text=recommendation.text).first()
+    if existing:
+        return existing
+    clone = Recommendation(tenant_id=target_tenant_id, text=recommendation.text)
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def _copy_notification_type_to_tenant(src, target_tenant_id):
+    if src is None:
+        return None
+    existing = NotificationType.query.filter_by(tenant_id=target_tenant_id, code=src.code).first()
+    if existing:
+        existing.label = src.label
+        existing.description = src.description
+        existing.recipient_mode = src.recipient_mode
+        existing.recipient_setting_key = src.recipient_setting_key
+        existing.cc_setting_key = src.cc_setting_key
+        existing.enabled = src.enabled
+        return existing
+    clone = NotificationType(
+        tenant_id=target_tenant_id, code=src.code, label=src.label, description=src.description,
+        recipient_mode=src.recipient_mode, recipient_setting_key=src.recipient_setting_key,
+        cc_setting_key=src.cc_setting_key, enabled=src.enabled,
+    )
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def _copy_notification_template_to_tenant(src, target_tenant_id, label_map=None):
+    if src is None:
+        return None
+    label_map = label_map or {}
+    existing = NotificationTemplate.query.filter_by(tenant_id=target_tenant_id, kind=src.kind, name=src.name).first()
+    values = dict(
+        subject=src.subject, body=src.body, linked_form_template_name=src.linked_form_template_name,
+        action_label_id=label_map.get(src.action_label_id), recipient_source=src.recipient_source,
+        recipient_value=src.recipient_value, recipient_editable=src.recipient_editable,
+        recipient_external_allowed=src.recipient_external_allowed, cc_source=src.cc_source,
+        cc_value=src.cc_value, cc_editable=src.cc_editable,
+        cc_external_allowed=src.cc_external_allowed, is_default=src.is_default,
+    )
+    if existing:
+        for key, value in values.items():
+            setattr(existing, key, value)
+        return existing
+    clone = NotificationTemplate(tenant_id=target_tenant_id, kind=src.kind, name=src.name, **values)
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def _copy_external_recipient_to_tenant(src, target_tenant_id):
+    if src is None:
+        return None
+    existing = ExternalRecipient.query.filter_by(tenant_id=target_tenant_id, email=src.email).first()
+    if existing:
+        existing.name = src.name
+        existing.notes = src.notes
+        return existing
+    clone = ExternalRecipient(tenant_id=target_tenant_id, name=src.name, email=src.email, notes=src.notes)
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def _copy_backup_job_to_tenant(src, target_tenant_id):
+    if src is None:
+        return None
+    existing = BackupJob.query.filter_by(tenant_id=target_tenant_id, name=src.name).first()
+    values = dict(
+        enabled=src.enabled, cron_expression=src.cron_expression, categories=src.categories, destination=src.destination,
+        local_path=src.local_path, s3_endpoint_url=src.s3_endpoint_url, s3_bucket=src.s3_bucket,
+        s3_prefix=src.s3_prefix, s3_access_key=src.s3_access_key, s3_secret_key=src.s3_secret_key,
+        notify_admin=src.notify_admin,
+    )
+    if existing:
+        for key, value in values.items():
+            setattr(existing, key, value)
+        return existing
+    clone = BackupJob(tenant_id=target_tenant_id, name=src.name, **values)
+    db.session.add(clone)
+    db.session.flush()
+    return clone
+
+
+def move_incident_to_tenant(inc, target_tenant_id):
+    """Sposta un incidente preservando i riferimenti configurabili.
+
+    Le entità correlate tenant-specifiche (etichette, persone, raccomandazioni)
+    vengono riusate se esistono nel tenant destinazione o clonate quando
+    assenti, evitando riferimenti cross-tenant dopo lo spostamento. L'ordine
+    delle categorie viene mantenuto rimappando ``category_order`` dagli ID del
+    tenant sorgente agli ID delle label equivalenti nel tenant destinazione.
+    """
+    target_tenant_id = int(target_tenant_id)
+    if inc.tenant_id == target_tenant_id:
+        return False
+
+    ordered_source_categories = incident_ordered_categories(inc)
+    source_category_order_ids = incident_category_order_ids(inc)
+    if inc.severity:
+        inc.severity = _copy_label_to_tenant(inc.severity, target_tenant_id)
+
+    copied_categories = []
+    category_id_map = {}
+    for label in ordered_source_categories:
+        copied = _copy_label_to_tenant(label, target_tenant_id)
+        copied_categories.append(copied)
+        if getattr(label, 'id', None) and getattr(copied, 'id', None):
+            category_id_map[label.id] = copied.id
+
+    # Include eventuali categorie non presenti in category_order mantenendo
+    # comunque la relazione completa, senza alterare l'ordine esplicito sopra.
+    seen_destination_ids = {getattr(label, 'id', None) for label in copied_categories}
+    for label in list(inc.categories or []):
+        if getattr(label, 'id', None) in category_id_map:
+            continue
+        copied = _copy_label_to_tenant(label, target_tenant_id)
+        if getattr(copied, 'id', None) not in seen_destination_ids:
+            copied_categories.append(copied)
+            seen_destination_ids.add(getattr(copied, 'id', None))
+        if getattr(label, 'id', None) and getattr(copied, 'id', None):
+            category_id_map[label.id] = copied.id
+
+    inc.categories = copied_categories
+    inc.category_order = ','.join(str(category_id_map[old_id]) for old_id in source_category_order_ids if old_id in category_id_map) or _csv_ids_from_objects(copied_categories)
+    inc.data_types = [_copy_label_to_tenant(label, target_tenant_id) for label in list(inc.data_types or [])]
+    inc.people = [_copy_person_to_tenant(person, target_tenant_id) for person in list(inc.people or [])]
+    inc.recommendations = [_copy_recommendation_to_tenant(rec, target_tenant_id) for rec in list(inc.recommendations or [])]
+    for action in list(inc.actions or []):
+        if action.label:
+            action.label = _copy_label_to_tenant(action.label, target_tenant_id)
+    inc.tenant_id = target_tenant_id
+    return True
+
+
+def user_membership_summary(user):
+    memberships = []
+    for membership in sorted(user.tenant_roles or [], key=lambda m: ((m.tenant.name if m.tenant else '') or '').lower()):
+        memberships.append({
+            'tenant_id': membership.tenant_id,
+            'tenant_name': membership.tenant.name if membership.tenant else f'Tenant #{membership.tenant_id}',
+            'role': membership.normalized_role(),
+        })
+    return memberships
+
+
+def user_default_tenant_options(user):
+    if not user:
+        return []
+    if getattr(user, 'is_builtin_admin', False):
+        return []
+    ids = []
+    for membership in user.tenant_roles or []:
+        if membership.normalized_role() != 'disabled' and membership.tenant_id not in ids:
+            ids.append(membership.tenant_id)
+    legacy_tid = user.default_tenant_id or user.tenant_id
+    if legacy_tid and user_role_for_tenant(user, legacy_tid) != 'disabled' and legacy_tid not in ids:
+        ids.append(legacy_tid)
+    if not ids:
+        return []
+    return Tenant.query.filter(Tenant.id.in_(ids)).order_by(Tenant.name).all()
+
+
+def set_user_default_tenant(user, tenant_id):
+    if not user:
+        return False
+    if getattr(user, 'is_builtin_admin', False):
+        user.default_tenant_id = None
+        return True
+    if not tenant_id:
+        user.default_tenant_id = None
+        return True
+    tenant_id = int(tenant_id)
+    tenant_or_404(tenant_id)
+    if user_role_for_tenant(user, tenant_id) == 'disabled':
+        return False
+    user.default_tenant_id = tenant_id
+    sync_user_legacy_identity(user)
+    return True
+
+
+def tenant_or_404(tenant_id):
+    tenant = db.session.get(Tenant, int(tenant_id)) if tenant_id else None
+    if tenant is None:
+        abort(404)
+    return tenant
+
+
+def ensure_tenant_access(obj):
+    if obj is None or not hasattr(obj, 'tenant_id') or is_superuser():
+        return obj
+    tid = getattr(obj, 'tenant_id', None)
+    if tid != current_tenant_id() or user_role_for_tenant(current_user, tid) == 'disabled':
+        abort(404)
+    return obj
+
 
 def model_or_404(model, ident):
     obj = db.session.get(model, ident)
     if obj is None:
         abort(404)
-    return obj
+    return ensure_tenant_access(obj)
+
+
+def manageable_user_or_404(uid):
+    """Return a user that the current administrator may manage.
+
+    Superuser/global admin can manage every account. Tenant admins can manage
+    only users that have an active membership in the current tenant; this is
+    important now that one user can belong to more tenants with different
+    roles and the legacy User.tenant_id is no longer authoritative.
+    """
+    user = db.session.get(User, int(uid))
+    if user is None:
+        abort(404)
+    if is_superuser():
+        return user
+    tid = current_tenant_id()
+    if user_role_for_tenant(current_user, tid) != 'admin':
+        abort(403)
+    if user_role_for_tenant(user, tid) == 'disabled':
+        abort(404)
+    return user
+
+
+def manageable_user_query():
+    q = User.query
+    if is_superuser():
+        return q
+    tid = current_tenant_id()
+    member_ids = db.session.query(UserTenantRole.user_id).filter(
+        UserTenantRole.tenant_id == tid,
+        UserTenantRole.role != 'disabled'
+    )
+    return q.filter(User.id.in_(member_ids))
 
 
 
@@ -370,6 +989,53 @@ def audit_max_records(default=10000):
     """
     return _bounded_int(setting_value('audit_max_records', str(default)) or str(default), default, 100, 1000000)
 
+
+def _setting_value_without_request_user(key, default='', tenant_id=None):
+    """Legge una Setting durante restore/migrazioni senza consultare current_user.
+
+    Dopo ``db.session.remove()`` usato dal Full import distruttivo, l'oggetto
+    Flask-Login ``current_user`` puo' essere detached. Le normali funzioni
+    tenant-aware attraversano ``current_tenant_id()`` e quindi possono causare
+    ``DetachedInstanceError``. Questa variante usa solo il tenant esplicito.
+    """
+    key = str(key or '')
+    physical_key = key if key in GLOBAL_SETTING_KEYS else (f'tenant:{int(tenant_id)}:{key}' if tenant_id else key)
+    setting = db.session.get(Setting, physical_key)
+    if not setting and physical_key != key:
+        setting = db.session.get(Setting, key)
+    return decrypt_setting_value(key, setting.value) if setting and setting.value is not None else default
+
+
+def _audit_retention_parts_without_request_user(tenant_id=None):
+    legacy_months = _setting_value_without_request_user('audit_retention_months', '6', tenant_id) or '6'
+    months = _bounded_int(_setting_value_without_request_user('audit_retention_months_part', legacy_months, tenant_id) or legacy_months, 6, 0, 120)
+    days = _bounded_int(_setting_value_without_request_user('audit_retention_days_part', '0', tenant_id) or '0', 0, 0, 3650)
+    hours = _bounded_int(_setting_value_without_request_user('audit_retention_hours_part', '0', tenant_id) or '0', 0, 0, 23)
+    minutes = _bounded_int(_setting_value_without_request_user('audit_retention_minutes_part', '0', tenant_id) or '0', 0, 0, 59)
+    if months == 0 and days == 0 and hours == 0 and minutes == 0:
+        months = 6
+    return {'months': months, 'days': days, 'hours': hours, 'minutes': minutes}
+
+
+def purge_audit_logs_without_request_user(tenant_id=None, commit=False):
+    """Purge audit sicuro per Full import dopo drop/create della sessione.
+
+    Non usa ``setting_value()``, ``current_tenant_id()`` o ``current_user``.
+    """
+    parts = _audit_retention_parts_without_request_user(tenant_id)
+    delta = timedelta(days=(parts['months'] * 30) + parts['days'], hours=parts['hours'], minutes=parts['minutes'])
+    deleted = AuditLog.query.filter(AuditLog.occurred_at < (utcnow() - delta)).delete(synchronize_session=False)
+    max_records = _bounded_int(_setting_value_without_request_user('audit_max_records', '10000', tenant_id) or '10000', 10000, 100, 1000000)
+    total = AuditLog.query.count()
+    if total > max_records:
+        overflow = total - max_records
+        old_ids = [row.id for row in AuditLog.query.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(overflow).all()]
+        if old_ids:
+            deleted += AuditLog.query.filter(AuditLog.id.in_(old_ids)).delete(synchronize_session=False)
+    if commit:
+        db.session.commit()
+    return deleted
+
 def purge_audit_logs(commit=False):
     """Elimina i record audit oltre la retention e oltre il numero massimo.
 
@@ -515,7 +1181,7 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
         # Evita che una precedente riga AuditLog ancora pendente venga
         # autoflushata dalla SELECT prima del riallineamento della sequence.
         with db.session.no_autoflush:
-            last = AuditLog.query.order_by(AuditLog.id.desc()).first()
+            last = tenant_query(AuditLog).order_by(AuditLog.id.desc()).first()
         if (last and last.operation_type == op and last.username == username
                 and last.actor_type == resolved_actor_type
                 and (last.details or '') == summarized_details
@@ -532,6 +1198,7 @@ def audit_log(operation_type, details='', actor_type='system', commit=False):
 
     def _new_log():
         return AuditLog(
+            tenant_id=current_tenant_id(default_to_default=True),
             occurred_at=now,
             operation_type=op,
             username=username,
@@ -588,10 +1255,12 @@ def rebuild_database_for_full_import():
     """Distrugge e ricrea completamente lo schema DB per il Full import.
 
     Il full import deve sostituire lo stato persistente del database, non solo
-    svuotare le tabelle applicative.  Ricreare lo schema elimina anche vincoli,
-    sequenze e tabelle di relazione nello stato corrente, evitando residui di
-    versioni precedenti o sequence PostgreSQL disallineate dopo import con ID
-    espliciti.
+    svuotare le tabelle applicative. Ricreare lo schema elimina anche vincoli,
+    sequenze e tabelle di relazione nello stato corrente. Alcuni ambienti,
+    soprattutto PostgreSQL con bootstrap/migrazioni eseguiti prima del restore,
+    possono comunque lasciare o ricreare righe di servizio come il tenant
+    ``default``: per questo, subito dopo la ricreazione, viene eseguito anche
+    uno svuotamento esplicito di tutte le tabelle applicative.
     """
     current_app.logger.warning('Full import: distruzione e ricreazione completa del database applicativo')
     try:
@@ -605,33 +1274,133 @@ def rebuild_database_for_full_import():
     db.drop_all()
     db.create_all()
     db.session.commit()
+    clear_database_rows_for_full_import()
+
+
+def clear_database_rows_for_full_import():
+    """Svuota tutte le tabelle dopo la ricreazione dello schema.
+
+    Protegge il full import da residui o righe bootstrap create tra
+    ``create_all`` e il ripristino del dump, in particolare il tenant
+    ``default`` che su PostgreSQL causa violazioni dell'indice univoco
+    ``ix_tenant_name`` quando un backup storico contiene a sua volta il tenant
+    default. L'operazione e' idempotente e sicura anche su DB gia' vuoti.
+    """
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    table_names = [table.name for table in reversed(db.metadata.sorted_tables)]
+    if not table_names:
+        return
+    if str(db.engine.url).startswith('postgresql'):
+        quoted = ', '.join(f'"{name}"' for name in table_names)
+        with db.engine.begin() as conn:
+            conn.execute(text(f'TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE'))
+    else:
+        with db.engine.begin() as conn:
+            dialect = db.engine.dialect.name
+            if dialect == 'sqlite':
+                conn.execute(text('PRAGMA foreign_keys=OFF'))
+            for name in table_names:
+                conn.execute(text(f'DELETE FROM "{name}"'))
+            if dialect == 'sqlite':
+                conn.execute(text('PRAGMA foreign_keys=ON'))
+
+
+def _deduplicated_tenant_rows(rows):
+    """Normalizza i tenant letti da export storici evitando duplicati per nome.
+
+    Alcuni export legacy possono contenere il tenant ``default`` gia' presente
+    nel database di destinazione o righe tenant duplicate/non complete. Il full
+    import globale deve essere ripristinabile senza fermarsi su ``ix_tenant_name``.
+    """
+    out = []
+    seen_names = set()
+    seen_ids = set()
+    for row in rows or []:
+        coerced = _coerce_row_for_model(Tenant, row)
+        name = (coerced.get('name') or '').strip() or 'default'
+        key = name.lower()
+        tenant_id = coerced.get('id')
+        if key in seen_names or (tenant_id is not None and tenant_id in seen_ids):
+            continue
+        coerced['name'] = name
+        if name == 'default' and not (coerced.get('description') or '').strip():
+            coerced['description'] = 'Tenant predefinito'
+        out.append(coerced)
+        seen_names.add(key)
+        if tenant_id is not None:
+            seen_ids.add(tenant_id)
+    if not out:
+        out.append({'id': 1, 'name': 'default', 'description': 'Tenant predefinito'})
+    elif not any((row.get('name') or '').strip().lower() == 'default' for row in out):
+        out.insert(0, {'id': 1, 'name': 'default', 'description': 'Tenant predefinito'})
+    return out
+
+
+def _legacy_default_tenant_id():
+    tenant = Tenant.query.filter_by(name='default').first()
+    return tenant.id if tenant else None
+
+def _coerce_row_for_full_import(model, row, default_tenant_id=None):
+    coerced = _coerce_row_for_model(model, row)
+    if default_tenant_id and hasattr(model, 'tenant_id') and not coerced.get('tenant_id'):
+        coerced['tenant_id'] = default_tenant_id
+    return coerced
+
+
+def _deduplicated_user_tenant_role_rows(rows, default_tenant_id=None):
+    out = []
+    seen = set()
+    for row in rows or []:
+        coerced = _coerce_row_for_full_import(UserTenantRole, row, default_tenant_id)
+        key = (coerced.get('user_id'), coerced.get('tenant_id'))
+        if not key[0] or not key[1] or key in seen:
+            continue
+        role = (coerced.get('role') or 'disabled').strip().lower()
+        coerced['role'] = role
+        out.append(coerced)
+        seen.add(key)
+    return out
 
 
 def align_table_sequence(table_name):
-    """Riallinea una sequenza PostgreSQL prima di un INSERT critico.
+    """Riallinea una sequenza PostgreSQL prima di INSERT critici.
 
-    Protegge i flussi che inseriscono record dopo import/restore con ID espliciti.
-    La chiamata usa una connessione autocommittata separata per evitare che il
-    riallineamento venga annullato da un eventuale rollback della sessione web.
-    Su SQLite o altri DB non fa nulla.
+    Usa la stessa connessione della sessione corrente così il calcolo di
+    ``MAX(id)`` vede anche le righe già flushate ma non ancora committate nel
+    clone/import in corso. Questo evita il caso PostgreSQL in cui un
+    riallineamento ripetuto da una connessione separata non vede gli INSERT
+    precedenti della transazione e riporta la sequence a un valore già usato.
+    Le sequence PostgreSQL non sono transazionali, quindi il ``setval`` resta
+    efficace anche se la transazione applicativa venisse annullata.
     """
     if not str(db.engine.url).startswith('postgresql'):
         return
     safe_table = re.sub(r'[^a-zA-Z0-9_]', '', table_name or '')
     if not safe_table:
         return
-    with db.engine.begin() as conn:
+    with db.session.no_autoflush:
+        conn = db.session.connection()
         metadata = MetaData()
         reflected = Table(safe_table, metadata, autoload_with=conn)
         max_value = conn.execute(select(func.max(reflected.c.id))).scalar() or 0
-        seq_name = conn.execute(text(
-            "SELECT pg_get_serial_sequence(:table_name, 'id')"
-        ), {'table_name': safe_table}).scalar()
+        quoted_table = f'"{safe_table}"'
+        seq_name = conn.execute(
+            text("SELECT pg_get_serial_sequence(:table_name, 'id')"),
+            {'table_name': quoted_table},
+        ).scalar()
         if not seq_name:
             return
+        current_value = max(int(max_value), 1)
         conn.execute(
-            text("SELECT setval(:seq_name, :next_value, false)"),
-            {"seq_name": seq_name, "next_value": max(int(max_value) + 1, 1)},
+            text("SELECT setval(CAST(:seq_name AS regclass), :current_value, :is_called)"),
+            {
+                "seq_name": seq_name,
+                "current_value": current_value,
+                "is_called": bool(max_value),
+            },
         )
 
 
@@ -922,7 +1691,7 @@ def labels_from_form(kind, field_name):
     ids = unique_int_list(field_name)
     if not ids:
         return []
-    rows = ConfigLabel.query.filter(ConfigLabel.kind == kind, ConfigLabel.id.in_(ids)).all()
+    rows = tenant_query(ConfigLabel).filter(ConfigLabel.kind == kind, ConfigLabel.id.in_(ids)).all()
     order = {value: idx for idx, value in enumerate(ids)}
     return sorted(rows, key=lambda item: order.get(item.id, 10**9))
 
@@ -931,7 +1700,7 @@ def people_from_form(field_name='people'):
     ids = unique_int_list(field_name)
     if not ids:
         return []
-    rows = Person.query.filter(Person.id.in_(ids)).all()
+    rows = tenant_query(Person).filter(Person.id.in_(ids)).all()
     order = {value: idx for idx, value in enumerate(ids)}
     return sorted(rows, key=lambda item: order.get(item.id, 10**9))
 
@@ -1075,7 +1844,7 @@ def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc)
     return path, stored, f'testo-mail-notifica-{inc.id}-{utcnow().strftime("%Y%m%d%H%M%S")}.pdf'
 
 
-def labels(kind): return ConfigLabel.query.filter_by(kind=kind).order_by(ConfigLabel.group,ConfigLabel.value).all()
+def labels(kind): return tenant_query(ConfigLabel).filter_by(kind=kind).order_by(ConfigLabel.group,ConfigLabel.value).all()
 
 
 def workflow_step_key(step):
@@ -1246,9 +2015,9 @@ def workflow_steps_for_incident(inc):
     category_ids = incident_category_order_ids(inc)
     rows = []
     if category_ids:
-        rows = IncidentWorkflowStep.query.filter_by(category_id=category_ids[0]).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+        rows = workflow_step_scope_query(category_ids[0], getattr(inc, 'tenant_id', None)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     if not rows:
-        rows = IncidentWorkflowStep.query.filter(IncidentWorkflowStep.category_id.is_(None)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+        rows = workflow_step_scope_query(None, getattr(inc, 'tenant_id', None)).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     seen = set()
     deduped = []
     for row in rows:
@@ -1395,7 +2164,7 @@ def parse_workflow_scope_value(value):
         cid = int(raw)
     except (TypeError, ValueError):
         return None
-    return cid if db.session.get(ConfigLabel, cid) else None
+    return cid if tenant_query(ConfigLabel).filter_by(id=cid).first() else None
 
 def workflow_scope_display_name(category_id):
     if not category_id:
@@ -1403,31 +2172,231 @@ def workflow_scope_display_name(category_id):
     lab = db.session.get(ConfigLabel, int(category_id))
     return f"Categoria: {lab.value}" if lab else f"Categoria: {category_id}"
 
-def workflow_scope_options(category_map=None):
-    cats = category_map.values() if isinstance(category_map, dict) else (category_map or labels('category'))
-    counts = { (cid or 0): count for cid, count in db.session.query(IncidentWorkflowStep.category_id, func.count(IncidentWorkflowStep.id)).group_by(IncidentWorkflowStep.category_id).all() }
+
+def workflow_step_base_query(tenant_id=None):
+    """Return workflow steps scoped to a single tenant.
+
+    Workflow definitions are tenant-specific.  Keeping every query scoped avoids
+    showing or editing flows cloned for another tenant and prevents the
+    creation of apparent duplicate/spurious flows after tenant cloning.
+    """
+    tid = tenant_id if tenant_id is not None else current_tenant_id(default_to_default=True)
+    q = IncidentWorkflowStep.query
+    try:
+        default_id = default_tenant().id
+    except Exception:
+        default_id = None
+    if default_id and int(tid or 0) == int(default_id):
+        # Legacy backups/tests may contain pre-multitenancy workflow rows with
+        # NULL tenant_id.  Treat them as belonging to the default tenant only;
+        # never expose NULL rows in cloned/non-default tenants.
+        return q.filter(or_(IncidentWorkflowStep.tenant_id == tid, IncidentWorkflowStep.tenant_id.is_(None)))
+    return q.filter(IncidentWorkflowStep.tenant_id == tid)
+
+
+def workflow_step_scope_query(category_id=None, tenant_id=None):
+    q = workflow_step_base_query(tenant_id)
+    if category_id:
+        return q.filter(IncidentWorkflowStep.category_id == int(category_id))
+    return q.filter(IncidentWorkflowStep.category_id.is_(None))
+
+
+def delete_workflow_steps(category_id=None, tenant_id=None):
+    rows = workflow_step_scope_query(category_id, tenant_id).all()
+    for row in rows:
+        db.session.delete(row)
+    return len(rows)
+
+
+def workflow_scope_options(category_map=None, tenant_id=None):
+    tid = tenant_id if tenant_id is not None else current_tenant_id(default_to_default=True)
+    if category_map is None:
+        cats = ConfigLabel.query.filter_by(tenant_id=tid, kind='category').order_by(ConfigLabel.value).all()
+    elif isinstance(category_map, dict):
+        cats = category_map.values()
+    else:
+        cats = category_map
+    counts = {
+        (cid or 0): count
+        for cid, count in db.session.query(IncidentWorkflowStep.category_id, func.count(IncidentWorkflowStep.id))
+        .filter(IncidentWorkflowStep.tenant_id == tid)
+        .group_by(IncidentWorkflowStep.category_id).all()
+    }
     opts = [{'value':'default','label':'Flusso di default','has_workflow': counts.get(0,0)>0}]
     for c in sorted(cats, key=lambda x: (x.value or '').lower()):
         opts.append({'value': f'category:{c.id}', 'label': f'Categoria: {c.value}', 'has_workflow': counts.get(c.id,0)>0})
     return opts
 
-def clone_workflow_steps(source_category_id, destination_category_id, overwrite=False):
-    source_steps = IncidentWorkflowStep.query.filter_by(category_id=source_category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+
+def workflow_scope_options_by_tenant(tenants=None):
+    tenant_rows = tenants if tenants is not None else Tenant.query.order_by(Tenant.name).all()
+    grouped = []
+    for tenant in tenant_rows:
+        options = workflow_scope_options(tenant_id=tenant.id)
+        grouped.append({
+            'tenant': tenant,
+            'options': options,
+            'source_options': [opt for opt in options if opt.get('has_workflow')],
+            'destination_options': [opt for opt in options if opt.get('has_workflow')],
+        })
+    return grouped
+
+
+
+
+def _unique_config_label_value(kind, base_value, tenant_id):
+    base = (base_value or 'Workflow clonato').strip()[:120] or 'Workflow clonato'
+    existing_values = {
+        row.value for row in ConfigLabel.query.filter_by(tenant_id=tenant_id, kind=kind).all()
+    }
+    if base not in existing_values:
+        return base
+    for idx in range(2, 1000):
+        suffix = f" (copia {idx})"
+        candidate = (base[: max(1, 120 - len(suffix))] + suffix).strip()
+        if candidate not in existing_values:
+            return candidate
+    return f"{base[:100]} ({datetime.utcnow().strftime('%Y%m%d%H%M%S')})"[:120]
+
+
+def create_new_workflow_destination_for_clone(source_category_id, source_tenant_id, dest_tenant_id):
+    """Materialize the synthetic "Nuovo workflow" destination.
+
+    Cloning must be idempotent: when the destination tenant already contains an
+    equivalent category label, it is reused instead of creating a duplicate.
+    """
+    if source_category_id:
+        source_category = ConfigLabel.query.filter_by(id=int(source_category_id), tenant_id=source_tenant_id, kind='category').first()
+        if not source_category:
+            return None, 'Categoria sorgente non trovata nel tenant selezionato.'
+        dest_category = _copy_or_update_label_to_tenant(source_category, dest_tenant_id)
+        return dest_category.id, None
+
+    # A cloned default workflow needs a category-specific scope in the target
+    # tenant.  Reuse the same synthetic category if a previous clone already
+    # created it, so repeated operations do not proliferate labels.
+    existing = ConfigLabel.query.filter_by(
+        tenant_id=dest_tenant_id,
+        kind='category',
+        value='Flusso di default clonato',
+    ).first()
+    if existing:
+        return existing.id, None
+    align_table_sequence('config_label')
+    clone = ConfigLabel(
+        tenant_id=dest_tenant_id,
+        kind='category',
+        group='',
+        value='Flusso di default clonato',
+        description='Workflow creato clonando il flusso di default di un altro tenant.',
+        max_completion_hours=0,
+        default_exportable=True,
+        description_required=False,
+        automatic_operations='',
+    )
+    db.session.add(clone)
+    db.session.flush()
+    return clone.id, None
+
+
+def parse_workflow_scope_value_for_tenant(value, tenant_id):
+    raw = (value or 'default').strip()
+    if raw in {'', 'default'}:
+        return None
+    if raw.startswith('category:'):
+        raw = raw.split(':', 1)[1]
+    try:
+        cid = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return cid if ConfigLabel.query.filter_by(id=cid, tenant_id=tenant_id, kind='category').first() else None
+
+
+def workflow_scope_value_valid_for_tenant(value, tenant_id):
+    raw = (value or 'default').strip()
+    if raw in {'', 'default'}:
+        return True
+    if raw.startswith('category:'):
+        raw = raw.split(':', 1)[1]
+    try:
+        cid = int(raw)
+    except (TypeError, ValueError):
+        return False
+    return ConfigLabel.query.filter_by(id=cid, tenant_id=tenant_id, kind='category').first() is not None
+
+
+def _workflow_scope_name_for_tenant(category_id, tenant_id):
+    if not category_id:
+        return 'Flusso di default'
+    lab = ConfigLabel.query.filter_by(id=int(category_id), tenant_id=tenant_id, kind='category').first()
+    return f"Categoria: {lab.value}" if lab else f"Categoria: {category_id}"
+
+
+def _map_workflow_condition_tokens_to_tenant(tokens, target_tenant_id):
+    mapped = []
+    for token in tokens or []:
+        raw = (token or '').strip()
+        if not raw:
+            continue
+        negated = raw.startswith('!')
+        base = raw[1:] if negated else raw
+        mapped_base = base
+        if base.startswith('severity:') or base.startswith('data_type:'):
+            prefix, raw_id = base.split(':', 1)
+            try:
+                source_label = db.session.get(ConfigLabel, int(raw_id))
+            except Exception:
+                source_label = None
+            if not source_label:
+                continue
+            target_label = _copy_label_to_tenant(source_label, target_tenant_id)
+            mapped_base = f'{prefix}:{target_label.id}'
+        elif base != 'personal_data':
+            mapped_base = base
+        mapped_token = f'!{mapped_base}' if negated else mapped_base
+        if mapped_token not in mapped:
+            mapped.append(mapped_token)
+    return mapped
+
+
+def clone_workflow_steps(source_category_id, destination_category_id, overwrite=False, source_tenant_id=None, destination_tenant_id=None):
+    source_tid = source_tenant_id if source_tenant_id is not None else current_tenant_id(default_to_default=True)
+    dest_tid = destination_tenant_id if destination_tenant_id is not None else source_tid
+    source_steps = workflow_step_scope_query(source_category_id, source_tid).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     if not source_steps:
         return {'ok': False, 'message': 'Il workflow sorgente non contiene step da clonare.'}
-    existing = IncidentWorkflowStep.query.filter_by(category_id=destination_category_id).count()
+    existing = workflow_step_scope_query(destination_category_id, dest_tid).count()
     if existing and not overwrite:
-        return {'ok': False, 'message': f'Il workflow destinazione contiene già {existing} step: confermare la sovrascrittura prima di clonare.'}
+        return {'ok': False, 'message': f'Il workflow destinazione contiene già {existing} step: confermare la sovrascrittura usando Sovrascrivi prima di clonare.'}
     if existing and overwrite:
-        for row in IncidentWorkflowStep.query.filter_by(category_id=destination_category_id).all():
-            db.session.delete(row)
+        delete_workflow_steps(destination_category_id, dest_tid)
         db.session.flush()
+    copied = 0
+    cross_tenant = int(source_tid or 0) != int(dest_tid or 0)
     for src in source_steps:
-        clone = IncidentWorkflowStep(category_id=destination_category_id, action_label_id=src.action_label_id, description=src.description or '', step_type=normalize_workflow_step_type(getattr(src, 'step_type', 'confirm')), personal_data_only=bool(getattr(src, 'personal_data_only', False)), conditions=src.conditions or '', required=bool(src.required), requires_notification=bool(getattr(src, 'requires_notification', False)), required_notification_type=getattr(src, 'required_notification_type', None), document_generation_enabled=bool(getattr(src, 'document_generation_enabled', False)), document_template_name=getattr(src, 'document_template_name', None), position=src.position)
+        if cross_tenant:
+            target_action = _copy_label_to_tenant(src.action_label, dest_tid)
+            if not target_action:
+                continue
+            action_label_id = target_action.id
+            mapped_conditions = _map_workflow_condition_tokens_to_tenant(src.condition_tokens(), dest_tid)
+        else:
+            action_label_id = src.action_label_id
+            mapped_conditions = src.condition_tokens()
+        clone = IncidentWorkflowStep(tenant_id=dest_tid, category_id=destination_category_id, action_label_id=action_label_id, description=src.description or '', step_type=normalize_workflow_step_type(getattr(src, 'step_type', 'confirm')), personal_data_only=('personal_data' in mapped_conditions), conditions=','.join(mapped_conditions), required=bool(src.required), requires_notification=bool(getattr(src, 'requires_notification', False)), required_notification_type=getattr(src, 'required_notification_type', None), document_generation_enabled=bool(getattr(src, 'document_generation_enabled', False)), document_template_name=getattr(src, 'document_template_name', None), position=src.position)
         clone.set_document_auto_tags(getattr(src, 'document_auto_tag_list', []))
         db.session.add(clone)
+        copied += 1
     db.session.commit()
-    return {'ok': True, 'message': f'Workflow clonato da {workflow_scope_display_name(source_category_id)} a {workflow_scope_display_name(destination_category_id)}: {len(source_steps)} step copiati.'}
+    if source_tid == dest_tid:
+        source_name = workflow_scope_display_name(source_category_id)
+        dest_name = workflow_scope_display_name(destination_category_id)
+    else:
+        source_tenant = db.session.get(Tenant, int(source_tid))
+        dest_tenant = db.session.get(Tenant, int(dest_tid))
+        source_name = f"{getattr(source_tenant, 'name', source_tid)} / {_workflow_scope_name_for_tenant(source_category_id, source_tid)}"
+        dest_name = f"{getattr(dest_tenant, 'name', dest_tid)} / {_workflow_scope_name_for_tenant(destination_category_id, dest_tid)}"
+    return {'ok': True, 'message': f'Workflow clonato da {source_name} a {dest_name}: {copied} step copiati.'}
 
 
 def workflow_step_type_description(step_type):
@@ -1528,11 +2497,23 @@ def incident_workflow_status(inc):
             'expired': expired,
         })
     return {'steps': items, 'completed': sum(1 for x in items if x['done']), 'total': len(items), 'all_done': bool(items) and all(x['done'] for x in items), 'ordered': len(items) > 1 and any((x.get('position') or 0) != 0 for x in items)}
-def can_write(): return current_user.role in ['admin','writer']
-def can_admin(): return current_user.role=='admin'
-def is_builtin_admin_user():
-    return current_user.is_authenticated and (current_user.username or '').strip().lower() == 'admin' and (getattr(current_user, 'auth_provider', 'local') or 'local') == 'local'
-def can_manage_external_recipients_from_settings(): return current_user.is_authenticated and current_user.role == 'writer'
+def can_write():
+    return user_role_for_tenant() in ['superuser','admin','writer']
+
+def can_admin():
+    return user_role_for_tenant() in ['superuser','admin']
+
+def can_manage_external_recipients_from_settings():
+    return current_user.is_authenticated and user_role_for_tenant() == 'writer'
+
+
+def user_has_any_active_role(user):
+    if not user:
+        return False
+    if getattr(user, 'is_builtin_admin', False) or getattr(user, 'is_global_superuser', False):
+        return True
+    return bool(user_accessible_tenant_ids(user) or [])
+
 
 def mfa_required_for(user):
     return bool(user and getattr(user, 'mfa_enabled', False) and getattr(user, 'auth_provider', 'local') in ['local','ldap'] and MfaTotpToken.query.filter_by(user_id=user.id).filter(MfaTotpToken.verified_at.isnot(None)).first())
@@ -1546,17 +2527,38 @@ def complete_login_or_mfa(user):
     session.clear()
     login_user(user)
     session.permanent = True
+    selected_tid = active_tenant_id(default_to_default=True)
+    if selected_tid:
+        session['active_tenant_id'] = int(selected_tid)
+        session['active_tenant_scope_enabled'] = True
     session['last_activity'] = time.time()
     audit_log('security:login_success', {'username': user.username, 'auth_provider': user.auth_provider}, actor_type='user', commit=True)
     return redirect(request.args.get('next') or url_for('main.index'))
 
 def visible(q):
-    if current_user.role=='admin' or current_user.role in ['reader','writer']: return q
-    if current_user.role=='operator': return q.filter(Incident.creator_id==current_user.id)
+    if hasattr(Incident, 'tenant_id'):
+        tid = current_tenant_id()
+        if tid:
+            # Il tenant attivo deve sempre determinare il perimetro operativo,
+            # anche per superuser/admin globali. Le funzioni di export globale
+            # usano percorsi dedicati e non questa query di visibilità UI.
+            q = q.filter(or_(Incident.tenant_id == tid, Incident.tenant_id.is_(None)))
+    role = user_role_for_tenant()
+    if role in ['superuser','admin','reader','writer']:
+        return q
+    if role=='operator':
+        return q.filter(Incident.creator_id==current_user.id)
     return q.filter(False)
 @bp.before_request
 def block_disabled():
     g.lang = detect_interface_language()
+    if getattr(current_user, 'is_authenticated', False) and is_superuser():
+        raw_tid = session.get('active_tenant_id')
+        try:
+            if raw_tid and not db.session.get(Tenant, int(raw_tid)):
+                session.pop('active_tenant_id', None)
+        except Exception:
+            session.pop('active_tenant_id', None)
     if current_user.is_authenticated:
         now = time.time()
         timeout_config = current_app.config.get('PERMANENT_SESSION_LIFETIME') or 1800
@@ -1571,12 +2573,25 @@ def block_disabled():
         session['last_activity'] = now
     if session.get('mfa_user_id') and request.endpoint not in ['main.mfa_verify','main.login','main.logout','static']:
         return redirect(url_for('main.mfa_verify'))
-    if current_user.is_authenticated and current_user.role=='disabled' and request.endpoint not in ['main.logout','main.login','main.sso_login','main.sso_callback']:
+    if current_user.is_authenticated and not user_has_any_active_role(current_user) and request.endpoint not in ['main.logout','main.login','main.sso_login','main.sso_callback','main.admin_tenant_activate']:
         logout_user(); flash('Utente disabilitato. Contattare un amministratore.','error'); return redirect(url_for('main.login'))
 
 
 def setting_map():
-    return {row.key: decrypt_setting_value(row.key, row.value) for row in Setting.query.all()}
+    tid = current_tenant_id(default_to_default=True)
+    data = {}
+    # Global/shared settings first, then tenant-scoped overrides.
+    for row in Setting.query.all():
+        key = row.key or ''
+        if key.startswith('tenant:'):
+            continue
+        data[key] = decrypt_setting_value(key, row.value)
+    if tid:
+        prefix = f'tenant:{int(tid)}:'
+        for row in Setting.query.filter(Setting.key.startswith(prefix)).all():
+            logical = row.key[len(prefix):]
+            data[logical] = decrypt_setting_value(logical, row.value)
+    return data
 
 def bool_setting(cfg, key, default=False):
     value = str(cfg.get(key, '1' if default else '') or '').strip().lower()
@@ -1922,8 +2937,12 @@ def sso_user_from_claims(claims, cfg):
             align_table_sequence('user')
         except Exception:
             current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente SSO')
-        user = User(username=username, name=name, email=email, role=cfg.get('sso_default_role') or 'disabled', is_ldap=False, auth_provider=provider_key, external_id=external_subject, password_hash=None)
+        default_role = cfg.get('sso_default_role') or 'disabled'
+        default_tid = current_tenant_id()
+        user = User(username=username, name=name, email=email, role='disabled', tenant_id=default_tid, default_tenant_id=default_tid, is_ldap=False, auth_provider=provider_key, external_id=external_subject, password_hash=None)
         db.session.add(user)
+        db.session.flush()
+        upsert_user_tenant_role(user, default_tid, default_role)
         created_auto = True
     else:
         user.name = name or user.name
@@ -1933,7 +2952,7 @@ def sso_user_from_claims(claims, cfg):
             user.external_id = external_subject
         user.is_ldap = False
     db.session.commit()
-    if created_auto and user.role == 'disabled':
+    if created_auto and not user_has_any_active_role(user):
         notify_admin_disabled_user_created(user, source='SSO/OAuth2')
     return user
 
@@ -1972,10 +2991,11 @@ def login():
                     align_table_sequence('user')
                 except Exception:
                     current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente LDAP')
-                user=User(username=u,is_ldap=True,auth_provider='ldap',name=info['name'],email=info['email'],role='disabled'); db.session.add(user); db.session.commit(); notify_admin_disabled_user_created(user, source='LDAP')
+                default_tid = current_tenant_id()
+                user=User(username=u,is_ldap=True,auth_provider='ldap',name=info['name'],email=info['email'],role='disabled',tenant_id=default_tid,default_tenant_id=default_tid); db.session.add(user); db.session.flush(); upsert_user_tenant_role(user, default_tid, 'disabled'); db.session.commit(); notify_admin_disabled_user_created(user, source='LDAP')
             else:
                 user.name=info['name']; user.email=info['email']; user.is_ldap=True; user.auth_provider='ldap'; db.session.commit()
-            if user.role=='disabled': flash('Utente LDAP registrato ma disabilitato.','error'); return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled())
+            if not user_has_any_active_role(user): flash('Utente LDAP registrato ma disabilitato.','error'); return render_template('login.html', sso=sso_settings(), sso_enabled=sso_is_enabled())
             return complete_login_or_mfa(user)
         register_login_failure(u)
         current_app.logger.warning('Errore password/login per utente %s',u); flash('Credenziali non valide.','error')
@@ -2048,11 +3068,10 @@ def sso_callback():
         userinfo_response.raise_for_status()
         claims = userinfo_response.json()
         user = sso_user_from_claims(claims, cfg)
-        if user.role == 'disabled':
+        if not user_has_any_active_role(user):
             flash('Utente SSO registrato ma disabilitato. Contattare un amministratore.', 'error')
             return redirect(url_for('main.login'))
-        login_user(user)
-        return redirect(url_for('main.index'))
+        return complete_login_or_mfa(user)
     except Exception as exc:
         current_app.logger.exception('SSO login failed')
         flash(f'Login SSO fallito: {exc}', 'error')
@@ -2079,6 +3098,17 @@ def index():
     sort = request.args.get('sort', 'start_at')
     direction = request.args.get('dir', 'desc')
     reverse = direction != 'asc'
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get('per_page', 20))
+    except (TypeError, ValueError):
+        per_page = 20
+    if per_page < 1:
+        per_page = 20
+    per_page = min(per_page, 100)
 
     if kw:
         q = q.filter(or_(
@@ -2102,10 +3132,14 @@ def index():
         q = q.join(Incident.actions).join(Action.label).filter(ConfigLabel.value.ilike(f'%{label}%'))
 
     total = q.count()
+    total_pages = max(1, (total + per_page - 1) // per_page) if total else 1
+    if page > total_pages:
+        page = total_pages
+    offset = (page - 1) * per_page
 
     # Ordinamento su tutte le colonne mostrate nella home.
-    # Le colonne semplici vengono ordinate in SQL; quelle calcolate o multi-valore
-    # vengono ordinate in Python dopo il recupero della lista filtrata.
+    # Le colonne semplici vengono ordinate e paginate in SQL; quelle calcolate
+    # o multi-valore vengono ordinate in Python e poi affettate.
     sql_sort_map = {
         'name': Incident.name,
         'creator_name': Incident.creator_name,
@@ -2113,9 +3147,9 @@ def index():
     }
     if sort in sql_sort_map:
         col = sql_sort_map[sort]
-        incidents = q.order_by(col.asc() if direction == 'asc' else col.desc()).all()
+        incidents = q.order_by(col.asc() if direction == 'asc' else col.desc()).offset(offset).limit(per_page).all()
     else:
-        incidents = q.all()
+        incidents_all = q.all()
         def duration_seconds(inc):
             return inc.effective_duration_seconds or 0
         def people_names(inc):
@@ -2124,17 +3158,31 @@ def index():
             'people': people_names,
             'duration': duration_seconds,
         }
-        incidents = sorted(incidents, key=sort_key_map.get(sort, lambda inc: inc.start_at or datetime.min), reverse=reverse)
+        incidents_all = sorted(incidents_all, key=sort_key_map.get(sort, lambda inc: inc.start_at or datetime.min), reverse=reverse)
+        incidents = incidents_all[offset:offset + per_page]
 
     annotate_procedural_status(incidents)
+
+    query_args = request.args.to_dict(flat=True)
+    query_args['per_page'] = str(per_page)
+    query_args['page'] = str(page)
 
     return render_template(
         'index.html',
         incidents=incidents,
         total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        page_start=(offset + 1 if total else 0),
+        page_end=min(offset + len(incidents), total),
+        per_page_options=[20, 50, 100],
+        query_args=query_args,
         labels=labels('action_label'),
         sort=sort,
         direction=direction,
+        incident_move_tenants=Tenant.query.order_by(Tenant.name).all() if is_superuser() else [],
+        current_tenant_id=current_tenant_id(),
     )
 
 
@@ -2202,7 +3250,7 @@ def _objects_by_ids(model, ids):
             clean.append(int(x))
         except (TypeError, ValueError):
             pass
-    return model.query.filter(model.id.in_(clean)).all() if clean else []
+    return tenant_query(model).filter(model.id.in_(clean)).all() if clean else []
 
 
 def _objects_by_ids_preserving_order(model, ids):
@@ -2217,7 +3265,7 @@ def _objects_by_ids_preserving_order(model, ids):
             clean.append(value)
     if not clean:
         return []
-    by_id = {obj.id: obj for obj in model.query.filter(model.id.in_(clean)).all()}
+    by_id = {obj.id: obj for obj in tenant_query(model).filter(model.id.in_(clean)).all()}
     return [by_id[x] for x in clean if x in by_id]
 
 def incident_template_form_payload():
@@ -2242,6 +3290,7 @@ def incident_template_form_payload():
 
 def incident_template_from_incident(inc, name=None, description=''):
     return IncidentTemplate(
+        tenant_id=getattr(inc, 'tenant_id', None) or current_tenant_id(),
         name=name or f'Modello da {inc.name}',
         description=description or '',
         incident_name=inc.name or '',
@@ -2287,7 +3336,7 @@ def incident_template_client_payload(template):
     }
 
 def incident_template_client_payloads():
-    return [incident_template_client_payload(t) for t in IncidentTemplate.query.order_by(IncidentTemplate.name).all()]
+    return [incident_template_client_payload(t) for t in tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all()]
 
 def incident_template_context(template=None):
     return dict(
@@ -2300,8 +3349,8 @@ def incident_template_context(template=None):
         severities=labels('severity'),
         categories=labels('category'),
         data_types=labels('data_type'),
-        people=Person.query.order_by(Person.name).all(),
-        recommendations=Recommendation.query.order_by(Recommendation.text).all(),
+        people=tenant_query(Person).order_by(Person.name).all(),
+        recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(),
         recommendations_max_per_incident=recommendations_limit(),
         external_recipients=get_external_recipients(),
         incident_form_visible_fields=incident_form_visible_fields(),
@@ -2360,9 +3409,9 @@ def admin_incident_templates():
             flash(recipient_email_error, 'error')
             return redirect(url_for('main.admin_incident_templates', edit=request.form.get('id', type=int)) if request.form.get('id') else url_for('main.admin_incident_templates'))
         tid=request.form.get('id', type=int)
-        tmpl=db.session.get(IncidentTemplate, tid) if tid else None
+        tmpl=model_or_404(IncidentTemplate, tid) if tid else None
         if tmpl is None:
-            tmpl=IncidentTemplate(); db.session.add(tmpl)
+            tmpl=IncidentTemplate(tenant_id=current_tenant_id()); db.session.add(tmpl)
         for k,v in payload.items(): setattr(tmpl,k,v)
         ensure_incident_recipient_email_in_address_book(tmpl.reference, tmpl.recipient, tmpl.recipient_email)
         try:
@@ -2370,7 +3419,7 @@ def admin_incident_templates():
         except IntegrityError:
             db.session.rollback(); flash('Esiste già un modello con questo nome.', 'error')
         return redirect(url_for('main.admin_incident_templates'))
-    return render_template('admin_incident_templates.html', templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), editing=editing, incidents=Incident.query.order_by(Incident.created_at.desc()).limit(200).all(), **incident_template_context(editing))
+    return render_template('admin_incident_templates.html', templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), editing=editing, incidents=tenant_query(Incident, include_all_for_superuser=True).order_by(Incident.created_at.desc()).limit(200).all(), **incident_template_context(editing))
 
 @bp.route('/incident/<int:iid>/create-template',methods=['POST'])
 @login_required
@@ -2390,23 +3439,23 @@ def incident_create_template(iid):
 @login_required
 def incident_new():
     if not can_write(): flash('Permessi insufficienti','error'); return redirect(url_for('main.index'))
-    selected_template = db.session.get(IncidentTemplate, request.args.get('template_id', type=int)) if request.args.get('template_id') else None
+    selected_template = model_or_404(IncidentTemplate, request.args.get('template_id', type=int)) if request.args.get('template_id') else None
     if request.method=='POST':
         reference_value = (request.form.get('reference') or '').strip()
         if not reference_value:
             flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         recipient_value = (request.form.get('recipient') or '').strip()
         recipient_email_value = (request.form.get('recipient_email') or '').strip()
         recipient_email_error = validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email_value)
         if recipient_email_error:
             flash(recipient_email_error, 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
-        inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
+        inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
         sync_incident_split_datetime(inc)
         inc.categories = labels_from_form('category', 'categories')
         inc.category_order = _csv_ids_from_form('categories')
@@ -2428,7 +3477,7 @@ def incident_new():
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
     now_dt = application_now()
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=Person.query.order_by(Person.name).all(), recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=IncidentTemplate.query.order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
@@ -2474,7 +3523,7 @@ def incident_detail(iid):
         severities=labels('severity'),
         categories=labels('category'),
         data_types=labels('data_type'),
-        people=Person.query.order_by(Person.name).all(),
+        people=tenant_query(Person).order_by(Person.name).all(),
         action_labels=labels('action_label'),
         has_csirt_notification=procedural_status['has_csirt_notification'],
         has_dpo_notification=procedural_status['has_dpo_notification'],
@@ -2484,7 +3533,7 @@ def incident_detail(iid):
         procedural_warning_steps=procedural_status['warning_steps'],
         notification_types=notification_type_records(),
         form_templates=list_templates(),
-        recommendations=Recommendation.query.order_by(Recommendation.text).all(),
+        recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(),
         recommendations_max_per_incident=recommendations_limit(),
         owner_name=setting_value('security_owner_name'),
         owner_role=setting_value('security_owner_role'),
@@ -2507,6 +3556,128 @@ def incident_detail(iid):
         incident_detail_visible_fields=incident_detail_general_visible_fields(),
         incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
     )
+
+@bp.route('/incident/<int:iid>/move-tenant', methods=['POST'])
+@login_required
+def incident_move_tenant(iid):
+    if not is_superuser():
+        flash('Solo gli utenti superuser e l’utente admin possono spostare incidenti tra tenant.', 'danger')
+        return redirect(url_for('main.index'))
+    inc = db.session.get(Incident, iid)
+    if inc is None:
+        abort(404)
+    source_tenant_id = inc.tenant_id
+    target_tenant = tenant_or_404(request.form.get('target_tenant_id', type=int))
+    try:
+        moved = move_incident_to_tenant(inc, target_tenant.id)
+        db.session.flush()
+        session['active_tenant_id'] = target_tenant.id
+        session['active_tenant_scope_enabled'] = True
+        session.modified = True
+        audit_log('incident:move_tenant', {'incident_id': inc.id, 'from_tenant_id': source_tenant_id, 'to_tenant_id': target_tenant.id, 'target_tenant_name': target_tenant.name}, actor_type='user')
+        db.session.commit()
+        if moved:
+            flash(f'Incidente spostato nel tenant {target_tenant.name}.', 'success')
+        else:
+            flash(f'L’incidente era già nel tenant {target_tenant.name}.', 'info')
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Spostamento incidente tra tenant fallito')
+        flash(f'Spostamento incidente tra tenant fallito: {exc}', 'danger')
+    next_url = (request.form.get('next') or url_for('main.index')).strip()
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = url_for('main.index')
+    return redirect(next_url)
+
+
+def _incident_ids_from_form():
+    ids=[]
+    for raw in request.form.getlist('incident_ids'):
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if value not in ids:
+            ids.append(value)
+    return ids
+
+
+def _safe_next_url(default_endpoint='main.index'):
+    next_url = (request.form.get('next') or request.referrer or url_for(default_endpoint)).strip()
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = url_for(default_endpoint)
+    return next_url
+
+
+@bp.route('/incidents/bulk/move-tenant', methods=['POST'])
+@login_required
+def incidents_bulk_move_tenant():
+    if not is_superuser():
+        flash('Solo gli utenti superuser e l’utente admin possono spostare incidenti tra tenant.', 'danger')
+        return redirect(url_for('main.index'))
+    ids = _incident_ids_from_form()
+    if not ids:
+        flash('Selezionare almeno un incidente da spostare.', 'warning')
+        return redirect(_safe_next_url())
+    target_tenant = tenant_or_404(request.form.get('target_tenant_id', type=int))
+    incidents = visible(Incident.query).filter(Incident.id.in_(ids)).order_by(Incident.id).all()
+    if not incidents:
+        flash('Nessun incidente selezionato risulta visibile nel tenant attivo.', 'warning')
+        return redirect(_safe_next_url())
+    moved_count = 0
+    source_ids = {}
+    try:
+        for inc in incidents:
+            source_ids[inc.id] = inc.tenant_id
+            if move_incident_to_tenant(inc, target_tenant.id):
+                moved_count += 1
+        db.session.flush()
+        session['active_tenant_id'] = target_tenant.id
+        session['active_tenant_scope_enabled'] = True
+        session.modified = True
+        audit_log('incident:bulk_move_tenant', {
+            'incident_ids': [inc.id for inc in incidents],
+            'from_tenant_ids': source_ids,
+            'to_tenant_id': target_tenant.id,
+            'target_tenant_name': target_tenant.name,
+            'moved_count': moved_count,
+        }, actor_type='user')
+        db.session.commit()
+        flash(f'{moved_count} incidenti spostati nel tenant {target_tenant.name}.', 'success')
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Spostamento massivo incidenti tra tenant fallito')
+        flash(f'Spostamento massivo incidenti fallito: {exc}', 'danger')
+    return redirect(_safe_next_url())
+
+
+@bp.route('/incidents/bulk/delete', methods=['POST'])
+@login_required
+def incidents_bulk_delete():
+    if not can_write():
+        flash('Permessi insufficienti per cancellare incidenti.', 'danger')
+        return redirect(url_for('main.index'))
+    ids = _incident_ids_from_form()
+    if not ids:
+        flash('Selezionare almeno un incidente da cancellare.', 'warning')
+        return redirect(_safe_next_url())
+    incidents = visible(Incident.query).filter(Incident.id.in_(ids)).all()
+    if not incidents:
+        flash('Nessun incidente selezionato risulta visibile nel tenant attivo.', 'warning')
+        return redirect(_safe_next_url())
+    deleted_ids = [inc.id for inc in incidents]
+    try:
+        for inc in incidents:
+            delete_incident_with_related_state(inc)
+        audit_log('incident:bulk_delete', {'incident_ids': deleted_ids, 'deleted_count': len(deleted_ids), 'tenant_id': current_tenant_id()}, actor_type='user')
+        db.session.commit()
+        flash(f'{len(deleted_ids)} incidenti cancellati.', 'success')
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Cancellazione massiva incidenti fallita')
+        flash(f'Cancellazione massiva incidenti fallita: {exc}', 'danger')
+    return redirect(_safe_next_url())
+
 
 @bp.route('/incident/<int:iid>/reminder/add',methods=['POST'])
 @login_required
@@ -2599,7 +3770,7 @@ def incident_delete(iid):
 @login_required
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
-    src=model_or_404(Incident, iid); inc=Incident(creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto')
+    src=model_or_404(Incident, iid); inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto')
     sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.category_order=getattr(src, 'category_order', '') or _csv_ids_from_objects(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
 
 def workflow_notification_blocking_message(inc, label_id):
@@ -2983,7 +4154,7 @@ def _workflow_form_template_payload(template_name):
 
 def build_workflow_export_payload(category_id=None):
     category_id = int(category_id) if category_id else None
-    steps = IncidentWorkflowStep.query.filter_by(category_id=category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    steps = workflow_step_scope_query(category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     label_map = {}
     notification_type_map = {}
     template_map = {}
@@ -3006,10 +4177,10 @@ def build_workflow_export_payload(category_id=None):
                 if kind in {'severity', 'data_type'}:
                     lab = db.session.get(ConfigLabel, int(sid)) if sid.isdigit() else None
                     add_label(lab)
-        nt = NotificationType.query.filter_by(code=step.required_notification_type).first() if step.required_notification_type else None
+        nt = tenant_query(NotificationType).filter_by(code=step.required_notification_type).first() if step.required_notification_type else None
         if nt:
             notification_type_map[nt.code] = _workflow_notification_type_payload(nt)
-            templates = NotificationTemplate.query.filter_by(kind=nt.code).order_by(NotificationTemplate.name).all()
+            templates = tenant_query(NotificationTemplate).filter_by(kind=nt.code).order_by(NotificationTemplate.name).all()
             for tpl in templates:
                 template_map[f"{tpl.kind}::{tpl.name}"] = _workflow_template_payload(tpl)
                 if tpl.action_label:
@@ -3070,7 +4241,7 @@ def workflow_import_diff(payload):
             if changes:
                 diffs.append({'key': f"label::{lab.get('kind')}::{lab.get('value')}", 'type': 'label', 'title': f"Label {lab.get('kind')} / {lab.get('value')}", 'changes': changes})
     for nt in (payload.get('dependencies') or {}).get('notification_types') or []:
-        cur = NotificationType.query.filter_by(code=nt.get('code')).first()
+        cur = tenant_query(NotificationType).filter_by(code=nt.get('code')).first()
         if cur:
             changes={}
             for field in ['label','description','enabled']:
@@ -3105,7 +4276,7 @@ def workflow_import_diff(payload):
             if changes:
                 diffs.append({'key': f"form_template::{ft.get('template_name')}", 'type': 'form_template', 'title': f"Template modulo {ft.get('template_name')}", 'changes': changes})
     for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
-        cur = NotificationTemplate.query.filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        cur = tenant_query(NotificationTemplate).filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
         if cur:
             changes={}
             for field in ['subject','body','linked_form_template_name','recipient_source','recipient_value','recipient_editable','recipient_external_allowed','cc_source','cc_value','cc_editable','cc_external_allowed','is_default']:
@@ -3119,9 +4290,9 @@ def workflow_import_diff(payload):
     cat = wf.get('category') or None
     category_id = None
     if cat:
-        existing_cat = ConfigLabel.query.filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
+        existing_cat = tenant_query(ConfigLabel).filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
         category_id = existing_cat.id if existing_cat else None
-    existing_steps = IncidentWorkflowStep.query.filter_by(category_id=category_id).all() if (wf.get('scope') == 'default' or category_id) else []
+    existing_steps = workflow_step_scope_query(category_id).all() if (wf.get('scope') == 'default' or category_id) else []
     existing_map = {}
     for st in existing_steps:
         key = f"{st.position}::{st.action_label.value if st.action_label else st.action_label_id}"
@@ -3212,7 +4383,7 @@ def apply_workflow_import(payload, overwrite_keys):
 
     for nt in (payload.get('dependencies') or {}).get('notification_types') or []:
         key = f"notification_type::{nt.get('code')}"
-        obj = NotificationType.query.filter_by(code=nt.get('code')).first()
+        obj = tenant_query(NotificationType).filter_by(code=nt.get('code')).first()
         exists = bool(obj)
         if exists and key not in changed_keys:
             unchanged += 1
@@ -3263,7 +4434,7 @@ def apply_workflow_import(payload, overwrite_keys):
 
     for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
         key = f"notification_template::{tpl.get('kind')}::{tpl.get('name')}"
-        obj = NotificationTemplate.query.filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        obj = tenant_query(NotificationTemplate).filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
         exists = bool(obj)
         if exists and key not in changed_keys:
             unchanged += 1
@@ -3288,7 +4459,7 @@ def apply_workflow_import(payload, overwrite_keys):
         obj.is_default = bool(tpl.get('is_default'))
         al = tpl.get('action_label') or {}
         if al.get('kind') and al.get('value'):
-            label = ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
+            label = tenant_query(ConfigLabel).filter_by(kind=al.get('kind'), value=al.get('value')).first()
             obj.action_label_id = label.id if label else None
         created += 0 if exists else 1
         updated += 1 if exists else 0
@@ -3298,13 +4469,13 @@ def apply_workflow_import(payload, overwrite_keys):
     cat = wf.get('category') or None
     category_id = None
     if cat:
-        category = ConfigLabel.query.filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
+        category = tenant_query(ConfigLabel).filter_by(kind=cat.get('kind'), value=cat.get('value')).first()
         category_id = category.id if category else None
-    existing = IncidentWorkflowStep.query.filter_by(category_id=category_id).all()
+    existing = workflow_step_scope_query(category_id).all()
     existing_map = {f"{st.position}::{st.action_label.value if st.action_label else st.action_label_id}": st for st in existing}
     for st in wf.get('steps') or []:
         al = st.get('action_label') or {}
-        label = ConfigLabel.query.filter_by(kind=al.get('kind'), value=al.get('value')).first()
+        label = tenant_query(ConfigLabel).filter_by(kind=al.get('kind'), value=al.get('value')).first()
         if not label:
             continue
         key_short = f"{st.get('position',0)}::{al.get('value','')}"
@@ -3318,7 +4489,7 @@ def apply_workflow_import(payload, overwrite_keys):
             skipped += 1
             continue
         if not obj:
-            obj = IncidentWorkflowStep(category_id=category_id, action_label_id=label.id, position=int(st.get('position') or 0))
+            obj = IncidentWorkflowStep(tenant_id=current_tenant_id(default_to_default=True), category_id=category_id, action_label_id=label.id, position=int(st.get('position') or 0))
             db.session.add(obj)
         obj.action_label_id = label.id
         obj.description = st.get('description') or ''
@@ -3377,7 +4548,7 @@ def admin_incident_workflows():
             elif selected.get('protected'):
                 flash('Le tipologie di default non possono essere eliminate','error')
             else:
-                IncidentWorkflowStep.query.filter_by(step_type=code).update({'step_type': 'confirm'}, synchronize_session=False)
+                workflow_step_base_query().filter_by(step_type=code).update({'step_type': 'confirm'}, synchronize_session=False)
                 save_workflow_step_type_records([item for item in records if item['code'] != code])
                 db.session.commit()
                 flash('Tipologia di step eliminata; gli step associati sono stati riassegnati a Conferma','info')
@@ -3390,9 +4561,49 @@ def admin_incident_workflows():
             else:
                 result = clone_workflow_steps(source_category_id, destination_category_id, overwrite=overwrite)
                 flash(result['message'], 'success' if result.get('ok') else 'error')
+        elif action == 'clone_workflow_cross_tenant':
+            if not is_superuser():
+                flash('Solo i superuser possono clonare workflow tra tenant diversi','error')
+            else:
+                source_tid = request.form.get('clone_source_tenant_id', type=int)
+                dest_tid = request.form.get('clone_destination_tenant_id', type=int)
+                source_tenant = db.session.get(Tenant, source_tid) if source_tid else None
+                dest_tenant = db.session.get(Tenant, dest_tid) if dest_tid else None
+                source_scope_raw = request.form.get('clone_cross_source')
+                dest_scope_raw = request.form.get('clone_cross_destination')
+                source_valid = workflow_scope_value_valid_for_tenant(source_scope_raw, source_tid) if source_tenant else False
+                source_category_id = parse_workflow_scope_value_for_tenant(source_scope_raw, source_tid) if source_valid else None
+                source_has_steps = bool(source_valid and workflow_step_scope_query(source_category_id, source_tid).count())
+                create_new_destination = (dest_scope_raw or '').strip() == '__new__'
+                dest_valid = create_new_destination or (workflow_scope_value_valid_for_tenant(dest_scope_raw, dest_tid) if dest_tenant else False)
+                destination_category_id = None if create_new_destination else (parse_workflow_scope_value_for_tenant(dest_scope_raw, dest_tid) if dest_valid else None)
+                overwrite = bool(request.form.get('clone_cross_overwrite_confirm'))
+                if not source_tenant or not dest_tenant:
+                    flash('Tenant sorgente o destinazione non valido','error')
+                elif not source_valid or not source_has_steps:
+                    flash('Il workflow sorgente non è valido o non contiene step nel tenant selezionato','error')
+                elif not dest_valid:
+                    flash('Workflow destinazione non valido per il tenant selezionato','error')
+                elif source_tid == dest_tid and not create_new_destination and source_category_id == destination_category_id:
+                    flash('Sorgente e destinazione devono essere diverse per clonare un workflow','error')
+                else:
+                    if create_new_destination:
+                        destination_category_id, err = create_new_workflow_destination_for_clone(source_category_id, source_tid, dest_tid)
+                        if err:
+                            flash(err, 'error')
+                            return redirect(url_for('main.admin_incident_workflows'))
+                        overwrite = False
+                    result = clone_workflow_steps(source_category_id, destination_category_id, overwrite=overwrite, source_tenant_id=source_tid, destination_tenant_id=dest_tid)
+                    flash(result['message'], 'success' if result.get('ok') else 'error')
+        elif action == 'delete_workflow':
+            category_id = parse_workflow_scope_value(request.form.get('delete_scope'))
+            removed = delete_workflow_steps(category_id)
+            db.session.commit()
+            flash(f'Flusso eliminato per {workflow_scope_display_name(category_id)}: {removed} step rimossi.', 'info')
+            return redirect(url_for('main.admin_incident_workflows'))
         elif action == 'renumber_workflow':
             category_id = parse_workflow_scope_value(request.form.get('renumber_scope'))
-            rows = IncidentWorkflowStep.query.filter_by(category_id=category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+            rows = workflow_step_scope_query(category_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
             for idx, row in enumerate(rows, start=1):
                 row.position = idx * 10
             db.session.commit()
@@ -3419,11 +4630,11 @@ def admin_incident_workflows():
                 flash('Selezionare un modello template valido per lo step di generazione documento','error')
             else:
                 if position is None:
-                    q = IncidentWorkflowStep.query.filter_by(category_id=category_id)
+                    q = workflow_step_scope_query(category_id)
                     last = q.order_by(IncidentWorkflowStep.position.desc()).first()
                     position = (last.position + 10) if last else 10
                 align_table_sequence('incident_workflow_step')
-                step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, position=position)
+                step = IncidentWorkflowStep(tenant_id=current_tenant_id(default_to_default=True), category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, position=position)
                 step.set_document_auto_tags(document_auto_tags)
                 db.session.add(step)
                 try:
@@ -3434,7 +4645,7 @@ def admin_incident_workflows():
                         raise
                     current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
                     align_table_sequence('incident_workflow_step')
-                    step = IncidentWorkflowStep(category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, position=position)
+                    step = IncidentWorkflowStep(tenant_id=current_tenant_id(default_to_default=True), category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, position=position)
                     step.set_document_auto_tags(document_auto_tags)
                     db.session.add(step)
                     db.session.commit()
@@ -3443,7 +4654,7 @@ def admin_incident_workflows():
             ids = request.form.getlist('step_id')
             for sid in ids:
                 step = db.session.get(IncidentWorkflowStep, int(sid))
-                if not step: continue
+                if not step or step.tenant_id != current_tenant_id(default_to_default=True): continue
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()[:500]
                 step.step_type = normalize_workflow_step_type(request.form.get(f'step_type_{sid}'))
@@ -3460,13 +4671,14 @@ def admin_incident_workflows():
             db.session.commit(); flash('Flussi aggiornati','success')
             return redirect(url_for('main.admin_incident_workflows') + '#' + (request.form.get('return_anchor') or ''))
         return redirect(url_for('main.admin_incident_workflows'))
-    steps = IncidentWorkflowStep.query.order_by(IncidentWorkflowStep.category_id, IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
+    steps = workflow_step_base_query().order_by(IncidentWorkflowStep.category_id, IncidentWorkflowStep.position, IncidentWorkflowStep.id).all()
     grouped = {}
     for step in steps:
         grouped.setdefault(step.category_id or 0, []).append(step)
     step_type_records = workflow_step_type_records()
     category_list = labels('category')
-    return render_template('admin_incident_workflows.html', categories=category_list, action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), document_tag_options=notification_type_tag_options(enabled_only=False), form_templates=list_templates(), severities=labels('severity'), data_types=labels('data_type'), grouped=grouped, workflow_scope_options=workflow_scope_options(category_list), workflow_step_types=workflow_step_type_pairs(), workflow_step_type_records=step_type_records, workflow_step_type_descriptions={item['code']: item['description'] for item in step_type_records})
+    workflow_tenants = Tenant.query.order_by(Tenant.name).all() if is_superuser() else []
+    return render_template('admin_incident_workflows.html', categories=category_list, action_labels=labels('action_label'), notification_types=notification_type_records(enabled_only=False), document_tag_options=notification_type_tag_options(enabled_only=False), form_templates=list_templates(), severities=labels('severity'), data_types=labels('data_type'), grouped=grouped, workflow_scope_options=workflow_scope_options(category_list), workflow_tenant_scope_options=workflow_scope_options_by_tenant(workflow_tenants), workflow_step_types=workflow_step_type_pairs(), workflow_step_type_records=step_type_records, workflow_step_type_descriptions={item['code']: item['description'] for item in step_type_records})
 
 @bp.route('/admin/incident-workflows/<int:sid>/delete',methods=['POST'])
 @login_required
@@ -3542,7 +4754,7 @@ def admin_labels():
         if not kind or not value:
             flash('Indicare il nome della label','error')
         else:
-            existing=ConfigLabel.query.filter_by(kind=kind,value=value).first()
+            existing=effective_config_labels_query(kind).filter_by(value=value).first()
             max_hours=request.form.get('max_completion_hours', type=int)
             default_exportable = bool(request.form.get('default_exportable')) if kind == 'action_label' else True
             description_required = bool(request.form.get('description_required')) if kind == 'action_label' else False
@@ -3556,13 +4768,13 @@ def admin_labels():
                     existing.automatic_operations = automatic_operations
                 flash('Label già presente: gruppo e descrizione aggiornati','info')
             else:
-                db.session.add(ConfigLabel(kind=kind,group=group,value=value,description=description,max_completion_hours=(max_hours if kind=='action_label' and max_hours is not None and max_hours >= 0 else 0),default_exportable=default_exportable,description_required=description_required,automatic_operations=automatic_operations))
+                db.session.add(ConfigLabel(tenant_id=current_tenant_id(), kind=kind,group=group,value=value,description=description,max_completion_hours=(max_hours if kind=='action_label' and max_hours is not None and max_hours >= 0 else 0),default_exportable=default_exportable,description_required=description_required,automatic_operations=automatic_operations))
             try:
                 db.session.commit()
             except Exception as exc:
                 current_app.logger.exception('Errore durante il salvataggio della label')
                 db.session.rollback(); flash(f'Errore salvataggio label: {exc}','error')
-    return render_template('admin_labels.html',items=ConfigLabel.query.order_by(ConfigLabel.kind,ConfigLabel.group,ConfigLabel.value).all(), automatic_action_operations=AUTOMATIC_ACTION_OPERATIONS, default_config_labels=DEFAULT_CONFIG_LABELS)
+    return render_template('admin_labels.html',items=effective_config_labels_query().order_by(ConfigLabel.kind,ConfigLabel.group,ConfigLabel.value).all(), automatic_action_operations=AUTOMATIC_ACTION_OPERATIONS, default_config_labels=DEFAULT_CONFIG_LABELS)
 
 @bp.route('/admin/labels/restore-defaults', methods=['POST'])
 @login_required
@@ -3614,10 +4826,10 @@ def admin_label_update(lid):
 @login_required
 def admin_label_delete(lid):
     if can_admin():
-        lab=model_or_404(ConfigLabel, lid)
+        lab=effective_config_labels_query().filter_by(id=lid).first() or abort(404)
         # Rimuove la label da tutti gli incidenti e dalle azioni prima della cancellazione,
         # così non restano foreign key pendenti e la cancellazione è coerente con la UI.
-        for inc in Incident.query.all():
+        for inc in tenant_query(Incident).all():
             if lab in inc.categories: inc.categories.remove(lab)
             if lab in inc.data_types: inc.data_types.remove(lab)
             if inc.severity_id==lab.id: inc.severity_id=None
@@ -3640,26 +4852,26 @@ def admin_people():
         if not name:
             flash('Indicare il nome della persona','error')
         else:
-            existing=Person.query.filter_by(name=name).first()
+            existing=tenant_query(Person).filter_by(name=name).first()
             if existing:
                 existing.email=email
                 flash('Persona già presente: email aggiornata','info')
             else:
                 # Il personale non usa più Categoria/Gruppo: l'unico input richiesto è nome + email.
-                db.session.add(Person(name=name,email=email,group='personale'))
+                db.session.add(Person(tenant_id=current_tenant_id(), name=name,email=email,group='personale'))
             try:
                 db.session.commit()
             except Exception as exc:
                 current_app.logger.exception('Errore durante il salvataggio del personale')
                 db.session.rollback(); flash(f'Errore salvataggio personale: {exc}','error')
-    return render_template('admin_people.html',people=Person.query.order_by(Person.name).all())
+    return render_template('admin_people.html',people=tenant_query(Person).order_by(Person.name).all())
 
 @bp.route('/admin/people/<int:pid>/delete',methods=['POST'])
 @login_required
 def admin_people_delete(pid):
     if not can_admin(): return redirect(url_for('main.index'))
     person=model_or_404(Person, pid)
-    for inc in Incident.query.all():
+    for inc in tenant_query(Incident).all():
         if person in inc.people:
             inc.people.remove(person)
     db.session.delete(person)
@@ -3733,20 +4945,20 @@ def admin_recommendations():
                 rec=model_or_404(Recommendation, int(rid)); rec.text=text
                 try: db.session.commit(); flash('Raccomandazione aggiornata','success')
                 except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
-            elif Recommendation.query.filter_by(text=text).first():
+            elif tenant_query(Recommendation).filter_by(text=text).first():
                 flash('Raccomandazione già presente','info')
             else:
-                db.session.add(Recommendation(text=text))
+                db.session.add(Recommendation(tenant_id=current_tenant_id(), text=text))
                 try: db.session.commit(); flash('Raccomandazione aggiunta','success')
                 except Exception as exc: db.session.rollback(); flash(f'Errore: {exc}','error')
-    return render_template('admin_recommendations.html', recommendations=Recommendation.query.order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit())
+    return render_template('admin_recommendations.html', recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit())
 
 @bp.route('/admin/recommendations/<int:rid>/delete',methods=['POST'])
 @login_required
 def admin_recommendation_delete(rid):
     if not can_admin(): return redirect(url_for('main.index'))
     rec=model_or_404(Recommendation, rid)
-    for inc in Incident.query.all():
+    for inc in tenant_query(Incident).all():
         if rec in inc.recommendations:
             inc.recommendations.remove(rec)
     db.session.delete(rec)
@@ -3807,7 +5019,7 @@ def mfa_verify():
     if not uid:
         return redirect(url_for('main.login'))
     user = db.session.get(User, uid)
-    if not user or user.role == 'disabled':
+    if not user or not user_has_any_active_role(user):
         session.pop('mfa_user_id', None); session.pop('mfa_next', None)
         flash('Sessione MFA non valida.', 'error')
         return redirect(url_for('main.login'))
@@ -4065,6 +5277,270 @@ def ldap_incident_recipient_search():
         current_app.logger.exception('Ricerca LDAP destinatario incidente fallita')
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
+
+
+def clone_tenant_config(source_tenant_id, dest_tenant_id):
+    """Clone tenant-specific configuration from one tenant to another.
+
+    The operation is idempotent: tenant-local objects are matched by their
+    natural key before creation, so repeated tenant creation/cloning or later
+    re-cloning does not duplicate labels, recipients, notification templates,
+    workflow dependencies or other configuration elements already present in
+    the destination tenant.
+    """
+    source_tenant_id = int(source_tenant_id)
+    dest_tenant_id = int(dest_tenant_id)
+    # I backup legacy ripristinati con ID espliciti possono lasciare indietro
+    # le sequence PostgreSQL. Prima di creare qualunque record clonato
+    # riallineiamo tutte le PK intere: l'operazione e' idempotente e previene
+    # duplicate key su config_label_pkey e sulle altre tabelle clonate.
+    align_all_table_sequences()
+    # Normalizza eventuali label legacy/globali e duplicati preesistenti prima
+    # di leggere la sorgente o creare record nel tenant destinazione.
+    deduplicate_config_labels_for_tenant(source_tenant_id, include_legacy_global=(source_tenant_id == default_tenant().id))
+    deduplicate_config_labels_for_tenant(dest_tenant_id)
+    prefix = f'tenant:{source_tenant_id}:'
+    source_settings = {}
+    # Plain keys are legacy/default tenant values; keep the globally shared
+    # settings unscoped and clone the remaining settings as tenant-specific.
+    for row in Setting.query.all():
+        key = row.key or ''
+        if key.startswith(prefix):
+            logical_key = key[len(prefix):]
+            if logical_key not in GLOBAL_SETTING_KEYS:
+                source_settings[logical_key] = row.value
+        elif not key.startswith('tenant:') and key not in GLOBAL_SETTING_KEYS:
+            source_settings.setdefault(key, row.value)
+    for logical_key, value in source_settings.items():
+        target_key = f'tenant:{dest_tenant_id}:{logical_key}'
+        target = db.session.get(Setting, target_key)
+        if target:
+            target.value = value
+        else:
+            db.session.add(Setting(key=target_key, value=value))
+
+    label_map = {}
+    for src in ConfigLabel.query.filter_by(tenant_id=source_tenant_id).order_by(ConfigLabel.id).all():
+        dst = _copy_or_update_label_to_tenant(src, dest_tenant_id)
+        if dst:
+            label_map[src.id] = dst.id
+
+    person_map = {}
+    for src in Person.query.filter_by(tenant_id=source_tenant_id).order_by(Person.id).all():
+        dst = _copy_person_to_tenant(src, dest_tenant_id)
+        if dst:
+            person_map[src.id] = dst.id
+
+    rec_map = {}
+    for src in Recommendation.query.filter_by(tenant_id=source_tenant_id).order_by(Recommendation.id).all():
+        dst = _copy_recommendation_to_tenant(src, dest_tenant_id)
+        if dst:
+            rec_map[src.id] = dst.id
+
+    def remap_csv(raw, mapping):
+        vals = []
+        for item in (raw or '').split(','):
+            try:
+                old = int(item.strip())
+            except Exception:
+                continue
+            new = mapping.get(old)
+            if new and str(new) not in vals:
+                vals.append(str(new))
+        return ','.join(vals)
+
+    def remap_condition_tokens(raw):
+        mapped = []
+        for token in (raw or '').split(','):
+            token = (token or '').strip()
+            if not token:
+                continue
+            negated = token.startswith('!')
+            base = token[1:] if negated else token
+            mapped_base = base
+            if base.startswith('severity:') or base.startswith('data_type:'):
+                prefix_name, raw_id = base.split(':', 1)
+                try:
+                    new_id = label_map.get(int(raw_id))
+                except Exception:
+                    new_id = None
+                if not new_id:
+                    continue
+                mapped_base = f'{prefix_name}:{new_id}'
+            mapped_token = f'!{mapped_base}' if negated else mapped_base
+            if mapped_token not in mapped:
+                mapped.append(mapped_token)
+        return ','.join(mapped)
+
+    for src in IncidentWorkflowStep.query.filter_by(tenant_id=source_tenant_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all():
+        dest_category_id = label_map.get(src.category_id) if src.category_id else None
+        dest_action_label_id = label_map.get(src.action_label_id)
+        if not dest_action_label_id:
+            continue
+        dest_conditions = remap_condition_tokens(src.conditions)
+        existing = IncidentWorkflowStep.query.filter_by(
+            tenant_id=dest_tenant_id,
+            category_id=dest_category_id,
+            action_label_id=dest_action_label_id,
+            position=src.position,
+            step_type=src.step_type,
+            description=src.description,
+        ).first()
+        if existing:
+            existing.personal_data_only = src.personal_data_only
+            existing.required = src.required
+            existing.requires_notification = src.requires_notification
+            existing.required_notification_type = src.required_notification_type
+            existing.document_generation_enabled = src.document_generation_enabled
+            existing.document_template_name = src.document_template_name
+            existing.document_auto_tags = src.document_auto_tags
+            existing.conditions = dest_conditions
+        else:
+            db.session.add(IncidentWorkflowStep(
+                tenant_id=dest_tenant_id,
+                category_id=dest_category_id,
+                action_label_id=dest_action_label_id,
+                position=src.position, description=src.description, personal_data_only=src.personal_data_only,
+                required=src.required, requires_notification=src.requires_notification,
+                required_notification_type=src.required_notification_type,
+                document_generation_enabled=src.document_generation_enabled,
+                document_template_name=src.document_template_name,
+                document_auto_tags=src.document_auto_tags,
+                conditions=dest_conditions, step_type=src.step_type,
+            ))
+
+    for src in NotificationType.query.filter_by(tenant_id=source_tenant_id).order_by(NotificationType.id).all():
+        _copy_notification_type_to_tenant(src, dest_tenant_id)
+
+    for src in NotificationTemplate.query.filter_by(tenant_id=source_tenant_id).order_by(NotificationTemplate.id).all():
+        _copy_notification_template_to_tenant(src, dest_tenant_id, label_map)
+
+    for src in IncidentTemplate.query.filter_by(tenant_id=source_tenant_id).order_by(IncidentTemplate.id).all():
+        values = dict(
+            description=src.description, incident_name=src.incident_name, reference=src.reference, recipient=src.recipient,
+            recipient_email=src.recipient_email, incident_description=src.incident_description,
+            severity_id=label_map.get(src.severity_id), personal_data=src.personal_data,
+            data_subjects_count=src.data_subjects_count, data_volume=src.data_volume,
+            status=src.status, category_ids=remap_csv(src.category_ids, label_map),
+            data_type_ids=remap_csv(src.data_type_ids, label_map), people_ids=remap_csv(src.people_ids, person_map),
+            recommendation_ids=remap_csv(src.recommendation_ids, rec_map),
+        )
+        existing = IncidentTemplate.query.filter_by(tenant_id=dest_tenant_id, name=src.name).first()
+        if existing:
+            for key, value in values.items():
+                setattr(existing, key, value)
+        else:
+            db.session.add(IncidentTemplate(tenant_id=dest_tenant_id, name=src.name, **values))
+
+    for src in ExternalRecipient.query.filter_by(tenant_id=source_tenant_id).order_by(ExternalRecipient.id).all():
+        _copy_external_recipient_to_tenant(src, dest_tenant_id)
+
+    for src in BackupJob.query.filter_by(tenant_id=source_tenant_id).order_by(BackupJob.id).all():
+        _copy_backup_job_to_tenant(src, dest_tenant_id)
+
+    deduplicate_config_labels_for_tenant(dest_tenant_id)
+
+
+
+@bp.route('/admin/tenants', methods=['GET', 'POST'])
+@login_required
+def admin_tenants():
+    if not is_superuser():
+        flash('La gestione dei tenant è riservata ai superuser.', 'danger')
+        return redirect(url_for('main.index'))
+    if request.method == 'POST':
+        action = request.form.get('action') or 'create'
+        if action == 'create':
+            name = validate_text_field((request.form.get('name') or '').strip(), 'Nome tenant', 80, required=True, allow_multiline=False)
+            description = validate_text_field(request.form.get('description') or '', 'Descrizione tenant', 2000)
+            if name.strip().lower() == 'default':
+                flash('Il tenant default esiste già.', 'warning')
+                return redirect(url_for('main.admin_tenants'))
+            source_id = request.form.get('clone_from_tenant_id', type=int) or current_tenant_id() or default_tenant().id
+            source = tenant_or_404(source_id)
+            # Protegge anche la PK tenant quando il DB deriva da un restore
+            # legacy con sequence non allineate.
+            align_all_table_sequences()
+            tenant = Tenant(name=name, description=description)
+            db.session.add(tenant); db.session.flush()
+            clone_tenant_config(source.id, tenant.id)
+            audit_log('admin:tenant_create', {'tenant_id': tenant.id, 'name': tenant.name, 'cloned_from': source.id}, actor_type='user')
+            commit_with_sequence_retry(['tenant', 'config_label', 'person', 'recommendation', 'incident_workflow_step', 'notification_type', 'notification_template', 'incident_template', 'external_recipient', 'backup_job', 'audit_log'])
+            flash('Tenant creato e configurazione clonata.', 'success')
+            return redirect(url_for('main.admin_tenants'))
+        if action == 'update':
+            tenant = tenant_or_404(request.form.get('tenant_id', type=int))
+            if tenant.is_default:
+                tenant.description = validate_text_field(request.form.get('description') or '', 'Descrizione tenant', 2000)
+            else:
+                tenant.name = validate_text_field((request.form.get('name') or '').strip(), 'Nome tenant', 80, required=True, allow_multiline=False)
+                tenant.description = validate_text_field(request.form.get('description') or '', 'Descrizione tenant', 2000)
+            audit_log('admin:tenant_update', {'tenant_id': tenant.id, 'name': tenant.name}, actor_type='user')
+            db.session.commit(); flash('Tenant aggiornato.', 'success')
+            return redirect(url_for('main.admin_tenants'))
+        if action == 'delete':
+            tenant = tenant_or_404(request.form.get('tenant_id', type=int))
+            if tenant.is_default:
+                flash('Il tenant default non può essere eliminato.', 'danger')
+                return redirect(url_for('main.admin_tenants'))
+            if UserTenantRole.query.filter_by(tenant_id=tenant.id).first() or User.query.filter_by(tenant_id=tenant.id).first() or Incident.query.filter_by(tenant_id=tenant.id).first():
+                flash('Impossibile eliminare un tenant con utenti, membership o incidenti associati.', 'danger')
+                return redirect(url_for('main.admin_tenants'))
+            deleted_tenant_id = tenant.id
+            name = tenant.name
+            if session.get('active_tenant_id') == deleted_tenant_id:
+                session['active_tenant_id'] = default_tenant().id
+            audit_log('admin:tenant_delete', {'tenant_id': deleted_tenant_id, 'name': name}, actor_type='user')
+            fallback_tenant_id = default_tenant().id
+            User.query.filter(User.default_tenant_id == deleted_tenant_id).update({'default_tenant_id': fallback_tenant_id}, synchronize_session=False)
+            User.query.filter(User.tenant_id == deleted_tenant_id).update({'tenant_id': fallback_tenant_id}, synchronize_session=False)
+            # Delete dependent rows before ConfigLabel: templates, workflow steps and
+            # notification templates contain foreign keys to tenant-local labels.
+            for model in [IncidentTemplate, IncidentWorkflowStep, NotificationTemplate, NotificationType, Person, Recommendation, ExternalRecipient, BackupJob, AIChatbotDocument, AuditLog, ConfigLabel]:
+                model.query.filter_by(tenant_id=deleted_tenant_id).delete(synchronize_session=False)
+            Setting.query.filter(Setting.key.startswith(f'tenant:{deleted_tenant_id}:')).delete(synchronize_session=False)
+            db.session.delete(tenant)
+            db.session.commit(); flash('Tenant eliminato.', 'success')
+            return redirect(url_for('main.admin_tenants'))
+    tenants = Tenant.query.order_by(Tenant.name).all()
+    return render_template('admin_tenants.html', tenants=tenants, active_tenant_id=current_tenant_id(), tenant_scoped_admin_areas=TENANT_SCOPED_ADMIN_AREAS, tenant_shared_admin_areas=TENANT_SHARED_ADMIN_AREAS)
+
+@bp.route('/admin/tenants/active', methods=['POST'])
+@login_required
+def admin_tenant_activate():
+    tenant = tenant_or_404(request.form.get('active_tenant_id', type=int))
+    accessible = user_accessible_tenant_ids()
+    if accessible is not None and tenant.id not in accessible:
+        flash('Tenant non disponibile per l’utente corrente.', 'danger')
+        return redirect(url_for('main.index'))
+    session['active_tenant_id'] = int(tenant.id)
+    session['active_tenant_scope_enabled'] = True
+    session.modified = True
+    # Lo switch è una scelta di sessione, non un aggiornamento del default
+    # persistente. Tutte le query UI leggono current_tenant_id(), quindi dopo
+    # il redirect la vista mostra immediatamente il tenant selezionato.
+    audit_log('admin:tenant_activate', {'tenant_id': tenant.id, 'name': tenant.name}, actor_type='user', commit=True)
+    flash(f'Tenant attivo impostato su {tenant.name}.', 'success')
+    next_url = request.form.get('next') or request.referrer or url_for('main.index')
+    if not str(next_url).startswith('/') or str(next_url).startswith('//'):
+        next_url = url_for('main.index')
+    return redirect(next_url, code=303)
+
+def _admin_users_redirect(open_user_id=None, status_code=303):
+    """Redirect back to Admin → Utenti preserving filters, scroll and open card."""
+    raw_query = request.form.get('return_query') if request.method == 'POST' else request.query_string.decode('utf-8', errors='ignore')
+    params = {}
+    for key, value in parse_qsl(raw_query or '', keep_blank_values=False):
+        if key not in {'open_user'}:
+            params[key] = value
+    if open_user_id:
+        params['open_user'] = str(int(open_user_id))
+    target = url_for('main.admin_users', **params)
+    if open_user_id:
+        target += f'#user-card-{int(open_user_id)}'
+    return redirect(target, code=status_code)
+
+
 @bp.route('/admin/users',methods=['GET','POST'])
 @login_required
 def admin_users():
@@ -4075,28 +5551,37 @@ def admin_users():
         backend=(request.form.get('auth_provider') or 'local').strip()
         if backend not in valid_backends:
             flash('Backend di autenticazione non valido o profilo SSO non più configurato.', 'error')
-            return redirect(url_for('main.admin_users'))
+            return _admin_users_redirect()
         is_ldap = backend == 'ldap'
         username = validate_text_field(request.form['username'].strip(), 'Username', 80, required=True, allow_multiline=False)
         email = validate_email_field(request.form.get('email'), 'Email')
         name = validate_text_field(request.form.get('name') or '', 'Nome', 160, allow_multiline=False)
         role = request.form.get('role')
+        allowed_roles = ['admin','operator','reader','writer','disabled'] + (['superuser'] if is_superuser() else [])
+        if role not in allowed_roles:
+            role = 'disabled'
+        tenant_id = request.form.get('tenant_id', type=int) if is_superuser() else current_tenant_id()
+        if not tenant_id:
+            tenant_id = current_tenant_id()
+        tenant_or_404(tenant_id)
         password = request.form.get('password') or ''
         if backend == 'local':
             try:
                 validate_password_strength(password, username=username, email=email)
             except ValueError as exc:
                 flash(str(exc), 'error')
-                return redirect(url_for('main.admin_users'))
+                return _admin_users_redirect()
         if User.query.filter_by(username=username, auth_provider=backend).first():
             flash('Esiste già un utente con la stessa combinazione username + backend.', 'error')
-            return redirect(url_for('main.admin_users'))
+            return _admin_users_redirect()
         try:
             align_table_sequence('user')
         except Exception:
             current_app.logger.exception('Riallineamento sequenza user non completato prima della creazione utente')
-        u=User(username=username,name=name,email=email,role=role,is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(password) if backend == 'local' else None)
+        u=User(username=username,name=name,email=email,role='disabled',tenant_id=tenant_id,default_tenant_id=tenant_id,is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(password) if backend == 'local' else None)
         db.session.add(u)
+        db.session.flush()
+        upsert_user_tenant_role(u, tenant_id, role)
         try:
             db.session.commit()
         except IntegrityError as exc:
@@ -4105,41 +5590,206 @@ def admin_users():
                 raise
             current_app.logger.warning('Sequence user disallineata; riallineo e riprovo la creazione utente')
             align_table_sequence('user')
-            u=User(username=username,name=name,email=email,role=role,is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(password) if backend == 'local' else None)
+            u=User(username=username,name=name,email=email,role='disabled',tenant_id=tenant_id,default_tenant_id=tenant_id,is_ldap=is_ldap,auth_provider=backend,password_hash=hash_password(password) if backend == 'local' else None)
             db.session.add(u)
+            db.session.flush()
+            upsert_user_tenant_role(u, tenant_id, role)
             db.session.commit()
-        audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': u.role, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
+        sync_user_legacy_identity(u)
+        audit_log('admin:user_create', {'user_id': u.id, 'username': u.username, 'role': user_role_for_tenant(u, tenant_id), 'tenant_id': tenant_id, 'auth_provider': u.auth_provider}, actor_type='user', commit=True)
         flash('Utente aggiunto.')
-    search_query=(request.args.get('q') or '').strip()
-    q=User.query
+    search_query=(request.args.get('q') or '').strip()  # compatibilita' con vecchia ricerca unica
+    user_search_username=(request.args.get('username') or '').strip()
+    user_search_name=(request.args.get('name') or '').strip()
+    user_search_email=(request.args.get('email') or '').strip()
+    user_search_auth_provider=(request.args.get('auth_provider') or '').strip()
+    user_search_role=(request.args.get('role') or '').strip()
+    user_search_tenant_id = request.args.get('tenant_id', type=int)
+    tenants = Tenant.query.order_by(Tenant.name).all()
+    searchable_tenants = tenants if is_superuser() else [t for t in tenants if t.id == current_tenant_id()]
+    role_options=(['superuser','admin','operator','reader','writer','disabled'] if is_superuser() else ['admin','operator','reader','writer','disabled'])
+    if user_search_auth_provider and user_search_auth_provider not in valid_backends:
+        user_search_auth_provider = ''
+    if user_search_role and user_search_role not in role_options:
+        user_search_role = ''
+    if not is_superuser() and user_search_tenant_id and user_search_tenant_id != current_tenant_id():
+        user_search_tenant_id = current_tenant_id()
+    q=manageable_user_query()
     if search_query:
         pattern=f'%{search_query}%'
-        q=q.filter(or_(User.username.ilike(pattern), User.name.ilike(pattern), User.email.ilike(pattern), User.auth_provider.ilike(pattern), User.role.ilike(pattern)))
+        q=q.filter(or_(User.username.ilike(pattern), User.name.ilike(pattern), User.email.ilike(pattern), User.auth_provider.ilike(pattern)))
+    if user_search_username:
+        q=q.filter(User.username.ilike(f'%{user_search_username}%'))
+    if user_search_name:
+        q=q.filter(User.name.ilike(f'%{user_search_name}%'))
+    if user_search_email:
+        q=q.filter(User.email.ilike(f'%{user_search_email}%'))
+    if user_search_auth_provider:
+        q=q.filter(User.auth_provider == user_search_auth_provider)
+    if user_search_tenant_id:
+        tenant_or_404(user_search_tenant_id)
+    if user_search_tenant_id or user_search_role:
+        member_filters=[]
+        if user_search_tenant_id:
+            member_filters.append(UserTenantRole.tenant_id == user_search_tenant_id)
+        if user_search_role:
+            member_filters.append(UserTenantRole.role == user_search_role)
+        elif user_search_tenant_id:
+            member_filters.append(UserTenantRole.role != 'disabled')
+        member_ids = db.session.query(UserTenantRole.user_id).filter(*member_filters)
+        if user_search_role == 'superuser' and not user_search_tenant_id:
+            q = q.filter(or_(User.id.in_(member_ids), User.role == 'superuser', and_(User.username == 'admin', User.auth_provider == 'local')))
+        elif user_search_role and not user_search_tenant_id:
+            q = q.filter(or_(User.id.in_(member_ids), User.role == user_search_role))
+        else:
+            q = q.filter(User.id.in_(member_ids))
     users = q.order_by(User.username, User.auth_provider).all()
-    return render_template('admin_users.html', users=users, auth_provider_labels=auth_provider_labels, auth_provider_display=user_auth_provider_display, search_query=search_query)
+    user_search_filters = {
+        'q': search_query,
+        'username': user_search_username,
+        'name': user_search_name,
+        'email': user_search_email,
+        'auth_provider': user_search_auth_provider,
+        'role': user_search_role,
+        'tenant_id': user_search_tenant_id,
+    }
+    user_search_active = any(v for v in user_search_filters.values())
+    return render_template('admin_users.html', users=users, auth_provider_labels=auth_provider_labels, auth_provider_display=user_auth_provider_display, search_query=search_query, user_search_filters=user_search_filters, user_search_active=user_search_active, open_user_id=request.args.get('open_user', type=int), user_search_tenant_id=user_search_tenant_id, searchable_tenants=searchable_tenants, tenants=tenants, role_options=role_options, current_tenant_id=current_tenant_id(), user_membership_summary=user_membership_summary, user_default_tenant_options=user_default_tenant_options, user_role_for_tenant=user_role_for_tenant)
 @bp.route('/admin/user/<int:uid>/role',methods=['POST'])
 @login_required
 def user_role(uid):
-    if can_admin():
-        u=model_or_404(User, uid)
-        u.role=request.form['role']; u.email=request.form.get('email',u.email)
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    u=manageable_user_or_404(uid)
+    u.email = validate_email_field(request.form.get('email'), 'Email')
+    requested_default_tenant_id = request.form.get('default_tenant_id', type=int)
+    if requested_default_tenant_id and not is_superuser() and requested_default_tenant_id != current_tenant_id():
+        abort(403)
+    if u.is_builtin_admin:
+        # L'account locale admin è sempre superuser globale e non ha ruoli o
+        # tenant modificabili dalla gestione utenti. Consentiamo solo la
+        # manutenzione dei dati non autorizzativi, come l'email.
+        u.role = 'superuser'
+        u.default_tenant_id = None
+        if not u.tenant_id:
+            u.tenant_id = default_tenant().id
         db.session.commit()
-        audit_log('admin:user_update', {'user_id': u.id, 'username': u.username, 'role': u.role}, actor_type='user', commit=True)
-        flash('Utente aggiornato.')
-    return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
+        audit_log('admin:user_update', {'user_id': u.id, 'username': u.username, 'role': u.role, 'locked_builtin_admin': True}, actor_type='user', commit=True)
+        flash('Dati account aggiornati. L’utente admin resta superuser globale.')
+        return _admin_users_redirect(u.id)
+    if requested_default_tenant_id:
+        if not set_user_default_tenant(u, requested_default_tenant_id):
+            flash('Tenant attivo predefinito non valido per le membership dell’utente.', 'error')
+            return _admin_users_redirect(u.id)
+    elif not getattr(u, 'default_tenant_id', None):
+        active_membership = next((m for m in (u.tenant_roles or []) if m.normalized_role() != 'disabled'), None)
+        if active_membership:
+            u.default_tenant_id = active_membership.tenant_id
+    sync_user_legacy_identity(u)
+    db.session.commit()
+    audit_log('admin:user_update', {'user_id': u.id, 'username': u.username, 'default_tenant_id': u.default_tenant_id, 'effective_role': user_role_for_tenant(u, u.default_tenant_id)}, actor_type='user', commit=True)
+    flash('Utente aggiornato.')
+    return _admin_users_redirect(u.id)
+
+@bp.route('/admin/user/<int:uid>/tenant-role', methods=['POST'])
+@login_required
+def admin_user_tenant_role(uid):
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    user = manageable_user_or_404(uid) if not is_superuser() else (db.session.get(User, uid) or abort(404))
+    if user.is_builtin_admin:
+        flash('L’utente admin è sempre superuser globale: tenant e ruoli tenant-specifici non sono modificabili.', 'warning')
+        return _admin_users_redirect()
+    role = request.form.get('tenant_role') or 'disabled'
+    allowed_roles = ['admin','operator','reader','writer','disabled'] + (['superuser'] if is_superuser() else [])
+    if role not in allowed_roles:
+        role = 'disabled'
+    tenant_id = request.form.get('membership_tenant_id', type=int) if is_superuser() else current_tenant_id()
+    tenant_or_404(tenant_id)
+    if not is_superuser() and user_role_for_tenant(current_user, tenant_id) != 'admin':
+        abort(403)
+    upsert_user_tenant_role(user, tenant_id, role)
+    if role != 'disabled' and not getattr(user, 'default_tenant_id', None):
+        user.default_tenant_id = tenant_id
+    if role == 'disabled' and getattr(user, 'default_tenant_id', None) == tenant_id:
+        user.default_tenant_id = None
+    db.session.commit()
+    audit_log('admin:user_tenant_role_update', {'user_id': user.id, 'username': user.username, 'tenant_id': tenant_id, 'role': role}, actor_type='user', commit=True)
+    flash('Ruolo tenant aggiornato.')
+    return _admin_users_redirect(user.id)
+
+
+@bp.route('/admin/user/<int:uid>/tenant-role/delete', methods=['POST'])
+@login_required
+def admin_user_tenant_role_delete(uid):
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    user = manageable_user_or_404(uid) if not is_superuser() else (db.session.get(User, uid) or abort(404))
+    tenant_id = request.form.get('membership_tenant_id', type=int) if is_superuser() else current_tenant_id()
+    tenant_or_404(tenant_id)
+    if user.id == current_user.id and not is_superuser():
+        flash('Non è possibile rimuovere la propria membership amministrativa nel tenant attivo.', 'error')
+        return _admin_users_redirect()
+    if user.is_builtin_admin:
+        flash('L’utente admin è sempre superuser globale: tenant e ruoli tenant-specifici non sono rimovibili.', 'warning')
+        return _admin_users_redirect()
+    remove_user_tenant_role(user, tenant_id)
+    if getattr(user, 'default_tenant_id', None) == tenant_id:
+        remaining_active = [m for m in user.tenant_roles if m.tenant_id != tenant_id and m.normalized_role() != 'disabled']
+        user.default_tenant_id = remaining_active[0].tenant_id if remaining_active else None
+    sync_user_legacy_identity(user)
+    db.session.commit()
+    audit_log('admin:user_tenant_role_delete', {'user_id': user.id, 'username': user.username, 'tenant_id': tenant_id}, actor_type='user', commit=True)
+    flash('Membership tenant rimossa.')
+    return _admin_users_redirect(user.id)
+
+
+@bp.route('/admin/user/<int:uid>/password', methods=['POST'])
+@login_required
+def admin_user_password(uid):
+    if not is_superuser():
+        abort(403)
+    user = db.session.get(User, uid) or abort(404)
+    provider = user.auth_provider or ('ldap' if user.is_ldap else 'local')
+    if user.is_ldap or provider != 'local':
+        flash('La password può essere modificata solo per utenti con login locale.', 'error')
+        return _admin_users_redirect(user.id)
+    new_password = request.form.get('new_password') or ''
+    new_password2 = request.form.get('new_password2') or ''
+    if new_password != new_password2:
+        flash('Le password non coincidono.', 'error')
+        return _admin_users_redirect(user.id)
+    try:
+        validate_password_strength(new_password, username=user.username, email=user.email)
+    except ValueError as exc:
+        flash(str(exc), 'error')
+        return _admin_users_redirect(user.id)
+    user.password_hash = hash_password(new_password)
+    db.session.commit()
+    audit_log('admin:user_password_change', {'user_id': user.id, 'username': user.username, 'by': current_user.username}, actor_type='user', commit=True)
+    flash(f'Password locale aggiornata per {user.username}.')
+    return _admin_users_redirect(user.id)
+
 
 @bp.route('/admin/user/<int:uid>/delete',methods=['POST'])
 @login_required
 def admin_user_delete(uid):
     if not can_admin(): return redirect(url_for('main.index'))
-    user=model_or_404(User, uid)
+    user=manageable_user_or_404(uid)
     if user.id == current_user.id:
         flash('Non è possibile rimuovere il proprio utente amministratore durante la sessione corrente.', 'error')
-        return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
-    remaining_admins=User.query.filter(User.role=='admin', User.id!=user.id).count()
-    if user.role == 'admin' and remaining_admins < 1:
-        flash('Non è possibile rimuovere l’ultimo amministratore dell’applicazione.', 'error')
-        return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
+        return _admin_users_redirect()
+    if is_superuser():
+        remaining_admins=[candidate for candidate in User.query.filter(User.id!=user.id).all() if candidate.is_global_superuser]
+        if user.is_global_superuser and not remaining_admins:
+            flash('Non è possibile rimuovere l’ultimo superuser dell’applicazione.', 'error')
+            return _admin_users_redirect()
+    else:
+        tid = current_tenant_id()
+        remaining_admins = UserTenantRole.query.filter(UserTenantRole.tenant_id == tid, UserTenantRole.role == 'admin', UserTenantRole.user_id != user.id).count()
+        if user_role_for_tenant(user, tid) == 'admin' and remaining_admins < 1:
+            flash('Non è possibile rimuovere l’ultimo admin del tenant attivo.', 'error')
+            return _admin_users_redirect()
     username=user.username
     auth_provider=user.auth_provider or ('ldap' if user.is_ldap else 'local')
     # Conserva la storia operativa: incidenti, promemoria e audit restano presenti,
@@ -4147,11 +5797,12 @@ def admin_user_delete(uid):
     Incident.query.filter_by(creator_id=user.id).update({'creator_id': None}, synchronize_session=False)
     IncidentReminder.query.filter_by(created_by_id=user.id).update({'created_by_id': None}, synchronize_session=False)
     AuditLog.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+    UserTenantRole.query.filter_by(user_id=user.id).delete(synchronize_session=False)
     db.session.delete(user)
     db.session.commit()
     audit_log('admin:user_delete', {'deleted_user_id': uid, 'username': username}, actor_type='user', commit=True)
     flash(f'Utente {username} ({auth_provider}) rimosso. La cronologia degli incidenti e dell’audit è stata conservata.')
-    return redirect(url_for('main.admin_users', q=request.args.get('q') or None))
+    return _admin_users_redirect()
 @bp.route('/settings/password',methods=['GET','POST'])
 @login_required
 def change_password():
@@ -4462,7 +6113,7 @@ Notifica inviata da: %OPERATOR%""",
 DEFAULT_TEMPLATE_NAMES = {'user':'Esempio notifica utente','csirt':'Esempio notifica CSIRT','dpo':'Esempio notifica DPO'}
 
 def notification_type_records(enabled_only=True):
-    q = NotificationType.query
+    q = tenant_query(NotificationType)
     if enabled_only:
         q = q.filter_by(enabled=True)
     return q.order_by(NotificationType.label).all()
@@ -4474,7 +6125,7 @@ def notification_type_map(enabled_only=True):
     return {t.code: t.label for t in rows}
 
 def get_notification_type(kind):
-    t = NotificationType.query.filter_by(code=kind).first()
+    t = tenant_query(NotificationType).filter_by(code=kind).first()
     if t:
         return t
     # fallback compatibile con database precedenti
@@ -4487,16 +6138,6 @@ def get_notification_type(kind):
     t = NotificationType(code=kind, label=label, recipient_mode=mode, recipient_setting_key=recip_key, cc_setting_key=cc_key, enabled=True)
     db.session.add(t); db.session.commit()
     return t
-
-def setting_value(key, default=''):
-    s = db.session.get(Setting, key)
-    return decrypt_setting_value(key, s.value) if s and s.value is not None else default
-
-def set_setting_value(key, value):
-    s = db.session.get(Setting, key) or Setting(key=key)
-    s.value = store_setting_value(key, value or '')
-    db.session.merge(s)
-
 
 INCIDENT_FORM_FIELDS = [
     ('template', 'Modello predefinito', False),
@@ -4794,7 +6435,7 @@ def auto_selected_notification_documents(inc, template, kind=None):
     return selected
 
 def get_external_recipients():
-    return ExternalRecipient.query.order_by(ExternalRecipient.name, ExternalRecipient.email).all()
+    return tenant_query(ExternalRecipient).order_by(ExternalRecipient.name, ExternalRecipient.email).all()
 
 def ensure_external_recipients_from_addresses(addresses, names_by_email=None, default_name=None):
     names_by_email = names_by_email or {}
@@ -6445,9 +8086,55 @@ _deadline_scheduler_thread = None
 _incident_reminder_scheduler_thread = None
 _deadline_scheduler_lock = threading.Lock()
 _incident_reminder_scheduler_lock = threading.Lock()
+_deadline_scheduler_stop_event = threading.Event()
+_incident_reminder_scheduler_stop_event = threading.Event()
 _scheduler_mail_send_lock = threading.Lock()
 _CIR_SCHEDULER_LOCK_ID = 47110021
 _CIR_REMINDER_SCHEDULER_LOCK_ID = 47110022
+
+
+def _background_schedulers_disabled(app=None):
+    """Return True when in-process background schedulers must not start.
+
+    Production deployments keep the schedulers enabled by default.  Test runs
+    create many Flask app instances with short-lived SQLite databases; starting
+    long-running scheduler threads there leaves background workers bound to old
+    app contexts and can block interpreter shutdown after a complete pytest run.
+    The explicit opt-in keeps scheduler tests possible without impacting normal
+    application behaviour.
+    """
+    if os.getenv('CIR_DISABLE_BACKGROUND_SCHEDULERS', '').lower() in {'1', 'true', 'yes'}:
+        return True
+    if os.getenv('CIR_ENABLE_SCHEDULERS_DURING_TESTS', '').lower() in {'1', 'true', 'yes'}:
+        return False
+    if app is not None and app.config.get('TESTING'):
+        return True
+    return bool(os.getenv('PYTEST_CURRENT_TEST') or 'pytest' in sys.modules)
+
+
+def stop_background_schedulers(timeout=2.0):
+    """Ask all in-process scheduler threads to stop and wait briefly.
+
+    This is mainly useful for tests, development reloaders and embedded WSGI
+    hosts that dispose of an app object inside the same Python process.  Normal
+    Gunicorn/container shutdown is still handled by process termination.
+    """
+    global _deadline_scheduler_started, _incident_reminder_scheduler_started, _backup_scheduler_started
+    _deadline_scheduler_stop_event.set()
+    _incident_reminder_scheduler_stop_event.set()
+    try:
+        _backup_scheduler_stop_event.set()
+    except NameError:
+        pass
+    for thread in (_deadline_scheduler_thread, _incident_reminder_scheduler_thread, globals().get('_backup_scheduler_thread')):
+        if thread and thread.is_alive():
+            thread.join(timeout=timeout)
+    if not (_deadline_scheduler_thread and _deadline_scheduler_thread.is_alive()):
+        _deadline_scheduler_started = False
+    if not (_incident_reminder_scheduler_thread and _incident_reminder_scheduler_thread.is_alive()):
+        _incident_reminder_scheduler_started = False
+    if not (globals().get('_backup_scheduler_thread') and globals().get('_backup_scheduler_thread').is_alive()):
+        _backup_scheduler_started = False
 
 def _scheduler_poll_seconds_setting(key, default=60):
     """Legge un intervallo scheduler solo quando esiste un app context.
@@ -6516,23 +8203,28 @@ def start_deadline_notification_scheduler(app):
     global _deadline_scheduler_started, _deadline_scheduler_thread
     if _deadline_scheduler_started:
         return
+    if _background_schedulers_disabled(app):
+        app.logger.info('Scheduler notifiche task in scadenza non avviato nel contesto corrente')
+        return
     if os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() in {'0', 'false', 'no'}:
         app.logger.info('Scheduler notifiche task in scadenza disabilitato da CIR_ENABLE_DEADLINE_SCHEDULER')
         return
     # Evita il doppio thread quando si usa il reloader di Flask in sviluppo.
     if app.debug and os.environ.get('WERKZEUG_RUN_MAIN') == 'false':
         return
+    _deadline_scheduler_stop_event.clear()
     _deadline_scheduler_started = True
 
     def loop():
         with app.app_context():
             poll_seconds = deadline_scheduler_poll_seconds()
         app.logger.info('Scheduler notifiche task in scadenza avviato con poll=%ss', poll_seconds)
-        while True:
+        while not _deadline_scheduler_stop_event.is_set():
             with app.app_context():
                 poll_seconds = deadline_scheduler_poll_seconds()
             if not _deadline_scheduler_lock.acquire(blocking=False):
-                time.sleep(poll_seconds)
+                if _deadline_scheduler_stop_event.wait(poll_seconds):
+                    break
                 continue
             db_lock_acquired = False
             try:
@@ -6555,7 +8247,8 @@ def start_deadline_notification_scheduler(app):
                     except Exception:
                         app.logger.exception('Rilascio lock scheduler non completato')
                 _deadline_scheduler_lock.release()
-            time.sleep(poll_seconds)
+            if _deadline_scheduler_stop_event.wait(poll_seconds):
+                break
 
     t = threading.Thread(target=loop, name='cir-deadline-notification-scheduler', daemon=True)
     _deadline_scheduler_thread = t
@@ -6567,20 +8260,25 @@ def start_incident_reminder_scheduler(app):
     global _incident_reminder_scheduler_started, _incident_reminder_scheduler_thread
     if _incident_reminder_scheduler_started:
         return
+    if _background_schedulers_disabled(app):
+        app.logger.info('Scheduler promemoria specifici non avviato nel contesto corrente')
+        return
     if os.getenv('CIR_ENABLE_DEADLINE_SCHEDULER', '1').lower() in {'0', 'false', 'no'}:
         app.logger.info('Scheduler promemoria specifici disabilitato da CIR_ENABLE_DEADLINE_SCHEDULER')
         return
     if app.debug and os.environ.get('WERKZEUG_RUN_MAIN') == 'false':
         return
+    _incident_reminder_scheduler_stop_event.clear()
     _incident_reminder_scheduler_started = True
 
     def loop():
         app.logger.info('Scheduler promemoria specifici avviato')
-        while True:
+        while not _incident_reminder_scheduler_stop_event.is_set():
             with app.app_context():
                 poll_seconds = incident_reminder_poll_seconds()
             if not _incident_reminder_scheduler_lock.acquire(blocking=False):
-                time.sleep(poll_seconds)
+                if _incident_reminder_scheduler_stop_event.wait(poll_seconds):
+                    break
                 continue
             db_lock_acquired = False
             started = None
@@ -6607,7 +8305,8 @@ def start_incident_reminder_scheduler(app):
                     except Exception:
                         app.logger.exception('Rilascio lock scheduler promemoria non completato')
                 _incident_reminder_scheduler_lock.release()
-            time.sleep(poll_seconds)
+            if _incident_reminder_scheduler_stop_event.wait(poll_seconds):
+                break
 
     t = threading.Thread(target=loop, name='cir-incident-reminder-scheduler', daemon=True)
     _incident_reminder_scheduler_thread = t
@@ -7603,6 +9302,8 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
         'version': 4,
         'created_at': now,
         'schema': _export_schema_payload(),
+        'scope': 'global',
+        'scope_tenant_id': None,
         'tables': _export_tables_payload(),
         'relations': _export_relations_payload(),
         'files': {
@@ -7849,15 +9550,20 @@ def admin_backups():
 
 _backup_scheduler_started = False
 _backup_scheduler_thread = None
+_backup_scheduler_stop_event = threading.Event()
 
 def start_backup_scheduler(app):
     global _backup_scheduler_started, _backup_scheduler_thread
     if _backup_scheduler_started:
         return
+    if _background_schedulers_disabled(app):
+        app.logger.info('Scheduler backup non avviato nel contesto corrente')
+        return
+    _backup_scheduler_stop_event.clear()
     _backup_scheduler_started = True
     def loop():
         last_minute = None
-        while True:
+        while not _backup_scheduler_stop_event.is_set():
             try:
                 with app.app_context():
                     now = application_now().replace(second=0, microsecond=0)
@@ -7872,7 +9578,8 @@ def start_backup_scheduler(app):
                                     app.logger.exception('Backup schedulato fallito: %s', job.name)
             except Exception:
                 app.logger.exception('Scheduler backup fallito')
-            time.sleep(30)
+            if _backup_scheduler_stop_event.wait(30):
+                break
     t = threading.Thread(target=loop, name='cir-backup-scheduler', daemon=True)
     _backup_scheduler_thread = t
     t.start()
@@ -7956,19 +9663,22 @@ def _table_rows(table):
     return [_table_row(row) for row in db.session.execute(stmt).mappings().all()]
 
 FULL_EXPORT_MODELS = [
-    Setting, User, MfaTotpToken, ConfigLabel, IncidentWorkflowStep, Person, Recommendation,
-    NotificationType, NotificationTemplate, FormTemplateConfig,
+    Tenant, Setting, User, UserTenantRole, MfaTotpToken, ConfigLabel, IncidentWorkflowStep, Person, Recommendation,
+    AIChatbotDocument, NotificationType, NotificationTemplate, FormTemplateConfig,
     FormTemplateBinary, FormFieldMapping, IncidentTemplate, Incident, Action, Document,
     ActionAttachment, IncidentReminder, DeadlineNotificationState, ExternalRecipient, BackupJob, AuditLog,
 ]
 
 FULL_EXPORT_TABLES = {
+    'tenants': Tenant,
     'settings': Setting,
     'users': User,
+    'user_tenant_roles': UserTenantRole,
     'mfa_totp_tokens': MfaTotpToken,
     'config_labels': ConfigLabel,
     'people': Person,
     'recommendations': Recommendation,
+    'ai_chatbot_documents': AIChatbotDocument,
     'notification_types': NotificationType,
     'incident_workflow_steps': IncidentWorkflowStep,
     'notification_templates': NotificationTemplate,
@@ -7994,14 +9704,68 @@ FULL_EXPORT_RELATION_TABLES = {
     'incident_recommendations': incident_recommendations,
 }
 
-def _export_tables_payload():
+def _export_incident_ids_for_scope(scope_tenant_id=None):
+    if not scope_tenant_id:
+        return None
+    return [row[0] for row in db.session.query(Incident.id).filter(Incident.tenant_id == int(scope_tenant_id)).all()]
+
+
+def _export_user_ids_for_scope(scope_tenant_id=None):
+    if not scope_tenant_id:
+        return None
+    ids = {row[0] for row in db.session.query(UserTenantRole.user_id).filter(UserTenantRole.tenant_id == int(scope_tenant_id)).all()}
+    ids.update(row[0] for row in db.session.query(User.id).filter(User.tenant_id == int(scope_tenant_id)).all())
+    return sorted(ids)
+
+
+def _export_query_for_model(name, model, scope_tenant_id=None):
+    q = model.query
+    if not scope_tenant_id:
+        return q
+    tid = int(scope_tenant_id)
+    incident_ids = _export_incident_ids_for_scope(tid) or []
+    user_ids = _export_user_ids_for_scope(tid) or []
+    if model is Tenant:
+        return q.filter(Tenant.id == tid)
+    if model is Setting:
+        prefix = f'tenant:{tid}:%'
+        return q.filter(or_(Setting.key.in_(GLOBAL_SETTING_KEYS), Setting.key.like(prefix), ~Setting.key.like('tenant:%')) )
+    if model is User:
+        return q.filter(User.id.in_(user_ids or [-1]))
+    if model is UserTenantRole:
+        return q.filter(UserTenantRole.tenant_id == tid)
+    if model is MfaTotpToken:
+        return q.filter(MfaTotpToken.user_id.in_(user_ids or [-1]))
+    if model in (Action, Document, IncidentReminder, DeadlineNotificationState):
+        return q.filter(getattr(model, 'incident_id').in_(incident_ids or [-1]))
+    if model is ActionAttachment:
+        action_ids = [row[0] for row in db.session.query(Action.id).filter(Action.incident_id.in_(incident_ids or [-1])).all()]
+        return q.filter(ActionAttachment.action_id.in_(action_ids or [-1]))
+    if hasattr(model, 'tenant_id'):
+        return q.filter(model.tenant_id == tid)
+    return q
+
+
+def _export_tables_payload(scope_tenant_id=None):
     return {
-        name: [_row(x) for x in model.query.order_by(*model.__table__.primary_key.columns).all()]
+        name: [_row(x) for x in _export_query_for_model(name, model, scope_tenant_id).order_by(*model.__table__.primary_key.columns).all()]
         for name, model in FULL_EXPORT_TABLES.items()
     }
 
-def _export_relations_payload():
-    return {name: _table_rows(table) for name, table in FULL_EXPORT_RELATION_TABLES.items()}
+
+def _export_relations_payload(scope_tenant_id=None):
+    if not scope_tenant_id:
+        return {name: _table_rows(table) for name, table in FULL_EXPORT_RELATION_TABLES.items()}
+    incident_ids = set(_export_incident_ids_for_scope(scope_tenant_id) or [])
+    payload = {}
+    for name, table in FULL_EXPORT_RELATION_TABLES.items():
+        rows = _table_rows(table)
+        payload[name] = [row for row in rows if row.get('incident_id') in incident_ids]
+    return payload
+
+
+def can_global_export_import():
+    return is_superuser() or is_builtin_admin_user()
 
 def _export_schema_payload():
     schema = {
@@ -8106,8 +9870,9 @@ def export_full():
     - logo custom configurato e loghi applicativi statici.
     """
     if not can_admin():
-        flash('Permessi insufficienti per esportare tutti i dati applicativi','error')
+        flash('Permessi insufficienti per esportare i dati applicativi','error')
         return redirect(url_for('main.index'))
+    scope_tenant_id = None if can_global_export_import() else current_tenant_id()
 
     fd, path = tempfile.mkstemp(prefix='cir-full-export-', suffix='.tar.gz')
     os.close(fd)
@@ -8118,8 +9883,10 @@ def export_full():
         'version': 4,
         'created_at': now,
         'schema': _export_schema_payload(),
-        'tables': _export_tables_payload(),
-        'relations': _export_relations_payload(),
+        'scope': 'global' if scope_tenant_id is None else 'tenant',
+        'scope_tenant_id': scope_tenant_id,
+        'tables': _export_tables_payload(scope_tenant_id),
+        'relations': _export_relations_payload(scope_tenant_id),
         'files': {
             'documents': [
                 {
@@ -8164,6 +9931,17 @@ def export_full():
             'persistent_files': {},
         },
     }
+    if scope_tenant_id is not None:
+        scoped_incident_ids = set(_export_incident_ids_for_scope(scope_tenant_id) or [])
+        scoped_action_ids = {row[0] for row in db.session.query(Action.id).filter(Action.incident_id.in_(scoped_incident_ids or [-1])).all()}
+        payload['files']['documents'] = [
+            item for item in payload['files']['documents']
+            if (db.session.get(Document, item.get('document_id')) and db.session.get(Document, item.get('document_id')).incident_id in scoped_incident_ids)
+        ]
+        payload['files']['action_attachments'] = [
+            item for item in payload['files']['action_attachments']
+            if (db.session.get(ActionAttachment, item.get('attachment_id')) and db.session.get(ActionAttachment, item.get('attachment_id')).action_id in scoped_action_ids)
+        ]
     payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
 
     logo_setting = db.session.get(Setting, 'logo_path')
@@ -8282,7 +10060,9 @@ def import_csv():
                     except Exception: pass
                     try: end_at = datetime.fromisoformat(b.strip()) if b.strip() else None
                     except Exception: pass
+                tenant_id = current_tenant_id()
                 inc = Incident(
+                    tenant_id=tenant_id,
                     creator_id=current_user.id,
                     creator_name=current_user.name or current_user.username,
                     creator_email=current_user.email,
@@ -8296,9 +10076,9 @@ def import_csv():
                 )
                 people_text = row.get('personale') or ''
                 for pname in [p.strip() for p in people_text.split(',') if p.strip()]:
-                    person = Person.query.filter_by(name=pname).first()
+                    person = Person.query.filter_by(tenant_id=tenant_id, name=pname).first()
                     if not person:
-                        person = Person(name=pname, group='import')
+                        person = Person(tenant_id=tenant_id, name=pname, group='import')
                         db.session.add(person); db.session.flush()
                     inc.people.append(person)
                 sync_incident_split_datetime(inc)
@@ -8309,6 +10089,125 @@ def import_csv():
             current_app.logger.exception('Import CSV fallito')
             db.session.rollback(); flash(f'Import CSV fallito: {exc}','error')
     return render_template('import_csv.html')
+
+
+def _tenant_import_delete_existing_scope(tenant_id):
+    """Delete data owned by one tenant without touching global/shared records."""
+    tenant_id = int(tenant_id)
+    incident_ids = [row[0] for row in db.session.query(Incident.id).filter(Incident.tenant_id == tenant_id).all()]
+    action_ids = [row[0] for row in db.session.query(Action.id).filter(Action.incident_id.in_(incident_ids or [-1])).all()]
+    if incident_ids:
+        for table in [incident_people, incident_categories, incident_data_types, incident_recommendations]:
+            db.session.execute(table.delete().where(table.c.incident_id.in_(incident_ids)))
+    if action_ids:
+        ActionAttachment.query.filter(ActionAttachment.action_id.in_(action_ids)).delete(synchronize_session=False)
+    if incident_ids:
+        Document.query.filter(Document.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+        IncidentReminder.query.filter(IncidentReminder.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+        DeadlineNotificationState.query.filter(DeadlineNotificationState.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+        Action.query.filter(Action.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+        Incident.query.filter(Incident.id.in_(incident_ids)).delete(synchronize_session=False)
+    for model in [ConfigLabel, IncidentWorkflowStep, Person, Recommendation, NotificationType, NotificationTemplate, IncidentTemplate, ExternalRecipient, BackupJob, AIChatbotDocument, AuditLog]:
+        if hasattr(model, 'tenant_id'):
+            model.query.filter(model.tenant_id == tenant_id).delete(synchronize_session=False)
+    Setting.query.filter(Setting.key.startswith(f'tenant:{tenant_id}:')).delete(synchronize_session=False)
+    db.session.flush()
+
+
+def _tenant_scoped_rows(tables, name, tenant_id):
+    rows = []
+    for row in tables.get(name, []) or []:
+        row = dict(row or {})
+        if row.get('tenant_id') is not None:
+            row['tenant_id'] = int(tenant_id)
+        rows.append(row)
+    return rows
+
+
+def _ensure_incident_creator_exists(row):
+    creator_id = row.get('creator_id')
+    if creator_id and db.session.get(User, int(creator_id)):
+        return row
+    row['creator_id'] = current_user.id
+    row['creator_name'] = current_user.name or current_user.username
+    row['creator_email'] = current_user.email
+    return row
+
+
+def _import_tenant_scoped_archive(data, archive, target_tenant_id):
+    """Import a tenant-scoped archive into exactly one tenant.
+
+    This path is for tenant administrators. It is intentionally non-global: it
+    never rebuilds the database, never imports global users/MFA, never changes
+    other tenants, and refuses archives that were not produced as tenant scoped.
+    """
+    if data.get('scope') != 'tenant' or not data.get('scope_tenant_id'):
+        raise ValueError('Gli admin di tenant possono importare solo archivi esportati in modalità tenant.')
+    target_tenant_id = int(target_tenant_id)
+    if user_role_for_tenant(current_user, target_tenant_id) != 'admin':
+        raise ValueError('L’utente corrente non è admin del tenant di destinazione.')
+    tables = data.get('tables', {}) or {}
+    relations = data.get('relations', {}) or {}
+
+    _tenant_import_delete_existing_scope(target_tenant_id)
+
+    # Settings tenant-specifiche: rimappo sempre la chiave sul tenant di destinazione.
+    source_tid = str(data.get('scope_tenant_id'))
+    for row in tables.get('settings', []) or []:
+        key = str(row.get('key') or '')
+        if key in GLOBAL_SETTING_KEYS or not key.startswith('tenant:'):
+            continue
+        parts = key.split(':', 2)
+        if len(parts) == 3 and parts[1] == source_tid:
+            row = dict(row)
+            row['key'] = f'tenant:{target_tenant_id}:{parts[2]}'
+            db.session.merge(Setting(**_coerce_row_for_model(Setting, row)))
+
+    # Utenti e ruoli globali non vengono importati da admin tenant. Se un record
+    # incidente punta a un utente non presente, viene assegnato all'admin corrente.
+    import_order = [
+        ('config_labels', ConfigLabel), ('people', Person), ('recommendations', Recommendation),
+        ('ai_chatbot_documents', AIChatbotDocument), ('incident_templates', IncidentTemplate),
+        ('incident_workflow_steps', IncidentWorkflowStep), ('notification_types', NotificationType),
+        ('notification_templates', NotificationTemplate), ('external_recipients', ExternalRecipient),
+        ('backup_jobs', BackupJob), ('audit_logs', AuditLog),
+    ]
+    for table_name, model in import_order:
+        for row in _tenant_scoped_rows(tables, table_name, target_tenant_id):
+            db.session.add(model(**_coerce_row_for_model(model, row)))
+    db.session.flush()
+
+    for row in _tenant_scoped_rows(tables, 'incidents', target_tenant_id):
+        coerced = _coerce_row_for_model(Incident, row)
+        coerced = _ensure_incident_creator_exists(coerced)
+        if not (coerced.get('reference') or '').strip():
+            coerced['reference'] = f"Incidente #{coerced.get('id') or coerced.get('name') or 'importato'}"
+        db.session.add(Incident(**coerced))
+    db.session.flush()
+
+    for table_name, model in [('actions', Action), ('documents', Document), ('action_attachments', ActionAttachment), ('incident_reminders', IncidentReminder), ('deadline_notification_states', DeadlineNotificationState)]:
+        for row in tables.get(table_name, []) or []:
+            db.session.add(model(**_coerce_row_for_model(model, row)))
+    db.session.flush()
+
+    for rel_name, table in FULL_EXPORT_RELATION_TABLES.items():
+        for row in relations.get(rel_name, []) or []:
+            db.session.execute(table.insert().values(**_relation_row_for_table(table, row)))
+
+    os.makedirs(current_app.config['UPLOAD_DIR'], exist_ok=True)
+    for group in ['documents', 'action_attachments']:
+        for item in data.get('files', {}).get(group, []) or []:
+            arcname = item.get('archive_path')
+            stored = secure_filename(item.get('stored_name') or '')
+            if not arcname or not stored:
+                continue
+            try:
+                src = archive.extractfile(archive.getmember(arcname))
+            except KeyError:
+                current_app.logger.warning('File %s mancante nell export tenant: %s', group, arcname)
+                continue
+            with open(os.path.join(current_app.config['UPLOAD_DIR'], stored), 'wb') as out:
+                shutil.copyfileobj(src, out)
 
 @bp.route('/import/full', methods=['GET','POST'])
 @login_required
@@ -8333,6 +10232,13 @@ def import_full():
                 data = json.load(archive.extractfile(member))
                 if data.get('format') != 'cybersecurity-incident-registry-full-export':
                     raise ValueError('Formato export completo non riconosciuto')
+                if not can_global_export_import():
+                    target_tenant_id = current_tenant_id()
+                    _import_tenant_scoped_archive(data, archive, target_tenant_id)
+                    purge_audit_logs()
+                    db.session.commit()
+                    flash('Import tenant completato: sono stati sostituiti solo dati e configurazioni del tenant attivo. Utenti globali, altri tenant e configurazioni condivise non sono stati modificati.', 'info')
+                    return redirect(url_for('main.index'))
                 tables = data.get('tables', {})
                 relations = data.get('relations', {})
 
@@ -8342,43 +10248,70 @@ def import_full():
                 # ripristino con ID espliciti contenuti nell'export.
                 rebuild_database_for_full_import()
 
+                # Anche dopo drop/create possono esistere righe bootstrap create
+                # da hook o migrazioni. Svuotiamo esplicitamente e ripristiniamo
+                # tenant deduplicati per evitare ix_tenant_name su default.
+                clear_database_rows_for_full_import()
+
+                for row in _deduplicated_tenant_rows(tables.get('tenants', [])):
+                    db.session.add(Tenant(**row))
+                db.session.flush()
+                import_default_tenant_id = _legacy_default_tenant_id()
+
                 for row in tables.get('settings', []):
                     db.session.add(Setting(**_coerce_row_for_model(Setting, row)))
                 for row in tables.get('users', []):
-                    db.session.add(User(**_coerce_row_for_model(User, row)))
+                    db.session.add(User(**_coerce_row_for_full_import(User, row, import_default_tenant_id)))
+                db.session.flush()
+                for user in User.query.all():
+                    if getattr(user, 'is_builtin_admin', False) or user.username == 'admin':
+                        user.role = 'superuser'
+                        user.default_tenant_id = None
+                    elif not getattr(user, 'default_tenant_id', None):
+                        user.default_tenant_id = user.tenant_id or import_default_tenant_id
+                db.session.flush()
+
+                for row in _deduplicated_user_tenant_role_rows(tables.get('user_tenant_roles', []), import_default_tenant_id):
+                    db.session.add(UserTenantRole(**row))
+                if not tables.get('user_tenant_roles'):
+                    for user in User.query.all():
+                        role = 'superuser' if getattr(user, 'is_builtin_admin', False) or user.username == 'admin' else (user.role or 'disabled')
+                        db.session.add(UserTenantRole(user_id=user.id, tenant_id=user.tenant_id or import_default_tenant_id, role=role))
                 db.session.flush()
 
                 for row in tables.get('mfa_totp_tokens', []):
                     db.session.add(MfaTotpToken(**_coerce_row_for_model(MfaTotpToken, row)))
                 for row in tables.get('audit_logs', []):
-                    db.session.add(AuditLog(**_coerce_row_for_model(AuditLog, row)))
+                    db.session.add(AuditLog(**_coerce_row_for_full_import(AuditLog, row, import_default_tenant_id)))
                 db.session.flush()
 
                 for row in tables.get('config_labels', []):
-                    db.session.add(ConfigLabel(**_coerce_row_for_model(ConfigLabel, row)))
+                    db.session.add(ConfigLabel(**_coerce_row_for_full_import(ConfigLabel, row, import_default_tenant_id)))
                 for row in tables.get('people', []):
-                    db.session.add(Person(**_coerce_row_for_model(Person, row)))
+                    db.session.add(Person(**_coerce_row_for_full_import(Person, row, import_default_tenant_id)))
                 for row in tables.get('recommendations', []):
-                    db.session.add(Recommendation(**_coerce_row_for_model(Recommendation, row)))
+                    db.session.add(Recommendation(**_coerce_row_for_full_import(Recommendation, row, import_default_tenant_id)))
+                for row in tables.get('ai_chatbot_documents', []):
+                    db.session.add(AIChatbotDocument(**_coerce_row_for_full_import(AIChatbotDocument, row, import_default_tenant_id)))
                 db.session.flush()
 
                 for row in tables.get('incident_templates', []):
-                    db.session.add(IncidentTemplate(**_coerce_row_for_model(IncidentTemplate, row)))
+                    db.session.add(IncidentTemplate(**_coerce_row_for_full_import(IncidentTemplate, row, import_default_tenant_id)))
                 for row in tables.get('incident_workflow_steps', []):
-                    db.session.add(IncidentWorkflowStep(**_coerce_row_for_model(IncidentWorkflowStep, row)))
+                    db.session.add(IncidentWorkflowStep(**_coerce_row_for_full_import(IncidentWorkflowStep, row, import_default_tenant_id)))
 
                 for row in tables.get('notification_types', []):
-                    db.session.add(NotificationType(**_coerce_row_for_model(NotificationType, row)))
+                    db.session.add(NotificationType(**_coerce_row_for_full_import(NotificationType, row, import_default_tenant_id)))
                 db.session.flush()
 
                 for row in tables.get('notification_templates', []):
-                    db.session.add(NotificationTemplate(**_coerce_row_for_model(NotificationTemplate, row)))
+                    db.session.add(NotificationTemplate(**_coerce_row_for_full_import(NotificationTemplate, row, import_default_tenant_id)))
                 db.session.flush()
 
                 for row in tables.get('external_recipients', []):
-                    db.session.add(ExternalRecipient(**_coerce_row_for_model(ExternalRecipient, row)))
+                    db.session.add(ExternalRecipient(**_coerce_row_for_full_import(ExternalRecipient, row, import_default_tenant_id)))
                 for row in tables.get('backup_jobs', []):
-                    db.session.add(BackupJob(**_coerce_row_for_model(BackupJob, row)))
+                    db.session.add(BackupJob(**_coerce_row_for_full_import(BackupJob, row, import_default_tenant_id)))
                 db.session.flush()
 
                 for row in tables.get('form_field_mappings', []):
@@ -8395,7 +10328,7 @@ def import_full():
                 db.session.flush()
 
                 for row in tables.get('incidents', []):
-                    coerced = _coerce_row_for_model(Incident, row)
+                    coerced = _coerce_row_for_full_import(Incident, row, import_default_tenant_id)
                     if not (coerced.get('reference') or '').strip():
                         coerced['reference'] = f"Incidente #{coerced.get('id') or coerced.get('name') or 'importato'}"
                     db.session.add(Incident(**coerced))
@@ -8532,8 +10465,13 @@ def import_full():
             # Garantisce che anche gli archivi storici precedenti alla regola del campo obbligatorio
             # producano incidenti sempre completi dopo il Full import.
             db.session.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
-            purge_audit_logs()
+            purge_audit_logs_without_request_user(import_default_tenant_id)
             db.session.commit()
+            # Dopo il restore con ID espliciti, riallineiamo tutte le sequence in
+            # una nuova transazione visibile a PostgreSQL. Questo evita che la
+            # prima operazione successiva, ad esempio la creazione di un tenant
+            # clonato, generi duplicate key su config_label_pkey o altre PK.
+            align_all_table_sequences()
             flash('Import completo completato: database distrutto e ricreato, configurazioni, audit log, utenti, MFA, notifiche, logo, documenti, allegati e template moduli PDF ripristinati. I record audit oltre retention sono stati eliminati.','info')
             return redirect(url_for('main.index'))
         except Exception as exc:
@@ -9057,20 +10995,31 @@ def recommendations_from_form(field='recommendations'):
         ids = ids[:limit]
     if not ids:
         return []
-    return Recommendation.query.filter(Recommendation.id.in_(ids)).order_by(Recommendation.text).all()
+    return tenant_query(Recommendation).filter(Recommendation.id.in_(ids)).order_by(Recommendation.text).all()
 
 def setting_value(key, default=''):
-    s=db.session.get(Setting, key)
+    physical_key = tenant_setting_key(key)
+    s=db.session.get(Setting, physical_key)
+    if not s and physical_key != key:
+        s=db.session.get(Setting, key)
     return decrypt_setting_value(key, s.value) if s and s.value is not None else default
 
 def set_setting_value(key, value):
-    s=db.session.get(Setting, key)
+    physical_key = tenant_setting_key(key)
+    s=db.session.get(Setting, physical_key)
     encrypted = store_setting_value(key, value or '')
     if not s:
-        s=Setting(key=key,value=encrypted)
+        s=Setting(key=physical_key,value=encrypted)
         db.session.add(s)
     else:
         s.value=encrypted
+    try:
+        if physical_key != key and current_tenant_id() == default_tenant().id:
+            legacy = db.session.get(Setting, key)
+            if legacy is not None:
+                legacy.value = encrypted
+    except Exception:
+        pass
     return s
 
 
