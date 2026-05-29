@@ -1,3 +1,10 @@
+
+## 0.6.0-3 - main incident list UI refinement
+- Riorganizzata la pagina principale incidenti con sezioni collassabili per ricerca, ordinamento mobile e azioni massive.
+- Eliminato il selettore ridondante mobile "Incidenti per pagina" dalla sezione di ordinamento, mantenendolo in "Incidenti registrati".
+- Rese collassabili per default le schede incidente mobile, mantenendo la selezione disponibile anche a scheda chiusa.
+- Rese più compatte e leggibili le date/ore di inizio e fine negli elenchi incidenti.
+
 0.6.0-3 notification type tenant clone hotfix
 - Corretto l'errore PostgreSQL duplicate key su ix_notification_type_code durante la creazione o clonazione di un tenant.
 - La migrazione rimuove anche gli indici UNIQUE legacy su colonne non tenant-scoped, non solo i vincoli espliciti, e crea il vincolo tenant-aware su tenant_id + code.

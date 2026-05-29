@@ -46,7 +46,7 @@
   {%- endif -%}
 {%- endmacro %}
 
-<div class="card">
+<div class="card incident-list-header-card">
   <div class="page-header">
     <div>
       <h2>Incidenti registrati</h2>
@@ -56,54 +56,67 @@
       <a class="button" href="{{ url_for('main.incident_new') }}">Nuovo incidente</a>
     {% endif %}
   </div>
-  <form class="toolbar" method="get" action="{{ url_for('main.index') }}">
+  <form class="per-page-toolbar" method="get" action="{{ url_for('main.index') }}">
+    <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+    <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
+    <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
+    <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
     <input type="hidden" name="sort" value="{{ sort }}">
     <input type="hidden" name="dir" value="{{ direction }}">
     <input type="hidden" name="page" value="1">
-    <div><label>Parole chiave</label><input name="q" value="{{ request.args.get('q','') }}"></div>
+    <label for="incident-per-page">Incidenti per pagina</label>
+    <select id="incident-per-page" name="per_page" onchange="this.form.submit()">
+      {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<details class="card collapsible-section incident-search-section">
+  <summary>Cerca incidenti</summary>
+  <form class="toolbar" method="get" action="{{ url_for('main.index') }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="dir" value="{{ direction }}">
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <input type="hidden" name="page" value="1">
+    <div><label>Parola chiave</label><input name="q" value="{{ request.args.get('q','') }}"></div>
     <div><label>Label azione</label><input name="label" value="{{ request.args.get('label','') }}"></div>
     <div><label>Da</label><input name="start" type="datetime-local" value="{{ request.args.get('start','') }}"></div>
     <div><label>A</label><input name="end" type="datetime-local" value="{{ request.args.get('end','') }}"></div>
-    <div><label>Incidenti per pagina</label><select name="per_page" onchange="this.form.submit()">
-      {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
-    </select></div>
     <button>Cerca</button>
     <a class="button secondary" href="{{ url_for('main.index') }}">Reset</a>
   </form>
-  <div class="mobile-sort">
-    <form class="form-grid" method="get" action="{{ url_for('main.index') }}">
-      <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-      <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
-      <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
-      <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
-      <input type="hidden" name="page" value="1">
-      <div><label>Ordina per</label><select name="sort">
-        <option value="name" {% if sort=='name' %}selected{% endif %}>Nome</option>
-        <option value="start_at" {% if sort=='start_at' %}selected{% endif %}>Inizio / fine</option>
-        <option value="creator_name" {% if sort=='creator_name' %}selected{% endif %}>Compilatore</option>
-        <option value="people" {% if sort=='people' %}selected{% endif %}>Personale coinvolto</option>
-        <option value="status" {% if sort=='status' %}selected{% endif %}>Stato</option>
-        <option value="duration" {% if sort=='duration' %}selected{% endif %}>Durata</option>
-      </select></div>
-      <div><label>Direzione</label><select name="dir">
-        <option value="asc" {% if direction=='asc' %}selected{% endif %}>Crescente</option>
-        <option value="desc" {% if direction=='desc' %}selected{% endif %}>Decrescente</option>
-      </select></div>
-      <div><label>Incidenti per pagina</label><select name="per_page">
-        {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
-      </select></div>
-      <button class="wide">Applica ordinamento</button>
-    </form>
-  </div>
-</div>
+</details>
+
+<details class="card collapsible-section mobile-sort">
+  <summary>Ordinamento</summary>
+  <form class="form-grid" method="get" action="{{ url_for('main.index') }}">
+    <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+    <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
+    <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
+    <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <input type="hidden" name="page" value="1">
+    <div><label>Ordina per</label><select name="sort">
+      <option value="name" {% if sort=='name' %}selected{% endif %}>Nome</option>
+      <option value="start_at" {% if sort=='start_at' %}selected{% endif %}>Inizio / fine</option>
+      <option value="creator_name" {% if sort=='creator_name' %}selected{% endif %}>Compilatore</option>
+      <option value="people" {% if sort=='people' %}selected{% endif %}>Personale coinvolto</option>
+      <option value="status" {% if sort=='status' %}selected{% endif %}>Stato</option>
+      <option value="duration" {% if sort=='duration' %}selected{% endif %}>Durata</option>
+    </select></div>
+    <div><label>Direzione</label><select name="dir">
+      <option value="asc" {% if direction=='asc' %}selected{% endif %}>Crescente</option>
+      <option value="desc" {% if direction=='desc' %}selected{% endif %}>Decrescente</option>
+    </select></div>
+    <button class="wide">Applica ordinamento</button>
+  </form>
+</details>
 
 {% if incidents and (current_user_is_superuser or current_tenant_role in ['superuser','admin','writer']) %}
-<div class="card bulk-incident-card">
+<details class="card collapsible-section bulk-incident-card">
+  <summary>Azioni sugli incidenti selezionati</summary>
   <div class="bulk-incident-header">
-    <div>
-      <h3>Azioni sugli incidenti selezionati</h3>
-      <p class="muted">Seleziona uno o più incidenti nella lista oppure usa “seleziona tutto” per la pagina corrente.</p>
-    </div>
+    <p class="muted">Seleziona uno o più incidenti nella lista oppure usa “seleziona tutto” per la pagina corrente.</p>
     <label class="select-all-inline"><input type="checkbox" data-incident-select-all> Seleziona tutto</label>
   </div>
   <div class="bulk-incident-actions">
@@ -135,7 +148,7 @@
     </form>
     {% endif %}
   </div>
-</div>
+</details>
 {% endif %}
 
 <div class="card table-card">
@@ -143,24 +156,29 @@
     {% for i in incidents %}
     <article class="incident-card-mobile {% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
       <label class="incident-select-mobile"><input type="checkbox" class="incident-select" value="{{ i.id }}"> Seleziona</label>
-      <h3>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></h3>
-      <div class="mobile-meta">
-        <div><strong>Inizio / fine</strong>{{ i.start_at }}{% if i.end_at %}<br>{{ i.end_at }}{% endif %}</div>
-        <div><strong>Compilatore</strong>{{ i.creator_name }}</div>
-        <div><strong>Personale coinvolto</strong>{{ i.people|map(attribute='name')|sort|join(', ') or '—' }}</div>
-        <div><strong>Stato</strong>{{ i.status }}</div>
-        <div><strong>Durata</strong>{% if i.actions|length > 1 %}{{ (i.actions|sort(attribute='when_at')|last).when_at - (i.actions|sort(attribute='when_at')|first).when_at }}{% else %}—{% endif %}</div>
-      </div>
-      <div class="mobile-actions">
-        <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
-        {{ tenant_move_control(i, compact=True) }}
-        {% if current_tenant_role in ['superuser','admin','writer'] %}<a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>{% endif %}
-        {% if current_tenant_role in ['superuser','admin','writer'] %}
-          <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
-            <button class="danger" type="submit">Elimina</button>
-          </form>
-        {% endif %}
-      </div>
+      <details class="incident-mobile-details">
+        <summary>
+          <span class="incident-mobile-title">{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></span>
+          <span class="incident-datetime-compact">{{ i.start_at.strftime('%d/%m/%Y %H:%M') if i.start_at else '—' }}{% if i.end_at %} → {{ i.end_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span>
+        </summary>
+        <div class="mobile-meta">
+          <div><strong>Inizio / fine</strong><span class="incident-datetime-compact">{{ i.start_at.strftime('%d/%m/%Y %H:%M') if i.start_at else '—' }}{% if i.end_at %}<br>{{ i.end_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span></div>
+          <div><strong>Compilatore</strong>{{ i.creator_name }}</div>
+          <div><strong>Personale coinvolto</strong>{{ i.people|map(attribute='name')|sort|join(', ') or '—' }}</div>
+          <div><strong>Stato</strong>{{ i.status }}</div>
+          <div><strong>Durata</strong>{% if i.actions|length > 1 %}{{ (i.actions|sort(attribute='when_at')|last).when_at - (i.actions|sort(attribute='when_at')|first).when_at }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="mobile-actions">
+          <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
+          {{ tenant_move_control(i, compact=True) }}
+          {% if current_tenant_role in ['superuser','admin','writer'] %}<a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>{% endif %}
+          {% if current_tenant_role in ['superuser','admin','writer'] %}
+            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
+              <button class="danger" type="submit">Elimina</button>
+            </form>
+          {% endif %}
+        </div>
+      </details>
     </article>
     {% else %}
       <p class="empty">Nessun incidente trovato.</p>
@@ -184,7 +202,7 @@
       <tr class="{% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
         <td class="incident-select-col"><input type="checkbox" class="incident-select" value="{{ i.id }}" aria-label="Seleziona incidente {{ i.name }}"></td>
         <td>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
-        <td>{{ i.start_at }}<br>{{ i.end_at or '' }}</td>
+        <td><span class="incident-datetime-compact">{{ i.start_at.strftime('%d/%m/%Y %H:%M') if i.start_at else '—' }}{% if i.end_at %}<br>{{ i.end_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span></td>
         <td>{{ i.creator_name }}</td>
         <td>{{ i.people|map(attribute='name')|sort|join(', ') }}</td>
         <td>{{ i.status }}</td>

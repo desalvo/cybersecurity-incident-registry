@@ -800,3 +800,20 @@ def test_superuser_can_reset_local_user_password_from_admin_users(monkeypatch, t
     with app.app_context():
         user = db.session.get(User, uid)
         assert verify_password(user.password_hash, 'NuovaCredenziale123!')
+
+
+def test_index_main_page_uses_collapsible_search_sort_bulk_and_mobile_cards():
+    template = open('app/templates/index.html', encoding='utf-8').read()
+    assert '<summary>Cerca incidenti</summary>' in template
+    assert '<summary>Ordinamento</summary>' in template
+    assert '<summary>Azioni sugli incidenti selezionati</summary>' in template
+    assert '<label>Parola chiave</label>' in template
+    assert '<label>Incidenti per pagina</label><select name="per_page"' not in template
+    assert '<form class="per-page-toolbar"' in template
+    assert '<details class="incident-mobile-details">' in template
+    assert '<label class="incident-select-mobile"><input type="checkbox" class="incident-select"' in template
+    assert "strftime('%d/%m/%Y %H:%M')" in template
+    style = open('app/static/style.css', encoding='utf-8').read()
+    assert '.collapsible-section > summary' in style
+    assert '.incident-mobile-details > summary' in style
+    assert '.incident-datetime-compact' in style
