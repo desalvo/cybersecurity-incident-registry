@@ -1,3 +1,15 @@
+0.6.0-3 notification type tenant clone hotfix
+- Corretto l'errore PostgreSQL duplicate key su ix_notification_type_code durante la creazione o clonazione di un tenant.
+- La migrazione rimuove anche gli indici UNIQUE legacy su colonne non tenant-scoped, non solo i vincoli espliciti, e crea il vincolo tenant-aware su tenant_id + code.
+- I tipi di notifica predefiniti vengono creati nel tenant default e non piu' come righe globali, cosi' i tenant clonati possono avere i propri tipi senza conflitti.
+- Aggiunti test di regressione per migrazione PostgreSQL e bootstrap dei NotificationType tenant-scoped.
+
+0.6.0-3 admin plugins menu cleanup
+- Spostate le configurazioni AI Chatbot sotto Admin -> Plugins -> Chatbot AI.
+- Spostate le configurazioni Alfresco sotto Admin -> Plugins -> Alfresco.
+- Rimossa la scheda Alfresco dalla pagina Chatbot AI per mantenere le configurazioni plugin separate.
+- Spostata la nota introduttiva sul plugin Alfresco dal primo riquadro della documentazione amministrativa al capitolo operativo sui plugin.
+
 0.6.0-3 admin user state and password hotfix
 - Dopo l'aggiornamento dei dati di un utente, la pagina Admin -> Utenti conserva i filtri, riapre la scheda dell'utente modificato e scorre allo stesso record tramite ancora dedicata.
 - L'utente locale admin e tutti i superuser possono aggiornare la password degli utenti con login locale dalla scheda utente.

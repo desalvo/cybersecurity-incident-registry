@@ -1737,12 +1737,12 @@ L’import è sempre in due fasi: caricamento e preview, poi applicazione. La pr
 Caratteristiche principali:
 
 - disattivato per default;
-- attivabile da **Admin → Plugins**;
+- attivabile da **Admin → Plugins → Chatbot AI**;
 - un solo motore AI attivo alla volta;
 - motori configurabili: ChatGPT, Claude, Gemini, Ollama e Perplexity;
 - configurazione separata per modello, endpoint e API key di ogni motore; le API key già presenti sono mostrate in interfaccia solo come valore offuscato non reversibile e non vengono mai reinserite nel valore HTML del campo; un campo vuoto mantiene la chiave esistente, mentre una nuova API key digitata la sovrascrive;
 - knowledge base costruita dalle definizioni progettuali, dai README, dal changelog e dalle pagine di help dell’applicazione;
-- caricamento di documenti procedurali aggiuntivi da **Admin → Plugins → Gestisci documenti chatbot**;
+- caricamento di documenti procedurali aggiuntivi da **Admin → Plugins → Chatbot AI → Gestisci documenti chatbot**;
 - i documenti testuali caricati vengono indicizzati come contesto operativo;
 - audit per configurazione, upload documenti, domande ed errori del chatbot;
 - full export/import include anche tabella e volume persistente dei documenti del chatbot.
@@ -1753,11 +1753,11 @@ Il chatbot è pensato per assistere gli operatori su funzionalità applicative, 
 
 ### Gestione sicura API key AI Chatbot
 
-Nella pagina **Admin → Plugins** le API key dei motori AI non sono mai visualizzate in chiaro. Quando una chiave è presente, l'interfaccia mostra soltanto un indicatore offuscato con suffisso parziale, utile a capire che il segreto esiste senza esporlo. Il campo di inserimento resta vuoto: lasciandolo vuoto si conserva la chiave già salvata, mentre digitando un nuovo valore la chiave precedente viene sovrascritta. Gli aggiornamenti vengono registrati nell'audit log indicando solo quali motori sono stati sovrascritti, senza memorizzare il valore della chiave.
+Nella pagina **Admin → Plugins → Chatbot AI** le API key dei motori AI non sono mai visualizzate in chiaro. Quando una chiave è presente, l'interfaccia mostra soltanto un indicatore offuscato con suffisso parziale, utile a capire che il segreto esiste senza esporlo. Il campo di inserimento resta vuoto: lasciandolo vuoto si conserva la chiave già salvata, mentre digitando un nuovo valore la chiave precedente viene sovrascritta. Gli aggiornamenti vengono registrati nell'audit log indicando solo quali motori sono stati sovrascritti, senza memorizzare il valore della chiave.
 
 ### Contesto database sanitizzato per AI Chatbot
 
-Il plugin **AI Chatbot** può essere configurato per includere nel prompt anche uno snapshot sanitizzato del database corrente. La funzione è controllata dalla setting `ai_chatbot_include_database_context`, disattivata per default e modificabile da **Admin → Plugins**.
+Il plugin **AI Chatbot** può essere configurato per includere nel prompt anche uno snapshot sanitizzato del database corrente. La funzione è controllata dalla setting `ai_chatbot_include_database_context`, disattivata per default e modificabile da **Admin → Plugins → Chatbot AI**.
 
 L'implementazione è isolata nel plugin, nel file `app/plugins/ai_chatbot/database_context.py`, e non richiede modifiche al core applicativo. Prima di inviare contenuti al motore AI vengono esclusi dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari, certificati, chiavi, audit dettagliati e campi testuali liberi che possono contenere informazioni identificative. Le tabelle intrinsecamente personali o binarie, come utenti, rubrica esterna, token MFA, documenti chatbot e binari dei template PDF, sono escluse o rappresentate solo con metadati non identificativi.
 
@@ -1882,7 +1882,7 @@ La configurazione dei workflow supporta la clonazione completa degli step tra so
 
 ### Plugin Alfresco
 
-È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugins → Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
 
 ## Aggiornamento 0.6.0-3 - Gestione multi-tenant completa
 
@@ -1924,3 +1924,7 @@ La pagina `Admin -> Utenti` espone una ricerca strutturata per username, nome, e
 
 La clonazione dei tenant e dei workflow riusa sempre le label esistenti nel tenant di destinazione in base alla chiave funzionale `tenant_id`, `kind`, `value`. In presenza di backup legacy con label non tenantizzate (`tenant_id` nullo), la procedura le assorbe nel tenant `default` o le fonde con la label tenant-specifica equivalente, rimappando incidenti, template, workflow, notifiche e azioni alla label canonica. La pagina di gestione label mostra solo il tenant attivo anche per i superuser, così non espone duplicati apparenti provenienti da altri tenant.
 
+
+### Hotfix notifiche tenant-scoped PostgreSQL
+
+La migrazione multi-tenant rimuove sia i vincoli UNIQUE legacy sia gli indici UNIQUE generati da SQLAlchemy sulle chiavi non tenant-scoped. In particolare `notification_type.code` non deve piu' essere univoco globalmente: la chiave funzionale e' `tenant_id + code`. I tipi di notifica predefiniti vengono inizializzati nel tenant `default`, mentre clonazione tenant e workflow riusano o creano le righe nel tenant destinazione senza duplicare codici nello stesso tenant.

@@ -88,7 +88,7 @@ Aggiornamento 0.6.0-3: nella pagina **Flussi operativi incidenti** è possibile 
 
 ### Plugin Alfresco
 
-È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugins → Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
 
 
 ## Multi-tenancy

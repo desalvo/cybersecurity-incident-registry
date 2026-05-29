@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="card">
-  <h2>Plugin Alfresco</h2>
+  <h2>Alfresco</h2>
   <p class="muted">Il plugin consente di caricare e scaricare documenti incidente anche da Alfresco tramite API REST. È disabilitato per default.</p>
   <form method="post" class="stacked-form">
-    <label class="checkbox-row"><input type="checkbox" name="plugin_alfresco_enabled" value="1" {% if config.enabled %}checked{% endif %}> <span>Abilita plugin Alfresco</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="plugin_alfresco_enabled" value="1" {% if config.enabled %}checked{% endif %}> <span>Abilita Alfresco</span></label>
     <label for="alfresco_base_url">URL base Alfresco</label>
     <input id="alfresco_base_url" name="alfresco_base_url" value="{{ config.base_url }}" placeholder="https://alfresco.example.org">
     <label for="alfresco_username">Username API</label>

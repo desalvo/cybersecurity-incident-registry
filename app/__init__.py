@@ -341,6 +341,7 @@ def run_schema_migrations(app):
                     continue
                 try:
                     unique_constraints = inspector.get_unique_constraints(table_name)
+                    indexes = inspector.get_indexes(table_name)
                     with db.engine.begin() as conn:
                         has_new = False
                         for constraint in unique_constraints:
@@ -351,6 +352,23 @@ def run_schema_migrations(app):
                             if name and cols_for_constraint == legacy_cols:
                                 safe_name = name.replace('"', '')
                                 conn.execute(text(f'ALTER TABLE "{table_name}" DROP CONSTRAINT IF EXISTS "{safe_name}"'))
+                        # Alcune versioni pre-multitenant avevano indici UNIQUE
+                        # generati da SQLAlchemy (es. ix_notification_type_code)
+                        # invece di vincoli espliciti. Vanno rimossi, altrimenti
+                        # la clonazione di un tenant fallisce quando crea nel tenant
+                        # destinazione un codice gia' esistente nel tenant sorgente
+                        # (ad esempio notification_type.code = 'user').
+                        for index in indexes:
+                            cols_for_index = index.get('column_names') or []
+                            index_name = (index.get('name') or '').replace('"', '')
+                            if index.get('unique') and index_name and cols_for_index == legacy_cols:
+                                conn.execute(text(f'DROP INDEX IF EXISTS "{index_name}"'))
+                        if table_name == 'notification_type':
+                            conn.execute(text('''DELETE FROM notification_type nt
+                                USING notification_type keep
+                                WHERE nt.tenant_id = keep.tenant_id
+                                  AND nt.code = keep.code
+                                  AND nt.id > keep.id'''))
                         if not has_new:
                             quoted_cols = ', '.join(f'"{col}"' for col in new_cols)
                             conn.execute(text(f'ALTER TABLE "{table_name}" ADD CONSTRAINT "{new_name}" UNIQUE ({quoted_cols})'))
@@ -733,11 +751,19 @@ def ensure_form_mapping(template_name, template_field, db_field):
 
 def ensure_notification_type(code, label, description='', recipient_mode='manual', recipient_setting_key='', cc_setting_key=''):
     # Destinatario e CC delle notifiche manuali sono configurati nei template.
-    # I campi legacy del tipo vengono svuotati a ogni bootstrap per evitare
-    # dipendenze residue da impostazioni globali.
-    t=NotificationType.query.filter_by(code=code).first()
+    # I tipi predefiniti sono tenant-scoped sul tenant default: crearli come
+    # righe globali (tenant_id NULL) o cercarli solo per code reintroduce il
+    # vecchio vincolo globale su notification_type.code e rompe la clonazione
+    # tra tenant.
+    default_tenant_id = ensure_default_tenant().id
+    t = NotificationType.query.filter_by(tenant_id=default_tenant_id, code=code).first()
     if not t:
-        db.session.add(NotificationType(code=code,label=label,description=description,recipient_mode='manual',recipient_setting_key='',cc_setting_key='',enabled=True))
+        legacy = NotificationType.query.filter_by(tenant_id=None, code=code).first()
+        if legacy and not NotificationType.query.filter_by(tenant_id=default_tenant_id, code=code).first():
+            t = legacy
+            t.tenant_id = default_tenant_id
+    if not t:
+        db.session.add(NotificationType(tenant_id=default_tenant_id, code=code,label=label,description=description,recipient_mode='manual',recipient_setting_key='',cc_setting_key='',enabled=True))
     else:
         t.label=label or t.label; t.description=description or t.description; t.recipient_mode='manual'; t.recipient_setting_key=''; t.cc_setting_key=''
 

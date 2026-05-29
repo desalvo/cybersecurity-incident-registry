@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="card">
-  <h2>Plugins</h2>
+  <h2>Chatbot AI</h2>
   <form method="post" class="stacked-form">
     <label class="checkbox-row"><input type="checkbox" name="plugin_ai_chatbot_enabled" value="1" {% if config.enabled %}checked{% endif %}> <span>Abilita plugin AI Chatbot</span></label>
     <label for="ai_chatbot_engine">Motore AI attivo</label>
@@ -35,7 +35,7 @@
     </details>
     {% endfor %}
     <div class="button-row">
-      <button type="submit" name="action" value="save" class="btn primary">Salva configurazione plugin</button>
+      <button type="submit" name="action" value="save" class="btn primary">Salva configurazione Chatbot AI</button>
       <button type="submit" name="action" value="reset_backend_defaults" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare endpoint, modelli, motore attivo e API key dei backend AI ai valori di default? Le API key salvate verranno cancellate.');">Reset configurazioni backend</button>
     </div>
     <p class="muted">Il reset globale dei backend ripristina motore attivo, endpoint, modelli e API key ai valori iniziali dell’applicazione. I pulsanti nei singoli motori ripristinano solo il backend corrispondente. L’abilitazione del plugin e l’opzione sul contesto database non vengono modificate.</p>
@@ -45,10 +45,5 @@
   <h3>Knowledge base chatbot</h3>
   <p>Il chatbot usa sempre le definizioni progettuali e la documentazione incluse nel progetto. È possibile aggiungere procedure e documenti operativi dedicati.</p>
   <a class="btn" href="{{ url_for('ai_chatbot.admin_documents') }}">Gestisci documenti chatbot</a>
-</section>
-<section class="card">
-  <h3>Plugin Alfresco</h3>
-  <p class="muted">Il plugin Alfresco è opzionale e disabilitato per default. Quando è abilitato rende disponibili upload e download documenti tramite API Alfresco nella sezione Documenti degli incidenti.</p>
-  <a class="btn secondary" href="{{ url_for('alfresco.admin_plugins') }}">Configura plugin Alfresco</a>
 </section>
 {% endblock %}

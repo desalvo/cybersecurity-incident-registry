@@ -83,3 +83,23 @@ def test_sequence_alignment_uses_current_session_connection():
     assert 'db.engine.begin()' not in align_block
     assert 'MAX(id)' in align_block
     assert 'già flushate ma non ancora committate' in align_block
+
+
+def test_notification_type_legacy_unique_index_is_removed_for_tenant_clone():
+    source = Path('app/__init__.py').read_text()
+    migration_block = source[source.index("tenant_unique_specs = {"):source.index("if 'incident' in tables:")]
+    assert "'notification_type': (['code'], 'uq_notification_type_tenant_code', ['tenant_id','code'])" in migration_block
+    assert 'inspector.get_indexes(table_name)' in migration_block
+    assert "DROP INDEX IF EXISTS" in migration_block
+    assert "ix_notification_type_code" in migration_block
+    assert "notification_type.code = 'user'" in migration_block
+    assert 'DELETE FROM notification_type nt' in migration_block
+
+
+def test_default_notification_types_are_created_in_default_tenant_not_global():
+    source = Path('app/__init__.py').read_text()
+    block = source[source.index('def ensure_notification_type('):source.index('def ensure_default_incident_workflow(')]
+    assert 'default_tenant_id = ensure_default_tenant().id' in block
+    assert 'filter_by(tenant_id=default_tenant_id, code=code)' in block
+    assert 'NotificationType(tenant_id=default_tenant_id' in block
+    assert 'NotificationType(code=code' not in block

@@ -595,7 +595,7 @@ During import the JSON file is analysed first: new elements are created, while e
 
 ### AI Chatbot plugin
 
-The **Admin → Plugins** menu can enable the optional **AI Chatbot** plugin, disabled by default. The plugin provides a support chat for application features, operating instructions and security incident procedures.
+The **Admin → Plugins → Chatbot AI** menu can enable the optional **AI Chatbot** plugin, disabled by default. The plugin provides a support chat for application features, operating instructions and security incident procedures.
 
 Supported engines: ChatGPT, Claude, Gemini, Ollama and Perplexity. Each engine has its own configuration, but only one engine can be active at a time. The chatbot uses the project documentation as built-in knowledge and can be enriched by uploading additional procedural documents to the plugin knowledge base. The screen always shows the correct ChatGPT name and includes both a global button to reset all AI backend configurations to the default values, clearing saved API keys and restoring endpoints, models and the active engine, and per-engine buttons to reset only the selected backend. These resets do not change plugin enablement or the database-context option.
 
@@ -604,7 +604,7 @@ AI Chatbot update: the plugin configuration now provides **Allow the AI engine t
 
 ### Global AI Chatbot
 
-When the **AI Chatbot** plugin is enabled from **Admin → Plugins**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel preferably stay in the bottom-right area above the decorative application logo; an anti-collision script automatically calculates spacing from the logo and viewport edges to avoid overlap with fixed page elements. On mobile the chat opens from a top button next to the menu, with responsive layout rules that avoid overlapping the logo/header. The panel can be minimized back to the icon without leaving the page. The widget panel renders answers with safe Markdown: bold, italic, headings, lists, inline code/code blocks, links and button links are formatted inside the chat, while free HTML and scripts remain escaped.
+When the **AI Chatbot** plugin is enabled from **Admin → Plugins → Chatbot AI**, every page shows a quick chat entry point. On desktop the helpdesk/chat icon and panel preferably stay in the bottom-right area above the decorative application logo; an anti-collision script automatically calculates spacing from the logo and viewport edges to avoid overlap with fixed page elements. On mobile the chat opens from a top button next to the menu, with responsive layout rules that avoid overlapping the logo/header. The panel can be minimized back to the icon without leaving the page. The widget panel renders answers with safe Markdown: bold, italic, headings, lists, inline code/code blocks, links and button links are formatted inside the chat, while free HTML and scripts remain escaped.
 
 ## AGID compliance hardening - 0.6.0-3 build 20260528
 
@@ -714,7 +714,7 @@ The incident detail page highlights the first incomplete procedural phase with a
 
 ### Plugin Alfresco
 
-È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugins → Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
 
 ### Multi-tenancy
 
@@ -726,3 +726,5 @@ Tenant cloning and cross-tenant workflow cloning are idempotent: labels, categor
 
 Multi-tenant note: tenant and workflow cloning is idempotent and does not duplicate labels already available in the destination tenant. Legacy labels without a tenant are absorbed or merged into the appropriate tenant during clone/migration flows.
 
+
+PostgreSQL multi-tenant note: migrations remove legacy non-tenant-scoped unique indexes, including `ix_notification_type_code`, and replace them with tenant-aware keys so tenant cloning does not conflict on notification types.

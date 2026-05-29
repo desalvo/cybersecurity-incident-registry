@@ -790,7 +790,7 @@ In fase di import il file JSON viene prima analizzato: gli elementi nuovi sarann
 
 ### Plugin AI Chatbot
 
-Il menu **Admin → Plugins** permette di attivare il plugin opzionale **AI Chatbot**, disattivato per default. Il plugin fornisce una chat di supporto sulle funzionalità dell’applicazione, sulle operazioni e sulle procedure per gli incidenti di sicurezza.
+Il menu **Admin → Plugins → Chatbot AI** permette di attivare il plugin opzionale **AI Chatbot**, disattivato per default. Il plugin fornisce una chat di supporto sulle funzionalità dell’applicazione, sulle operazioni e sulle procedure per gli incidenti di sicurezza.
 
 Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha configurazione separata, ma solo uno può essere attivo alla volta. Il chatbot usa la documentazione progettuale dell’applicazione e può essere arricchito caricando documenti procedurali aggiuntivi nella knowledge base del plugin. La schermata mostra sempre il nome corretto ChatGPT e include sia un pulsante globale per ripristinare tutte le configurazioni dei backend AI ai valori di default, cancellando le API key salvate e riportando endpoint, modelli e motore attivo alla configurazione iniziale, sia pulsanti nei singoli motori per ripristinare solo il backend selezionato. I reset non modificano l’abilitazione del plugin o l’opzione di contesto database.
 
@@ -803,7 +803,7 @@ Il plugin AI Chatbot si presenta agli utenti come **AlBot**, chiamabile anche **
 
 ### AI Chatbot globale
 
-Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice, link e pulsanti `{button:Etichetta|URL}` vengono formattati nella chat; HTML libero e script restano escapati.
+Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins → Chatbot AI**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice, link e pulsanti `{button:Etichetta|URL}` vengono formattati nella chat; HTML libero e script restano escapati.
 
 ## Compliance AGID - hardening 0.6.0-3 build 20260528
 
@@ -927,7 +927,7 @@ In **Admin → Flussi operativi incidenti** è disponibile la funzione **Clona w
 
 ### Plugin Alfresco
 
-È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugin Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugins → Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
 
 ### Multi-tenancy
 
@@ -941,3 +941,5 @@ La clonazione tenant e la clonazione workflow cross-tenant sono idempotenti: lab
 Nota operativa: il selettore tenant della barra superiore non è mostrato nelle schermate di inserimento nuovo incidente e dettaglio/modifica incidente, così non è possibile cambiare tenant mentre si sta compilando o modificando un record.
 Nota multi-tenant: la clonazione dei tenant e dei workflow è idempotente e non duplica label già esistenti nel tenant destinazione. Eventuali label legacy senza tenant vengono assorbite o fuse nel tenant corretto durante i flussi di clonazione/migrazione.
 
+
+Nota PostgreSQL multi-tenant: le migrazioni rimuovono gli indici univoci legacy non tenant-scoped, incluso `ix_notification_type_code`, sostituendoli con chiavi tenant-aware per consentire la clonazione dei tenant senza conflitti sui tipi di notifica.
