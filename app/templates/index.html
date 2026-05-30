@@ -13,13 +13,42 @@
   {%- endif -%}
 {%- endmacro %}
 
+{% macro procedural_pending_tasks_tooltip(i) -%}
+  <span class="procedure-status-tooltip" role="tooltip">
+    <strong>Task ancora da completare</strong>
+    {% if i.procedural_pending_steps %}
+      <table class="table compact-table procedure-status-tooltip-table">
+        <thead><tr><th>#</th><th>Tipo</th><th>Task</th><th>Descrizione</th></tr></thead>
+        <tbody>
+        {% for step in i.procedural_pending_steps %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ step.step_type_label or step.step_type_description or 'Fase' }}</td>
+            <td class="workflow-markdown">{{ (step.task_name or step.label or 'Task')|workflow_markdown }}</td>
+            <td class="workflow-markdown">{{ (step.warning_text or step.flow_description or step.description or step.label or step.task_name or '')|workflow_markdown }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Nessun task procedurale ancora da completare.</p>
+    {% endif %}
+  </span>
+{%- endmacro %}
+
 {% macro workflow_status_icon(i) -%}
   {%- if i.workflow_list_state == 'warning' -%}
-    <span class="procedure-status-icon procedure-danger-icon" title="Avvisi procedurali attivi: {{ i.procedural_warnings|join(', ') }}" aria-label="Avvisi procedurali attivi">⚠</span>
+    <span class="procedure-status-wrapper" tabindex="0" aria-label="Avvisi procedurali attivi; passare sopra o usare il focus per vedere i task ancora da completare">
+      <span class="procedure-status-icon procedure-danger-icon" aria-hidden="true">⚠</span>{{ procedural_pending_tasks_tooltip(i) }}
+    </span>
   {%- elif i.workflow_list_state == 'ok' -%}
-    <span class="procedure-status-icon procedure-ok-icon" title="Incidente chiuso senza avvisi procedurali attivi" aria-label="Incidente chiuso senza avvisi procedurali attivi">✓</span>
+    <span class="procedure-status-wrapper" tabindex="0" aria-label="Incidente chiuso senza avvisi procedurali attivi; nessun task procedurale ancora da completare">
+      <span class="procedure-status-icon procedure-ok-icon" aria-hidden="true">✓</span>{{ procedural_pending_tasks_tooltip(i) }}
+    </span>
   {%- elif i.workflow_list_state == 'finalized' -%}
-    <span class="procedure-status-icon procedure-finalized-icon" title="Workflow finalizzato: nessun avviso procedurale attivo, incidente non ancora chiuso" aria-label="Workflow finalizzato, incidente non ancora chiuso">◆</span>
+    <span class="procedure-status-wrapper" tabindex="0" aria-label="Workflow finalizzato, incidente non ancora chiuso; nessun task procedurale ancora da completare">
+      <span class="procedure-status-icon procedure-finalized-icon" aria-hidden="true">◆</span>{{ procedural_pending_tasks_tooltip(i) }}
+    </span>
   {%- endif -%}
 {%- endmacro %}
 

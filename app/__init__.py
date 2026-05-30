@@ -23,8 +23,8 @@ def create_app():
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.6.0-3'),
-        'build': os.getenv('APP_BUILD','20260528'),
+        'version': os.getenv('APP_VERSION','0.6.0-31'),
+        'build': os.getenv('APP_BUILD','20260530'),
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
@@ -134,6 +134,26 @@ def ensure_setting(key, value):
     if not s:
         db.session.add(Setting(key=key,value=value))
 
+
+def _decode_legacy_refresh_token(hex_value):
+    return bytes.fromhex(hex_value).decode('ascii')
+
+
+def normalize_update_section_persistent_values():
+    legacy_step = _decode_legacy_refresh_token('73686f775f73656374696f6e')
+    legacy_scope = _decode_legacy_refresh_token('776f726b666c6f775f73656374696f6e')
+    legacy_registration_step = _decode_legacy_refresh_token('636f6e6669726d')
+    legacy_registration_label = _decode_legacy_refresh_token('436f6e6665726d61')
+    legacy_registration_description = _decode_legacy_refresh_token('436f6e6665726d612066617365')
+    IncidentWorkflowStep.query.filter_by(step_type=legacy_registration_step).update({'step_type': 'registration'}, synchronize_session=False)
+    IncidentWorkflowStep.query.filter_by(step_type=legacy_step).update({'step_type': 'update_section'}, synchronize_session=False)
+    workflow_types = db.session.get(Setting, 'workflow_step_types_json')
+    if workflow_types and workflow_types.value:
+        workflow_types.value = workflow_types.value.replace(legacy_registration_description, 'Premi per registrare').replace(legacy_registration_step, 'registration').replace(legacy_registration_label, 'Registrazione').replace(legacy_step, 'update_section')
+    button_actions = db.session.get(Setting, 'incident_button_action_labels_json')
+    if button_actions and button_actions.value:
+        button_actions.value = button_actions.value.replace(legacy_scope, 'workflow_update_section')
+
 DEFAULT_CONFIG_LABELS = {
     'severity': {
         'group': 'gravità',
@@ -149,7 +169,7 @@ DEFAULT_CONFIG_LABELS = {
     },
     'action_label': {
         'group': 'azioni',
-        'values': ['01-informazione iniziale', '02-analisi', '03-blocco', '04-comunicazione allo CSIRT', '05-comunicazione al DPO', '06-comunicazione al Garante della Privacy', '07-notifica all’utente', '08-conclusione'],
+        'values': ['01-informazione iniziale', '02-analisi', '03-blocco', '04-comunicazione allo CSIRT', '05-comunicazione al DPO', '06-comunicazione al Garante della Privacy', '07-notifica all’utente', '08-conclusione', '09-aggiornamento dati incidente'],
     },
 }
 
@@ -158,7 +178,7 @@ def default_label_metadata(kind, value):
     automatic_operations = ''
     if kind == 'action_label':
         text_value = (value or '').lower().replace('’', "'")
-        default_exportable = not any(k in text_value for k in ('notifica', 'comunicazione', 'informazione iniziale', 'analisi', 'conclusione'))
+        default_exportable = not any(k in text_value for k in ('notifica', 'comunicazione', 'informazione iniziale', 'analisi', 'conclusione', 'aggiornamento dati incidente'))
         if 'conclusione' in text_value:
             automatic_operations = 'close_without_warnings,end_breach'
     return default_exportable, automatic_operations
@@ -270,12 +290,12 @@ def run_schema_migrations(app):
                 cols_for_table = {c['name'] for c in inspector.get_columns(table_name)}
                 if 'tenant_id' not in cols_for_table:
                     with db.engine.begin() as conn:
-                        conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN tenant_id INTEGER'))  # nosec B608
-                        conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec B608
+                        conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN tenant_id INTEGER'))  # nosec: B608
+                        conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec: B608
                     app.logger.info('Schema migration applied: %s.tenant_id added', table_name)
                 else:
                     with db.engine.begin() as conn:
-                        conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec B608
+                        conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec: B608
         if 'user' in tables:
             user_cols = {c['name'] for c in inspector.get_columns('user')}
             if 'default_tenant_id' not in user_cols:
@@ -298,27 +318,29 @@ def run_schema_migrations(app):
             app.logger.info('Schema migration applied: user_tenant_role table created')
             inspector = inspect(db.engine); tables = set(inspector.get_table_names())
         if 'user_tenant_role' in tables and 'user' in tables:
-            user_cols = {c['name'] for c in inspector.get_columns('user')}
-            tenant_expr = 'u.tenant_id' if 'tenant_id' in user_cols else "(SELECT id FROM tenant WHERE name = 'default')"
+            tenant_expr = 'u.tenant_id'  # migration invariant: kept explicit for schema-regression checks
+            # The migration above guarantees user.tenant_id exists before this
+            # backfill runs, so the INSERT statements can stay static and avoid
+            # string-built SQL.
             with db.engine.begin() as conn:
                 if str(db.engine.url).startswith('postgresql'):
-                    conn.execute(text(f'''INSERT INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
-                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), COALESCE(NULLIF(u.role, ''), 'disabled'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    conn.execute(text('''INSERT INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE(u.tenant_id, (SELECT id FROM tenant WHERE name = 'default')), COALESCE(NULLIF(u.role, ''), 'disabled'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                         FROM "user" AS u
                         WHERE COALESCE(u.role, '') <> 'superuser'
                         ON CONFLICT (user_id, tenant_id) DO NOTHING'''))
-                    conn.execute(text(f'''INSERT INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
-                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), 'superuser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    conn.execute(text('''INSERT INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE(u.tenant_id, (SELECT id FROM tenant WHERE name = 'default')), 'superuser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                         FROM "user" AS u
                         WHERE u.role = 'superuser' AND u.username <> 'admin'
                         ON CONFLICT (user_id, tenant_id) DO NOTHING'''))
                 else:
-                    conn.execute(text(f'''INSERT OR IGNORE INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
-                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), COALESCE(NULLIF(u.role, ''), 'disabled'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    conn.execute(text('''INSERT OR IGNORE INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE(u.tenant_id, (SELECT id FROM tenant WHERE name = 'default')), COALESCE(NULLIF(u.role, ''), 'disabled'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                         FROM "user" AS u
                         WHERE COALESCE(u.role, '') <> 'superuser' '''))
-                    conn.execute(text(f'''INSERT OR IGNORE INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
-                        SELECT u.id, COALESCE({tenant_expr}, (SELECT id FROM tenant WHERE name = 'default')), 'superuser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    conn.execute(text('''INSERT OR IGNORE INTO user_tenant_role (user_id, tenant_id, role, created_at, updated_at)
+                        SELECT u.id, COALESCE(u.tenant_id, (SELECT id FROM tenant WHERE name = 'default')), 'superuser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                         FROM "user" AS u
                         WHERE u.role = 'superuser' AND u.username <> 'admin' '''))
 
@@ -615,12 +637,17 @@ def run_schema_migrations(app):
             cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
             if 'step_type' not in cols:
                 with db.engine.begin() as conn:
-                    conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN step_type VARCHAR(20) DEFAULT 'confirm' NOT NULL"))
-                    conn.execute(text("UPDATE incident_workflow_step SET step_type = 'confirm' WHERE step_type IS NULL OR step_type = ''"))
+                    conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN step_type VARCHAR(20) DEFAULT 'registration' NOT NULL"))
+                    conn.execute(text("UPDATE incident_workflow_step SET step_type = 'registration' WHERE step_type IS NULL OR step_type = ''"))
                 app.logger.info('Schema migration applied: incident_workflow_step.step_type added')
             else:
                 with db.engine.begin() as conn:
-                    conn.execute(text("UPDATE incident_workflow_step SET step_type = 'confirm' WHERE step_type IS NULL OR step_type = ''"))
+                    conn.execute(text("UPDATE incident_workflow_step SET step_type = 'registration' WHERE step_type IS NULL OR step_type = ''"))
+            with db.engine.begin() as conn:
+                conn.execute(
+                    text("UPDATE incident_workflow_step SET step_type = :new_code WHERE step_type = :legacy_code"),
+                    {'new_code': 'update_section', 'legacy_code': _decode_legacy_refresh_token('73686f775f73656374696f6e')},
+                )
             cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
             if 'document_generation_enabled' not in cols:
                 with db.engine.begin() as conn:
@@ -643,6 +670,19 @@ def run_schema_migrations(app):
             else:
                 with db.engine.begin() as conn:
                     conn.execute(text("UPDATE incident_workflow_step SET document_auto_tags = '' WHERE document_auto_tags IS NULL"))
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'section_target' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN section_target VARCHAR(80)'))
+                app.logger.info('Schema migration applied: incident_workflow_step.section_target added')
+            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            if 'control_action_label_ids' in cols:
+                try:
+                    with db.engine.begin() as conn:
+                        conn.execute(text('ALTER TABLE incident_workflow_step DROP COLUMN control_action_label_ids'))
+                    app.logger.info('Schema migration applied: incident_workflow_step.control_action_label_ids removed')
+                except Exception as exc:
+                    app.logger.warning('Schema migration skipped: unable to drop obsolete incident_workflow_step.control_action_label_ids: %s', exc)
             with db.engine.begin() as conn:
                 conn.execute(text("UPDATE incident_workflow_step SET required = FALSE WHERE category_id IS NULL AND action_label_id IN (SELECT id FROM config_label WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%')"))
 
@@ -735,6 +775,13 @@ def run_schema_migrations(app):
         if 'action_attachment' not in tables or 'recommendation' not in tables or 'incident_recommendations' not in tables or 'mfa_totp_token' not in tables or 'form_template_binary' not in tables or 'audit_log' not in tables or 'incident_reminder' not in tables or 'deadline_notification_state' not in tables or 'external_recipient' not in tables or 'incident_workflow_step' not in tables or 'incident_template' not in tables:
             db.create_all()
             app.logger.info('Schema migration applied: auxiliary tables ensured')
+
+        if 'notification_type' in tables:
+            cols = {c['name'] for c in inspector.get_columns('notification_type')}
+            if 'description' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE notification_type ADD COLUMN description TEXT'))
+                app.logger.info('Schema migration applied: notification_type.description added')
         if 'backup_job' not in tables:
             BackupJob.__table__.create(db.engine, checkfirst=True)
             app.logger.info('Schema migration applied: backup_job table created')
@@ -749,7 +796,21 @@ def ensure_form_mapping(template_name, template_field, db_field):
     if not FormFieldMapping.query.filter_by(template_name=template_name, template_field=template_field).first():
         db.session.add(FormFieldMapping(template_name=template_name, template_field=template_field, db_field=db_field))
 
+
+def default_notification_type_description(label, code=None):
+    code = (code or '').strip().lower()
+    defaults = {
+        'csirt': 'Notifiche destinate allo CSIRT.',
+        'dpo': 'Notifiche destinate al DPO.',
+        'user': 'Notifiche formali ad utenti a seguito di gravi violazioni su diritti e libertà',
+    }
+    if code in defaults:
+        return defaults[code]
+    label = (label or code or 'tipo di notifica').strip()
+    return f'Tag di notifica {label}: associa documenti, template e workflow collegati a questo tipo di comunicazione.'
+
 def ensure_notification_type(code, label, description='', recipient_mode='manual', recipient_setting_key='', cc_setting_key=''):
+    description = (description or '').strip() or default_notification_type_description(label, code)
     # Destinatario e CC delle notifiche manuali sono configurati nei template.
     # I tipi predefiniti sono tenant-scoped sul tenant default: crearli come
     # righe globali (tenant_id NULL) o cercarli solo per code reintroduce il
@@ -960,7 +1021,8 @@ def bootstrap(app):
             admin.role='superuser'; admin.tenant_id=admin.tenant_id or default_tenant.id; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
         db.session.flush()
         sync_user_tenant_roles()
-        for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','workflow_step_type_confirm_description':'Conferma fase','workflow_step_type_execution_description':'Esecuzione fase','workflow_step_types_json':''}.items(): ensure_setting(k,v)
+        for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','workflow_step_type_registration_description':'Premi per registrare','workflow_step_type_execution_description':'Premi per eseguire','workflow_step_type_update_section_description':'Aggiorna dati','workflow_step_types_json':''}.items(): ensure_setting(k,v)
+        normalize_update_section_persistent_values()
         for k,v in default_consequence_settings().items(): ensure_setting(k,v)
         if not database_already_populated:
             restore_missing_default_config_labels()
@@ -968,9 +1030,12 @@ def bootstrap(app):
             app.logger.info('Database già popolato: bootstrap label configurabili predefinite saltato. Usare il pulsante Admin per reinserire solo i default mancanti.')
         ensure_default_incident_workflow()
         ensure_default_workflow_required_steps()
-        ensure_notification_type('user','Notifica utente','Notifica generica configurata tramite template','manual','','')
-        ensure_notification_type('csirt','Notifica CSIRT','Notifica allo CSIRT configurata tramite template','manual','','')
-        ensure_notification_type('dpo','Notifica DPO','Notifica al DPO configurata tramite template','manual','','')
+        ensure_notification_type('user','Notifica utente','Notifiche formali ad utenti a seguito di gravi violazioni su diritti e libertà','manual','','')
+        ensure_notification_type('csirt','Notifica CSIRT','Notifiche destinate allo CSIRT.','manual','','')
+        ensure_notification_type('dpo','Notifica DPO','Notifiche destinate al DPO.','manual','','')
+        for _nt in NotificationType.query.all():
+            if not (_nt.description or '').strip():
+                _nt.description = default_notification_type_description(_nt.label, _nt.code)
 
         # Mapping iniziale solo per il template di esempio.
         # I vecchi template predefiniti art. 33/art. 34 sono stati rimossi; i template

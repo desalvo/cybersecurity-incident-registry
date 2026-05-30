@@ -1,0 +1,19 @@
+<div class="button-tag-config" data-button-code="{{ code }}" data-rule-index="{{ idx }}">
+  {% if notification_types %}
+    <div class="tag-palette" aria-label="Tag disponibili per Salva tag">
+      {% for nt in notification_types %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}">{{ nt.label }}</span>{% endfor %}
+    </div>
+    <div class="tag-drop-zone prominent" tabindex="0" aria-label="Trascina qui i tag che attivano questa regola Salva tag">
+      <span class="drop-zone-callout">Rilascia qui i tag che attivano questa regola</span>
+      {% for nt in notification_types %}
+        <label class="tag-selected {% if nt.code not in selected_tags %}hidden{% endif %}" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}" {% if nt.code not in selected_tags %}hidden{% endif %}>
+          <input type="checkbox" name="notification_tags_{{ code }}_{{ idx }}" value="{{ nt.code }}" {% if nt.code in selected_tags %}checked{% endif %}>
+          {{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button>
+        </label>
+      {% endfor %}
+      <span class="muted tag-empty">Nessun tag selezionato.</span>
+    </div>
+  {% else %}
+    <span class="muted">Nessun tag disponibile.</span>
+  {% endif %}
+</div>

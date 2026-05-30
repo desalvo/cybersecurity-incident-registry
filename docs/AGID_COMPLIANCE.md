@@ -152,7 +152,7 @@ Le istruzioni operative dettagliate sono nel file `compliance/agid/ISTRUZIONI_TE
 
 ## Esecuzione manuale completa con Docker
 
-A partire da questa versione, `pip-audit` è limitato alla modalità manuale containerizzata. La suite standard `scripts/run_agid_compliance.sh` esegue `pip check`, compilazione, test, test dinamici AGID e Bandit, ma non contatta i servizi Internet di vulnerability intelligence.
+A partire da questa versione, `pip-audit` è parte della suite standard `scripts/run_agid_compliance.sh` ed è bloccante per impostazione predefinita (`AGID_PIP_AUDIT_STRICT=1`). La modalità Docker resta disponibile per produrre evidenze complete in un ambiente isolato con rete.
 
 Per produrre evidenza completa su un sistema connesso a Internet:
 

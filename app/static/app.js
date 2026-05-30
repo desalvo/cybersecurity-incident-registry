@@ -333,6 +333,29 @@ function scrollToIncidentSection(section){
   section.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+function markWorkflowRedirectedSection(section){
+  if(!section)return;
+  section.dataset.workflowRedirected = '1';
+  section.querySelectorAll('form').forEach(form=>{
+    let input = form.querySelector('input[name="workflow_update_section_redirect"]');
+    if(!input){
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'workflow_update_section_redirect';
+      form.appendChild(input);
+    }
+    input.value = '1';
+    let sectionInput = form.querySelector('input[name="workflow_update_section_target"]');
+    if(!sectionInput){
+      sectionInput = document.createElement('input');
+      sectionInput.type = 'hidden';
+      sectionInput.name = 'workflow_update_section_target';
+      form.appendChild(sectionInput);
+    }
+    sectionInput.value = section.id || '';
+  });
+}
+
 function openInitialIncidentAnchor(){
   const hash=(window.location.hash || '').replace(/^#/, '');
   if(!hash)return;
@@ -349,9 +372,14 @@ window.addEventListener('hashchange', openInitialIncidentAnchor);
 function makeIncidentWorkflowStepsClickable(){
   const actionForm=document.querySelector('#incident-actions form[action*="/actions/add"], #incident-actions form[data-scroll-anchor="incident-actions"]');
   const actionSelect=document.getElementById('new-action-label-id');
-  if(!actionForm || !actionSelect)return;
-  const description=actionForm.querySelector('textarea[name="description"]');
+  const description=actionForm ? actionForm.querySelector('textarea[name="description"]') : null;
   const activate=(step)=>{
+    if(step.dataset.sectionTarget){
+      const section=document.getElementById(step.dataset.sectionTarget);
+      scrollToIncidentSection(section);
+      markWorkflowRedirectedSection(section);
+      return;
+    }
     if(step.dataset.documentGenerationUrl){
       window.location.href = step.dataset.documentGenerationUrl;
       return;
@@ -371,7 +399,7 @@ function makeIncidentWorkflowStepsClickable(){
       }
     }
     const labelId=step.dataset.actionLabelId || '';
-    if(labelId){
+    if(actionSelect && labelId){
       actionSelect.value=labelId;
       actionSelect.dispatchEvent(new Event('change', {bubbles:true}));
     }
@@ -379,7 +407,7 @@ function makeIncidentWorkflowStepsClickable(){
     scrollToIncidentSection(target);
     setTimeout(()=>{
       if(description) description.focus();
-      else actionSelect.focus();
+      else if(actionSelect) actionSelect.focus();
     }, 250);
   };
   document.querySelectorAll('.workflow-step-action').forEach(step=>{

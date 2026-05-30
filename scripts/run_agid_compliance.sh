@@ -43,12 +43,26 @@ else
   printf '%s\t%s\n' "bandit_threshold_high_medium" "0" >> "$OUT_DIR/status.tsv"
 fi
 
-# pip-audit is intentionally not executed by the standard in-package/CI runner.
-# It requires live Internet access to vulnerability feeds and is restricted to
-# the manual Docker workflow in compliance/agid/ to keep offline package runs
-# reproducible while still supporting complete AGID evidence generation.
-echo "pip-audit is available only in the manual Docker compliance runner: compliance/agid/run_docker_agid_compliance.sh" > "$OUT_DIR/pip-audit-note.txt"
-printf '%s\t%s\n' "pip_audit_manual_docker_only" "0" >> "$OUT_DIR/status.tsv"
+PIP_AUDIT_STRICT="${AGID_PIP_AUDIT_STRICT:-1}"
+PIP_AUDIT_TIMEOUT="${AGID_PIP_AUDIT_TIMEOUT:-300}"
+if [[ "${AGID_SKIP_PIP_AUDIT:-0}" == "1" ]]; then
+  echo "pip-audit skipped by explicit AGID_SKIP_PIP_AUDIT=1; this run is not complete for Internet-connected CI." > "$OUT_DIR/pip-audit-note.txt"
+  printf '%s\t%s\n' "pip_audit_explicitly_skipped" "1" >> "$OUT_DIR/status.tsv"
+  [[ "$PIP_AUDIT_STRICT" == "1" ]] && OVERALL=1
+elif python - <<'PY_CHECK' >/dev/null 2>&1
+import importlib.util, sys
+sys.exit(0 if importlib.util.find_spec('pip_audit') else 1)
+PY_CHECK
+then
+  if ! run_step pip_audit_json timeout "$PIP_AUDIT_TIMEOUT" python -m pip_audit --progress-spinner off --timeout "${AGID_PIP_AUDIT_SOCKET_TIMEOUT:-10}" -r requirements.txt -r requirements-dev.txt -f json -o "$OUT_DIR/pip-audit.json"; then
+    echo "pip-audit failed, found vulnerabilities, or could not reach the vulnerability service." > "$OUT_DIR/pip-audit-note.txt"
+    [[ "$PIP_AUDIT_STRICT" == "1" ]] && OVERALL=1
+  fi
+else
+  echo "pip-audit is not installed; install pip-audit or use the Docker AGID runner." > "$OUT_DIR/pip-audit-note.txt"
+  printf '%s\t%s\n' "pip_audit_missing" "1" >> "$OUT_DIR/status.tsv"
+  [[ "$PIP_AUDIT_STRICT" == "1" ]] && OVERALL=1
+fi
 
 python scripts/summarize_agid_results.py "$OUT_DIR" "$OVERALL"
 exit "$OVERALL"

@@ -10,7 +10,7 @@ def test_new_incident_recipient_email_obeys_default_visibility_configuration():
 
 def test_workflow_task_box_uses_configurable_step_type_caption():
     html = Path('app/templates/incident_detail.html').read_text()
-    assert '<p class="workflow-confirm-phase"><strong>{{ step.step_type_description }}: </strong>{{ step.label }}</p>' in html
+    assert '<p class="workflow-registration-phase"><strong>{{ step.step_type_description }}: </strong>{{ step.label }}</p>' in html
 
 
 def test_ldap_lookup_reports_non_json_responses_without_json_parse_exception():
@@ -139,10 +139,11 @@ def test_workflow_step_type_configuration_and_dynamic_caption_are_present():
     assert 'name="step_type"' in admin
     assert 'name="step_type_{{step.id}}"' in admin
     assert '{{ step.step_type_description }}' in detail
-    assert 'Conferma fase: </strong>{{ step.label }}' not in detail
+    assert '<strong>{{ step.step_type_description }}: </strong>{{ step.label }}' in detail
+    assert 'Premi per registrare' in routes
 
 
-def test_default_incident_visibility_fields_are_all_selected(monkeypatch, tmp_path):
+def test_default_incident_visibility_fields_hide_action_label(monkeypatch, tmp_path):
     _configure_test_env(monkeypatch, tmp_path)
     from app import create_app
     from app.routes import incident_form_visible_fields, incident_detail_general_visible_fields, INCIDENT_FORM_FIELDS, INCIDENT_DETAIL_VISIBILITY_FIELDS
@@ -151,7 +152,8 @@ def test_default_incident_visibility_fields_are_all_selected(monkeypatch, tmp_pa
     app.config['TESTING'] = True
     with app.app_context():
         assert incident_form_visible_fields() == {code for code, _label, _required in INCIDENT_FORM_FIELDS}
-        assert incident_detail_general_visible_fields() == {code for code, _label, _required in INCIDENT_DETAIL_VISIBILITY_FIELDS}
+        expected_detail = {code for code, _label, _required in INCIDENT_DETAIL_VISIBILITY_FIELDS if code != 'action_label'}
+        assert incident_detail_general_visible_fields() == expected_detail
 
 
 def test_workflow_step_types_are_configurable_and_defaults_are_protected(monkeypatch, tmp_path):
@@ -169,8 +171,11 @@ def test_workflow_step_types_are_configurable_and_defaults_are_protected(monkeyp
     app.config['TESTING'] = True
     with app.app_context():
         defaults = workflow_step_type_records()
-        assert [item['code'] for item in defaults[:2]] == ['confirm', 'execution']
-        assert all(item['protected'] for item in defaults[:2])
+        assert [item['code'] for item in defaults[:3]] == ['registration', 'execution', 'update_section']
+        assert [item['label'] for item in defaults[:3]] == ['Registrazione', 'Esecuzione', 'Aggiorna sezione']
+        assert [item['description'] for item in defaults[:3]] == ['Premi per registrare', 'Premi per eseguire', 'Aggiorna dati']
+        assert all(item['protected'] for item in defaults[:3])
+        assert normalize_workflow_step_type('confirm') == 'registration'
 
         save_workflow_step_type_records(defaults + [{'code': 'review', 'label': 'Revisione', 'description': 'Rivedi fase', 'protected': False}])
         assert normalize_workflow_step_type('review') == 'review'
@@ -185,6 +190,19 @@ def test_workflow_step_types_are_configurable_and_defaults_are_protected(monkeyp
         assert saved is not None and 'review' in saved.value
 
 
+
+def test_default_notification_type_descriptions_are_specific(monkeypatch, tmp_path):
+    _configure_test_env(monkeypatch, tmp_path)
+    from app import create_app
+    from app.routes import default_notification_type_description
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        assert default_notification_type_description('Notifica CSIRT', 'csirt') == 'Notifiche destinate allo CSIRT.'
+        assert default_notification_type_description('Notifica DPO', 'dpo') == 'Notifiche destinate al DPO.'
+        assert default_notification_type_description('Notifica utente', 'user') == 'Notifiche formali ad utenti a seguito di gravi violazioni su diritti e libertà'
+
 def test_workflow_step_type_admin_template_supports_add_edit_delete_custom_types():
     routes = Path('app/routes.py').read_text()
     admin = Path('app/templates/admin_incident_workflows.html').read_text()
@@ -197,7 +215,7 @@ def test_workflow_step_type_admin_template_supports_add_edit_delete_custom_types
     assert 'new_step_type_label' in admin
     assert 'delete_step_type' in admin
     assert "WHERE step_type IS NULL OR step_type = ''" in init
-    assert "NOT IN ('confirm','execution')" not in init
+    assert "NOT IN ('registration','execution')" not in init
 
 
 def test_workflow_clone_ui_and_server_confirmation_are_present():
@@ -330,6 +348,9 @@ def test_workflow_first_incomplete_phase_and_list_status_icons_are_present():
     assert 'procedure-finalized-icon' in index
     assert 'procedure-ok-icon' in index
     assert 'workflow_status_icon(i)' in index
+    assert 'procedural_pending_tasks_tooltip(i)' in index
+    assert 'procedure-status-tooltip-table' in index
+    assert '|workflow_markdown' in index
     assert '.workflow-step.first-incomplete' in css
     assert '.workflow-first-incomplete-arrow' in css
     assert '.procedure-finalized-icon' in css
@@ -367,6 +388,18 @@ def test_incident_list_status_icons_follow_active_warning_and_closed_state(monke
         annotate_procedural_status([inc_warning])
         assert inc_warning.workflow_list_state == 'warning'
         assert inc_warning.has_procedural_warnings is True
+        assert len(inc_warning.procedural_pending_steps) == 1
+        assert inc_warning.procedural_pending_steps[0]['task_name'] == 'Azione richiesta'
+
+
+def test_incident_list_status_tooltip_uses_markdown_table_for_pending_tasks():
+    index = Path('app/templates/index.html').read_text()
+    css = Path('app/static/style.css').read_text()
+    assert 'Task ancora da completare' in index
+    assert '<table class="table compact-table procedure-status-tooltip-table">' in index
+    assert "{{ (step.warning_text or step.flow_description or step.description or step.label or step.task_name or \'\')|workflow_markdown }}" in index
+    assert 'procedure-status-wrapper:hover .procedure-status-tooltip' in css
+    assert 'procedure-status-wrapper:focus-within .procedure-status-tooltip' in css
 
 
 def test_superuser_cross_tenant_workflow_clone_reuses_destination_labels(monkeypatch, tmp_path):
@@ -480,3 +513,43 @@ def test_cross_tenant_workflow_clone_to_new_destination_creates_category_and_ste
         assert cloned_action.value == 'Azione clonabile'
         cloned_data_type = ConfigLabel.query.filter_by(tenant_id=dest_tenant.id, kind='data_type', value='Dati clonabili').one()
         assert cloned_step.conditions == f'data_type:{cloned_data_type.id}'
+
+
+def test_update_section_workflow_no_longer_has_separate_control_actions():
+    admin = Path('app/templates/admin_incident_workflows.html').read_text()
+    routes = Path('app/routes.py').read_text()
+    models = Path('app/models.py').read_text()
+    assert 'Azioni di controllo' not in admin
+    assert 'control_action_label_ids' not in admin
+    assert 'workflow_control_action_label_ids' not in routes
+    assert 'workflow_control_action_ids_from_form' not in routes
+    assert 'control_action_label_ids=db.Column' not in models
+
+
+def test_update_section_step_completion_uses_associated_action(monkeypatch, tmp_path):
+    _configure_test_env(monkeypatch, tmp_path)
+
+    from app import create_app, db
+    from app.models import Action, ConfigLabel, Incident, IncidentWorkflowStep
+    from app.routes import incident_workflow_status
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        category = ConfigLabel(kind='category', group='workflow-test', value='Categoria aggiorna sezione')
+        action_label = ConfigLabel(kind='action_label', group='workflow-test', value='09-aggiornamento dati incidente')
+        db.session.add_all([category, action_label])
+        db.session.flush()
+        db.session.add(IncidentWorkflowStep(category_id=category.id, action_label_id=action_label.id, position=1, step_type='update_section', section_target='incident-actions', required=True))
+        inc = Incident(name='Aggiorna sezione', reference='REF-UPDATE', status='aperto', creator_name='Test', creator_email='test@example.invalid')
+        inc.categories = [category]
+        db.session.add(inc)
+        db.session.commit()
+
+        status = incident_workflow_status(inc)
+        assert status['steps'][0]['done'] is False
+        db.session.add(Action(incident_id=inc.id, when_at=datetime(2026, 5, 29, 10, 0), person_name='Operatore', label_id=action_label.id, description='Aggiornamento dati'))
+        db.session.flush()
+        status = incident_workflow_status(inc)
+        assert status['steps'][0]['done'] is True
+        assert status['steps'][0]['section_target_url'] == '#incident-actions'

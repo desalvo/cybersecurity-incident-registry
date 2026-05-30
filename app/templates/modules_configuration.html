@@ -149,7 +149,7 @@
           <p class="muted">Trascina uno o più tipi notifica nel riquadro del template. I documenti generati da questo template avranno per default solo questi tag; i tag possono poi essere modificati nella sezione Documenti dell’incidente.</p>
           {% if notification_type_tags %}
           <div class="tag-palette" aria-label="Tipi notifica disponibili">
-            {% for nt in notification_type_tags %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}">{{ nt.label }}</span>{% endfor %}
+            {% for nt in notification_type_tags %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}">{{ nt.label }}</span>{% endfor %}
           </div>
           <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tipi di notifica da associare al template">
             {% for nt in notification_type_tags %}
@@ -252,6 +252,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <style>
-.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:2.2rem;border:1px dashed #94a3b8;border-radius:.5rem;padding:.4rem;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:0;background:transparent;cursor:pointer;font-weight:bold;line-height:1}.tag-remove:hover,.tag-remove:focus{outline:1px solid currentColor;border-radius:999px}
+.tag-palette{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.85rem}.tag-chip{cursor:grab}.tag-drop-zone{min-height:3rem;border:2px dashed #1d4ed8;border-radius:.65rem;padding:.6rem;background:#f8fbff;margin-bottom:.35rem}.tag-drop-zone.drag-over{background:#eef2ff}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;cursor:pointer;font-weight:bold;border-radius:999px;min-width:1.35rem;min-height:1.35rem;line-height:1}.tag-remove:hover,.tag-remove:focus{outline:1px solid currentColor;border-radius:999px}
 </style>
 {% endblock %}

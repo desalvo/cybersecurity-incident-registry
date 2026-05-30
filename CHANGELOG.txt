@@ -1,159 +1,185 @@
 
-## 0.6.0-3 - main incident list UI refinement
+0.6.0-31 - Rinomina tipologie workflow e descrizioni default
+- Rinominata la tipologia di step workflow Conferma in Registrazione, con compatibilità automatica per i valori persistiti precedenti.
+- Aggiornate le descrizioni default delle Fasi procedurali: Registrazione -> "Premi per registrare", Esecuzione -> "Premi per eseguire", Aggiorna sezione -> "Aggiorna dati".
+- Aggiornate le descrizioni default dei tipi di notifica user, csirt e dpo.
+
+
+0.6.0-31 - Azioni automatiche pulsanti condizionate da workflow
+- Corretto NameError in modifica workflow per step di tipo Aggiorna sezione: aggiunta validazione centralizzata della sezione target.
+- Nella configurazione Azioni automatiche pulsanti e' possibile scegliere se l'azione automatica deve essere registrata sempre oppure solo quando il pulsante viene premuto da una sezione aperta tramite uno step workflow di tipo Aggiorna sezione.
+- Il click sugli step Aggiorna sezione marca la sezione di destinazione e i form contenuti, consentendo al server di distinguere i pulsanti usati nel percorso guidato workflow da quelli usati direttamente dall'operatore.
+
+
+0.6.0-31 workflow update-section control cleanup
+- Rimossa la configurazione separata delle Azioni di controllo dagli step workflow di tipo Aggiorna sezione.
+- Gli step Aggiorna sezione mantengono il click verso la sezione configurata, ma sono considerati completati dall'azione associata allo step.
+- Aggiunta migrazione di rimozione della colonna legacy incident_workflow_step.control_action_label_ids, ove presente.
+
+## 0.6.0-31 - Workflow aggiorna sezione e layout azioni incidente
+
+- Aggiunta label azione di default `09-aggiornamento dati incidente`, non esportabile per default.
+- Nelle Fasi procedurali non viene piu' mostrato il nome della notifica in attesa nei riquadri cliccabili.
+- La visibilita' del campo Label nella sezione Azioni e' configurabile da Layout campi incidenti ed e' nascosta per default.
+- Aggiunta configurazione Admin per azioni automatiche associate ai pulsanti operativi della pagina incidente.
+- Aggiunta tipologia workflow di sistema `Aggiorna sezione`, con destinazione sezione e azioni di controllo per completamento dello step.
+
+
+## 0.6.0-31 - main incident list UI refinement
 - Riorganizzata la pagina principale incidenti con sezioni collassabili per ricerca, ordinamento mobile e azioni massive.
 - Eliminato il selettore ridondante mobile "Incidenti per pagina" dalla sezione di ordinamento, mantenendolo in "Incidenti registrati".
 - Rese collassabili per default le schede incidente mobile, mantenendo la selezione disponibile anche a scheda chiusa.
 - Rese più compatte e leggibili le date/ore di inizio e fine negli elenchi incidenti.
 
-0.6.0-3 notification type tenant clone hotfix
+0.6.0-31 notification type tenant clone hotfix
 - Corretto l'errore PostgreSQL duplicate key su ix_notification_type_code durante la creazione o clonazione di un tenant.
 - La migrazione rimuove anche gli indici UNIQUE legacy su colonne non tenant-scoped, non solo i vincoli espliciti, e crea il vincolo tenant-aware su tenant_id + code.
 - I tipi di notifica predefiniti vengono creati nel tenant default e non piu' come righe globali, cosi' i tenant clonati possono avere i propri tipi senza conflitti.
 - Aggiunti test di regressione per migrazione PostgreSQL e bootstrap dei NotificationType tenant-scoped.
 
-0.6.0-3 admin plugins menu cleanup
+0.6.0-31 admin plugins menu cleanup
 - Spostate le configurazioni AI Chatbot sotto Admin -> Plugins -> Chatbot AI.
 - Spostate le configurazioni Alfresco sotto Admin -> Plugins -> Alfresco.
 - Rimossa la scheda Alfresco dalla pagina Chatbot AI per mantenere le configurazioni plugin separate.
 - Spostata la nota introduttiva sul plugin Alfresco dal primo riquadro della documentazione amministrativa al capitolo operativo sui plugin.
 
-0.6.0-3 admin user state and password hotfix
+0.6.0-31 admin user state and password hotfix
 - Dopo l'aggiornamento dei dati di un utente, la pagina Admin -> Utenti conserva i filtri, riapre la scheda dell'utente modificato e scorre allo stesso record tramite ancora dedicata.
 - L'utente locale admin e tutti i superuser possono aggiornare la password degli utenti con login locale dalla scheda utente.
 - Il cambio password amministrativo resta bloccato per account LDAP e SSO, la password resta gestita dal provider esterno.
 - Aggiunti test di regressione per redirect con scheda aperta e reset password locale da superuser.
 
-0.6.0-3 bulk incident tenant move dropdown hotfix
+0.6.0-31 bulk incident tenant move dropdown hotfix
 - Il comando massivo "Sposta selezionati" nella pagina principale usa ora lo stesso menu tenant ricercabile del pulsante "Sposta" sulle singole righe.
 - Rimossi dal riquadro delle azioni massive i campi statici "Cerca tenant destinazione" e "Tenant destinazione".
 - Ogni tenant destinazione e' selezionabile direttamente dalla lista filtrabile; il form massivo continua a inviare solo gli incidenti selezionati e il tenant scelto.
 - Aggiunto test di regressione per verificare la nuova UI di spostamento massivo.
 
 
-0.6.0-3 incident category order and tenant selector hotfix
+0.6.0-31 incident category order and tenant selector hotfix
 - Lo spostamento di incidenti tra tenant mantiene ora l'ordine delle label di categoria rimappando category_order sugli ID del tenant destinazione.
 - Il selettore tenant nella barra superiore viene nascosto nelle schermate di inserimento nuovo incidente e dettaglio/modifica incidente, evitando switch tenant durante l'editing.
 - Aggiunti test di regressione per ordine categorie dopo spostamento tenant e visibilita' del selettore tenant nelle pagine incidente.
 
 
-0.6.0-3 tenant clone transaction sequence hotfix
+0.6.0-31 tenant clone transaction sequence hotfix
 - Corretto definitivamente l'errore PostgreSQL duplicate key su config_label_pkey durante la clonazione tenant quando nella stessa transazione vengono create piu' label dopo un restore legacy.
 - Il riallineamento delle sequence usa ora la connessione della sessione corrente, cosi' il calcolo di MAX(id) vede anche le righe gia' flushate ma non ancora committate.
 - Rimosso il riallineamento ripetuto della sequence config_label dentro ogni copia di label, che poteva riportare la sequence indietro tra due INSERT della stessa clonazione.
 - Aggiornati i test di regressione PostgreSQL per coprire il comportamento sequence-safe nella transazione corrente.
 
-0.6.0-3 user search fields hotfix
+0.6.0-31 user search fields hotfix
 - In Admin -> Utenti, la sezione Cerca utenti e' stata separata in campi specifici per username, nome, email, backend, ruolo e tenant di appartenenza.
 - Il filtro per tenant di appartenenza continua a rispettare il perimetro degli admin di tenant e permette ai superuser di selezionare qualunque tenant.
 - Aggiunti test di regressione per template e filtri combinati della ricerca utenti.
 
-0.6.0-3 tenant clone PostgreSQL sequence hotfix
+0.6.0-31 tenant clone PostgreSQL sequence hotfix
 - Corretto l'errore PostgreSQL duplicate key su config_label_pkey durante la creazione/clonazione di un tenant dopo full import o restore legacy con ID espliciti.
 - Dopo il Full import globale il sistema riallinea ora tutte le sequence PostgreSQL in una transazione successiva al commit, visibile ai dati appena ripristinati.
 - La creazione/clonazione tenant riallinea preventivamente le sequence delle tabelle clonate e usa commit con retry sequence-aware.
 - La clonazione di ConfigLabel, inclusa la creazione di nuovi workflow cross-tenant, riallinea la sequence config_label prima degli inserimenti.
 - Aggiunti test di regressione statici per full import e clonazione tenant sequence-safe.
 
-0.6.0-3 incident pagination and bulk actions hotfix
+0.6.0-31 incident pagination and bulk actions hotfix
 - Nella gestione utenti la ricerca permette ora di filtrare gli account anche per tenant di appartenenza, rispettando il perimetro degli admin di tenant.
 - La pagina principale degli incidenti usa paginazione predefinita a 20 elementi, con selettore 20/50/100 e limite massimo server-side pari a 100.
 - La lista incidenti espone selezione multipla e seleziona tutto sulla pagina corrente.
 - Gli incidenti selezionati possono essere spostati massivamente tra tenant dai superuser oppure cancellati massivamente dagli utenti con permessi di scrittura.
 - Aggiunti test di regressione per filtro tenant utenti, paginazione e azioni massive sugli incidenti.
 
-0.6.0-3 tenant/workflow clone idempotency hotfix
+0.6.0-31 tenant/workflow clone idempotency hotfix
 - Creazione tenant, clonazione tenant e clonazione workflow cross-tenant riusano sempre label, categorie, action label, raccomandazioni, destinatari, template e altre dipendenze gia' presenti nel tenant destinazione, evitando duplicazioni.
 - La voce "Nuovo workflow" riusa una categoria equivalente gia' presente nel tenant destinazione invece di crearne una copia con suffisso.
 - La clonazione della configurazione tenant e' idempotente: ripetere l'operazione riallinea i metadati ma non crea record duplicati.
 - Aggiunti test di regressione per clonazione tenant ripetuta e destinazione nuovo workflow con categoria gia' esistente.
 
-0.6.0-3 workflow clone new destination hotfix
+0.6.0-31 workflow clone new destination hotfix
 - Nella clonazione workflow cross-tenant, la lista dei workflow sorgenti viene filtrata sui soli flussi esistenti del tenant sorgente selezionato.
 - La lista dei workflow di destinazione mostra solo i flussi esistenti del tenant destinazione selezionato piu' la voce "Nuovo workflow".
 - Se viene scelta la voce "Nuovo workflow", il sistema crea nel tenant destinazione un nuovo workflow categoria e clona dal tenant sorgente step, action label e condizioni basate sulle liste configurabili.
 - Aggiunti test di regressione per UI e creazione di un nuovo workflow cross-tenant.
 
-0.6.0-3 incident move from main list hotfix
+0.6.0-31 incident move from main list hotfix
 - Lo spostamento di un incidente tra tenant e' ora disponibile solo nella pagina principale con la lista incidenti, tramite un pulsante dedicato di colore distinto nella riga dell'incidente.
 - Il comando di spostamento e' visibile solo agli utenti superuser; il dettaglio incidente non espone piu' la sezione di spostamento.
 - Il pulsante apre una lista dei tenant di destinazione ricercabile tramite digitazione, escludendo automaticamente il tenant sorgente dell'incidente.
 - Dopo lo spostamento il redirect torna alla pagina corrente della lista incidenti, che viene ricaricata con il tenant di destinazione attivo.
 - Aggiunti test di regressione per UI, ricerca tenant e spostamento dalla home.
 
-0.6.0-3 workflow cross-tenant clone hotfix
+0.6.0-31 workflow cross-tenant clone hotfix
 - In Admin -> Flussi operativi incidenti i superuser possono ora clonare workflow tra tenant diversi, scegliendo tenant e flusso sorgente/destinazione.
 - La clonazione cross-tenant riallinea nel tenant destinazione le action label e le condizioni basate su gravità/dati interessati, riusando elementi equivalenti o clonandoli quando mancanti.
 - La dicitura di sovrascrittura della clonazione workflow è stata semplificata in "Sovrascrivi" e allineata alla checkbox.
 - Aggiunti test di regressione per clonazione workflow cross-tenant e UI della sezione di clonazione.
 
-0.6.0-3 tenant menu switch reload hotfix
+0.6.0-31 tenant menu switch reload hotfix
 - Reso il selettore tenant della barra superiore funzionalmente equivalente al pulsante "Attiva" della configurazione tenant: la selezione invia subito il POST, aggiorna la sessione e ricarica la pagina corrente.
 - Il form del selettore aggiorna dinamicamente il parametro next con pathname, query string e hash correnti, così lo switch torna esattamente alla vista in uso.
 - Il redirect post-switch usa HTTP 303 e valida che la destinazione sia locale.
 - Aggiunti test di regressione per template/JavaScript del selettore e per redirect/sessione dopo POST di switch tenant.
 
-0.6.0-3 tenant deletion and workflow isolation hotfix
+0.6.0-31 tenant deletion and workflow isolation hotfix
 - Corretto l'ordine di cancellazione dei tenant: template incidente, step workflow e template notifica vengono rimossi prima delle ConfigLabel referenziate, evitando violazioni FK come incident_template_severity_id_fkey.
 - Durante la cancellazione di un tenant vengono riallineati eventuali riferimenti legacy user.tenant_id/default_tenant_id al tenant default prima della rimozione.
 - Resi tenant-scoped tutti i percorsi di lettura, clonazione, import/export, modifica e visualizzazione dei flussi operativi, evitando flussi spuri nel tenant sorgente o clonato.
 - Aggiunta in Admin -> Flussi operativi incidenti la funzione per eliminare interamente il flusso selezionato nel tenant attivo.
 - Aggiunti test di regressione per cancellazione tenant con IncidentTemplate, clonazione tenant senza workflow fantasma ed eliminazione completa del workflow.
 
-0.6.0-3 tenant switch and user role cleanup
+0.6.0-31 tenant switch and user role cleanup
 - Rimossi dalla configurazione utenti i campi visibili "ruolo globale" e "tenant principale legacy": il ruolo operativo deriva ora dalla membership nel tenant attivo/predefinito.
 - Il tenant attivo predefinito dell'utente diventa il riferimento operativo iniziale al login e sostituisce ogni uso UI del vecchio tenant principale.
 - Una membership con ruolo superuser rende l'utente superuser indipendentemente dal tenant; l'utente locale admin resta sempre superuser.
 - Corretto lo switch tenant dal selettore in barra superiore: la scelta viene scritta subito in sessione, il redirect ricarica la pagina corrente e le viste usano immediatamente current_tenant_id().
 - Aggiornati controlli login/MFA/SSO/LDAP per considerare le membership attive invece del vecchio User.role.
 
-0.6.0-3 tenant switch and incident move hotfix
+0.6.0-31 tenant switch and incident move hotfix
 - Corretto il cambio tenant dal selettore in barra superiore: la pagina principale e le viste operative filtrano sempre gli incidenti sul tenant attivo anche per superuser e utente admin.
 - Lo switch tenant imposta esplicitamente la sessione corrente e viene applicato immediatamente al redirect successivo.
 - Aggiunta azione nel dettaglio incidente per spostare un incidente tra tenant, riservata a superuser e all'utente locale admin.
 - Durante lo spostamento vengono riusate o clonate nel tenant destinazione etichette, persone, raccomandazioni e label delle azioni, evitando riferimenti cross-tenant.
 - Aggiunti test di regressione per filtro home dopo switch tenant e spostamento incidente tra tenant.
 
-0.6.0-3 tenant switcher and default active tenant
+0.6.0-31 tenant switcher and default active tenant
 - Il selettore del tenant attivo nella barra superiore è disponibile per gli utenti con più tenant accessibili e applica immediatamente lo switch alla sessione corrente.
 - Aggiunto il campo user.default_tenant_id con migrazione idempotente e backfill dai dati legacy.
 - Admin -> Utenti consente di configurare il tenant attivo predefinito per ogni utente non builtin admin, validandolo rispetto alle membership dell'utente.
 - L'utente locale admin resta superuser globale e non ha un tenant predefinito vincolante.
 - Aggiunti test di regressione per selettore/template, migrazione e scelta automatica del tenant predefinito.
 
-0.6.0-3 admin users UI and tenant-role management
+0.6.0-31 admin users UI and tenant-role management
 - Riorganizzata la pagina Admin -> Utenti con sezione iniziale piu leggibile, pulsanti dimensionati e posizionati nelle azioni del relativo pannello.
 - Sostituita la tabella utenti con schede record collassabili, chiuse per default, piu leggibili su desktop e mobile.
 - Aggiunta gestione esplicita per ogni utente non builtin admin delle membership tenant: aggiunta, rimozione e modifica del ruolo per tenant.
 - L'utente locale admin resta bloccato come superuser globale e non espone azioni di modifica tenant-specifiche.
 
-0.6.0-3 full import DetachedInstance hotfix
+0.6.0-31 full import DetachedInstance hotfix
 - Corretto il Full import globale da backup legacy dopo drop/create dello schema: la pulizia audit post-restore non usa piu current_user o current_tenant_id, evitando DetachedInstanceError quando Flask-Login conserva un utente non piu associato alla sessione SQLAlchemy.
 - Aggiunta una funzione di lettura Setting esplicita per tenant, sicura durante restore/migrazioni distruttive.
 - Aggiunto test di regressione per impedire il ritorno di purge tenant-aware basati su current_user dopo rebuild_database_for_full_import().
 
-0.6.0-3 full import legacy backup hotfix
+0.6.0-31 full import legacy backup hotfix
 - Corretto il full import globale da backup di versioni precedenti: prima del restore viene svuotato esplicitamente lo schema ricreato, eliminando eventuali righe bootstrap come il tenant default gia' presente.
 - Deduplicati i tenant letti dall'export per nome e ID, con fallback al tenant default per archivi legacy privi della tabella tenant.
 - Aggiunto fallback tenant_id per dati tenant-scoped importati da backup storici e ricostruzione delle membership user_tenant_role quando assenti.
 - Aggiunti test statici di regressione contro il ritorno dell'errore ix_tenant_name/default durante il full import.
 
-0.6.0-3 migration hotfix PostgreSQL user_tenant_role
+0.6.0-31 migration hotfix PostgreSQL user_tenant_role
 - Corretto l'ordine delle migrazioni multi-tenant su database PostgreSQL legacy: la colonna user.tenant_id viene aggiunta e valorizzata prima del backfill di user_tenant_role.
 - Qualificate con alias le colonne della tabella user durante INSERT ... SELECT verso user_tenant_role, evitando riferimenti ambigui a tenant_id.
 - Aggiunto test statico di regressione per impedire il ritorno del pattern SELECT id, COALESCE(tenant_id, ...) nella migrazione.
 
 
-0.6.0-3 tenant role hardening
+0.6.0-31 tenant role hardening
 - Consentita l'appartenenza dello stesso utente a più tenant tramite membership utente/tenant/ruolo.
 - Il ruolo superuser è globale e indipendente dal tenant; l'utente locale admin resta sempre superuser.
 - Gli admin di tenant possono esportare e importare solo il tenant attivo per cui hanno ruolo admin.
 - Export/import globale consentito esclusivamente ai superuser e all'utente locale admin.
 - La pagina Admin -> Utenti permette di aggiungere, aggiornare e rimuovere membership tenant per utente.
 
-0.6.0-3 - Gestione multi-tenant completa e rifiniture architetturali
+0.6.0-31 - Gestione multi-tenant completa e rifiniture architetturali
 - Aggiunto selettore del tenant attivo per i superuser, usato da configurazioni, liste, workflow, notifiche, destinatari, backup, plugin e knowledge base tenant-specifiche.
 - Mantenuta la visibilità cross-tenant dei superuser sugli incidenti, senza alterare i permessi degli altri ruoli.
-- Riallineati metadati applicativi, documentazione e manifest di deploy alla versione 0.6.0-3 build 20260528.
+- Riallineati metadati applicativi, documentazione e manifest di deploy alla versione 0.6.0-31 build 20260530.
 - Rifiniti hardening Kubernetes, conversione LibreOffice e annotazioni di sicurezza static analysis.
 - Avviata la scomposizione modulare delle route con moduli dedicati in app/route_modules mantenendo compatibilità con app.routes.
 
@@ -369,7 +395,7 @@
 
 0.5.0-1
 - La form degli incidenti e i modelli incidente possono caricare Riferimento, Destinatario ed E-mail Destinatario dalla rubrica dei destinatari esterni.
-- Se viene salvata una nuova E-mail Destinatario non presente in rubrica, viene aggiunta automaticamente usando come nome Destinatario o Riferimento.
+- Le nuove E-mail Destinatario non vengono più inserite automaticamente in rubrica; la rubrica viene aggiornata solo da gestione dedicata o import espliciti.
 - L'E-mail Destinatario richiede la compilazione di Riferimento o Destinatario.
 - Le notifiche manuali non possono essere inviate o confermate senza almeno un destinatario effettivo.
 - Documentazione aggiornata.

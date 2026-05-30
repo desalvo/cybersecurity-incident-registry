@@ -55,10 +55,10 @@
         <div class="action-label-submit-row"><button type="submit">Aggiungi label azione</button></div>
       </form>
 
-      <div class="action-label-card-grid">
+      <div class="action-label-card-grid action-label-collapse-list">
       {% for l in items if l.kind == kind %}
-        <article class="action-label-edit-card">
-          <div class="action-label-card-header">
+        <details class="action-label-edit-card action-label-collapse-card">
+          <summary class="action-label-card-header">
             <div>
               <h4>{{ l.value }}</h4>
               <p class="muted">ID {{ l.id }} · {{ l.group or group_name }}</p>
@@ -66,7 +66,7 @@
             <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" onsubmit="return confirm('Cancellare questa label e rimuoverla dagli incidenti?')">
               <button class="danger" type="submit">Cancella</button>
             </form>
-          </div>
+          </summary>
           <form id="label-update-{{l.id}}" method="post" action="{{ url_for('main.admin_label_update', lid=l.id) }}"></form>
           <div class="action-label-fields">
             <label>Nome task<input name="value" value="{{ l.value }}" required form="label-update-{{l.id}}"></label>
@@ -92,7 +92,7 @@
             </div>
           </div>
           <div class="action-label-card-actions"><button type="submit" form="label-update-{{l.id}}" class="secondary">Salva modifiche</button></div>
-        </article>
+        </details>
       {% else %}
         <p class="muted empty-card">Nessuna label azione configurata.</p>
       {% endfor %}

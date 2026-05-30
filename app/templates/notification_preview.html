@@ -24,7 +24,7 @@
           {% if not recipient_locked and template.recipient_external_allowed %}<button type="button" class="secondary" id="use-recipient-picker">Usa come destinatario</button>{% endif %}
           {% if not cc_locked and template.cc_external_allowed %}<button type="button" class="secondary" id="use-cc-picker">Aggiungi in CC</button>{% endif %}
         </div>
-        <p class="muted">Gli indirizzi nuovi digitati nei campi modificabili vengono aggiunti automaticamente alla rubrica usando il Riferimento dell’incidente come nome predefinito.</p>
+        <p class="muted">Gli indirizzi digitati nei campi modificabili vengono usati solo per questa notifica e non vengono aggiunti automaticamente alla rubrica.</p>
       </div>
       {% endif %}
       <div><label>Destinatario</label><input id="recipient-input" name="manual_recipient" form="notification-send-form" type="email" value="{{ recipient }}" list="external-recipients" {% if recipient_locked %}readonly{% else %}required{% endif %}></div>

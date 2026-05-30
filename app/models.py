@@ -192,11 +192,13 @@ class IncidentWorkflowStep(db.Model):
     document_generation_enabled=db.Column(db.Boolean,default=False,nullable=False)
     document_template_name=db.Column(db.String(255),nullable=True,index=True)
     document_auto_tags=db.Column(db.Text,default='',nullable=False)
+    section_target=db.Column(db.String(80),nullable=True,index=True)
     conditions=db.Column(db.Text,default='')
-    step_type=db.Column(db.String(20),default='confirm',nullable=False)
+    step_type=db.Column(db.String(20),default='registration',nullable=False)
     created_at=db.Column(db.DateTime,default=utcnow)
     category=db.relationship('ConfigLabel',foreign_keys=[category_id])
     action_label=db.relationship('ConfigLabel',foreign_keys=[action_label_id])
+
 
     def condition_tokens(self):
         values=[]

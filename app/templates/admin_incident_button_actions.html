@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Azioni automatiche pulsanti</h2>
+  <p class="muted">Associa a ciascun pulsante operativo della pagina incidente una eventuale azione automatica. Ogni pulsante è organizzato in una sezione verticale collassabile, chiusa per default, per rendere più leggibile la configurazione.</p>
+  <p class="muted">Per il pulsante <strong>Salva tag</strong> puoi definire più regole: ogni regola associa un’azione automatica alla coppia <strong>pulsante + insieme di tag selezionati</strong>. Al salvataggio dei tag del documento vengono registrate tutte le azioni le cui regole hanno almeno un tag corrispondente tra quelli presenti sul documento.</p>
+  <form method="post" class="button-action-config-form">
+    <div class="button-action-sections">
+      {% for code,label in button_actions %}
+        {% set entry = config.get(code) %}
+        <details class="button-action-panel">
+          <summary>
+            <span class="button-action-summary-title">{{ label }}</span>
+            <span class="button-action-summary-help">Configura azione automatica, ambito di esecuzione{% if code == 'document_tags_save' %} e regole tag multiple{% endif %}</span>
+          </summary>
+          <div class="button-action-panel-body">
+            {% if code == 'document_tags_save' %}
+              {% set rules = entry if entry is sequence and entry is not string and entry is not mapping else ([entry] if entry else []) %}
+              <input type="hidden" name="document_tags_save_rule_count" id="document-tags-save-rule-count" value="{{ rules|length if rules else 1 }}">
+              <div class="save-tag-rules" id="document-tags-save-rules">
+                {% for rule in rules if rule %}
+                  {% set idx = loop.index0 %}
+                  {% set selected_label_id = rule.label_id if rule is mapping else rule %}
+                  {% set selected_scope = rule.scope if rule is mapping else 'always' %}
+                  {% set selected_tags = rule.notification_tags if rule is mapping and rule.notification_tags is defined else [] %}
+                  <div class="save-tag-rule" data-rule-index="{{ idx }}">
+                    <div class="save-tag-rule-header">
+                      <strong>Regola Salva tag {{ loop.index }}</strong>
+                      <button type="button" class="secondary small remove-save-tag-rule">Rimuovi regola</button>
+                    </div>
+                    <div class="button-action-grid">
+                      <label>Azione automatica
+                        <select name="action_label_id_{{ code }}_{{ idx }}">
+                          <option value="">Nessuna azione automatica</option>
+                          {% for action_label in action_labels %}
+                            <option value="{{ action_label.id }}" {% if selected_label_id==action_label.id %}selected{% endif %}>{{ action_label.value }}</option>
+                          {% endfor %}
+                        </select>
+                      </label>
+                      <label>Quando eseguirla
+                        <select name="action_scope_{{ code }}_{{ idx }}">
+                          <option value="always" {% if selected_scope != 'workflow_update_section' %}selected{% endif %}>Sempre, quando l’operazione va a buon fine</option>
+                          <option value="workflow_update_section" {% if selected_scope == 'workflow_update_section' %}selected{% endif %}>Solo da sezione aperta tramite step workflow</option>
+                        </select>
+                      </label>
+                    </div>
+                    {% include 'partials/button_action_tag_rule.html' with context %}
+                  </div>
+                {% else %}
+                  {% set idx = 0 %}
+                  {% set selected_tags = [] %}
+                  {% set selected_label_id = '' %}
+                  {% set selected_scope = 'always' %}
+                  <div class="save-tag-rule" data-rule-index="0">
+                    <div class="save-tag-rule-header"><strong>Regola Salva tag 1</strong><button type="button" class="secondary small remove-save-tag-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid">
+                      <label>Azione automatica
+                        <select name="action_label_id_{{ code }}_0"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select>
+                      </label>
+                      <label>Quando eseguirla
+                        <select name="action_scope_{{ code }}_0"><option value="always">Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section">Solo da sezione aperta tramite step workflow</option></select>
+                      </label>
+                    </div>
+                    {% include 'partials/button_action_tag_rule.html' with context %}
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="secondary" id="add-save-tag-rule">Aggiungi regola Salva tag</button>
+              <template id="save-tag-rule-template">
+                <div class="save-tag-rule" data-rule-index="__INDEX__">
+                  <div class="save-tag-rule-header"><strong>Regola Salva tag __NUMBER__</strong><button type="button" class="secondary small remove-save-tag-rule">Rimuovi regola</button></div>
+                  <div class="button-action-grid">
+                    <label>Azione automatica
+                      <select name="action_label_id_document_tags_save___INDEX__"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select>
+                    </label>
+                    <label>Quando eseguirla
+                      <select name="action_scope_document_tags_save___INDEX__"><option value="always">Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section">Solo da sezione aperta tramite step workflow</option></select>
+                    </label>
+                  </div>
+                  <div class="button-tag-config" data-button-code="document_tags_save" data-rule-index="__INDEX__">
+                    {% if notification_types %}
+                      <div class="tag-palette" aria-label="Tag disponibili per Salva tag">{% for nt in notification_types %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}">{{ nt.label }}</span>{% endfor %}</div>
+                      <div class="tag-drop-zone prominent" tabindex="0" aria-label="Trascina qui i tag che attivano questa regola Salva tag"><span class="drop-zone-callout">Rilascia qui i tag che attivano questa regola</span>{% for nt in notification_types %}<label class="tag-selected hidden" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}" hidden><input type="checkbox" name="notification_tags_document_tags_save___INDEX__" value="{{ nt.code }}">{{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button></label>{% endfor %}<span class="muted tag-empty">Nessun tag selezionato.</span></div>
+                    {% else %}<span class="muted">Nessun tag disponibile.</span>{% endif %}
+                  </div>
+                </div>
+              </template>
+            {% else %}
+              {% set selected_label_id = entry.label_id if entry is mapping else entry %}
+              {% set selected_scope = entry.scope if entry is mapping else 'always' %}
+              <div class="button-action-grid">
+                <label>Azione automatica
+                  <select name="action_label_id_{{ code }}">
+                    <option value="">Nessuna azione automatica</option>
+                    {% for action_label in action_labels %}
+                      <option value="{{ action_label.id }}" {% if selected_label_id==action_label.id %}selected{% endif %}>{{ action_label.value }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>Quando eseguirla
+                  <select name="action_scope_{{ code }}">
+                    <option value="always" {% if selected_scope != 'workflow_update_section' %}selected{% endif %}>Sempre, quando l’operazione va a buon fine</option>
+                    <option value="workflow_update_section" {% if selected_scope == 'workflow_update_section' %}selected{% endif %}>Solo da sezione aperta tramite step workflow</option>
+                  </select>
+                </label>
+              </div>
+            {% endif %}
+          </div>
+        </details>
+      {% endfor %}
+    </div>
+    <div class="form-actions"><button>Salva configurazione</button></div>
+  </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function tagSelectedInBox(box, code) {
+    const selected = box.querySelector('.tag-selected[data-tag-code="' + code + '"]');
+    return !!selected && !selected.classList.contains('hidden') && !selected.hidden;
+  }
+  function selectedTagOwners() {
+    const owners = new Map();
+    document.querySelectorAll('#document-tags-save-rules .button-tag-config').forEach(function (box) {
+      box.querySelectorAll('.tag-selected').forEach(function (item) {
+        const code = item.dataset.tagCode || '';
+        if (code && !item.classList.contains('hidden') && !item.hidden) owners.set(code, box);
+      });
+    });
+    return owners;
+  }
+  function refreshTagAvailability() {
+    const owners = selectedTagOwners();
+    document.querySelectorAll('#document-tags-save-rules .button-tag-config').forEach(function (box) {
+      box.querySelectorAll('.tag-chip').forEach(function (chip) {
+        const code = chip.dataset.tagCode || '';
+        const owner = owners.get(code);
+        const unavailable = !!owner && owner !== box;
+        chip.classList.toggle('tag-chip-disabled', unavailable || tagSelectedInBox(box, code));
+        chip.draggable = !unavailable && !tagSelectedInBox(box, code);
+        chip.setAttribute('aria-disabled', unavailable ? 'true' : 'false');
+        if (unavailable) {
+          chip.dataset.originalTitle = chip.dataset.originalTitle || chip.getAttribute('title') || '';
+          chip.setAttribute('title', 'Tag già utilizzato in un’altra regola Salva tag. Rimuovilo dalla regola esistente per riutilizzarlo.');
+        } else if (chip.dataset.originalTitle) {
+          chip.setAttribute('title', chip.dataset.originalTitle);
+        }
+      });
+    });
+  }
+  function setupTagBox(box) {
+    if (box.dataset.ready === '1') return;
+    box.dataset.ready = '1';
+    const zone = box.querySelector('.tag-drop-zone');
+    const empty = box.querySelector('.tag-empty');
+    function refreshEmpty() {
+      const visible = Array.from(box.querySelectorAll('.tag-selected')).filter(function (el) { return !el.classList.contains('hidden') && !el.hidden; }).length;
+      if (empty) empty.style.display = visible ? 'none' : 'inline';
+      refreshTagAvailability();
+    }
+    refreshEmpty();
+    box.querySelectorAll('.tag-chip').forEach(function (chip) {
+      chip.addEventListener('dragstart', function (event) {
+        if (chip.classList.contains('tag-chip-disabled') || chip.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          return;
+        }
+        const code = chip.dataset.tagCode || '';
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('text/plain', code);
+        event.dataTransfer.setData('application/x-notification-tag', code);
+      });
+    });
+    if (zone) {
+      zone.addEventListener('dragover', function (event) { event.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function () { zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function (event) {
+        event.preventDefault(); zone.classList.remove('drag-over');
+        const code = event.dataTransfer.getData('application/x-notification-tag') || event.dataTransfer.getData('text/plain');
+        const owners = selectedTagOwners();
+        if (owners.has(code) && owners.get(code) !== box) {
+          zone.classList.add('drop-rejected');
+          window.setTimeout(function () { zone.classList.remove('drop-rejected'); }, 900);
+          return;
+        }
+        const item = box.querySelector('.tag-selected[data-tag-code="' + code + '"]');
+        if (item) {
+          item.classList.remove('hidden'); item.hidden = false;
+          const input = item.querySelector('input');
+          if (input) input.checked = true;
+          refreshEmpty();
+        }
+      });
+    }
+    box.querySelectorAll('.tag-remove').forEach(function (button) {
+      button.addEventListener('click', function (event) {
+        event.preventDefault(); event.stopPropagation();
+        const item = button.closest('.tag-selected');
+        if (item) {
+          const input = item.querySelector('input');
+          if (input) input.checked = false;
+          item.classList.add('hidden'); item.hidden = true; refreshEmpty();
+        }
+      });
+    });
+  }
+  document.querySelectorAll('.button-tag-config').forEach(setupTagBox);
+  refreshTagAvailability();
+  function refreshRuleCount() {
+    const rules = document.querySelectorAll('#document-tags-save-rules .save-tag-rule');
+    const counter = document.getElementById('document-tags-save-rule-count');
+    if (counter) counter.value = rules.length;
+    rules.forEach(function (rule, index) {
+      rule.dataset.ruleIndex = index;
+      const title = rule.querySelector('.save-tag-rule-header strong');
+      if (title) title.textContent = 'Regola Salva tag ' + (index + 1);
+      rule.querySelectorAll('select, input[type="checkbox"]').forEach(function (input) {
+        input.name = input.name.replace(/document_tags_save_\d+|document_tags_save___INDEX__|notification_tags_document_tags_save_\d+|notification_tags_document_tags_save___INDEX__/g, function (match) {
+          if (match.indexOf('notification_tags_') === 0) return 'notification_tags_document_tags_save_' + index;
+          return 'document_tags_save_' + index;
+        });
+        input.name = input.name.replace(/action_label_id_document_tags_save_\d+/, 'action_label_id_document_tags_save_' + index)
+                             .replace(/action_scope_document_tags_save_\d+/, 'action_scope_document_tags_save_' + index);
+      });
+    });
+  }
+  const addRule = document.getElementById('add-save-tag-rule');
+  if (addRule) {
+    addRule.addEventListener('click', function () {
+      const list = document.getElementById('document-tags-save-rules');
+      const template = document.getElementById('save-tag-rule-template');
+      const index = list ? list.querySelectorAll('.save-tag-rule').length : 0;
+      if (!list || !template) return;
+      const html = template.innerHTML.replace(/__INDEX__/g, String(index)).replace(/__NUMBER__/g, String(index + 1));
+      const wrapper = document.createElement('div'); wrapper.innerHTML = html.trim();
+      const node = wrapper.firstElementChild;
+      list.appendChild(node);
+      node.querySelectorAll('.button-tag-config').forEach(setupTagBox);
+      refreshRuleCount();
+      refreshTagAvailability();
+    });
+  }
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('.remove-save-tag-rule');
+    if (!button) return;
+    const rules = document.querySelectorAll('#document-tags-save-rules .save-tag-rule');
+    const rule = button.closest('.save-tag-rule');
+    if (rules.length <= 1) {
+      if (rule) {
+        rule.querySelectorAll('select').forEach(function (select) { select.value = ''; });
+        rule.querySelectorAll('.tag-selected').forEach(function (item) { item.classList.add('hidden'); item.hidden = true; const input = item.querySelector('input'); if (input) input.checked = false; });
+        rule.querySelectorAll('.button-tag-config').forEach(function (box) { const empty = box.querySelector('.tag-empty'); if (empty) empty.style.display = 'inline'; });
+      }
+    } else if (rule) {
+      rule.remove();
+    }
+    refreshRuleCount();
+    refreshTagAvailability();
+  });
+});
+</script>
+<style>
+.button-action-config-form select{width:100%}.button-action-sections{display:flex;flex-direction:column;gap:.75rem}.button-action-panel{border:1px solid #d7dee8;border-radius:.75rem;background:#fff}.button-action-panel summary{cursor:pointer;display:flex;gap:.75rem;align-items:flex-start;justify-content:flex-start;text-align:left;padding:.8rem 1rem;list-style:none}.button-action-panel summary::-webkit-details-marker{display:none}.button-action-panel summary:before{content:'▸';font-weight:bold;margin-right:.25rem}.button-action-panel[open] summary:before{content:'▾'}.button-action-summary-title{font-weight:700;flex:0 0 auto}.button-action-summary-help{font-size:.9rem;color:#64748b;text-align:left}.button-action-panel-body{border-top:1px solid #e5e7eb;padding:1rem}.button-action-grid{display:grid;grid-template-columns:minmax(18rem,1.3fr) minmax(18rem,1fr);gap:1rem;margin-bottom:.85rem}.save-tag-rules{display:flex;flex-direction:column;gap:1rem;margin-bottom:.75rem}.save-tag-rule{border:1px solid #bfdbfe;border-radius:.85rem;background:#f8fbff;padding:1rem}.save-tag-rule-header{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:.8rem}.tag-palette{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.18rem .55rem;background:#f8fafc;font-size:.88rem}.tag-chip{cursor:grab}.tag-chip-disabled{opacity:.45;cursor:not-allowed;background:#e5e7eb;color:#64748b}.tag-drop-zone{min-height:3.25rem;border:2px dashed #1d4ed8;border-radius:.7rem;padding:.7rem;background:#f8fbff;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.tag-drop-zone.prominent{border-width:3px;background:#eff6ff;box-shadow:inset 0 0 0 1px #93c5fd}.drop-zone-callout{font-weight:700;color:#1d4ed8;margin-right:.4rem}.tag-drop-zone.drag-over{background:#dbeafe}.tag-drop-zone.drop-rejected{border-color:#dc2626;background:#fee2e2}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;cursor:pointer;font-weight:bold;border-radius:999px;min-width:1.35rem;min-height:1.35rem}@media(max-width:760px){.button-action-grid{grid-template-columns:1fr}.button-action-panel summary{flex-direction:column}.button-action-summary-help{text-align:left}}
+</style>
+{% endblock %}

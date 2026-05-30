@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card">
   <h2>{{ page_title or 'Destinatari esterni' }}</h2>
-  <p class="muted">Rubrica condivisa usata nei campi destinatario e CC delle notifiche manuali. Le nuove email usate in invio possono essere aggiunte automaticamente dopo l’indicazione del nome.{% if settings_mode %} Questa pagina è disponibile dal menu Impostazioni per gli utenti non amministratori con ruolo writer.{% endif %}</p>
+  <p class="muted">Rubrica condivisa usata nei campi destinatario e CC delle notifiche manuali. I contatti vengono inseriti solo manualmente da questa pagina o tramite import esplicito.{% if settings_mode %} Questa pagina è disponibile dal menu Impostazioni per gli utenti non amministratori con ruolo writer.{% endif %}</p>
 </div>
 <div class="card">
   <h3>{{ 'Modifica destinatario' if editing else 'Nuovo destinatario' }}</h3>
@@ -27,7 +27,16 @@
   {% if search_query %}<p class="muted">Risultati filtrati per: <strong>{{ search_query }}</strong></p>{% endif %}
 </div>
 <div class="card">
-  <h3>Rubrica{% if search_query %} - risultati ricerca{% endif %}</h3>
+  <div class="external-recipient-book-header">
+    <div>
+      <h3>Rubrica{% if search_query %} - risultati ricerca{% endif %}</h3>
+      <p class="muted">Il comando “Rimuovi tutto” elimina tutti i destinatari esterni visibili per il tenant corrente.</p>
+    </div>
+    <form method="post" onsubmit="return confirm('Rimuovere tutti i destinatari esterni registrati nella rubrica? L’operazione non può essere annullata.')">
+      <input type="hidden" name="action" value="delete_all">
+      <button class="danger" type="submit" {% if not recipients %}disabled{% endif %}>Rimuovi tutto</button>
+    </form>
+  </div>
   <table class="table">
     <tr><th>Nome</th><th>Email</th><th>Note</th><th>Azioni</th></tr>
     {% for r in recipients %}

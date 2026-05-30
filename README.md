@@ -1,21 +1,25 @@
-### Aggiornamento 0.6.0-3 - Riorganizzazione documentazione
+### Aggiornamento 0.6.0-31 - Workflow aggiorna sezione e azioni automatiche pulsanti
+
+La configurazione workflow include la tipologia di sistema `Aggiorna sezione`, che apre una sezione del dettaglio incidente e considera lo step completato quando e' presente l'azione associata allo step. La pagina Admin include inoltre la configurazione delle azioni automatiche associate ai pulsanti operativi: ogni associazione puo' essere eseguita sempre oppure solo quando il pulsante viene premuto da una sezione aperta tramite uno step workflow `Aggiorna sezione`. Il layout delle azioni permette di nascondere il campo Label per default.
+
+### Aggiornamento 0.6.0-31 - Riorganizzazione documentazione
 
 Le guide utente e amministrativa sono state ristrutturate per integrare nei capitoli corretti le note operative su notifiche schedulate, CC, conseguenze automatiche, stato servizi, AI Chatbot, workflow e destinatari esterni. Le figure di flusso sono ora collocate all’interno dei capitoli introduttivi, le sezioni finali sono numerate e contestualizzate e il layout desktop della documentazione è stato rafforzato. I risultati AGID non vengono rigenerati automaticamente: nuove evidenze vengono salvate solo su richiesta esplicita.
 
-0.6.0-3 - Abilitazione CC in anteprima notifiche manuali
+0.6.0-31 - Abilitazione CC in anteprima notifiche manuali
 - Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.
 
-### Aggiornamento 0.6.0-37 - Template incidente e cleanup documenti orfani
+### Aggiornamento 0.6.0-317 - Template incidente e cleanup documenti orfani
 
 Il salvataggio dei modelli incidente conserva ora l’ordine delle categorie selezionate tramite drag and drop, così la modifica successiva del modello mantiene la sequenza operativa definita dall’amministratore. In **Admin → Altre configurazioni** è stato aggiunto il pulsante **Cleanup documenti orfani**, che rimuove da `uploads` solo i file generati dall’applicazione non più collegati ad alcun incidente, documento o allegato azione, senza cancellare gli allegati caricati manualmente.
 
-### Aggiornamento 0.6.0-3 - Markdown con colore/dimensione e notifiche schedulate plain text
+### Aggiornamento 0.6.0-31 - Markdown con colore/dimensione e notifiche schedulate plain text
 
 Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}`, `{size:<valore>}testo{/size}` e `{button:Etichetta|URL}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I pulsanti possono usare URL HTTP/HTTPS, percorsi relativi e ancore della pagina corrente come `#incident-main`. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
 
 
-0.6.0-3 - Anteprima CC precompilata e svuotamento manuale
+0.6.0-31 - Anteprima CC precompilata e svuotamento manuale
 - L’anteprima delle notifiche manuali precompila il CC modificabile con il default del template, se presente.
 - Se l’operatore svuota il campo CC prima della conferma, l’invio ignora il CC e procede senza destinatari in copia.
 
@@ -32,11 +36,11 @@ Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantene
 
 ## Stato applicativo
 
-La documentazione operativa descrive lo stato corrente della piattaforma 0.6.0-3, build 20260528. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+La documentazione operativa descrive lo stato corrente della piattaforma 0.6.0-31, build 20260530. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
-## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260528
+## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260530
 
-La build 0.6.0-3 introduce un hardening applicativo orientato alle linee guida di sviluppo sicuro allegate:
+La build 0.6.0-31 introduce un hardening applicativo orientato alle linee guida di sviluppo sicuro allegate:
 
 - validazione server-side rafforzata per password, email, username, campi testuali e upload;
 - policy password locale con almeno 12 caratteri, complessità, blocco di password comuni/default e divieto di includere username/email;
@@ -49,7 +53,7 @@ La build 0.6.0-3 introduce un hardening applicativo orientato alle linee guida d
 
 Per la compliance operativa si raccomanda inoltre di eseguire in pipeline `pytest`, `bandit`, `pip-audit` e una scansione container, e di mantenere anche a livello di reverse proxy la disabilitazione dei metodi HTTP TRACE/TRACK, già bloccati dall’applicazione.
 
-## Hardening produzione build 20260528
+## Hardening produzione build 20260530
 
 Questa build introduce una baseline di sicurezza applicativa per l'uso in produzione:
 
@@ -172,8 +176,8 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.6.0-3
-- Build: 20260528
+- Versione: 0.6.0-31
+- Build: 20260530
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 Le informazioni sono visibili da **Info → Applicazione** e configurabili via variabili d’ambiente `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
@@ -329,7 +333,7 @@ I template moduli predefiniti basati su XML/DOCX sono stati rimossi. Dal menu **
 
 ## Aggiornamento documenti allegati
 
-Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload. Per ogni documento è possibile associare o rimuovere i tag dei tipi notifica tramite palette drag & drop e pulsante di rimozione; i tag selezionati vengono salvati esplicitamente e sono usati per preselezionare gli allegati nelle notifiche manuali.
+Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload e un pulsante `Scarica` per il download diretto del file. Per ogni documento è possibile associare o rimuovere i tag dei tipi notifica tramite palette drag & drop: la zona di rilascio è evidenziata e il pulsante di rimozione del tag selezionato è esplicito; all’inizio della sezione è presente la legenda dei tag con nome e descrizione, mostrata anche come tooltip. I tag selezionati vengono salvati esplicitamente e sono usati per preselezionare gli allegati nelle notifiche manuali. Il pulsante `Salva tag` è configurabile anche nelle azioni automatiche pulsanti: la sezione dedicata, collassabile per default, permette di creare più regole; ogni regola associa una diversa label azione a uno specifico insieme di tag selezionati tramite un’area drag & drop evidenziata. Un tag può essere usato in una sola regola del pulsante `Salva tag`; quando è già selezionato altrove viene disabilitato nelle altre regole. Al salvataggio dei tag vengono registrate tutte le azioni le cui regole hanno almeno un tag corrispondente tra quelli presenti sul documento.
 
 
 
@@ -344,7 +348,7 @@ Il campo derivato `measures_adopted` include solo le azioni marcate come **expor
 
 ## Avvisi procedurali
 
-Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step del workflow applicabile marcati come richiesti e non ancora completati. Ogni avviso riporta la descrizione operativa dello step, se disponibile, altrimenti la descrizione o il nome del task. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome, con tooltip riepilogativo degli avvisi presenti. Gli incidenti senza avvisi procedurali attivi ma non ancora chiusi mostrano invece il simbolo di finalizzato, mentre gli incidenti chiusi senza avvisi attivi mostrano il simbolo di ok. La sezione "Avvisi procedurali" è collocata subito sotto "Fasi procedurali"; nella sezione delle fasi, la prima fase non completata è segnalata con una grande freccia rossa. In assenza di avvisi attivi, l’inserimento dell’azione di conclusione porta automaticamente l’incidente allo stato "chiuso".
+Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step del workflow applicabile marcati come richiesti e non ancora completati. Ogni avviso riporta la descrizione operativa dello step, se disponibile, altrimenti la descrizione o il nome del task. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome; passando sopra il simbolo, o usando il focus da tastiera, viene mostrata una tabella dei task ancora da completare in sequenza, con rendering Markdown sicuro delle descrizioni. Gli incidenti senza avvisi procedurali attivi ma non ancora chiusi mostrano invece il simbolo di finalizzato, mentre gli incidenti chiusi senza avvisi attivi mostrano il simbolo di ok. La sezione "Avvisi procedurali" è collocata subito sotto "Fasi procedurali"; nella sezione delle fasi, la prima fase non completata è segnalata con una grande freccia rossa. In assenza di avvisi attivi, l’inserimento dell’azione di conclusione porta automaticamente l’incidente allo stato "chiuso".
 
 
 ## Documentazione utente e logo applicativo
@@ -500,7 +504,7 @@ La pagina di dettaglio di uno specifico incidente mostra ora la sezione **Avvisi
 
 ## Aggiornamento 0.110-92 - Exportable default configurabile sulle label azioni
 
-In **Admin → Liste configurabili → Label azioni** è stato aggiunto il campo **Esportabile per default**. Durante l’inserimento di una nuova azione in un incidente, il sistema inizializza il flag `exportable` dell’azione usando il valore configurato sulla label selezionata. Il modello dati `ConfigLabel` include la nuova colonna `default_exportable`, migrata automaticamente sui database esistenti e inclusa nel full export/import insieme alle altre configurazioni delle label.
+In **Admin → Liste configurabili → Label azioni** le azioni esistenti sono presentate in sezioni verticali collassabili, chiuse per default. È stato aggiunto il campo **Esportabile per default**. Durante l’inserimento di una nuova azione in un incidente, il sistema inizializza il flag `exportable` dell’azione usando il valore configurato sulla label selezionata. Il modello dati `ConfigLabel` include la nuova colonna `default_exportable`, migrata automaticamente sui database esistenti e inclusa nel full export/import insieme alle altre configurazioni delle label.
 
 ## Aggiornamento 0.110-93 - Tempo massimo in ore e timezone nelle notifiche di scadenza
 
@@ -663,7 +667,7 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 Le variazioni di versione sono raccolte in `CHANGELOG.txt` e nella pagina **Aiuto → Note di rilascio** dell’applicazione. Le guide operative mantengono solo le istruzioni d’uso correnti.
 
 
-## Aggiornamento 0.6.0-3 - Scheduler notifiche, anti-flooding e timezone
+## Aggiornamento 0.6.0-31 - Scheduler notifiche, anti-flooding e timezone
 
 Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker o replica tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
 
@@ -671,7 +675,7 @@ Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono int
 
 ### Descrizioni workflow, Markdown, colori e dimensioni
 
-In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati, link, pulsanti `{button:Etichetta|URL}` e dimensioni font controllate. Gli URL `http://` e `https://`, i percorsi relativi e le ancore presenti nei pulsanti sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea, più ampia nelle sezioni collassabili degli step e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati, link, pulsanti `{button:Etichetta|URL}` e dimensioni font controllate. Gli URL `http://` e `https://`, i percorsi relativi e le ancore presenti nei pulsanti sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
 
 Esempi supportati:
 
@@ -687,28 +691,28 @@ Esempi supportati:
 
 La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. La sintassi dimensione ammessa è `{size:small|normal|large|x-large|xx-large}testo{/size}` oppure `{size:8px..32px}testo{/size}`. Lo stesso rendering Markdown viene usato anche negli avvisi procedurali, che mostrano inoltre il nome del task associato. Il markup HTML libero viene escapato.
 
-### Aggiornamento 0.6.0-3 - Scheduler notifiche seriale
+### Aggiornamento 0.6.0-31 - Scheduler notifiche seriale
 
 Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale; la concorrenza viene gestita con lock/rivalutazione del record, senza saltare l’invio perché il promemoria risulta preso in carico da un altro ciclo.
 
-## Aggiornamento 0.6.0-3 - Audit degli incidenti saltati dallo scheduler notifiche
+## Aggiornamento 0.6.0-31 - Audit degli incidenti saltati dallo scheduler notifiche
 
 Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, assenza destinatari/errori SMTP, promemoria già marcati come inviati ed eccezioni.
 
-## Aggiornamento 0.6.0-3 - Controllo manuale scadenze e promemoria specifici
+## Aggiornamento 0.6.0-31 - Controllo manuale scadenze e promemoria specifici
 
 Il pulsante **Esegui controllo ora** nella sezione **Controllo scadenze azioni** riallinea preventivamente le sequence PostgreSQL e l'inserimento dei record audit gestisce subito eventuali collisioni `audit_log_pkey`. In questo modo il controllo manuale non fallisce più al commit quando il database proviene da import/restore o da sequence non allineate.
 
 Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. `deadline_notification_state` resta solo diagnostica; la protezione anti-concorrenza avviene sul record del promemoria e non introduce slot/finestra né un motivo di salto “già preso in carico”.
 
-## Aggiornamento 0.6.0-3 - Controllo manuale promemoria specifici
+## Aggiornamento 0.6.0-31 - Controllo manuale promemoria specifici
 
 La pagina **Notifiche → Impostazioni** include alla fine una sezione **Controllo promemoria specifici** con il pulsante **Esegui controllo promemoria ora**. Il controllo manuale elabora subito i promemoria specifici dei singoli incidenti già scaduti e non ancora inviati, usando la stessa logica serializzata dello scheduler automatico.
 
 Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. La concorrenza viene risolta bloccando/rivalutando il record del promemoria: un ciclo concorrente non blocca funzionalmente l’invio, ma attende l’esito e poi vede `sent_at` valorizzato.
 
 Quando un promemoria viene saltato, sia dallo scheduler sia dal pulsante manuale, l'audit `scheduler:incident_reminder_skipped` riporta incidente, identificativo promemoria, data programmata, messaggio sintetico, destinatari/CC configurati, ultimo errore disponibile, sorgente del controllo, codice motivo e descrizione leggibile del motivo.
-## Aggiornamento 0.6.0-3 - Correzione controllo promemoria specifici
+## Aggiornamento 0.6.0-31 - Correzione controllo promemoria specifici
 
 Il pulsante **Esegui controllo promemoria ora** nella sezione **Controllo promemoria specifici** non accede più a un attributo inesistente del modello `IncidentReminder`. I destinatari effettivi sono ricavati dal personale associato all’incidente, come già avviene per l’invio SMTP, e la stessa logica viene riutilizzata per compilare gli audit dei promemoria saltati.
 
@@ -721,11 +725,11 @@ Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i p
 
 La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinatari dell'invio delle notifiche per task in scadenza e mostra i destinatari effettivi anche per le notifiche già inviate di recente.
 
-### Aggiornamento 0.6.0-3 - Promemoria specifici senza blocco da presa in carico
+### Aggiornamento 0.6.0-31 - Promemoria specifici senza blocco da presa in carico
 
 Per i promemoria specifici la presa in carico tecnica da parte di un altro ciclo scheduler o di un controllo manuale concorrente non è più un motivo di blocco. L'invio viene deciso solo dal campo `incident_reminder.sent_at`: se è vuoto il promemoria è inviabile, se è valorizzato è già considerato inviato. La concorrenza viene gestita rivalutando atomicamente il record del promemoria, mentre `deadline_notification_state` resta solo diagnostico e non usa slot o finestre.
 
-### Aggiornamento 0.6.0-3 - Scheduler promemoria e pagina Stato servizi
+### Aggiornamento 0.6.0-31 - Scheduler promemoria e pagina Stato servizi
 
 Il thread scheduler esegue ad ogni ciclo sia il controllo delle notifiche periodiche dei task in scadenza sia il controllo dei promemoria specifici. I due controlli sono indipendenti: un errore o una disabilitazione del controllo dei task in scadenza non impedisce più l'elaborazione dei promemoria specifici già scaduti e non inviati. Per i promemoria specifici resta valido il solo criterio funzionale `incident_reminder.sent_at`: se è vuoto il promemoria viene considerato inviabile, se è valorizzato non viene reinviato.
 
@@ -735,13 +739,13 @@ Nel menu **Admin → Controllo e audit** è disponibile la nuova voce **Stato**,
 
 I promemoria specifici degli incidenti sono controllati da un thread separato rispetto allo scheduler delle notifiche periodiche dei task in scadenza. L'intervallo è configurabile da **Impostazioni → Notifiche**, sezione **Promemoria automatici scadenze azioni**, con default 60 secondi. Ogni esecuzione del controllo promemoria produce un record di audit, anche quando non sono presenti promemoria scaduti. La pagina **Admin → Stato** riporta lo stato del thread, l'intervallo configurato e data/ora dell'ultima esecuzione del controllo sui promemoria specifici.
 
-### Note 0.6.0-3
+### Note 0.6.0-31
 
 - Corretto il controllo promemoria specifici in thread: i link incidente nelle mail non dipendono più da un request context Flask.
 - Aggiunto intervallo configurabile per il controllo automatico dei task in scadenza, default 60 secondi.
 - La pagina Admin → Stato mostra pallini colorati per thread attivi/non attivi e per gli ultimi cicli scheduler.
 
-### Note 0.6.0-3
+### Note 0.6.0-31
 
 Corretto il problema `RuntimeError: Working outside of application context` nei thread scheduler. Gli intervalli configurabili dei controlli automatici vengono letti dalla tabella `setting` solo all'interno di `app.app_context()`, mentre le eventuali chiamate diagnostiche fuori contesto usano un fallback sicuro.
 
@@ -760,7 +764,7 @@ La pagina del singolo incidente è organizzata in sezioni collassabili. La sezio
 
 ## Destinatari esterni e notifiche manuali
 
-Nella form degli incidenti e nei modelli incidente è possibile caricare Riferimento, Destinatario o E-mail Destinatario dalla rubrica dei destinatari esterni. La sintassi del campo E-mail Destinatario viene controllata sempre lato server in creazione, modifica e salvataggio dei modelli: valori non conformi a un singolo indirizzo e-mail valido bloccano il salvataggio con un messaggio di errore esplicito. Le nuove e-mail destinatario salvate sugli incidenti vengono inserite automaticamente in rubrica usando come nome il Destinatario oppure il Riferimento. Le notifiche manuali richiedono sempre almeno un destinatario effettivo: se il destinatario è vuoto, il pulsante di invio resta utilizzabile ma l’operazione viene respinta lato server con un messaggio di errore esplicito. Se il template permette la compilazione manuale del destinatario, l’operatore può digitare un indirizzo e-mail valido direttamente in anteprima e inviare senza doverlo preconfigurare nel template. I valori manuali di destinatario e CC digitati nei campi compilabili dell’anteprima vengono acquisiti direttamente al momento del submit, sia per l’invio reale sia per la conferma senza invio, previa conferma dell’operatore. Se il CC è modificabile, l’anteprima lo precompila con il valore di default del template quando presente; se l’operatore svuota il campo prima della conferma, il valore vuoto è considerato una scelta manuale esplicita e la mail viene inviata senza CC. In anteprima è presente anche la checkbox “Usa CC per questa notifica”, abilitata per default: quando viene deselezionata il campo CC viene nascosto e ignorato dal submit.
+Nella form degli incidenti e nei modelli incidente è possibile caricare Riferimento, Destinatario o E-mail Destinatario dalla rubrica dei destinatari esterni. La sintassi del campo E-mail Destinatario viene controllata sempre lato server in creazione, modifica e salvataggio dei modelli: valori non conformi a un singolo indirizzo e-mail valido bloccano il salvataggio con un messaggio di errore esplicito. Le nuove e-mail destinatario salvate sugli incidenti non vengono inserite automaticamente in rubrica: la rubrica viene aggiornata solo dalla gestione dedicata o da import espliciti; dalla gestione della rubrica è disponibile anche “Rimuovi tutto” con conferma preventiva. Le notifiche manuali richiedono sempre almeno un destinatario effettivo: se il destinatario è vuoto, il pulsante di invio resta utilizzabile ma l’operazione viene respinta lato server con un messaggio di errore esplicito. Se il template permette la compilazione manuale del destinatario, l’operatore può digitare un indirizzo e-mail valido direttamente in anteprima e inviare senza doverlo preconfigurare nel template. I valori manuali di destinatario e CC digitati nei campi compilabili dell’anteprima vengono acquisiti direttamente al momento del submit, sia per l’invio reale sia per la conferma senza invio, previa conferma dell’operatore. Se il CC è modificabile, l’anteprima lo precompila con il valore di default del template quando presente; se l’operatore svuota il campo prima della conferma, il valore vuoto è considerato una scelta manuale esplicita e la mail viene inviata senza CC. In anteprima è presente anche la checkbox “Usa CC per questa notifica”, abilitata per default: quando viene deselezionata il campo CC viene nascosto e ignorato dal submit.
 
 
 ### Full export autosufficiente
@@ -769,7 +773,7 @@ Il full export contiene l'intero stato applicativo necessario a riprodurre l'ins
 
 Nel manifest `export.json` la sezione `files.persistent_files` elenca anche i file presenti nei volumi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`, così l'export resta ripristinabile anche se un file operativo non è più referenziato direttamente da un singolo record. L'import completo ricrea il database e ripristina i file nelle directory applicative corrispondenti.
 
-### 0.6.0-3 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
+### 0.6.0-31 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
 
 La checkbox storica dell’incidente relativa a `personal_data` è ora mostrata nelle form come **Rischio per diritti e libertà**. La stessa denominazione è usata nella configurazione dei workflow per la condizione corrispondente; il token tecnico resta `personal_data` per compatibilità con database ed esportazioni esistenti.
 
@@ -805,7 +809,7 @@ Il plugin AI Chatbot si presenta agli utenti come **AlBot**, chiamabile anche **
 
 Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins → Chatbot AI**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice, link e pulsanti `{button:Etichetta|URL}` vengono formattati nella chat; HTML libero e script restano escapati.
 
-## Compliance AGID - hardening 0.6.0-3 build 20260528
+## Compliance AGID - hardening 0.6.0-31 build 20260530
 
 ### Rifinitura compliance completa
 
@@ -943,3 +947,6 @@ Nota multi-tenant: la clonazione dei tenant e dei workflow è idempotente e non 
 
 
 Nota PostgreSQL multi-tenant: le migrazioni rimuovono gli indici univoci legacy non tenant-scoped, incluso `ix_notification_type_code`, sostituendoli con chiavi tenant-aware per consentire la clonazione dei tenant senza conflitti sui tipi di notifica.
+
+
+Aggiornamento UI 0.6.0-31: i tipi di notifica includono una descrizione modificabile con default generato dal nome; la descrizione è usata come help/tooltip in tutte le palette drag & drop dei tag.
