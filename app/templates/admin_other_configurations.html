@@ -26,6 +26,12 @@
     </div>
 
     <div class="wide">
+      <label>Dimensione massima upload (MB)</label>
+      <input name="max_upload_size_mb" type="number" min="{{ max_upload_size_mb_min }}" max="{{ max_upload_size_mb_max }}" step="1" value="{{ max_upload_size_mb }}">
+      <p class="muted">Limite massimo, in MB, per ogni richiesta di upload gestita dall'applicazione, inclusi import workflow, allegati, documenti, loghi e restore. Default: 25 MB. In presenza di reverse proxy o ingress Kubernetes, il limite del proxy deve essere almeno uguale a questo valore.</p>
+    </div>
+
+    <div class="wide">
       <label>Lingua interfaccia</label>
       <select name="interface_language">
         <option value="auto" {% if interface_language == 'auto' %}selected{% endif %}>Automatica dal browser</option>

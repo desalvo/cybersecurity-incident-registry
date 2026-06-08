@@ -1,11 +1,13 @@
-import os, csv, io, json, tarfile, uuid, shutil, tempfile, smtplib, base64, secrets, re, sys
+import os, csv, io, json, tarfile, uuid, shutil, tempfile, smtplib, base64, secrets, re, sys, copy
 from pathlib import Path
 from email.message import EmailMessage
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from . import APP_RELEASE_VERSION, APP_RELEASE_BUILD
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, send_from_directory, current_app, Response, abort, session, g, has_app_context, has_request_context, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 from sqlalchemy import or_, and_, text, Table, MetaData, select, func, inspect
 from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from ldap3 import Server, Connection, ALL
@@ -27,11 +29,137 @@ from .timeutils import utcnow
 from . import restore_missing_default_config_labels, DEFAULT_CONFIG_LABELS
 from .route_modules.tenancy import TENANT_SHARED_CONFIGURATION_KEYS, TENANT_SCOPED_ADMIN_AREAS, TENANT_SHARED_ADMIN_AREAS
 from .route_modules.permissions import accessible_tenant_ids as _accessible_tenant_ids, is_builtin_admin_account, is_global_superuser, role_for_tenant as _role_for_tenant
+from .route_modules.scheduler_lifecycle import background_schedulers_disabled as _background_schedulers_disabled_impl, stop_threads as _stop_scheduler_threads
 bp=Blueprint('main',__name__)
 
 GLOBAL_SETTING_KEYS = set(TENANT_SHARED_CONFIGURATION_KEYS)
 TENANT_SCOPED_MODELS = ()  # populated lazily after models are imported
 
+MAX_UPLOAD_SIZE_MB_SETTING = 'max_upload_size_mb'
+DEFAULT_MAX_UPLOAD_SIZE_MB = 25
+MAX_UPLOAD_SIZE_MB_MIN = 1
+MAX_UPLOAD_SIZE_MB_MAX = 2048
+
+
+def parse_max_upload_size_mb(value, default=DEFAULT_MAX_UPLOAD_SIZE_MB):
+    try:
+        text = str(value if value is not None else '').strip().replace(',', '.')
+        if not text:
+            raise ValueError
+        number = float(text)
+    except (TypeError, ValueError):
+        number = float(default)
+    if number < MAX_UPLOAD_SIZE_MB_MIN:
+        number = float(MAX_UPLOAD_SIZE_MB_MIN)
+    if number > MAX_UPLOAD_SIZE_MB_MAX:
+        number = float(MAX_UPLOAD_SIZE_MB_MAX)
+    return int(number)
+
+
+def configured_max_upload_size_mb(default=DEFAULT_MAX_UPLOAD_SIZE_MB):
+    try:
+        return parse_max_upload_size_mb(setting_value(MAX_UPLOAD_SIZE_MB_SETTING, str(default)), default=default)
+    except Exception:
+        return parse_max_upload_size_mb(os.environ.get('MAX_CONTENT_LENGTH_MB') or os.environ.get('MAX_UPLOAD_SIZE_MB') or default, default=default)
+
+
+def configured_max_upload_size_bytes(default=DEFAULT_MAX_UPLOAD_SIZE_MB):
+    return configured_max_upload_size_mb(default=default) * 1024 * 1024
+
+
+def apply_configured_max_upload_size(app=None):
+    app = app or current_app
+    size_bytes = configured_max_upload_size_bytes()
+    app.config['MAX_CONTENT_LENGTH'] = size_bytes
+    # Werkzeug/Flask 3.x applica anche un limite separato alla dimensione
+    # dei campi form non-file (MAX_FORM_MEMORY_SIZE). Gli import workflow
+    # usano una preview intermedia: senza questo allineamento un JSON da pochi
+    # MB poteva ricevere 413 anche con MAX_CONTENT_LENGTH a 25 MB.
+    app.config['MAX_FORM_MEMORY_SIZE'] = size_bytes
+    return size_bytes
+
+
+
+def _workflow_import_cache_dir():
+    base = current_app.config.get('WORKFLOW_IMPORT_DIR') or os.path.join(current_app.instance_path, 'workflow_imports')
+    os.makedirs(base, exist_ok=True)
+    return base
+
+
+def _workflow_import_cache_path(token):
+    token = str(token or '')
+    if not re.fullmatch(r'[A-Za-z0-9_-]{16,128}', token):
+        raise ValueError('Token import workflow non valido.')
+    return os.path.join(_workflow_import_cache_dir(), token + '.json')
+
+
+def store_workflow_import_payload(payload):
+    token = secrets.token_urlsafe(32)
+    path = _workflow_import_cache_path(token)
+    data = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    with open(path, 'wb') as handle:
+        handle.write(data)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+    session['workflow_import_token'] = token
+    return token
+
+
+def load_workflow_import_payload(token, remove=False):
+    expected = session.get('workflow_import_token')
+    if expected and token != expected:
+        raise ValueError('Token import workflow non coerente con la sessione.')
+    path = _workflow_import_cache_path(token)
+    try:
+        with open(path, 'rb') as handle:
+            payload = json.loads(handle.read().decode('utf-8'))
+    except FileNotFoundError as exc:
+        raise ValueError('Anteprima import workflow scaduta o non trovata. Ricaricare il file JSON.') from exc
+    if remove:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        if session.get('workflow_import_token') == token:
+            session.pop('workflow_import_token', None)
+    return payload
+
+
+def cleanup_old_workflow_import_payloads(max_age_seconds=24 * 60 * 60):
+    try:
+        base = _workflow_import_cache_dir()
+        now = time.time()
+        for name in os.listdir(base):
+            if not name.endswith('.json'):
+                continue
+            path = os.path.join(base, name)
+            try:
+                if now - os.path.getmtime(path) > max_age_seconds:
+                    os.remove(path)
+            except OSError:
+                pass
+    except Exception:
+        pass
+
+
+@bp.app_errorhandler(RequestEntityTooLarge)
+def handle_request_entity_too_large(exc):
+    try:
+        max_mb = configured_max_upload_size_mb()
+    except Exception:
+        max_mb = DEFAULT_MAX_UPLOAD_SIZE_MB
+    message = f'Upload troppo grande. La dimensione massima configurata è {max_mb} MB. Puoi modificarla da Admin → Altre configurazioni.'
+    wants_json = request.accept_mimetypes.best == 'application/json' or request.path.startswith('/api/')
+    if wants_json:
+        return jsonify({'error': message, 'max_upload_size_mb': max_mb}), 413
+    target = request.referrer or url_for('main.admin_other_configurations')
+    return (
+        '<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Upload troppo grande</title></head>'
+        '<body><h1>Upload troppo grande</h1>'
+        f'<p>{message}</p><p><a href="{target}">Torna alla pagina precedente</a></p></body></html>'
+    ), 413
 
 def tenant_setting_key(key, tenant_id=None):
     """Return the physical Setting.key, keeping global settings shared."""
@@ -1860,7 +1988,6 @@ def workflow_step_key(step):
         bool(getattr(step, 'document_generation_enabled', False)),
         (getattr(step, 'document_template_name', None) or '').strip(),
         (getattr(step, 'section_target', None) or '').strip(),
-        tuple(getattr(step, 'document_auto_tag_list', []) if hasattr(step, 'document_auto_tag_list') else []),
         tuple(step.condition_tokens() if hasattr(step, 'condition_tokens') else []),
     )
 
@@ -1904,16 +2031,6 @@ def workflow_document_template_names():
 def workflow_document_template_from_form(field_name):
     value = (request.form.get(field_name) or '').strip()
     return value if value in workflow_document_template_names() else None
-
-def workflow_document_auto_tags_from_form(field_name):
-    valid = {t.code for t in notification_type_tag_options(enabled_only=False)}
-    out=[]
-    for code in request.form.getlist(field_name):
-        code=(code or '').strip()
-        if code in valid and code not in out:
-            out.append(code)
-    return out
-
 
 def workflow_update_section_target_from_form(field_name):
     value = (request.form.get(field_name) or '').strip()
@@ -2060,11 +2177,13 @@ DEFAULT_WORKFLOW_STEP_TYPES = [
     {'code': 'registration', 'label': 'Registrazione', 'description': 'Premi per registrare', 'protected': True},
     {'code': 'execution', 'label': 'Esecuzione', 'description': 'Premi per eseguire', 'protected': True},
     {'code': 'update_section', 'label': 'Aggiorna sezione', 'description': 'Aggiorna dati', 'protected': True},
+    {'code': 'operation', 'label': 'Operazione', 'description': 'Effettua operazione', 'protected': True},
 ]
 WORKFLOW_STEP_TYPES_JSON_SETTING = 'workflow_step_types_json'
 REGISTRATION_STEP_TYPE = 'registration'
 LEGACY_REGISTRATION_STEP_TYPE = bytes.fromhex('636f6e6669726d').decode('ascii')
 UPDATE_SECTION_STEP_TYPE = 'update_section'
+OPERATION_STEP_TYPE = 'operation'
 WORKFLOW_UPDATE_SECTION_SCOPE = 'workflow_update_section'
 LEGACY_UPDATE_SECTION_STEP_TYPE = bytes.fromhex('73686f775f73656374696f6e').decode('ascii')
 LEGACY_WORKFLOW_UPDATE_SECTION_SCOPE = bytes.fromhex('776f726b666c6f775f73656374696f6e').decode('ascii')
@@ -2083,7 +2202,7 @@ def _workflow_step_type_code_from_label(label, existing=None):
     base = re.sub(r'[^a-z0-9]+', '_', (label or '').strip().lower()).strip('_')
     if not base:
         base = 'step'
-    if base in {LEGACY_REGISTRATION_STEP_TYPE, REGISTRATION_STEP_TYPE, 'execution', UPDATE_SECTION_STEP_TYPE}:
+    if base in {LEGACY_REGISTRATION_STEP_TYPE, REGISTRATION_STEP_TYPE, 'execution', UPDATE_SECTION_STEP_TYPE, OPERATION_STEP_TYPE}:
         base = f'custom_{base}'
     code = base[:40].strip('_') or 'step'
     existing = set(existing or [])
@@ -2187,6 +2306,9 @@ def workflow_step_type_codes():
 def normalize_workflow_step_type(value):
     value = _workflow_update_section_legacy_value(value or REGISTRATION_STEP_TYPE)
     return value if value in workflow_step_type_codes() else REGISTRATION_STEP_TYPE
+
+def workflow_step_type_uses_section_target(value):
+    return normalize_workflow_step_type(value) in {UPDATE_SECTION_STEP_TYPE, OPERATION_STEP_TYPE}
 
 
 def parse_workflow_scope_value(value):
@@ -2419,7 +2541,6 @@ def clone_workflow_steps(source_category_id, destination_category_id, overwrite=
             action_label_id = src.action_label_id
             mapped_conditions = src.condition_tokens()
         clone = IncidentWorkflowStep(tenant_id=dest_tid, category_id=destination_category_id, action_label_id=action_label_id, description=src.description or '', step_type=normalize_workflow_step_type(getattr(src, 'step_type', REGISTRATION_STEP_TYPE)), personal_data_only=('personal_data' in mapped_conditions), conditions=','.join(mapped_conditions), required=bool(src.required), requires_notification=bool(getattr(src, 'requires_notification', False)), required_notification_type=getattr(src, 'required_notification_type', None), document_generation_enabled=bool(getattr(src, 'document_generation_enabled', False)), document_template_name=getattr(src, 'document_template_name', None), section_target=getattr(src, 'section_target', None), position=src.position)
-        clone.set_document_auto_tags(getattr(src, 'document_auto_tag_list', []))
         db.session.add(clone)
         copied += 1
     db.session.commit()
@@ -2521,9 +2642,8 @@ def incident_workflow_status(inc):
             'document_generation_enabled': document_generation_enabled,
             'document_template_name': document_template_name,
             'document_generation_url': url_for('main.workflow_step_generate_document', iid=inc.id, sid=step.id) if document_generation_enabled and document_template_name else '',
-            'document_auto_tags': list(getattr(step, 'document_auto_tag_list', []) if hasattr(step, 'document_auto_tag_list') else []),
             'section_target': getattr(step, 'section_target', '') or '',
-            'section_target_url': ('#' + getattr(step, 'section_target', '')) if step_type == UPDATE_SECTION_STEP_TYPE and getattr(step, 'section_target', None) else '',
+            'section_target_url': ('#' + getattr(step, 'section_target', '')) if workflow_step_type_uses_section_target(step_type) and getattr(step, 'section_target', None) else '',
             'position': step.position,
             'done': done,
             'missing': not done,
@@ -3152,6 +3272,7 @@ def index():
         q = q.filter(or_(
             Incident.name.ilike(f'%{kw}%'),
             Incident.description.ilike(f'%{kw}%'),
+            Incident.reference.ilike(f'%{kw}%'),
             Incident.creator_name.ilike(f'%{kw}%')
         ))
     if start:
@@ -3180,6 +3301,7 @@ def index():
     # o multi-valore vengono ordinate in Python e poi affettate.
     sql_sort_map = {
         'name': Incident.name,
+        'reference': Incident.reference,
         'creator_name': Incident.creator_name,
         'status': Incident.status,
     }
@@ -3394,6 +3516,7 @@ def incident_template_context(template=None):
         incident_form_visible_fields=incident_form_visible_fields(),
         incident_detail_visible_fields=incident_detail_general_visible_fields(),
         incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
+        document_download_rule_templates=document_download_rule_templates(),
     )
 
 
@@ -3402,7 +3525,7 @@ def incident_template_context(template=None):
 def admin_incident_form_fields():
     if not can_admin(): return redirect(url_for('main.index'))
     new_all_codes = [code for code, _label, _required in INCIDENT_FORM_FIELDS]
-    detail_all_codes = [code for code, _label, _required in INCIDENT_DETAIL_VISIBILITY_FIELDS]
+    detail_all_codes = [code for code, _label, _required in incident_detail_visibility_field_records()]
     if request.method == 'POST':
         selected_new = [code for code in request.form.getlist('new_visible_field') if code in new_all_codes]
         selected_new = list(dict.fromkeys(selected_new + list(incident_form_required_field_codes())))
@@ -3416,9 +3539,36 @@ def admin_incident_form_fields():
     return render_template(
         'admin_incident_form_fields.html',
         incident_form_fields=INCIDENT_FORM_FIELDS,
-        incident_detail_fields=INCIDENT_DETAIL_VISIBILITY_FIELDS,
+        incident_detail_fields=incident_detail_visibility_field_records(),
         visible_fields=incident_form_visible_fields(),
         detail_visible_fields=incident_detail_general_visible_fields(),
+    )
+
+@bp.route('/admin/incident-custom-fields', methods=['GET','POST'])
+@login_required
+def admin_incident_custom_fields():
+    if not can_admin(): return redirect(url_for('main.index'))
+    if request.method == 'POST':
+        before_codes = {field['code'] for field in incident_custom_field_definitions()}
+        save_incident_custom_field_definitions_from_form()
+        # Keep newly created personal fields visible by default in the detail layout,
+        # preserving the previous behavior where active custom fields appeared immediately.
+        after_fields = incident_custom_field_definitions()
+        setting = db.session.get(Setting, 'incident_detail_general_visible_fields')
+        if setting is not None:
+            current = incident_detail_general_visible_fields()
+            for field in after_fields:
+                if field.get('enabled', True) and field['code'] not in before_codes:
+                    current.add(f"custom:{field['code']}")
+            allowed = {code for code, _label, _required in incident_detail_visibility_field_records()}
+            set_setting_value('incident_detail_general_visible_fields', ','.join([code for code in allowed if code in current]))
+        db.session.commit()
+        flash('Campi personalizzati nei Dati Generali salvati.', 'success')
+        return redirect(url_for('main.admin_incident_custom_fields'))
+    return render_template(
+        'admin_incident_custom_fields.html',
+        custom_field_types=CUSTOM_INCIDENT_FIELD_TYPES,
+        custom_incident_fields=incident_custom_field_definitions(),
     )
 
 @bp.route('/admin/incident-templates',methods=['GET','POST'])
@@ -3542,6 +3692,7 @@ def incident_detail(iid):
         inc.data_types = labels_from_form('data_type', 'data_types')
         inc.people = people_from_form('people')
         inc.recommendations = recommendations_from_form('recommendations')
+        update_incident_custom_field_values_from_form(inc)
         try:
             add_automatic_button_action(inc, 'incident_update')
             db.session.commit()
@@ -3553,6 +3704,7 @@ def incident_detail(iid):
         return incident_detail_redirect(iid, 'incident-main')
     procedural_status = incident_procedural_status(inc)
     selected_categories = incident_ordered_categories(inc)
+    active_workflow_document_template = current_workflow_document_template(inc)
     return render_template(
         'incident_detail.html',
         inc=inc,
@@ -3592,6 +3744,11 @@ def incident_detail(iid):
         incident_form_visible_fields=incident_form_visible_fields(),
         incident_detail_visible_fields=incident_detail_general_visible_fields(),
         incident_ldap_lookup_enabled=incident_ldap_lookup_enabled(),
+        document_download_rule_templates=document_download_rule_templates(),
+        active_workflow_document_template=active_workflow_document_template,
+        template_stem=lambda value: Path(str(value or '').strip()).stem,
+        custom_incident_fields=visible_custom_incident_field_definitions(),
+        custom_incident_values=incident_custom_field_values(inc),
     )
 
 @bp.route('/incident/<int:iid>/move-tenant', methods=['POST'])
@@ -3809,7 +3966,7 @@ def incident_delete(iid):
 @login_required
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
-    src=model_or_404(Incident, iid); inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto')
+    src=model_or_404(Incident, iid); inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto',custom_fields_json=getattr(src, 'custom_fields_json', '') or '')
     sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.category_order=getattr(src, 'category_order', '') or _csv_ids_from_objects(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
 
 def workflow_notification_blocking_message(inc, label_id):
@@ -4029,12 +4186,14 @@ def upload(iid):
             alfresco_saved = 0
             alfresco_errors = []
             upload_to_alfresco = request.form.get('upload_to_alfresco') == '1' and alfresco_is_enabled_safe()
+            saved_docs = []
             for f in request.files.getlist('files'):
                 if f.filename:
                     name, stored = save_validated_upload(f, current_app.config['UPLOAD_DIR'])
                     doc = Document(incident_id=iid,filename=name,stored_name=stored)
                     db.session.add(doc)
                     db.session.flush()
+                    saved_docs.append(doc)
                     saved += 1
                     if upload_to_alfresco:
                         try:
@@ -4043,7 +4202,7 @@ def upload(iid):
                         except Exception as exc:
                             current_app.logger.exception('Upload Alfresco fallito per %s', name)
                             alfresco_errors.append(f'{name}: {exc}')
-            add_automatic_button_action(db.session.get(Incident, iid), 'document_upload')
+            add_automatic_button_action(db.session.get(Incident, iid), 'document_upload', description=f'Azione automatica da pulsante: Upload documenti ({saved} file).', context_documents=saved_docs)
             db.session.commit()
             if upload_to_alfresco:
                 section_flash(f'Documenti caricati: {saved}; inviati ad Alfresco: {alfresco_saved}', 'incident-documents', 'success')
@@ -4057,7 +4216,21 @@ def upload(iid):
 @bp.route('/document/<int:did>/download')
 @login_required
 def download_doc(did):
-    d=model_or_404(Document, did); visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404(); return send_file(os.path.join(current_app.config['UPLOAD_DIR'],d.stored_name),download_name=d.filename,as_attachment=True)
+    d = model_or_404(Document, did)
+    inc = visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404()
+    try:
+        action = add_automatic_button_action(
+            inc,
+            'document_download',
+            description=f'Azione automatica da pulsante: Scarica documento {d.filename}.',
+            context_template=d.generated_template_name,
+        )
+        if action:
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Errore registrazione azione automatica download documento %s', d.id)
+    return send_file(os.path.join(current_app.config['UPLOAD_DIR'], d.stored_name), download_name=d.filename, as_attachment=True)
 
 @bp.route('/document/<int:did>/alfresco/upload', methods=['POST'])
 @login_required
@@ -4251,7 +4424,6 @@ def build_workflow_export_payload(category_id=None):
             'required_notification_type': step.required_notification_type or '',
             'document_generation_enabled': bool(getattr(step, 'document_generation_enabled', False)),
             'document_template_name': getattr(step, 'document_template_name', None) or '',
-            'document_auto_tags': list(getattr(step, 'document_auto_tag_list', [])),
             'section_target': getattr(step, 'section_target', '') or '',
         })
     return {
@@ -4364,7 +4536,6 @@ def workflow_import_diff(payload):
                 'required_notification_type': cur.required_notification_type or '',
                 'document_generation_enabled': bool(getattr(cur, 'document_generation_enabled', False)),
                 'document_template_name': getattr(cur, 'document_template_name', None) or '',
-                'document_auto_tags': list(getattr(cur, 'document_auto_tag_list', [])),
                 'section_target': getattr(cur, 'section_target', '') or '',
             }
             incoming = {
@@ -4376,7 +4547,6 @@ def workflow_import_diff(payload):
                 'required_notification_type': st.get('required_notification_type') or '',
                 'document_generation_enabled': bool(st.get('document_generation_enabled')),
                 'document_template_name': st.get('document_template_name') or '',
-                'document_auto_tags': list(st.get('document_auto_tags') or []),
                 'section_target': st.get('section_target') or '',
             }
             for k,v in incoming.items():
@@ -4554,8 +4724,7 @@ def apply_workflow_import(payload, overwrite_keys):
         obj.required_notification_type = st.get('required_notification_type') or None
         obj.document_generation_enabled = bool(st.get('document_generation_enabled'))
         obj.document_template_name = (st.get('document_template_name') or '').strip() or None
-        obj.set_document_auto_tags(st.get('document_auto_tags') or [])
-        obj.section_target = (st.get('section_target') or None) if normalize_workflow_step_type(st.get('step_type')) == UPDATE_SECTION_STEP_TYPE else None
+        obj.section_target = (st.get('section_target') or None) if workflow_step_type_uses_section_target(st.get('step_type')) else None
         created += 0 if exists else 1
         updated += 1 if exists else 0
     db.session.commit()
@@ -4670,7 +4839,7 @@ def admin_incident_workflows():
             action_label_id = request.form.get('action_label_id', type=int)
             description = (request.form.get('description') or '').strip()[:500]
             step_type = normalize_workflow_step_type(request.form.get('step_type'))
-            section_target = workflow_update_section_target_from_form('section_target') if step_type == UPDATE_SECTION_STEP_TYPE else ''
+            section_target = workflow_update_section_target_from_form('section_target') if workflow_step_type_uses_section_target(step_type) else ''
             condition_tokens = workflow_condition_tokens_from_form('conditions')
             personal_data_only = ('personal_data' in condition_tokens)
             required = bool(request.form.get('required'))
@@ -4678,14 +4847,13 @@ def admin_incident_workflows():
             required_notification_type = (request.form.get('required_notification_type') or '').strip() or None
             document_generation_enabled = bool(request.form.get('document_generation_enabled'))
             document_template_name = workflow_document_template_from_form('document_template_name') if document_generation_enabled else None
-            document_auto_tags = workflow_document_auto_tags_from_form('document_auto_tags') if document_generation_enabled else []
             position = request.form.get('position', type=int)
             if not action_label_id:
                 flash('Selezionare una azione del flusso','error')
             elif document_generation_enabled and not document_template_name:
                 flash('Selezionare un modello template valido per lo step di generazione documento','error')
-            elif step_type == UPDATE_SECTION_STEP_TYPE and not section_target:
-                flash('Selezionare la sezione da aggiornare per lo step Aggiorna sezione','error')
+            elif workflow_step_type_uses_section_target(step_type) and not section_target:
+                flash('Selezionare la sezione da aggiornare per lo step selezionato','error')
             else:
                 if position is None:
                     q = workflow_step_scope_query(category_id)
@@ -4693,7 +4861,6 @@ def admin_incident_workflows():
                     position = (last.position + 10) if last else 10
                 align_table_sequence('incident_workflow_step')
                 step = IncidentWorkflowStep(tenant_id=current_tenant_id(default_to_default=True), category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, section_target=section_target, position=position)
-                step.set_document_auto_tags(document_auto_tags)
                 db.session.add(step)
                 try:
                     db.session.commit()
@@ -4704,7 +4871,6 @@ def admin_incident_workflows():
                     current_app.logger.warning('Duplicate key su incident_workflow_step; riallineo la sequence e ritento inserimento step workflow')
                     align_table_sequence('incident_workflow_step')
                     step = IncidentWorkflowStep(tenant_id=current_tenant_id(default_to_default=True), category_id=category_id, action_label_id=action_label_id, description=description, step_type=step_type, personal_data_only=personal_data_only, conditions=','.join(condition_tokens), required=required, requires_notification=requires_notification, required_notification_type=required_notification_type, document_generation_enabled=document_generation_enabled, document_template_name=document_template_name, section_target=section_target, position=position)
-                    step.set_document_auto_tags(document_auto_tags)
                     db.session.add(step)
                     db.session.commit()
                 flash('Passo del flusso aggiunto','success')
@@ -4716,7 +4882,7 @@ def admin_incident_workflows():
                 step.position = request.form.get(f'position_{sid}', type=int) or 0
                 step.description = (request.form.get(f'description_{sid}') or '').strip()[:500]
                 step.step_type = normalize_workflow_step_type(request.form.get(f'step_type_{sid}'))
-                if normalize_workflow_step_type(step.step_type) == UPDATE_SECTION_STEP_TYPE:
+                if workflow_step_type_uses_section_target(step.step_type):
                     step.section_target = workflow_update_section_target_from_form(f'section_target_{sid}') or None
                 else:
                     step.section_target = None
@@ -4727,7 +4893,6 @@ def admin_incident_workflows():
                 step.required_notification_type = (request.form.get(f'required_notification_type_{sid}') or '').strip() or None
                 step.document_generation_enabled = bool(request.form.get(f'document_generation_enabled_{sid}'))
                 step.document_template_name = workflow_document_template_from_form(f'document_template_name_{sid}') if step.document_generation_enabled else None
-                step.set_document_auto_tags(workflow_document_auto_tags_from_form(f'document_auto_tags_{sid}') if step.document_generation_enabled else [])
                 new_label = request.form.get(f'action_label_id_{sid}', type=int)
                 if new_label: step.action_label_id = new_label
             db.session.commit(); flash('Flussi aggiornati','success')
@@ -4787,15 +4952,21 @@ def admin_incident_workflow_import_preview():
         flash('Formato export workflow non riconosciuto', 'error')
         return redirect(url_for('main.admin_incident_workflows'))
     diffs = workflow_import_diff(payload)
-    encoded = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode('utf-8')).decode('ascii')
-    return render_template('admin_workflow_import_preview.html', payload=payload, payload_json=json.dumps(payload, ensure_ascii=False, indent=2), payload_b64=encoded, diffs=diffs)
+    cleanup_old_workflow_import_payloads()
+    import_token = store_workflow_import_payload(payload)
+    return render_template('admin_workflow_import_preview.html', payload=payload, payload_json=json.dumps(payload, ensure_ascii=False, indent=2), import_token=import_token, diffs=diffs)
 
 @bp.route('/admin/incident-workflows/import/apply', methods=['POST'])
 @login_required
 def admin_incident_workflow_import_apply():
     if not can_admin(): return redirect(url_for('main.index'))
     try:
-        payload = json.loads(base64.b64decode(request.form.get('payload_b64') or '').decode('utf-8'))
+        token = request.form.get('import_token')
+        if token:
+            payload = load_workflow_import_payload(token, remove=True)
+        else:
+            # Compatibilita' con eventuali pagine di preview generate da versioni precedenti.
+            payload = json.loads(base64.b64decode(request.form.get('payload_b64') or '').decode('utf-8'))
     except Exception as exc:
         flash(f'Payload import workflow non valido: {exc}', 'error')
         return redirect(url_for('main.admin_incident_workflows'))
@@ -4828,6 +4999,40 @@ def admin_incident_button_actions():
                 if rules:
                     config[code] = rules
                 continue
+            if code in {'document_upload', 'document_download'}:
+                rules = []
+                try:
+                    rule_count = int(request.form.get(f'{code}_rule_count') or 0)
+                except (TypeError, ValueError):
+                    rule_count = 0
+                for idx in range(max(rule_count, 0)):
+                    value = request.form.get(f'action_label_id_{code}_{idx}') or ''
+                    scope = request.form.get(f'action_scope_{code}_{idx}') or 'always'
+                    template_name = request.form.get(f'action_template_name_{code}_{idx}') or ''
+                    if value:
+                        rule = {'label_id': value, 'scope': scope, 'template_name': template_name}
+                        if code == 'document_upload':
+                            rule['notification_tags'] = request.form.getlist(f'notification_tags_{code}_{idx}')
+                        rules.append(rule)
+                if rules:
+                    config[code] = rules
+                continue
+            if code == 'incident_update':
+                rules = []
+                generic_value = request.form.get('action_label_id_incident_update_generic') or request.form.get('action_label_id_incident_update') or ''
+                if generic_value:
+                    rules.append({'label_id': generic_value, 'scope': 'always'})
+                try:
+                    rule_count = int(request.form.get('incident_update_workflow_rule_count') or 0)
+                except (TypeError, ValueError):
+                    rule_count = 0
+                for idx in range(max(rule_count, 0)):
+                    value = request.form.get(f'action_label_id_incident_update_workflow_{idx}') or ''
+                    if value:
+                        rules.append({'label_id': value, 'scope': WORKFLOW_UPDATE_SECTION_SCOPE})
+                if rules:
+                    config[code] = rules
+                continue
             value = request.form.get(f'action_label_id_{code}') or ''
             scope = request.form.get(f'action_scope_{code}') or 'always'
             if value:
@@ -4842,6 +5047,7 @@ def admin_incident_button_actions():
         action_labels=labels('action_label'),
         config=button_action_config(),
         notification_types=notification_type_records(enabled_only=False),
+        form_templates=list_templates(),
     )
 
 @bp.route('/admin/labels',methods=['GET','POST'])
@@ -5505,7 +5711,6 @@ def clone_tenant_config(source_tenant_id, dest_tenant_id):
             existing.required_notification_type = src.required_notification_type
             existing.document_generation_enabled = src.document_generation_enabled
             existing.document_template_name = src.document_template_name
-            existing.document_auto_tags = src.document_auto_tags
             existing.conditions = dest_conditions
         else:
             db.session.add(IncidentWorkflowStep(
@@ -5517,7 +5722,6 @@ def clone_tenant_config(source_tenant_id, dest_tenant_id):
                 required_notification_type=src.required_notification_type,
                 document_generation_enabled=src.document_generation_enabled,
                 document_template_name=src.document_template_name,
-                document_auto_tags=src.document_auto_tags,
                 conditions=dest_conditions, step_type=src.step_type,
             ))
 
@@ -6285,6 +6489,7 @@ INCIDENT_BUTTON_ACTIONS = [
     ('document_upload', 'Upload documenti'),
     ('forms_confirm', 'Conferma generazione documenti'),
     ('document_tags_save', 'Salva tag'),
+    ('document_download', 'Scarica documenti'),
 ]
 BUTTON_ACTIONS_SETTING = 'incident_button_action_labels_json'
 
@@ -6344,13 +6549,126 @@ def incident_form_visible_fields():
     return visible | incident_form_required_field_codes()
 
 
+def incident_detail_visibility_field_records():
+    records = list(INCIDENT_DETAIL_VISIBILITY_FIELDS)
+    for field in incident_custom_field_definitions():
+        if field.get('enabled', True):
+            records.append((f"custom:{field['code']}", f"Campo personalizzato: {field['label']}", False))
+    return records
+
+
 def incident_detail_general_visible_fields():
     setting = db.session.get(Setting, 'incident_detail_general_visible_fields')
-    all_codes = [code for code, _label, _required in INCIDENT_DETAIL_VISIBILITY_FIELDS]
+    all_codes = [code for code, _label, _required in incident_detail_visibility_field_records()]
     if setting is None:
         return {code for code in all_codes if code != 'action_label'}
     raw = decrypt_setting_value('incident_detail_general_visible_fields', setting.value) if setting.value is not None else ''
     return _expand_incident_field_codes(raw, all_codes)
+
+
+def visible_custom_incident_field_definitions():
+    visible = incident_detail_general_visible_fields()
+    return [field for field in incident_custom_field_definitions() if field.get('enabled', True) and f"custom:{field['code']}" in visible]
+
+
+
+
+CUSTOM_INCIDENT_FIELDS_SETTING = 'incident_general_custom_fields_json'
+CUSTOM_INCIDENT_FIELD_TYPES = [
+    ('text', 'Testo'),
+    ('datetime', 'Data/ora'),
+    ('secret', 'Nascosto con mostra in chiaro'),
+    ('checkbox', 'Checkbox con descrizione'),
+]
+
+
+def _custom_incident_field_code(label, fallback='campo'):
+    base = re.sub(r'[^a-z0-9_]+', '_', str(label or '').strip().lower()).strip('_') or fallback
+    return base[:60]
+
+
+def incident_custom_field_definitions():
+    raw = setting_value(CUSTOM_INCIDENT_FIELDS_SETTING, '')
+    try:
+        data = json.loads(raw) if raw else []
+    except Exception:
+        data = []
+    fields = []
+    seen = set()
+    for idx, item in enumerate(data if isinstance(data, list) else []):
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get('label') or '').strip()
+        if not label:
+            continue
+        code = _custom_incident_field_code(item.get('code') or label, f'campo_{idx+1}')
+        base = code
+        n = 2
+        while code in seen:
+            code = f'{base}_{n}'[:64]
+            n += 1
+        seen.add(code)
+        field_type = str(item.get('type') or 'text').strip()
+        if field_type not in {t[0] for t in CUSTOM_INCIDENT_FIELD_TYPES}:
+            field_type = 'text'
+        fields.append({
+            'code': code,
+            'label': label[:160],
+            'type': field_type,
+            'description': str(item.get('description') or '').strip()[:500],
+            'enabled': bool(item.get('enabled', True)),
+        })
+    return fields
+
+
+def save_incident_custom_field_definitions_from_form():
+    labels = request.form.getlist('custom_field_label')
+    types = request.form.getlist('custom_field_type')
+    descriptions = request.form.getlist('custom_field_description')
+    enabled_flags = request.form.getlist('custom_field_enabled')
+    fields = []
+    seen = set()
+    allowed_types = {t[0] for t in CUSTOM_INCIDENT_FIELD_TYPES}
+    for idx, label in enumerate(labels):
+        label = (label or '').strip()
+        if not label:
+            continue
+        field_type = (types[idx] if idx < len(types) else 'text') or 'text'
+        if field_type not in allowed_types:
+            field_type = 'text'
+        desc = (descriptions[idx] if idx < len(descriptions) else '').strip()
+        code = _custom_incident_field_code(label, f'campo_{idx+1}')
+        base = code
+        n = 2
+        while code in seen:
+            code = f'{base}_{n}'[:64]
+            n += 1
+        seen.add(code)
+        fields.append({'code': code, 'label': label[:160], 'type': field_type, 'description': desc[:500], 'enabled': (not enabled_flags) or (str(idx) in enabled_flags)})
+    set_setting_value(CUSTOM_INCIDENT_FIELDS_SETTING, json.dumps(fields, ensure_ascii=False))
+
+
+def incident_custom_field_values(inc):
+    raw = getattr(inc, 'custom_fields_json', '') or ''
+    try:
+        data = json.loads(raw) if raw else {}
+    except Exception:
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def update_incident_custom_field_values_from_form(inc):
+    values = incident_custom_field_values(inc)
+    for field in incident_custom_field_definitions():
+        if not field.get('enabled', True):
+            continue
+        code = field['code']
+        key = f'custom_{code}'
+        if field['type'] == 'checkbox':
+            values[code] = '1' if request.form.get(key) else ''
+        else:
+            values[code] = (request.form.get(key) or '').strip()
+    inc.custom_fields_json = json.dumps(values, ensure_ascii=False)
 
 
 def incident_ldap_lookup_enabled():
@@ -6381,14 +6699,32 @@ def _clean_button_action_tags(raw_tags):
     return cleaned
 
 
-def _normalise_button_action_entry(value, include_tags=False):
+def _valid_form_template_names():
+    try:
+        return {template.name for template in list_templates()}
+    except Exception:
+        current_app.logger.warning('Impossibile leggere la lista dei template per le azioni automatiche download documenti', exc_info=True)
+        return set()
+
+
+def _clean_button_action_template_name(value):
+    template_name = Path(str(value or '').strip()).stem
+    if not template_name:
+        return ''
+    valid = _valid_form_template_names()
+    return template_name if template_name in valid else ''
+
+
+def _normalise_button_action_entry(value, include_tags=False, include_template=False):
     scope = 'always'
     raw_label_id = value
     raw_tags = []
+    raw_template_name = ''
     if isinstance(value, dict):
         raw_label_id = value.get('label_id')
         scope = _workflow_update_section_legacy_value(value.get('scope') or 'always', scope=True)
         raw_tags = value.get('notification_tags') or value.get('tags') or []
+        raw_template_name = value.get('template_name') or value.get('generated_template_name') or ''
     try:
         label_id = int(raw_label_id)
     except (TypeError, ValueError):
@@ -6400,6 +6736,8 @@ def _normalise_button_action_entry(value, include_tags=False):
     entry = {'label_id': label_id, 'scope': scope}
     if include_tags:
         entry['notification_tags'] = _clean_button_action_tags(raw_tags)
+    if include_template:
+        entry['template_name'] = _clean_button_action_template_name(raw_template_name)
     return entry
 
 
@@ -6445,7 +6783,45 @@ def button_action_config():
             if rules:
                 config[code] = rules
             continue
-        entry = _normalise_button_action_entry(value, include_tags=False)
+        if code in {'document_upload', 'document_download'}:
+            raw_rules = value if isinstance(value, list) else [value]
+            rules = []
+            seen = set()
+            for raw_rule in raw_rules:
+                entry = _normalise_button_action_entry(raw_rule, include_tags=(code == 'document_upload'), include_template=True)
+                if not entry:
+                    continue
+                key = (entry.get('label_id'), entry.get('scope') or 'always', entry.get('template_name') or '', tuple(entry.get('notification_tags') or []))
+                if key in seen:
+                    continue
+                seen.add(key)
+                rules.append(entry)
+            if rules:
+                config[code] = rules
+            continue
+        if code == 'incident_update':
+            raw_rules = value if isinstance(value, list) else [value]
+            rules = []
+            generic_added = False
+            seen_workflow = set()
+            for raw_rule in raw_rules:
+                entry = _normalise_button_action_entry(raw_rule, include_tags=False, include_template=False)
+                if not entry:
+                    continue
+                if (entry.get('scope') or 'always') == WORKFLOW_UPDATE_SECTION_SCOPE:
+                    key = entry.get('label_id')
+                    if key in seen_workflow:
+                        continue
+                    seen_workflow.add(key)
+                    rules.append(entry)
+                elif not generic_added:
+                    entry['scope'] = 'always'
+                    rules.insert(0, entry)
+                    generic_added = True
+            if rules:
+                config[code] = rules if any((r.get('scope') == WORKFLOW_UPDATE_SECTION_SCOPE) for r in rules) else rules[0]
+            continue
+        entry = _normalise_button_action_entry(value, include_tags=False, include_template=False)
         if entry:
             config[code] = entry
     return config
@@ -6483,7 +6859,45 @@ def save_button_action_config(config):
             if rules:
                 cleaned[code] = rules
             continue
-        entry = _normalise_button_action_entry(value, include_tags=False)
+        if code in {'document_upload', 'document_download'}:
+            raw_rules = value if isinstance(value, list) else [value]
+            rules = []
+            seen = set()
+            for raw_rule in raw_rules:
+                entry = _normalise_button_action_entry(raw_rule, include_tags=(code == 'document_upload'), include_template=True)
+                if not entry:
+                    continue
+                key = (entry.get('label_id'), entry.get('scope') or 'always', entry.get('template_name') or '', tuple(entry.get('notification_tags') or []))
+                if key in seen:
+                    continue
+                seen.add(key)
+                rules.append(entry)
+            if rules:
+                cleaned[code] = rules
+            continue
+        if code == 'incident_update':
+            raw_rules = value if isinstance(value, list) else [value]
+            rules = []
+            generic_added = False
+            seen_workflow = set()
+            for raw_rule in raw_rules:
+                entry = _normalise_button_action_entry(raw_rule, include_tags=False, include_template=False)
+                if not entry:
+                    continue
+                if (entry.get('scope') or 'always') == WORKFLOW_UPDATE_SECTION_SCOPE:
+                    key = entry.get('label_id')
+                    if key in seen_workflow:
+                        continue
+                    seen_workflow.add(key)
+                    rules.append(entry)
+                elif not generic_added:
+                    entry['scope'] = 'always'
+                    rules.insert(0, entry)
+                    generic_added = True
+            if rules:
+                cleaned[code] = rules if any((r.get('scope') == WORKFLOW_UPDATE_SECTION_SCOPE) for r in rules) else rules[0]
+            continue
+        entry = _normalise_button_action_entry(value, include_tags=False, include_template=False)
         if entry:
             cleaned[code] = entry
     set_setting_value(BUTTON_ACTIONS_SETTING, json.dumps(cleaned, ensure_ascii=False))
@@ -6497,12 +6911,130 @@ def automatic_button_action_allowed(config_entry):
         return True
     if not has_request_context():
         return False
-    return (request.form.get('workflow_update_section_redirect') or '').strip() == '1'
+    return (request.values.get('workflow_update_section_redirect') or '').strip() == '1'
 
 
-def _matching_button_action_entries(button_code, context_tags=None):
+def current_workflow_update_section_target():
+    if not has_request_context():
+        return ''
+    if (request.values.get('workflow_update_section_redirect') or '').strip() != '1':
+        return ''
+    return (request.values.get('workflow_update_section_target') or '').strip()
+
+
+def current_workflow_step_action_label_id():
+    if not has_request_context():
+        return None
+    raw = (request.values.get('workflow_step_action_label_id') or '').strip()
+    try:
+        return int(raw) if raw else None
+    except (TypeError, ValueError):
+        return None
+
+
+def workflow_document_download_template_constraints(inc):
+    """Return workflow-enforced generated-template filters for document downloads.
+
+    When an active workflow step is of type "Aggiorna sezione", targets the
+    Documents section and is marked as a document-generation step with a specific
+    template, that template is more specific than the generic automatic button
+    action configuration.  In that case document-download automatic actions may
+    run only for documents generated by one of those templates.
+    """
+    if not inc or not getattr(inc, 'id', None):
+        return []
+    templates = []
+    for step in workflow_steps_for_incident(inc):
+        if not workflow_step_type_uses_section_target(getattr(step, 'step_type', REGISTRATION_STEP_TYPE)):
+            continue
+        if (getattr(step, 'section_target', '') or '').strip() != 'incident-documents':
+            continue
+        if not bool(getattr(step, 'document_generation_enabled', False)):
+            continue
+        template_name = Path(str(getattr(step, 'document_template_name', '') or '').strip()).stem
+        if template_name and template_name not in templates:
+            templates.append(template_name)
+    return templates
+
+
+def current_workflow_document_template(inc):
+    if not has_request_context():
+        return ''
+    if (request.values.get('workflow_update_section_redirect') or '').strip() != '1':
+        return ''
+    if (request.values.get('workflow_update_section_target') or '').strip() != 'incident-documents':
+        return ''
+    requested_template = Path(str(request.values.get('workflow_document_template') or '').strip()).stem
+    if not requested_template:
+        return ''
+    return requested_template if requested_template in workflow_document_download_template_constraints(inc) else ''
+
+
+def current_workflow_document_download_template(inc):
+    return current_workflow_document_template(inc)
+
+
+def document_button_action_rules(button_code):
+    entry = button_action_config().get(button_code) or []
+    return entry if isinstance(entry, list) else ([entry] if entry else [])
+
+
+def document_download_action_rules():
+    return document_button_action_rules('document_download')
+
+
+def document_upload_action_rules():
+    return document_button_action_rules('document_upload')
+
+
+def document_download_rule_templates():
+    return [Path(str(rule.get('template_name') or '').strip()).stem for rule in document_download_action_rules() if isinstance(rule, dict) and Path(str(rule.get('template_name') or '').strip()).stem]
+
+
+def _matching_button_action_entries(button_code, context_tags=None, context_template=None, inc=None):
     config_entry = button_action_config().get(button_code)
     if not config_entry:
+        return []
+    if button_code in {'document_upload', 'document_download'}:
+        current_template = Path(str(context_template or '').strip()).stem
+        rules = config_entry if isinstance(config_entry, list) else [config_entry]
+        workflow_template = current_workflow_document_template(inc)
+        if workflow_template:
+            if button_code == 'document_download' and current_template != workflow_template:
+                return []
+            for entry in rules:
+                configured_template = Path(str((entry or {}).get('template_name') or '').strip()).stem
+                if configured_template == workflow_template and automatic_button_action_allowed(entry):
+                    return [entry]
+            return []
+        for entry in rules:
+            if not Path(str((entry or {}).get('template_name') or '').strip()).stem and automatic_button_action_allowed(entry):
+                return [entry]
+        return []
+    if button_code == 'incident_update':
+        entries = config_entry if isinstance(config_entry, list) else [config_entry]
+        from_workflow_general = current_workflow_update_section_target() == 'incident-main'
+        if from_workflow_general:
+            step_label_id = current_workflow_step_action_label_id()
+            if not step_label_id:
+                return []
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                if (entry.get('scope') or 'always') != WORKFLOW_UPDATE_SECTION_SCOPE:
+                    continue
+                try:
+                    entry_label_id = int(entry.get('label_id') or 0)
+                except (TypeError, ValueError):
+                    entry_label_id = 0
+                if entry_label_id == step_label_id and automatic_button_action_allowed(entry):
+                    return [entry]
+            return []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            if (entry.get('scope') or 'always') != WORKFLOW_UPDATE_SECTION_SCOPE and automatic_button_action_allowed(entry):
+                return [entry]
         return []
     if button_code != 'document_tags_save':
         return [config_entry] if automatic_button_action_allowed(config_entry) else []
@@ -6541,12 +7073,30 @@ def _create_automatic_button_action(inc, button_code, config_entry, description=
     return action
 
 
-def add_automatic_button_action(inc, button_code, description=None, context_tags=None):
+def _apply_document_upload_rule_tags(config_entry, documents):
+    if not documents or not config_entry or not current_workflow_document_template(getattr(documents[0], 'incident', None) or db.session.get(Incident, documents[0].incident_id)):
+        return
+    tags = [str(x or '').strip() for x in (config_entry.get('notification_tags') or []) if str(x or '').strip()]
+    if not tags:
+        return
+    for doc in documents:
+        current = list(getattr(doc, 'notification_tag_list', []) or [])
+        changed = False
+        for tag in tags:
+            if tag not in current:
+                current.append(tag); changed = True
+        if changed:
+            doc.set_notification_tags(current)
+
+
+def add_automatic_button_action(inc, button_code, description=None, context_tags=None, context_template=None, context_documents=None):
     if not inc or not getattr(inc, 'id', None):
         return None
-    matches = _matching_button_action_entries(button_code, context_tags=context_tags)
+    matches = _matching_button_action_entries(button_code, context_tags=context_tags, context_template=context_template, inc=inc)
     if not matches:
         return None
+    if button_code == 'document_upload':
+        _apply_document_upload_rule_tags(matches[0], context_documents or [])
     actions = [_create_automatic_button_action(inc, button_code, entry, description=description) for entry in matches]
     actions = [action for action in actions if action is not None]
     if button_code == 'document_tags_save':
@@ -8404,47 +8954,27 @@ _CIR_REMINDER_SCHEDULER_LOCK_ID = 47110022
 
 
 def _background_schedulers_disabled(app=None):
-    """Return True when in-process background schedulers must not start.
-
-    Production deployments keep the schedulers enabled by default.  Test runs
-    create many Flask app instances with short-lived SQLite databases; starting
-    long-running scheduler threads there leaves background workers bound to old
-    app contexts and can block interpreter shutdown after a complete pytest run.
-    The explicit opt-in keeps scheduler tests possible without impacting normal
-    application behaviour.
-    """
-    if os.getenv('CIR_DISABLE_BACKGROUND_SCHEDULERS', '').lower() in {'1', 'true', 'yes'}:
-        return True
-    if os.getenv('CIR_ENABLE_SCHEDULERS_DURING_TESTS', '').lower() in {'1', 'true', 'yes'}:
-        return False
-    if app is not None and app.config.get('TESTING'):
-        return True
-    return bool(os.getenv('PYTEST_CURRENT_TEST') or 'pytest' in sys.modules)
+    """Return True when in-process background schedulers must not start."""
+    return _background_schedulers_disabled_impl(app)
 
 
 def stop_background_schedulers(timeout=2.0):
-    """Ask all in-process scheduler threads to stop and wait briefly.
-
-    This is mainly useful for tests, development reloaders and embedded WSGI
-    hosts that dispose of an app object inside the same Python process.  Normal
-    Gunicorn/container shutdown is still handled by process termination.
-    """
+    """Ask all in-process scheduler threads to stop and wait briefly."""
     global _deadline_scheduler_started, _incident_reminder_scheduler_started, _backup_scheduler_started
-    _deadline_scheduler_stop_event.set()
-    _incident_reminder_scheduler_stop_event.set()
-    try:
-        _backup_scheduler_stop_event.set()
-    except NameError:
-        pass
-    for thread in (_deadline_scheduler_thread, _incident_reminder_scheduler_thread, globals().get('_backup_scheduler_thread')):
-        if thread and thread.is_alive():
-            thread.join(timeout=timeout)
+    events = [_deadline_scheduler_stop_event, _incident_reminder_scheduler_stop_event]
+    backup_event = globals().get('_backup_scheduler_stop_event')
+    if backup_event is not None:
+        events.append(backup_event)
+    threads = [_deadline_scheduler_thread, _incident_reminder_scheduler_thread, globals().get('_backup_scheduler_thread')]
+    alive = _stop_scheduler_threads(events, threads, timeout=timeout)
     if not (_deadline_scheduler_thread and _deadline_scheduler_thread.is_alive()):
         _deadline_scheduler_started = False
     if not (_incident_reminder_scheduler_thread and _incident_reminder_scheduler_thread.is_alive()):
         _incident_reminder_scheduler_started = False
     if not (globals().get('_backup_scheduler_thread') and globals().get('_backup_scheduler_thread').is_alive()):
         _backup_scheduler_started = False
+    if alive and has_app_context():
+        current_app.logger.warning('Scheduler thread ancora attivi dopo stop: %s', ', '.join(alive))
 
 def _scheduler_poll_seconds_setting(key, default=60):
     """Legge un intervallo scheduler solo quando esiste un app context.
@@ -11215,10 +11745,6 @@ def confirm_generated_forms(iid):
             generated_template_name=generated_template,
         )
         tags = notification_tags_for_generated_form_template(generated_template)
-        if workflow_step and getattr(workflow_step, 'document_generation_enabled', False):
-            for code in workflow_step.document_auto_tag_list:
-                if code not in tags:
-                    tags.append(code)
         doc.set_notification_tags(tags)
         db.session.add(doc)
         saved_docs.append(doc)
@@ -11630,6 +12156,547 @@ def cleanup_orphan_generated_documents(upload_dir):
     return removed, errors
 
 
+
+SETUP_WIZARD_PROGRESS_SETTING = 'setup_wizard_progress_json'
+SETUP_WIZARD_COMPLETED_SETTING = 'setup_wizard_completed'
+
+SETUP_WIZARD_AI_ENGINES = ['chatgpt', 'claude', 'gemini', 'ollama', 'perplexity']
+SETUP_WIZARD_AI_LABELS = {
+    'chatgpt': 'ChatGPT',
+    'claude': 'Claude',
+    'gemini': 'Gemini',
+    'ollama': 'Ollama',
+    'perplexity': 'Perplexity',
+}
+SETUP_WIZARD_AI_DEFAULTS = {
+    'chatgpt': {'endpoint': '', 'model': 'gpt-4o-mini'},
+    'claude': {'endpoint': '', 'model': 'claude-3-5-sonnet-latest'},
+    'gemini': {'endpoint': '', 'model': 'gemini-1.5-flash'},
+    'ollama': {'endpoint': 'http://localhost:11434/api/chat', 'model': 'llama3.1'},
+    'perplexity': {'endpoint': '', 'model': 'sonar'},
+}
+
+
+def _setup_ai_fields():
+    fields = [
+        {'name': 'plugin_ai_chatbot_enabled', 'label': 'Abilita plugin Chatbot AI', 'type': 'checkbox', 'default': '0'},
+        {'name': 'ai_chatbot_engine', 'label': 'Motore AI attivo', 'type': 'select', 'default': 'chatgpt', 'choices': [(name, SETUP_WIZARD_AI_LABELS.get(name, name)) for name in SETUP_WIZARD_AI_ENGINES]},
+        {'name': 'ai_chatbot_include_database_context', 'label': 'Usa snapshot database anonimizzato', 'type': 'checkbox', 'default': '0'},
+    ]
+    for name in SETUP_WIZARD_AI_ENGINES:
+        label = SETUP_WIZARD_AI_LABELS.get(name, name)
+        defaults = SETUP_WIZARD_AI_DEFAULTS.get(name, {})
+        fields.extend([
+            {'name': f'ai_chatbot_{name}_endpoint', 'label': f'{label} endpoint', 'type': 'text', 'default': defaults.get('endpoint', '')},
+            {'name': f'ai_chatbot_{name}_model', 'label': f'{label} modello', 'type': 'text', 'default': defaults.get('model', '')},
+            {'name': f'ai_chatbot_{name}_api_key', 'label': f'{label} API key', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la chiave salvata'},
+        ])
+    return fields
+
+
+SETUP_WIZARD_SECTIONS = [
+    {
+        'code': 'general',
+        'title': 'Parametri generali',
+        'description': 'Imposta URL esterna, fuso orario, lingua e dimensione massima degli upload.',
+        'fields': [
+            {'name': 'application_external_url', 'label': 'URL applicazione', 'type': 'text', 'default': 'http://localhost:8000', 'placeholder': 'https://registro.example.org'},
+            {'name': 'application_timezone', 'label': 'Time zone applicazione', 'type': 'text', 'default': 'Europe/Rome', 'placeholder': 'Europe/Rome'},
+            {'name': 'interface_language', 'label': 'Lingua interfaccia', 'type': 'select', 'default': 'auto', 'choices': [('auto', 'Automatica dal browser'), ('it', 'Italiano'), ('en', 'Inglese')]},
+            {'name': MAX_UPLOAD_SIZE_MB_SETTING, 'label': 'Dimensione massima upload (MB)', 'type': 'number', 'default': str(DEFAULT_MAX_UPLOAD_SIZE_MB), 'min': MAX_UPLOAD_SIZE_MB_MIN, 'max': MAX_UPLOAD_SIZE_MB_MAX},
+        ],
+    },
+    {
+        'code': 'logo',
+        'title': 'Logo custom',
+        'description': 'Carica o rimuovi il logo custom usato dove previsto dall’applicazione. La testata del wizard usa sempre il logo applicativo di default.',
+        'fields': [
+            {'type': 'note', 'text': 'Il logo applicativo di default resta distinto dal logo custom. Il logo custom può essere modificato anche da Admin → Logo.'},
+            {'name': 'custom_logo_file', 'label': 'Nuovo logo custom', 'type': 'file', 'accept': 'image/svg+xml,image/png,image/jpeg,image/gif,image/webp', 'help': 'Formati ammessi: SVG, PNG, JPG, GIF, WEBP. Dimensione massima 2 MB.'},
+            {'name': 'custom_logo_delete', 'label': 'Rimuovi logo custom esistente', 'type': 'checkbox', 'default': '0'},
+        ],
+    },
+    {
+        'code': 'organization',
+        'title': 'Struttura e riferimenti',
+        'description': 'Configura i dati usati nei moduli PDF, nelle notifiche e nelle intestazioni operative.',
+        'fields': [
+            {'name': 'structure_name', 'label': 'Nome della struttura', 'type': 'text', 'default': '', 'placeholder': 'Dipartimento, Laboratorio, Servizio...'},
+            {'name': 'security_owner_name', 'label': 'Nome del titolare', 'type': 'text', 'default': ''},
+            {'name': 'security_owner_role', 'label': 'Ruolo del titolare', 'type': 'text', 'default': 'Titolare del trattamento'},
+            {'name': 'security_owner_email', 'label': 'Email del titolare', 'type': 'email', 'default': ''},
+            {'name': 'security_responsible_name', 'label': 'Nome responsabile', 'type': 'text', 'default': ''},
+            {'name': 'security_responsible_email', 'label': 'Email responsabile', 'type': 'email', 'default': ''},
+            {'name': 'security_responsible_phone', 'label': 'Telefono responsabile', 'type': 'text', 'default': '-'},
+            {'name': 'security_responsible_function', 'label': 'Funzione responsabile', 'type': 'text', 'default': ''},
+        ],
+    },
+    {
+        'code': 'people',
+        'title': 'Personale',
+        'description': 'Aggiunge rapidamente personale al tenant attivo, senza sostituire l’elenco esistente.',
+        'fields': [
+            {'name': 'wizard_people_lines', 'label': 'Personale da aggiungere', 'type': 'textarea', 'rows': 6, 'default': '', 'placeholder': 'Mario Rossi <mario.rossi@example.org>\nAnna Bianchi; anna.bianchi@example.org', 'help': 'Una persona per riga. Sono accettati “Nome <email>”, “Nome; email” oppure solo il nome.'},
+        ],
+    },
+    {
+        'code': 'tenants',
+        'title': 'Tenant',
+        'description': 'Crea un tenant iniziale opzionale clonando la configurazione di un tenant esistente. La gestione completa resta in Admin → Tenant.',
+        'fields': [
+            {'name': 'wizard_tenant_name', 'label': 'Nome nuovo tenant', 'type': 'text', 'default': '', 'placeholder': 'tenant-esempio'},
+            {'name': 'wizard_tenant_description', 'label': 'Descrizione nuovo tenant', 'type': 'textarea', 'rows': 3, 'default': ''},
+            {'name': 'wizard_tenant_clone_from', 'label': 'Clona configurazioni da', 'type': 'select', 'default': 'default', 'dynamic_choices': 'tenants'},
+        ],
+    },
+    {
+        'code': 'ldap',
+        'title': 'LDAP',
+        'description': 'Configura i parametri principali per autenticazione e ricerca dati interessato tramite LDAP.',
+        'fields': [
+            {'name': 'ldap_uri', 'label': 'LDAP URI', 'type': 'text', 'default': '', 'placeholder': 'ldaps://ldap.example.org'},
+            {'name': 'ldap_base_dn', 'label': 'Base DN', 'type': 'text', 'default': '', 'placeholder': 'dc=example,dc=org'},
+            {'name': 'ldap_bind_dn', 'label': 'Bind DN', 'type': 'text', 'default': ''},
+            {'name': 'ldap_bind_password', 'label': 'Bind password', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la password LDAP salvata'},
+            {'name': 'ldap_user_filter', 'label': 'Filtro utente login', 'type': 'text', 'default': '(uid={uid})'},
+            {'name': 'ldap_incident_search_filter', 'label': 'Filtro ricerca interessato incidente', 'type': 'text', 'default': '(uid={uid})'},
+            {'name': 'ldap_incident_search_attributes', 'label': 'Attributi ricerca interessato', 'type': 'text', 'default': 'uid,cn,mail,displayName,givenName,sn'},
+            {'name': 'ldap_incident_reference_attribute', 'label': 'Attributo riferimento', 'type': 'text', 'default': 'cn'},
+            {'name': 'ldap_incident_email_attribute', 'label': 'Attributo email', 'type': 'text', 'default': 'mail'},
+        ],
+    },
+    {
+        'code': 'sso',
+        'title': 'SSO / OAuth2',
+        'description': 'Configura rapidamente un profilo SSO principale. I profili multipli e i loghi provider restano gestibili da Admin → SSO.',
+        'fields': [
+            {'name': 'sso_profile_id', 'label': 'ID profilo SSO', 'type': 'text', 'default': 'primary'},
+            {'name': 'sso_enabled', 'label': 'Abilita profilo SSO', 'type': 'checkbox', 'default': '0'},
+            {'name': 'sso_provider_name', 'label': 'Nome provider', 'type': 'text', 'default': 'SSO'},
+            {'name': 'sso_authorization_url', 'label': 'Authorization URL', 'type': 'text', 'default': ''},
+            {'name': 'sso_token_url', 'label': 'Token URL', 'type': 'text', 'default': ''},
+            {'name': 'sso_userinfo_url', 'label': 'Userinfo URL', 'type': 'text', 'default': ''},
+            {'name': 'sso_client_id', 'label': 'Client ID', 'type': 'text', 'default': ''},
+            {'name': 'sso_client_secret', 'label': 'Client secret', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere il secret salvato'},
+            {'name': 'sso_scopes', 'label': 'Scopes', 'type': 'text', 'default': 'openid email profile'},
+            {'name': 'sso_username_claim', 'label': 'Claim username', 'type': 'text', 'default': 'preferred_username'},
+            {'name': 'sso_email_claim', 'label': 'Claim email', 'type': 'text', 'default': 'email'},
+            {'name': 'sso_name_claim', 'label': 'Claim nome', 'type': 'text', 'default': 'name'},
+            {'name': 'sso_subject_claim', 'label': 'Claim subject', 'type': 'text', 'default': 'sub'},
+            {'name': 'sso_auto_create_users', 'label': 'Crea automaticamente utenti SSO', 'type': 'checkbox', 'default': '0'},
+            {'name': 'sso_default_role', 'label': 'Ruolo iniziale utenti SSO', 'type': 'select', 'default': 'disabled', 'choices': [('disabled', 'disabilitato'), ('reader', 'reader'), ('writer', 'writer'), ('admin', 'admin')]},
+        ],
+    },
+    {
+        'code': 'ai',
+        'title': 'Motori di AI',
+        'description': 'Configura plugin, motore attivo, endpoint, modelli e API key dei backend AI disponibili.',
+        'fields': _setup_ai_fields(),
+    },
+    {
+        'code': 'alfresco',
+        'title': 'Alfresco',
+        'description': 'Configura il plugin Alfresco per invio e recupero documenti.',
+        'fields': [
+            {'name': 'plugin_alfresco_enabled', 'label': 'Abilita Alfresco', 'type': 'checkbox', 'default': '0'},
+            {'name': 'alfresco_base_url', 'label': 'URL base Alfresco', 'type': 'text', 'default': '', 'placeholder': 'https://alfresco.example.org'},
+            {'name': 'alfresco_username', 'label': 'Username API', 'type': 'text', 'default': ''},
+            {'name': 'alfresco_password', 'label': 'Password/API secret', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la password salvata'},
+            {'name': 'alfresco_site', 'label': 'Site Alfresco opzionale', 'type': 'text', 'default': ''},
+            {'name': 'alfresco_target_path', 'label': 'Cartella destinazione', 'type': 'text', 'default': 'Cybersecurity Incident Registry'},
+            {'name': 'alfresco_timeout', 'label': 'Timeout API secondi', 'type': 'number', 'default': '30', 'min': 5, 'max': 300},
+            {'name': 'alfresco_verify_tls', 'label': 'Verifica certificato TLS', 'type': 'checkbox', 'default': '1'},
+        ],
+    },
+    {
+        'code': 'documentation',
+        'title': 'Documentazione e motivazioni predefinite',
+        'description': 'Imposta testi di supporto usati nei moduli e nelle procedure.',
+        'fields': [
+            {'name': 'documentation_location', 'label': 'Luogo documentazione', 'type': 'textarea', 'default': ''},
+            {'name': 'privacy_authority_non_notification_reason', 'label': 'Motivazione non comunicazione al Garante della Privacy', 'type': 'textarea', 'default': ''},
+            {'name': 'consequence_fallback_text', 'label': 'Testo conseguenze di fallback', 'type': 'textarea', 'default': 'Conseguenze da valutare sulla base dell’analisi dell’incidente.'},
+            {'name': 'recommendations_max_per_incident', 'label': 'Numero massimo raccomandazioni per incidente', 'type': 'number', 'default': '3', 'min': 1, 'max': 999},
+        ],
+    },
+    {
+        'code': 'notifications',
+        'title': 'Notifiche e SMTP',
+        'description': 'Configura i parametri minimi per l’invio email e per i controlli automatici.',
+        'fields': [
+            {'name': 'smtp_default_sender', 'label': 'Mittente SMTP predefinito', 'type': 'email', 'default': '', 'placeholder': 'registry@example.org'},
+            {'name': 'smtp_host', 'label': 'SMTP host', 'type': 'text', 'default': '', 'placeholder': 'smtp.example.org'},
+            {'name': 'smtp_port', 'label': 'SMTP porta', 'type': 'number', 'default': '587', 'min': 1, 'max': 65535},
+            {'name': 'smtp_use_tls', 'label': 'Usa STARTTLS', 'type': 'checkbox', 'default': '1'},
+            {'name': 'smtp_use_ssl', 'label': 'Usa SSL/TLS diretto', 'type': 'checkbox', 'default': '0'},
+            {'name': 'smtp_auth_enabled', 'label': 'Abilita autenticazione SMTP', 'type': 'checkbox', 'default': '0'},
+            {'name': 'smtp_username', 'label': 'SMTP username', 'type': 'text', 'default': ''},
+            {'name': 'smtp_password', 'label': 'SMTP password', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la password salvata'},
+            {'name': 'notification_deadline_enabled', 'label': 'Abilita controllo automatico scadenze azioni', 'type': 'checkbox', 'default': '0'},
+            {'name': 'notification_deadline_email_enabled', 'label': 'Abilita invio email per task in scadenza', 'type': 'checkbox', 'default': '1'},
+        ],
+    },
+    {
+        'code': 'security',
+        'title': 'Sicurezza, TLS e audit',
+        'description': 'Imposta HTTPS opzionale e retention audit iniziale.',
+        'fields': [
+            {'name': 'ssl_enabled', 'label': 'Abilita HTTPS/SSL integrato', 'type': 'checkbox', 'default': '0'},
+            {'name': 'ssl_cert_path', 'label': 'Percorso certificato SSL', 'type': 'text', 'default': ''},
+            {'name': 'ssl_key_path', 'label': 'Percorso chiave SSL', 'type': 'text', 'default': ''},
+            {'name': 'audit_retention_months_part', 'label': 'Retention audit - mesi', 'type': 'number', 'default': '6', 'min': 0, 'max': 120},
+            {'name': 'audit_retention_days_part', 'label': 'Retention audit - giorni', 'type': 'number', 'default': '0', 'min': 0, 'max': 3650},
+            {'name': 'audit_retention_hours_part', 'label': 'Retention audit - ore', 'type': 'number', 'default': '0', 'min': 0, 'max': 23},
+            {'name': 'audit_retention_minutes_part', 'label': 'Retention audit - minuti', 'type': 'number', 'default': '0', 'min': 0, 'max': 59},
+        ],
+    },
+]
+
+def _setup_wizard_progress():
+    try:
+        data = json.loads(setting_value(SETUP_WIZARD_PROGRESS_SETTING, '{}') or '{}')
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:
+        data = {}
+    data.setdefault('completed', [])
+    data.setdefault('skipped', [])
+    data['completed'] = [str(x) for x in data.get('completed') or []]
+    data['skipped'] = [str(x) for x in data.get('skipped') or []]
+    return data
+
+
+def _save_setup_wizard_progress(progress):
+    progress = progress or {}
+    payload = {
+        'completed': [c for c in progress.get('completed', []) if c],
+        'skipped': [c for c in progress.get('skipped', []) if c],
+        'updated_at': utcnow().isoformat(),
+    }
+    set_setting_value(SETUP_WIZARD_PROGRESS_SETTING, json.dumps(payload, ensure_ascii=False))
+
+
+def _setup_wizard_section_index(code=None, sections=None):
+    sections = sections or SETUP_WIZARD_SECTIONS
+    codes = [section['code'] for section in sections]
+    if code in codes:
+        return codes.index(code)
+    return 0
+
+
+def _setup_wizard_mark(progress, code, status):
+    for key in ('completed', 'skipped'):
+        progress.setdefault(key, [])
+        progress[key] = [item for item in progress[key] if item != code]
+    if status in ('completed', 'skipped'):
+        progress[status].append(code)
+
+
+
+def _setup_wizard_dynamic_sections():
+    """Return wizard sections with runtime choices filled in."""
+    sections = copy.deepcopy(SETUP_WIZARD_SECTIONS)
+    tenant_choices = []
+    try:
+        tenant_choices = [(str(t.id), t.name) for t in Tenant.query.order_by(Tenant.name).all()]
+    except Exception:
+        tenant_choices = [('default', 'default')]
+    if not tenant_choices:
+        tenant_choices = [('default', 'default')]
+    for section in sections:
+        for field in section.get('fields', []):
+            if field.get('dynamic_choices') == 'tenants':
+                field['choices'] = tenant_choices
+                field['default'] = tenant_choices[0][0]
+    return sections
+
+
+def _setup_wizard_sections_for_request():
+    return _setup_wizard_dynamic_sections()
+
+
+def _setup_wizard_sso_profile():
+    try:
+        profiles = sso_profiles(include_legacy=True)
+    except Exception:
+        profiles = []
+    return profiles[0] if profiles else google_sso_example_profile()
+
+
+def _parse_person_line(line):
+    line = (line or '').strip()
+    if not line:
+        return '', ''
+    email = ''
+    name = line
+    match = re.match(r'^(?P<name>.*?)\s*<(?P<email>[^>]+)>\s*$', line)
+    if match:
+        name = match.group('name').strip()
+        email = match.group('email').strip()
+    elif ';' in line:
+        name, email = [part.strip() for part in line.split(';', 1)]
+    elif ',' in line and '@' in line.split(',', 1)[1]:
+        name, email = [part.strip() for part in line.split(',', 1)]
+    return name[:200], email[:255]
+
+
+def _save_setup_wizard_logo(files, form):
+    setting = db.session.get(Setting, 'logo_path') or Setting(key='logo_path', value='')
+    if form.get('custom_logo_delete') == '1':
+        if setting.value and os.path.exists(setting.value):
+            try:
+                os.remove(setting.value)
+            except OSError:
+                current_app.logger.warning('Impossibile rimuovere il logo %s', setting.value)
+        setting.value = ''
+        db.session.merge(setting)
+        return
+    f = files.get('custom_logo_file') if files else None
+    if not f or not f.filename:
+        return
+    filename = validate_upload_file(f, allowed_extensions={'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'}, max_size=2 * 1024 * 1024)
+    ext = os.path.splitext(filename)[1].lower() or '.img'
+    os.makedirs(current_app.config['LOGO_DIR'], exist_ok=True)
+    path = os.path.join(current_app.config['LOGO_DIR'], f'logo{ext}')
+    f.save(path)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+    for old in Path(current_app.config['LOGO_DIR']).glob('logo.*'):
+        if str(old) != path:
+            try:
+                old.unlink()
+            except OSError:
+                current_app.logger.warning('Impossibile rimuovere il vecchio logo %s', old)
+    setting.value = path
+    db.session.merge(setting)
+
+
+def _save_setup_wizard_people(form):
+    added = 0
+    for raw_line in (form.get('wizard_people_lines') or '').splitlines():
+        name, email = _parse_person_line(raw_line)
+        if not name:
+            continue
+        existing = tenant_query(Person).filter_by(name=name).first()
+        if existing:
+            if email:
+                existing.email = email
+        else:
+            db.session.add(Person(tenant_id=current_tenant_id(), name=name, email=email, group='personale'))
+            added += 1
+    if added:
+        flash(f'Personale aggiunto dal wizard: {added}.', 'success')
+
+
+def _save_setup_wizard_tenants(form):
+    name = (form.get('wizard_tenant_name') or '').strip()
+    if not name:
+        return
+    if not is_superuser():
+        flash('La creazione tenant dal wizard è riservata ai superuser.', 'warning')
+        return
+    if Tenant.query.filter(func.lower(Tenant.name) == name.lower()).first():
+        flash(f'Tenant “{name}” già esistente.', 'info')
+        return
+    description = validate_text_field(form.get('wizard_tenant_description') or '', 'Descrizione tenant', 2000)
+    clone_raw = form.get('wizard_tenant_clone_from')
+    try:
+        source = db.session.get(Tenant, int(clone_raw)) if clone_raw else default_tenant()
+    except Exception:
+        source = default_tenant()
+    source = source or default_tenant()
+    tenant = Tenant(name=validate_text_field(name, 'Nome tenant', 80, required=True, allow_multiline=False), description=description)
+    db.session.add(tenant)
+    db.session.flush()
+    clone_tenant_config(source.id, tenant.id)
+    audit_log('admin:tenant_create', {'tenant_id': tenant.id, 'name': tenant.name, 'cloned_from': source.id, 'source': 'setup_wizard'}, actor_type='user')
+    flash(f'Tenant “{tenant.name}” creato dal wizard.', 'success')
+
+
+def _save_setup_wizard_sso(form):
+    profiles = sso_profiles(include_legacy=True)
+    original = _setup_wizard_sso_profile()
+    profile_id = (form.get('sso_profile_id') or original.get('id') or 'primary').strip() or 'primary'
+    posted = {
+        'id': profile_id,
+        'sso_enabled': '1' if form.get('sso_enabled') else '0',
+        'sso_provider_name': form.get('sso_provider_name') or 'SSO',
+        'sso_authorization_url': form.get('sso_authorization_url') or '',
+        'sso_token_url': form.get('sso_token_url') or '',
+        'sso_userinfo_url': form.get('sso_userinfo_url') or '',
+        'sso_client_id': form.get('sso_client_id') or '',
+        'sso_client_secret': (form.get('sso_client_secret') or '').strip() or original.get('sso_client_secret', ''),
+        'sso_scopes': form.get('sso_scopes') or 'openid email profile',
+        'sso_username_claim': form.get('sso_username_claim') or 'preferred_username',
+        'sso_email_claim': form.get('sso_email_claim') or 'email',
+        'sso_name_claim': form.get('sso_name_claim') or 'name',
+        'sso_subject_claim': form.get('sso_subject_claim') or 'sub',
+        'sso_auto_create_users': '1' if form.get('sso_auto_create_users') else '0',
+        'sso_default_role': form.get('sso_default_role') or 'disabled',
+        'sso_logo_path': original.get('sso_logo_path', ''),
+    }
+    posted = _normalize_sso_profile(posted, original.get('id') or profile_id)
+    replaced = False
+    new_profiles = []
+    for prof in profiles:
+        if prof.get('id') in {original.get('id'), profile_id} and not replaced:
+            new_profiles.append(posted)
+            replaced = True
+        elif prof.get('id') != profile_id:
+            new_profiles.append(prof)
+    if not replaced:
+        new_profiles.append(posted)
+    save_sso_profiles(new_profiles)
+
+
+def _setup_wizard_field_value(field):
+    name = field.get('name')
+    if not name:
+        return field.get('default', '')
+    if field.get('type') == 'password':
+        return ''
+    if name == 'audit_retention_months_part':
+        return str(audit_retention_parts().get('months', field.get('default', '6')))
+    if name == 'audit_retention_days_part':
+        return str(audit_retention_parts().get('days', field.get('default', '0')))
+    if name == 'audit_retention_hours_part':
+        return str(audit_retention_parts().get('hours', field.get('default', '0')))
+    if name == 'audit_retention_minutes_part':
+        return str(audit_retention_parts().get('minutes', field.get('default', '0')))
+    if name.startswith('sso_'):
+        profile = _setup_wizard_sso_profile()
+        if name == 'sso_profile_id':
+            return profile.get('id', field.get('default', 'primary'))
+        return profile.get(name, field.get('default', ''))
+    return setting_value(name, field.get('default', ''))
+
+
+def _save_setup_wizard_section(section, form, files=None):
+    section_code = section.get('code')
+    if section_code == 'logo':
+        _save_setup_wizard_logo(files, form)
+        return
+    if section_code == 'people':
+        _save_setup_wizard_people(form)
+        return
+    if section_code == 'tenants':
+        _save_setup_wizard_tenants(form)
+        return
+    if section_code == 'sso':
+        _save_setup_wizard_sso(form)
+        return
+
+    checkbox_names = {field['name'] for field in section.get('fields', []) if field.get('type') == 'checkbox' and field.get('name')}
+    password_names = {field['name'] for field in section.get('fields', []) if field.get('type') == 'password' and field.get('name')}
+    retention_values = {}
+    for field in section.get('fields', []):
+        name = field.get('name')
+        if not name:
+            continue
+        if field.get('type') in {'file', 'note'}:
+            continue
+        if name in checkbox_names:
+            value = '1' if form.get(name) else '0'
+        else:
+            value = form.get(name, '')
+        if name in password_names and not str(value or '').strip():
+            continue
+        if name == MAX_UPLOAD_SIZE_MB_SETTING:
+            value = str(parse_max_upload_size_mb(value, DEFAULT_MAX_UPLOAD_SIZE_MB))
+            current_app.config['MAX_CONTENT_LENGTH'] = int(value) * 1024 * 1024
+            current_app.config['MAX_FORM_MEMORY_SIZE'] = current_app.config['MAX_CONTENT_LENGTH']
+        if name in {'ldap_user_filter', 'ldap_incident_search_filter'} and value:
+            value = validate_ldap_filter_template(value)
+        if name == 'ai_chatbot_engine' and value not in SETUP_WIZARD_AI_ENGINES:
+            value = 'chatgpt'
+        if name == 'alfresco_timeout':
+            value = str(_bounded_int(value, 30, 5, 300))
+        if name.startswith('audit_retention_') and name.endswith('_part'):
+            retention_values[name] = value
+        else:
+            set_setting_value(name, value.strip() if isinstance(value, str) else value)
+    if retention_values:
+        month = _bounded_int(retention_values.get('audit_retention_months_part', '6'), 6, 0, 120)
+        day = _bounded_int(retention_values.get('audit_retention_days_part', '0'), 0, 0, 3650)
+        hour = _bounded_int(retention_values.get('audit_retention_hours_part', '0'), 0, 0, 23)
+        minute = _bounded_int(retention_values.get('audit_retention_minutes_part', '0'), 0, 0, 59)
+        set_setting_value('audit_retention_months_part', str(month))
+        set_setting_value('audit_retention_days_part', str(day))
+        set_setting_value('audit_retention_hours_part', str(hour))
+        set_setting_value('audit_retention_minutes_part', str(minute))
+        set_setting_value('audit_retention_months', str(month))
+
+
+@bp.route('/admin/setup-wizard', methods=['GET', 'POST'])
+@login_required
+def admin_setup_wizard():
+    if not can_admin():
+        return redirect(url_for('main.index'))
+    step_code = request.values.get('step')
+    sections = _setup_wizard_sections_for_request()
+    index = _setup_wizard_section_index(step_code, sections)
+    progress = _setup_wizard_progress()
+    if request.method == 'POST':
+        action = request.form.get('action') or 'next'
+        section = sections[index]
+        if action == 'reset':
+            progress = {'completed': [], 'skipped': []}
+            set_setting_value(SETUP_WIZARD_COMPLETED_SETTING, '0')
+            _save_setup_wizard_progress(progress)
+            db.session.commit()
+            flash('Wizard di setup iniziale riavviato.', 'info')
+            return redirect(url_for('main.admin_setup_wizard', step=sections[0]['code']))
+        if action == 'finish':
+            set_setting_value(SETUP_WIZARD_COMPLETED_SETTING, '1')
+            _save_setup_wizard_progress(progress)
+            db.session.commit()
+            flash('Wizard di setup iniziale completato.', 'success')
+            return redirect(url_for('main.admin_other_configurations'))
+        if action == 'skip':
+            _setup_wizard_mark(progress, section['code'], 'skipped')
+            flash(f'Sezione “{section["title"]}” saltata.', 'info')
+        else:
+            _save_setup_wizard_section(section, request.form, request.files)
+            _setup_wizard_mark(progress, section['code'], 'completed')
+            flash(f'Sezione “{section["title"]}” salvata.', 'success')
+        _save_setup_wizard_progress(progress)
+        done = set(progress.get('completed', [])) | set(progress.get('skipped', []))
+        if len(done) >= len(sections):
+            set_setting_value(SETUP_WIZARD_COMPLETED_SETTING, '1')
+            db.session.commit()
+            flash('Wizard di setup iniziale completato.', 'success')
+            return redirect(url_for('main.admin_other_configurations'))
+        next_index = min(index + 1, len(sections) - 1)
+        while next_index < len(sections) and sections[next_index]['code'] in done:
+            next_index += 1
+        if next_index >= len(sections):
+            next_index = index
+        db.session.commit()
+        return redirect(url_for('main.admin_setup_wizard', step=sections[next_index]['code']))
+    completed = set(progress.get('completed', []))
+    skipped = set(progress.get('skipped', []))
+    done_count = len(completed | skipped)
+    percent = int(round((done_count / max(1, len(sections))) * 100))
+    current_section = sections[index]
+    field_values = {field['name']: _setup_wizard_field_value(field) for field in current_section.get('fields', []) if field.get('name')}
+    return render_template(
+        'admin_setup_wizard.html',
+        sections=sections,
+        current_section=current_section,
+        current_index=index,
+        field_values=field_values,
+        progress=progress,
+        completed=completed,
+        skipped=skipped,
+        progress_percent=percent,
+        setup_completed=setting_value(SETUP_WIZARD_COMPLETED_SETTING, '0') == '1',
+        app_name=current_app.config.get('APP_INFO', {}).get('name', 'Cybersecurity Incident Registry'),
+        app_version=APP_RELEASE_VERSION,
+        app_build=APP_RELEASE_BUILD,
+    )
+
 @bp.route('/admin/other-configurations', methods=['GET','POST'])
 @login_required
 def admin_other_configurations():
@@ -11650,6 +12717,9 @@ def admin_other_configurations():
             return redirect(url_for('main.admin_other_configurations'))
         for key in keys:
             set_setting_value(key, request.form.get(key, ''))
+        max_upload_size_mb = parse_max_upload_size_mb(request.form.get(MAX_UPLOAD_SIZE_MB_SETTING), DEFAULT_MAX_UPLOAD_SIZE_MB)
+        set_setting_value(MAX_UPLOAD_SIZE_MB_SETTING, str(max_upload_size_mb))
+        current_app.config['MAX_CONTENT_LENGTH'] = max_upload_size_mb * 1024 * 1024
         for key in retention_keys:
             set_setting_value(key, str(_bounded_int(request.form.get(key, '0'), 0, 0, 120 if key == 'audit_retention_months_part' else 3650 if key == 'audit_retention_days_part' else 23 if key == 'audit_retention_hours_part' else 59)))
         set_setting_value('consequence_rules_json', serialize_consequence_rules_from_form(request.form))
@@ -11665,6 +12735,9 @@ def admin_other_configurations():
         application_external_url=setting_value('application_external_url', 'http://localhost:8000'),
         application_timezone=setting_value('application_timezone', 'Europe/Rome') or 'Europe/Rome',
         interface_language=setting_value('interface_language', 'auto') or 'auto',
+        max_upload_size_mb=configured_max_upload_size_mb(),
+        max_upload_size_mb_min=MAX_UPLOAD_SIZE_MB_MIN,
+        max_upload_size_mb_max=MAX_UPLOAD_SIZE_MB_MAX,
         audit_retention_parts=audit_retention_parts(),
         audit_retention_label=audit_retention_label(),
         consequence_rules=configured_consequence_rules(),

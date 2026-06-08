@@ -333,9 +333,44 @@ function scrollToIncidentSection(section){
   section.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function markWorkflowRedirectedSection(section){
+function normalizeDocumentTemplateName(value){
+  let text = (value || '').toString().trim();
+  if(!text)return '';
+  text = text.split(/[\\/]/).pop();
+  text = text.replace(/\.[^.]+$/, '');
+  return text;
+}
+
+function documentDownloadRuleTemplates(section){
+  const raw = section && section.dataset ? (section.dataset.documentDownloadRuleTemplates || '') : '';
+  return raw.split(',').map(item=>normalizeDocumentTemplateName(item)).filter(Boolean);
+}
+
+function refreshDocumentDownloadVisibility(section, workflowTemplate){
+  if(!section || section.id !== 'incident-documents')return;
+  const constrainedTemplate = normalizeDocumentTemplateName(workflowTemplate || '');
+  const ruleTemplates = documentDownloadRuleTemplates(section);
+  const hasMatchingRule = constrainedTemplate && ruleTemplates.indexOf(constrainedTemplate) !== -1;
+  section.querySelectorAll('.document-filename-download-link').forEach(link=>{
+    const constrained = !!constrainedTemplate;
+    link.hidden = constrained;
+    link.classList.toggle('hidden', constrained);
+    const filename = link.parentElement ? link.parentElement.querySelector('.document-download-filename') : null;
+    if(filename) filename.hidden = !constrained;
+  });
+  section.querySelectorAll('.document-download-button').forEach(link=>{
+    const docTemplate = normalizeDocumentTemplateName(link.dataset.documentTemplateName || '');
+    const allow = !constrainedTemplate || docTemplate === constrainedTemplate;
+    link.hidden = !allow;
+    link.classList.toggle('hidden', !allow);
+  });
+}
+
+function markWorkflowRedirectedSection(section, step){
   if(!section)return;
   section.dataset.workflowRedirected = '1';
+  const workflowTemplate = (step && step.dataset && step.dataset.documentGenerationEnabled === '1' && section.id === 'incident-documents') ? normalizeDocumentTemplateName(step.dataset.documentTemplateName || '') : '';
+  if(workflowTemplate) section.dataset.workflowDocumentTemplate = workflowTemplate;
   section.querySelectorAll('form').forEach(form=>{
     let input = form.querySelector('input[name="workflow_update_section_redirect"]');
     if(!input){
@@ -353,7 +388,35 @@ function markWorkflowRedirectedSection(section){
       form.appendChild(sectionInput);
     }
     sectionInput.value = section.id || '';
+    let templateInput = form.querySelector('input[name="workflow_document_template"]');
+    if(workflowTemplate && !templateInput){
+      templateInput = document.createElement('input');
+      templateInput.type = 'hidden';
+      templateInput.name = 'workflow_document_template';
+      form.appendChild(templateInput);
+    }
+    if(templateInput) templateInput.value = workflowTemplate;
+    let actionInput = form.querySelector('input[name="workflow_step_action_label_id"]');
+    if(!actionInput){
+      actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = 'workflow_step_action_label_id';
+      form.appendChild(actionInput);
+    }
+    actionInput.value = (step && step.dataset && step.dataset.actionLabelId) ? step.dataset.actionLabelId : '';
   });
+  section.querySelectorAll('a[href]').forEach(link=>{
+    try{
+      const url = new URL(link.getAttribute('href'), window.location.href);
+      if(!/\/document\/\d+\/download$/.test(url.pathname)) return;
+      url.searchParams.set('workflow_update_section_redirect', '1');
+      url.searchParams.set('workflow_update_section_target', section.id || '');
+      if(step && step.dataset && step.dataset.actionLabelId) url.searchParams.set('workflow_step_action_label_id', step.dataset.actionLabelId);
+      if(workflowTemplate) url.searchParams.set('workflow_document_template', workflowTemplate);
+      link.setAttribute('href', url.pathname + url.search + url.hash);
+    }catch(_err){}
+  });
+  refreshDocumentDownloadVisibility(section, workflowTemplate);
 }
 
 function openInitialIncidentAnchor(){
@@ -362,6 +425,14 @@ function openInitialIncidentAnchor(){
   const section=document.getElementById(hash);
   if(!section)return;
   openIncidentSection(section);
+  if(section.id === 'incident-documents'){
+    try{
+      const params = new URLSearchParams(window.location.search || '');
+      if(params.get('workflow_update_section_redirect') === '1' && params.get('workflow_update_section_target') === 'incident-documents'){
+        refreshDocumentDownloadVisibility(section, params.get('workflow_document_template') || '');
+      }
+    }catch(_err){}
+  }
   window.setTimeout(()=>scrollToIncidentSection(section), 0);
   window.setTimeout(()=>scrollToIncidentSection(section), 100);
 }
@@ -377,7 +448,7 @@ function makeIncidentWorkflowStepsClickable(){
     if(step.dataset.sectionTarget){
       const section=document.getElementById(step.dataset.sectionTarget);
       scrollToIncidentSection(section);
-      markWorkflowRedirectedSection(section);
+      markWorkflowRedirectedSection(section, step);
       return;
     }
     if(step.dataset.documentGenerationUrl){
@@ -836,3 +907,90 @@ function initBulkIncidentSelection(){
   syncSelectAlls();
 }
 document.addEventListener('DOMContentLoaded', initBulkIncidentSelection);
+
+function initIncidentDocumentPostActions(){
+  document.addEventListener('click', function(ev){
+    const link = ev.target && ev.target.closest ? ev.target.closest('.document-download-link') : null;
+    if(!link || link.hidden || link.classList.contains('hidden')) return;
+    const href = link.getAttribute('href');
+    if(!href) return;
+    ev.preventDefault();
+    let iframe = document.getElementById('document-download-frame');
+    if(!iframe){
+      iframe = document.createElement('iframe');
+      iframe.id = 'document-download-frame';
+      iframe.name = 'document-download-frame';
+      iframe.hidden = true;
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+    }
+    iframe.src = href;
+    window.setTimeout(function(){
+      window.location.hash = 'incident-documents';
+      window.location.reload();
+    }, 1200);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initIncidentDocumentPostActions);
+
+function initIncidentSectionTopButtons(){
+  const sections = Array.from(document.querySelectorAll('.incident-section-collapsible'));
+  sections.slice(1).forEach(function(section){
+    if(section.querySelector('.section-scroll-top-icon')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'section-scroll-top-icon';
+    button.innerHTML = '<span aria-hidden="true">⤒</span>';
+    button.setAttribute('aria-label', 'Torna a inizio pagina');
+    button.setAttribute('title', 'Torna a inizio pagina');
+    button.addEventListener('click', function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+      history.replaceState(null, '', window.location.pathname + window.location.search + '#top');
+    });
+    section.insertBefore(button, section.firstChild);
+    section.classList.add('incident-section-with-top-icon');
+  });
+}
+
+function initIncidentDocumentUploadButtons(){
+  document.querySelectorAll('form[data-scroll-anchor="incident-documents"]').forEach(function(form){
+    const fileInput = form.querySelector('input[type="file"][name="files"]');
+    const uploadButton = form.querySelector('.incident-document-upload-button');
+    if(!fileInput || !uploadButton) return;
+    function refresh(){
+      const ready = !!(fileInput.files && fileInput.files.length);
+      uploadButton.disabled = !ready;
+      uploadButton.setAttribute('aria-disabled', ready ? 'false' : 'true');
+      uploadButton.classList.toggle('disabled', !ready);
+    }
+    fileInput.addEventListener('change', refresh);
+    form.addEventListener('submit', function(event){
+      refresh();
+      if(uploadButton.disabled){
+        event.preventDefault();
+        fileInput.focus();
+      }
+    });
+    refresh();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initIncidentSectionTopButtons);
+document.addEventListener('DOMContentLoaded', initIncidentDocumentUploadButtons);
+
+function initCustomIncidentSecretFields(){
+  document.addEventListener('click', function(ev){
+    const button = ev.target && ev.target.closest ? ev.target.closest('.reveal-custom-secret') : null;
+    if(!button) return;
+    const wrapper = button.closest('.secret-custom-field');
+    const input = wrapper ? wrapper.querySelector('input') : null;
+    if(!input) return;
+    const revealing = input.type === 'password';
+    input.type = revealing ? 'text' : 'password';
+    button.textContent = revealing ? 'Nascondi' : 'Mostra';
+  });
+}
+document.addEventListener('DOMContentLoaded', initCustomIncidentSecretFields);

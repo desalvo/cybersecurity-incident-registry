@@ -1,4 +1,7 @@
 import os, time, shutil, secrets
+
+APP_RELEASE_VERSION = '0.7.0-1'
+APP_RELEASE_BUILD = '20260608'
 from flask import Flask, session
 from .text_filters import register_text_filters
 from sqlalchemy import text, inspect, Table, MetaData, select, func
@@ -21,10 +24,15 @@ def create_app():
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
+    try:
+        app.config['MAX_CONTENT_LENGTH']=int(os.getenv('MAX_CONTENT_LENGTH','26214400'))
+    except (TypeError, ValueError):
+        app.config['MAX_CONTENT_LENGTH']=26214400
+    app.config['MAX_FORM_MEMORY_SIZE']=app.config['MAX_CONTENT_LENGTH']
     app.config['APP_INFO']={
         'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
-        'version': os.getenv('APP_VERSION','0.6.0-31'),
-        'build': os.getenv('APP_BUILD','20260530'),
+        'version': APP_RELEASE_VERSION,
+        'build': APP_RELEASE_BUILD,
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
@@ -100,7 +108,13 @@ def create_app():
         except Exception:
             data['modules_menu_visible'] = False
         return data
-    from .routes import bp, start_deadline_notification_scheduler, start_incident_reminder_scheduler, start_backup_scheduler, sso_logo_url; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
+    from .routes import bp, start_deadline_notification_scheduler, start_incident_reminder_scheduler, start_backup_scheduler, sso_logo_url, apply_configured_max_upload_size; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
+    @app.before_request
+    def _refresh_configured_upload_limit():
+        try:
+            apply_configured_max_upload_size(app)
+        except Exception:
+            pass
     from .plugins.ai_chatbot import register_plugin as register_ai_chatbot_plugin; register_ai_chatbot_plugin(app)
     from .plugins.alfresco import register_plugin as register_alfresco_plugin; register_alfresco_plugin(app)
     with app.app_context():
@@ -435,6 +449,12 @@ def run_schema_migrations(app):
                     conn.execute(text('ALTER TABLE incident ADD COLUMN deadline_notifications_muted BOOLEAN'))
                     conn.execute(text('UPDATE incident SET deadline_notifications_muted = FALSE WHERE deadline_notifications_muted IS NULL'))
                 app.logger.info('Schema migration applied: incident.deadline_notifications_muted added')
+            cols = {c['name'] for c in inspector.get_columns('incident')}
+            if 'custom_fields_json' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE incident ADD COLUMN custom_fields_json TEXT"))
+                    conn.execute(text("UPDATE incident SET custom_fields_json = '' WHERE custom_fields_json IS NULL"))
+                app.logger.info('Schema migration applied: incident.custom_fields_json added')
             split_columns = {
                 'start_date': 'DATE',
                 'start_time': 'TIME',
@@ -663,13 +683,13 @@ def run_schema_migrations(app):
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN document_template_name VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident_workflow_step.document_template_name added')
             cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
-            if 'document_auto_tags' not in cols:
-                with db.engine.begin() as conn:
-                    conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN document_auto_tags TEXT NOT NULL DEFAULT ''"))
-                app.logger.info('Schema migration applied: incident_workflow_step.document_auto_tags added')
-            else:
-                with db.engine.begin() as conn:
-                    conn.execute(text("UPDATE incident_workflow_step SET document_auto_tags = '' WHERE document_auto_tags IS NULL"))
+            if 'document_auto_tags' in cols:
+                try:
+                    with db.engine.begin() as conn:
+                        conn.execute(text('ALTER TABLE incident_workflow_step DROP COLUMN document_auto_tags'))
+                    app.logger.info('Schema migration applied: incident_workflow_step.document_auto_tags removed')
+                except Exception:
+                    app.logger.info('Schema migration skipped: incident_workflow_step.document_auto_tags could not be dropped by this database backend')
             cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
             if 'section_target' not in cols:
                 with db.engine.begin() as conn:
@@ -1021,7 +1041,7 @@ def bootstrap(app):
             admin.role='superuser'; admin.tenant_id=admin.tenant_id or default_tenant.id; admin.is_ldap=False; admin.auth_provider='local'  # never reset password on restart
         db.session.flush()
         sync_user_tenant_roles()
-        for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','workflow_step_type_registration_description':'Premi per registrare','workflow_step_type_execution_description':'Premi per eseguire','workflow_step_type_update_section_description':'Aggiorna dati','workflow_step_types_json':''}.items(): ensure_setting(k,v)
+        for k,v in {'security_owner_name':'','security_owner_role':'','security_owner_email':'','structure_name':'','security_responsible_name':'','security_responsible_email':'','security_responsible_phone':'-','security_responsible_function':'','ldap_uri':'','ldap_base_dn':'','ldap_bind_dn':'','ldap_bind_password':'','ldap_user_filter':'(uid={uid})','sso_profiles_json':'','sso_enabled':'0','sso_provider_name':'SSO','sso_authorization_url':'','sso_token_url':'','sso_userinfo_url':'','sso_client_id':'','sso_client_secret':'','sso_scopes':'openid email profile','sso_username_claim':'preferred_username','sso_email_claim':'email','sso_name_claim':'name','sso_subject_claim':'sub','sso_auto_create_users':'1','sso_default_role':'disabled','logo_path':'','smtp_host':'','smtp_port':'587','smtp_use_tls':'1','smtp_use_ssl':'0','smtp_auth_enabled':'0','smtp_username':'','smtp_password':'','smtp_default_sender':'','notification_deadline_enabled':'0','notification_deadline_email_enabled':'1','notification_deadline_schedule_mode':'interval','notification_deadline_cron_times':'','notification_deadline_interval_hours':'24','notification_deadline_interval_minutes':'0','notification_deadline_poll_seconds':'60','notification_incident_reminder_poll_seconds':'60','privacy_authority_non_notification_reason':'','documentation_location':'','application_external_url':'http://localhost:8000','application_timezone':'Europe/Rome','interface_language':'auto','audit_retention_months':'6','audit_retention_months_part':'6','audit_retention_days_part':'0','audit_retention_hours_part':'0','audit_retention_minutes_part':'0','audit_records_per_page':'20','audit_max_records':'10000','plugin_ai_chatbot_enabled':'0','ai_chatbot_engine':'chatgpt','ai_chatbot_include_database_context':'0','ai_chatbot_chatgpt_api_key':'','ai_chatbot_chatgpt_endpoint':'','ai_chatbot_chatgpt_model':'gpt-4o-mini','ai_chatbot_claude_api_key':'','ai_chatbot_claude_endpoint':'','ai_chatbot_claude_model':'claude-3-5-sonnet-latest','ai_chatbot_gemini_api_key':'','ai_chatbot_gemini_endpoint':'','ai_chatbot_gemini_model':'gemini-1.5-flash','ai_chatbot_ollama_api_key':'','ai_chatbot_ollama_endpoint':'http://localhost:11434/api/chat','ai_chatbot_ollama_model':'llama3.1','ai_chatbot_perplexity_api_key':'','ai_chatbot_perplexity_endpoint':'','ai_chatbot_perplexity_model':'sonar','recommendations_max_per_incident':'3','ssl_enabled':'0','notification_csirt_subject':'Notifica CSIRT - Incidente: {name}','notification_dpo_subject':'Notifica DPO - Incidente: {name}','notification_csirt_body':'Buongiorno,\nsi invia notifica relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','notification_dpo_body':'Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nDati interessati: %DATI%\nCategorie: %CATEGORIE%\nData di inizio: %DATA%\nRischio per diritti e libertà: %DATI_PERSONALI%\n\nReport aggiornato: %REPORT%\n\nCordiali saluti','workflow_step_type_registration_description':'Premi per registrare','workflow_step_type_execution_description':'Premi per eseguire','workflow_step_type_update_section_description':'Aggiorna dati','workflow_step_type_operation_description':'Effettua operazione','workflow_step_types_json':''}.items(): ensure_setting(k,v)
         normalize_update_section_persistent_values()
         for k,v in default_consequence_settings().items(): ensure_setting(k,v)
         if not database_already_populated:

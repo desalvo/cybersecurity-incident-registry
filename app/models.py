@@ -191,7 +191,6 @@ class IncidentWorkflowStep(db.Model):
     required_notification_type=db.Column(db.String(40),nullable=True,index=True)
     document_generation_enabled=db.Column(db.Boolean,default=False,nullable=False)
     document_template_name=db.Column(db.String(255),nullable=True,index=True)
-    document_auto_tags=db.Column(db.Text,default='',nullable=False)
     section_target=db.Column(db.String(80),nullable=True,index=True)
     conditions=db.Column(db.Text,default='')
     step_type=db.Column(db.String(20),default='registration',nullable=False)
@@ -221,19 +220,6 @@ class IncidentWorkflowStep(db.Model):
         self.conditions=','.join(cleaned)
         self.personal_data_only=('personal_data' in cleaned)
 
-    @property
-    def document_auto_tag_list(self):
-        raw = self.document_auto_tags or ''
-        return [x.strip() for x in raw.split(',') if x.strip()]
-
-    def set_document_auto_tags(self, values):
-        seen=[]
-        for value in values or []:
-            code=str(value or '').strip()
-            if code and code not in seen:
-                seen.append(code)
-        self.document_auto_tags=','.join(seen)
-
 
 class Person(db.Model):
     id=db.Column(db.Integer,primary_key=True); tenant_id=db.Column(db.Integer,db.ForeignKey('tenant.id'),nullable=True,index=True); tenant=db.relationship('Tenant',foreign_keys=[tenant_id]); name=db.Column(db.String(160),nullable=False); email=db.Column(db.String(255)); group=db.Column(db.String(80),default='personale')
@@ -245,7 +231,7 @@ class Recommendation(db.Model):
     created_at=db.Column(db.DateTime,default=utcnow)
 
 class Incident(db.Model):
-    id=db.Column(db.Integer,primary_key=True); tenant_id=db.Column(db.Integer,db.ForeignKey('tenant.id'),nullable=True,index=True); tenant=db.relationship('Tenant',foreign_keys=[tenant_id]); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); recipient_email=db.Column(db.String(255),nullable=True); category_order=db.Column(db.Text,default=''); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); created_at=db.Column(db.DateTime,default=utcnow)
+    id=db.Column(db.Integer,primary_key=True); tenant_id=db.Column(db.Integer,db.ForeignKey('tenant.id'),nullable=True,index=True); tenant=db.relationship('Tenant',foreign_keys=[tenant_id]); creator_id=db.Column(db.Integer,db.ForeignKey('user.id')); creator_name=db.Column(db.String(160)); creator_email=db.Column(db.String(255)); name=db.Column(db.String(255),nullable=False); reference=db.Column(db.String(255),nullable=False,default=''); recipient=db.Column(db.String(255),nullable=True); recipient_email=db.Column(db.String(255),nullable=True); category_order=db.Column(db.Text,default=''); description=db.Column(db.Text); severity_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); personal_data=db.Column(db.Boolean,default=False); data_subjects_count=db.Column(db.String(255)); data_volume=db.Column(db.Text); start_date=db.Column(db.Date); start_time=db.Column(db.Time); end_date=db.Column(db.Date); end_time=db.Column(db.Time); status=db.Column(db.String(40),default='aperto'); deadline_notifications_muted=db.Column(db.Boolean,default=False,nullable=False); custom_fields_json=db.Column(db.Text,default='',nullable=False); created_at=db.Column(db.DateTime,default=utcnow)
 
     @property
     def start_at(self):

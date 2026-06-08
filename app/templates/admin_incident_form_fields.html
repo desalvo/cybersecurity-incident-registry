@@ -19,7 +19,7 @@
 
     <section class="settings-panel">
       <h3>Dati generali incidente</h3>
-      <p class="muted">Queste opzioni controllano la visibilità dei riquadri di ricerca nella sezione <strong>Dati generali</strong> del dettaglio incidente.</p>
+      <p class="muted">Queste opzioni controllano la visibilità dei campi e dei riquadri nella sezione <strong>Dati generali</strong> del dettaglio incidente, inclusi gli eventuali campi personalizzati.</p>
       <div class="field-checkbox-grid visibility-checkbox-grid">
         {% for code,label,required in incident_detail_fields %}
           <label class="checkbox-inline visibility-checkbox">
@@ -28,6 +28,13 @@
           </label>
         {% endfor %}
       </div>
+    </section>
+
+
+
+    <section class="settings-panel">
+      <h3>Campi personalizzati nei Dati Generali</h3>
+      <p class="muted">I campi personalizzati configurati da <strong>Admin → Configurazione generale → Campi personalizzati</strong> compaiono nella lista di visibilità qui sopra con prefisso “Campo personalizzato”.</p>
     </section>
 
     <div class="form-actions"><button>Salva configurazione</button></div>

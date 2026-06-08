@@ -11,10 +11,114 @@
         <details class="button-action-panel">
           <summary>
             <span class="button-action-summary-title">{{ label }}</span>
-            <span class="button-action-summary-help">Configura azione automatica, ambito di esecuzione{% if code == 'document_tags_save' %} e regole tag multiple{% endif %}</span>
+            <span class="button-action-summary-help">Configura azione automatica, ambito di esecuzione{% if code == 'document_tags_save' %} e regole tag multiple{% elif code in ['document_download','document_upload'] %} e regole multiple per template generatore opzionale{% endif %}</span>
           </summary>
           <div class="button-action-panel-body">
-            {% if code == 'document_tags_save' %}
+            {% if code == 'incident_update' %}
+              {% set update_rules = entry if entry is sequence and entry is not string and entry is not mapping else ([entry] if entry else []) %}
+              {% set generic_rule = namespace(label_id='') %}
+              {% set workflow_rules = [] %}
+              {% for rule in update_rules if rule %}
+                {% if rule is mapping and rule.scope == 'workflow_update_section' %}
+                  {% set _ = workflow_rules.append(rule) %}
+                {% elif not generic_rule.label_id %}
+                  {% set generic_rule.label_id = rule.label_id if rule is mapping else rule %}
+                {% endif %}
+              {% endfor %}
+              <p class="muted">La regola generica è unica e viene usata solo quando la sezione Dati generali non è stata aperta da uno step workflow. Le regole workflow sono multiple e vengono usate solo se l’azione dello step coincide con una regola configurata come “Solo da sezione aperta tramite step workflow”.</p>
+              <div class="button-action-grid">
+                <label>Azione automatica generica
+                  <select name="action_label_id_incident_update_generic">
+                    <option value="">Nessuna azione automatica generica</option>
+                    {% for action_label in action_labels %}<option value="{{ action_label.id }}" {% if generic_rule.label_id==action_label.id %}selected{% endif %}>{{ action_label.value }}</option>{% endfor %}
+                  </select>
+                </label>
+                <div class="muted">Usata al massimo una volta, fuori dal percorso guidato workflow.</div>
+              </div>
+              <input type="hidden" name="incident_update_workflow_rule_count" id="incident-update-workflow-rule-count" value="{{ workflow_rules|length if workflow_rules else 1 }}">
+              <div class="save-tag-rules" id="incident-update-workflow-rules">
+                {% for rule in workflow_rules if rule %}
+                  {% set idx = loop.index0 %}
+                  {% set selected_label_id = rule.label_id if rule is mapping else rule %}
+                  <div class="save-tag-rule incident-update-workflow-rule" data-rule-index="{{ idx }}">
+                    <div class="save-tag-rule-header"><strong>Regola workflow Salva dati {{ loop.index }}</strong><button type="button" class="secondary small remove-incident-update-workflow-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid">
+                      <label>Azione automatica dello step workflow<select name="action_label_id_incident_update_workflow_{{ idx }}"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}" {% if selected_label_id==action_label.id %}selected{% endif %}>{{ action_label.value }}</option>{% endfor %}</select></label>
+                      <label>Quando eseguirla<input value="Solo da sezione aperta tramite step workflow" readonly></label>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="save-tag-rule incident-update-workflow-rule" data-rule-index="0">
+                    <div class="save-tag-rule-header"><strong>Regola workflow Salva dati 1</strong><button type="button" class="secondary small remove-incident-update-workflow-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid">
+                      <label>Azione automatica dello step workflow<select name="action_label_id_incident_update_workflow_0"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select></label>
+                      <label>Quando eseguirla<input value="Solo da sezione aperta tramite step workflow" readonly></label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="secondary" id="add-incident-update-workflow-rule">Aggiungi regola workflow Salva dati</button>
+              <template id="incident-update-workflow-rule-template">
+                <div class="save-tag-rule incident-update-workflow-rule" data-rule-index="__INDEX__">
+                  <div class="save-tag-rule-header"><strong>Regola workflow Salva dati __NUMBER__</strong><button type="button" class="secondary small remove-incident-update-workflow-rule">Rimuovi regola</button></div>
+                  <div class="button-action-grid">
+                    <label>Azione automatica dello step workflow<select name="action_label_id_incident_update_workflow___INDEX__"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select></label>
+                    <label>Quando eseguirla<input value="Solo da sezione aperta tramite step workflow" readonly></label>
+                  </div>
+                </div>
+              </template>
+            {% elif code == 'document_upload' %}
+              {% set rules = entry if entry is sequence and entry is not string and entry is not mapping else ([entry] if entry else []) %}
+              <p class="muted">Puoi definire più regole ordinate. Se la sezione Documenti proviene da uno step workflow con template richiesto viene usata la prima regola Upload con lo stesso template e i tag selezionati vengono applicati ai documenti caricati. Fuori da quel vincolo viene usata la prima regola senza template e i tag non vengono applicati automaticamente.</p>
+              <input type="hidden" name="document_upload_rule_count" id="document-upload-rule-count" value="{{ rules|length if rules else 1 }}">
+              <div class="save-tag-rules" id="document-upload-rules">
+                {% for rule in rules if rule %}
+                  {% set idx = loop.index0 %}
+                  {% set selected_label_id = rule.label_id if rule is mapping else rule %}
+                  {% set selected_scope = rule.scope if rule is mapping else 'always' %}
+                  {% set selected_template_name = rule.template_name if rule is mapping and rule.template_name is defined else '' %}
+                  {% set selected_tags = rule.notification_tags if rule is mapping and rule.notification_tags is defined else [] %}
+                  <div class="save-tag-rule document-upload-rule" data-rule-index="{{ idx }}">
+                    <div class="save-tag-rule-header"><strong>Regola Upload {{ loop.index }}</strong><button type="button" class="secondary small remove-document-upload-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid button-action-grid-three">
+                      <label>Azione automatica<select name="action_label_id_document_upload_{{ idx }}"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}" {% if selected_label_id==action_label.id %}selected{% endif %}>{{ action_label.value }}</option>{% endfor %}</select></label>
+                      <label>Quando eseguirla<select name="action_scope_document_upload_{{ idx }}"><option value="always" {% if selected_scope != 'workflow_update_section' %}selected{% endif %}>Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section" {% if selected_scope == 'workflow_update_section' %}selected{% endif %}>Solo da sezione aperta tramite step workflow</option></select></label>
+                      <label>Template generatore documento<select name="action_template_name_document_upload_{{ idx }}"><option value="" {% if not selected_template_name %}selected{% endif %}>Nessun template: regola generica</option>{% for template in form_templates %}<option value="{{ template.name }}" {% if selected_template_name == template.name %}selected{% endif %}>{{ template.name }}</option>{% endfor %}</select><span class="muted">Lascia vuoto per la regola generica usata fuori dai vincoli workflow.</span></label>
+                    </div>
+                    {% include 'partials/button_action_tag_rule.html' with context %}
+                  </div>
+                {% else %}
+                  {% set idx = 0 %}{% set selected_label_id = '' %}{% set selected_scope = 'always' %}{% set selected_template_name = '' %}{% set selected_tags = [] %}
+                  <div class="save-tag-rule document-upload-rule" data-rule-index="0">
+                    <div class="save-tag-rule-header"><strong>Regola Upload 1</strong><button type="button" class="secondary small remove-document-upload-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid button-action-grid-three">
+                      <label>Azione automatica<select name="action_label_id_document_upload_0"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select></label>
+                      <label>Quando eseguirla<select name="action_scope_document_upload_0"><option value="always">Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section">Solo da sezione aperta tramite step workflow</option></select></label>
+                      <label>Template generatore documento<select name="action_template_name_document_upload_0"><option value="">Nessun template: regola generica</option>{% for template in form_templates %}<option value="{{ template.name }}">{{ template.name }}</option>{% endfor %}</select><span class="muted">Lascia vuoto per la regola generica usata fuori dai vincoli workflow.</span></label>
+                    </div>
+                    {% include 'partials/button_action_tag_rule.html' with context %}
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="secondary" id="add-document-upload-rule">Aggiungi regola Upload</button>
+              <template id="document-upload-rule-template">
+                {% set idx = '__INDEX__' %}{% set selected_tags = [] %}
+                <div class="save-tag-rule document-upload-rule" data-rule-index="__INDEX__">
+                  <div class="save-tag-rule-header"><strong>Regola Upload __NUMBER__</strong><button type="button" class="secondary small remove-document-upload-rule">Rimuovi regola</button></div>
+                  <div class="button-action-grid button-action-grid-three">
+                    <label>Azione automatica<select name="action_label_id_document_upload___INDEX__"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select></label>
+                    <label>Quando eseguirla<select name="action_scope_document_upload___INDEX__"><option value="always">Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section">Solo da sezione aperta tramite step workflow</option></select></label>
+                    <label>Template generatore documento<select name="action_template_name_document_upload___INDEX__"><option value="">Nessun template: regola generica</option>{% for template in form_templates %}<option value="{{ template.name }}">{{ template.name }}</option>{% endfor %}</select><span class="muted">Lascia vuoto per la regola generica usata fuori dai vincoli workflow.</span></label>
+                  </div>
+                  <div class="button-tag-config" data-button-code="document_upload" data-rule-index="__INDEX__">
+                    {% if notification_types %}
+                      <div class="tag-palette" aria-label="Tag disponibili per Upload documenti">{% for nt in notification_types %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}">{{ nt.label }}</span>{% endfor %}</div>
+                      <div class="tag-drop-zone prominent" tabindex="0" aria-label="Trascina qui i tag da applicare ai documenti caricati"><span class="drop-zone-callout">Rilascia qui i tag da applicare ai documenti caricati</span>{% for nt in notification_types %}<label class="tag-selected hidden" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}" hidden><input type="checkbox" name="notification_tags_document_upload___INDEX__" value="{{ nt.code }}">{{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button></label>{% endfor %}<span class="muted tag-empty">Nessun tag selezionato.</span></div>
+                    {% else %}<span class="muted">Nessun tag disponibile.</span>{% endif %}
+                  </div>
+                </div>
+              </template>
+            {% elif code == 'document_tags_save' %}
               {% set rules = entry if entry is sequence and entry is not string and entry is not mapping else ([entry] if entry else []) %}
               <input type="hidden" name="document_tags_save_rule_count" id="document-tags-save-rule-count" value="{{ rules|length if rules else 1 }}">
               <div class="save-tag-rules" id="document-tags-save-rules">
@@ -82,6 +186,54 @@
                       <div class="tag-palette" aria-label="Tag disponibili per Salva tag">{% for nt in notification_types %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}">{{ nt.label }}</span>{% endfor %}</div>
                       <div class="tag-drop-zone prominent" tabindex="0" aria-label="Trascina qui i tag che attivano questa regola Salva tag"><span class="drop-zone-callout">Rilascia qui i tag che attivano questa regola</span>{% for nt in notification_types %}<label class="tag-selected hidden" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}" hidden><input type="checkbox" name="notification_tags_document_tags_save___INDEX__" value="{{ nt.code }}">{{ nt.label }} <button type="button" class="tag-remove" title="Rimuovi tag">×</button></label>{% endfor %}<span class="muted tag-empty">Nessun tag selezionato.</span></div>
                     {% else %}<span class="muted">Nessun tag disponibile.</span>{% endif %}
+                  </div>
+                </div>
+              </template>
+            {% elif code == 'document_download' %}
+              {% set rules = entry if entry is sequence and entry is not string and entry is not mapping else ([entry] if entry else []) %}
+              <p class="muted">Puoi definire più regole ordinate. Nel flusso guidato workflow viene usata la prima regola con template uguale a quello richiesto dallo step. Fuori dal flusso guidato viene usata la prima regola senza template.</p>
+              <input type="hidden" name="document_download_rule_count" id="document-download-rule-count" value="{{ rules|length if rules else 1 }}">
+              <div class="save-tag-rules" id="document-download-rules">
+                {% for rule in rules if rule %}
+                  {% set idx = loop.index0 %}
+                  {% set selected_label_id = rule.label_id if rule is mapping else rule %}
+                  {% set selected_scope = rule.scope if rule is mapping else 'always' %}
+                  {% set selected_template_name = rule.template_name if rule is mapping and rule.template_name is defined else '' %}
+                  <div class="save-tag-rule document-download-rule" data-rule-index="{{ idx }}">
+                    <div class="save-tag-rule-header"><strong>Regola Scarica {{ loop.index }}</strong><button type="button" class="secondary small remove-document-download-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid button-action-grid-three">
+                      <label>Azione automatica
+                        <select name="action_label_id_document_download_{{ idx }}"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}" {% if selected_label_id==action_label.id %}selected{% endif %}>{{ action_label.value }}</option>{% endfor %}</select>
+                      </label>
+                      <label>Quando eseguirla
+                        <select name="action_scope_document_download_{{ idx }}"><option value="always" {% if selected_scope != 'workflow_update_section' %}selected{% endif %}>Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section" {% if selected_scope == 'workflow_update_section' %}selected{% endif %}>Solo da sezione aperta tramite step workflow</option></select>
+                      </label>
+                      <label>Template generatore documento
+                        <select name="action_template_name_document_download_{{ idx }}"><option value="" {% if not selected_template_name %}selected{% endif %}>Nessun template: regola generica</option>{% for template in form_templates %}<option value="{{ template.name }}" {% if selected_template_name == template.name %}selected{% endif %}>{{ template.name }}</option>{% endfor %}</select>
+                        <span class="muted">Lascia vuoto per la regola generica usata fuori dai vincoli workflow.</span>
+                      </label>
+                    </div>
+                  </div>
+                {% else %}
+                  {% set idx = 0 %}
+                  <div class="save-tag-rule document-download-rule" data-rule-index="0">
+                    <div class="save-tag-rule-header"><strong>Regola Scarica 1</strong><button type="button" class="secondary small remove-document-download-rule">Rimuovi regola</button></div>
+                    <div class="button-action-grid button-action-grid-three">
+                      <label>Azione automatica<select name="action_label_id_document_download_0"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select></label>
+                      <label>Quando eseguirla<select name="action_scope_document_download_0"><option value="always">Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section">Solo da sezione aperta tramite step workflow</option></select></label>
+                      <label>Template generatore documento<select name="action_template_name_document_download_0"><option value="">Nessun template: regola generica</option>{% for template in form_templates %}<option value="{{ template.name }}">{{ template.name }}</option>{% endfor %}</select><span class="muted">Lascia vuoto per la regola generica usata fuori dai vincoli workflow.</span></label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="secondary" id="add-document-download-rule">Aggiungi regola Scarica</button>
+              <template id="document-download-rule-template">
+                <div class="save-tag-rule document-download-rule" data-rule-index="__INDEX__">
+                  <div class="save-tag-rule-header"><strong>Regola Scarica __NUMBER__</strong><button type="button" class="secondary small remove-document-download-rule">Rimuovi regola</button></div>
+                  <div class="button-action-grid button-action-grid-three">
+                    <label>Azione automatica<select name="action_label_id_document_download___INDEX__"><option value="">Nessuna azione automatica</option>{% for action_label in action_labels %}<option value="{{ action_label.id }}">{{ action_label.value }}</option>{% endfor %}</select></label>
+                    <label>Quando eseguirla<select name="action_scope_document_download___INDEX__"><option value="always">Sempre, quando l’operazione va a buon fine</option><option value="workflow_update_section">Solo da sezione aperta tramite step workflow</option></select></label>
+                    <label>Template generatore documento<select name="action_template_name_document_download___INDEX__"><option value="">Nessun template: regola generica</option>{% for template in form_templates %}<option value="{{ template.name }}">{{ template.name }}</option>{% endfor %}</select><span class="muted">Lascia vuoto per la regola generica usata fuori dai vincoli workflow.</span></label>
                   </div>
                 </div>
               </template>
@@ -239,6 +391,141 @@ document.addEventListener('DOMContentLoaded', function () {
       refreshTagAvailability();
     });
   }
+
+
+  function refreshDocumentUploadRuleCount() {
+    const rules = document.querySelectorAll('#document-upload-rules .document-upload-rule');
+    const counter = document.getElementById('document-upload-rule-count');
+    if (counter) counter.value = rules.length;
+    rules.forEach(function (rule, index) {
+      rule.dataset.ruleIndex = index;
+      const title = rule.querySelector('.save-tag-rule-header strong');
+      if (title) title.textContent = 'Regola Upload ' + (index + 1);
+      rule.querySelectorAll('select, input[type="checkbox"]').forEach(function (input) {
+        input.name = input.name.replace(/action_label_id_document_upload_(\d+|__INDEX__)/, 'action_label_id_document_upload_' + index)
+                               .replace(/action_scope_document_upload_(\d+|__INDEX__)/, 'action_scope_document_upload_' + index)
+                               .replace(/action_template_name_document_upload_(\d+|__INDEX__)/, 'action_template_name_document_upload_' + index)
+                               .replace(/notification_tags_document_upload_(\d+|__INDEX__)/, 'notification_tags_document_upload_' + index);
+      });
+      rule.querySelectorAll('.button-tag-config').forEach(function (box) { box.dataset.ruleIndex = index; setupTagBox(box); });
+    });
+  }
+  const addUploadRule = document.getElementById('add-document-upload-rule');
+  if (addUploadRule) {
+    addUploadRule.addEventListener('click', function () {
+      const list = document.getElementById('document-upload-rules');
+      const template = document.getElementById('document-upload-rule-template');
+      const index = list ? list.querySelectorAll('.document-upload-rule').length : 0;
+      if (!list || !template) return;
+      const html = template.innerHTML.replace(/__INDEX__/g, String(index)).replace(/__NUMBER__/g, String(index + 1));
+      const wrapper = document.createElement('div'); wrapper.innerHTML = html.trim();
+      const node = wrapper.firstElementChild;
+      list.appendChild(node);
+      node.querySelectorAll('.button-tag-config').forEach(setupTagBox);
+      refreshDocumentUploadRuleCount();
+    });
+  }
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('.remove-document-upload-rule');
+    if (!button) return;
+    const rules = document.querySelectorAll('#document-upload-rules .document-upload-rule');
+    const rule = button.closest('.document-upload-rule');
+    if (rules.length <= 1) {
+      if (rule) {
+        rule.querySelectorAll('select').forEach(function (select) { select.value = ''; });
+        rule.querySelectorAll('.tag-selected').forEach(function (item) { item.classList.add('hidden'); item.hidden = true; const input = item.querySelector('input'); if (input) input.checked = false; });
+        rule.querySelectorAll('.button-tag-config').forEach(function (box) { const empty = box.querySelector('.tag-empty'); if (empty) empty.style.display = 'inline'; });
+      }
+    } else if (rule) {
+      rule.remove();
+    }
+    refreshDocumentUploadRuleCount();
+    refreshTagAvailability();
+  });
+  refreshDocumentUploadRuleCount();
+
+  function refreshIncidentUpdateWorkflowRuleCount() {
+    const rules = document.querySelectorAll('#incident-update-workflow-rules .incident-update-workflow-rule');
+    const counter = document.getElementById('incident-update-workflow-rule-count');
+    if (counter) counter.value = rules.length;
+    rules.forEach(function (rule, index) {
+      rule.dataset.ruleIndex = index;
+      const title = rule.querySelector('.save-tag-rule-header strong');
+      if (title) title.textContent = 'Regola workflow Salva dati ' + (index + 1);
+      rule.querySelectorAll('select').forEach(function (select) {
+        select.name = select.name.replace(/action_label_id_incident_update_workflow_(\d+|__INDEX__)/, 'action_label_id_incident_update_workflow_' + index);
+      });
+    });
+  }
+  const addIncidentUpdateWorkflowRule = document.getElementById('add-incident-update-workflow-rule');
+  if (addIncidentUpdateWorkflowRule) {
+    addIncidentUpdateWorkflowRule.addEventListener('click', function () {
+      const list = document.getElementById('incident-update-workflow-rules');
+      const template = document.getElementById('incident-update-workflow-rule-template');
+      const index = list ? list.querySelectorAll('.incident-update-workflow-rule').length : 0;
+      if (!list || !template) return;
+      const html = template.innerHTML.replace(/__INDEX__/g, String(index)).replace(/__NUMBER__/g, String(index + 1));
+      const wrapper = document.createElement('div'); wrapper.innerHTML = html.trim();
+      list.appendChild(wrapper.firstElementChild);
+      refreshIncidentUpdateWorkflowRuleCount();
+    });
+  }
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('.remove-incident-update-workflow-rule');
+    if (!button) return;
+    const rules = document.querySelectorAll('#incident-update-workflow-rules .incident-update-workflow-rule');
+    const rule = button.closest('.incident-update-workflow-rule');
+    if (rules.length <= 1) {
+      if (rule) rule.querySelectorAll('select').forEach(function (select) { select.value = ''; });
+    } else if (rule) {
+      rule.remove();
+    }
+    refreshIncidentUpdateWorkflowRuleCount();
+  });
+  refreshIncidentUpdateWorkflowRuleCount();
+
+  function refreshDocumentDownloadRuleCount() {
+    const rules = document.querySelectorAll('#document-download-rules .document-download-rule');
+    const counter = document.getElementById('document-download-rule-count');
+    if (counter) counter.value = rules.length;
+    rules.forEach(function (rule, index) {
+      rule.dataset.ruleIndex = index;
+      const title = rule.querySelector('.save-tag-rule-header strong');
+      if (title) title.textContent = 'Regola Scarica ' + (index + 1);
+      rule.querySelectorAll('select').forEach(function (select) {
+        select.name = select.name.replace(/action_label_id_document_download_(\d+|__INDEX__)/, 'action_label_id_document_download_' + index)
+                                 .replace(/action_scope_document_download_(\d+|__INDEX__)/, 'action_scope_document_download_' + index)
+                                 .replace(/action_template_name_document_download_(\d+|__INDEX__)/, 'action_template_name_document_download_' + index);
+      });
+    });
+  }
+  const addDownloadRule = document.getElementById('add-document-download-rule');
+  if (addDownloadRule) {
+    addDownloadRule.addEventListener('click', function () {
+      const list = document.getElementById('document-download-rules');
+      const template = document.getElementById('document-download-rule-template');
+      const index = list ? list.querySelectorAll('.document-download-rule').length : 0;
+      if (!list || !template) return;
+      const html = template.innerHTML.replace(/__INDEX__/g, String(index)).replace(/__NUMBER__/g, String(index + 1));
+      const wrapper = document.createElement('div'); wrapper.innerHTML = html.trim();
+      list.appendChild(wrapper.firstElementChild);
+      refreshDocumentDownloadRuleCount();
+    });
+  }
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('.remove-document-download-rule');
+    if (!button) return;
+    const rules = document.querySelectorAll('#document-download-rules .document-download-rule');
+    const rule = button.closest('.document-download-rule');
+    if (rules.length <= 1) {
+      if (rule) rule.querySelectorAll('select').forEach(function (select) { select.value = ''; });
+    } else if (rule) {
+      rule.remove();
+    }
+    refreshDocumentDownloadRuleCount();
+  });
+  refreshDocumentDownloadRuleCount();
+
   document.addEventListener('click', function (event) {
     const button = event.target.closest('.remove-save-tag-rule');
     if (!button) return;
@@ -259,6 +546,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <style>
-.button-action-config-form select{width:100%}.button-action-sections{display:flex;flex-direction:column;gap:.75rem}.button-action-panel{border:1px solid #d7dee8;border-radius:.75rem;background:#fff}.button-action-panel summary{cursor:pointer;display:flex;gap:.75rem;align-items:flex-start;justify-content:flex-start;text-align:left;padding:.8rem 1rem;list-style:none}.button-action-panel summary::-webkit-details-marker{display:none}.button-action-panel summary:before{content:'▸';font-weight:bold;margin-right:.25rem}.button-action-panel[open] summary:before{content:'▾'}.button-action-summary-title{font-weight:700;flex:0 0 auto}.button-action-summary-help{font-size:.9rem;color:#64748b;text-align:left}.button-action-panel-body{border-top:1px solid #e5e7eb;padding:1rem}.button-action-grid{display:grid;grid-template-columns:minmax(18rem,1.3fr) minmax(18rem,1fr);gap:1rem;margin-bottom:.85rem}.save-tag-rules{display:flex;flex-direction:column;gap:1rem;margin-bottom:.75rem}.save-tag-rule{border:1px solid #bfdbfe;border-radius:.85rem;background:#f8fbff;padding:1rem}.save-tag-rule-header{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:.8rem}.tag-palette{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.18rem .55rem;background:#f8fafc;font-size:.88rem}.tag-chip{cursor:grab}.tag-chip-disabled{opacity:.45;cursor:not-allowed;background:#e5e7eb;color:#64748b}.tag-drop-zone{min-height:3.25rem;border:2px dashed #1d4ed8;border-radius:.7rem;padding:.7rem;background:#f8fbff;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.tag-drop-zone.prominent{border-width:3px;background:#eff6ff;box-shadow:inset 0 0 0 1px #93c5fd}.drop-zone-callout{font-weight:700;color:#1d4ed8;margin-right:.4rem}.tag-drop-zone.drag-over{background:#dbeafe}.tag-drop-zone.drop-rejected{border-color:#dc2626;background:#fee2e2}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;cursor:pointer;font-weight:bold;border-radius:999px;min-width:1.35rem;min-height:1.35rem}@media(max-width:760px){.button-action-grid{grid-template-columns:1fr}.button-action-panel summary{flex-direction:column}.button-action-summary-help{text-align:left}}
+.button-action-config-form select{width:100%}.button-action-sections{display:flex;flex-direction:column;gap:.75rem}.button-action-panel{border:1px solid #d7dee8;border-radius:.75rem;background:#fff}.button-action-panel summary{cursor:pointer;display:flex;gap:.75rem;align-items:flex-start;justify-content:flex-start;text-align:left;padding:.8rem 1rem;list-style:none}.button-action-panel summary::-webkit-details-marker{display:none}.button-action-panel summary:before{content:'▸';font-weight:bold;margin-right:.25rem}.button-action-panel[open] summary:before{content:'▾'}.button-action-summary-title{font-weight:700;flex:0 0 auto}.button-action-summary-help{font-size:.9rem;color:#64748b;text-align:left}.button-action-panel-body{border-top:1px solid #e5e7eb;padding:1rem}.button-action-grid{display:grid;grid-template-columns:minmax(18rem,1.3fr) minmax(18rem,1fr);gap:1rem;margin-bottom:.85rem}.button-action-grid-three{grid-template-columns:minmax(18rem,1.2fr) minmax(18rem,1fr) minmax(18rem,1fr)}.save-tag-rules{display:flex;flex-direction:column;gap:1rem;margin-bottom:.75rem}.save-tag-rule{border:1px solid #bfdbfe;border-radius:.85rem;background:#f8fbff;padding:1rem}.save-tag-rule-header{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:.8rem}.tag-palette{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}.tag-chip,.tag-selected{display:inline-flex;align-items:center;gap:.25rem;border:1px solid #cbd5e1;border-radius:999px;padding:.18rem .55rem;background:#f8fafc;font-size:.88rem}.tag-chip{cursor:grab}.tag-chip-disabled{opacity:.45;cursor:not-allowed;background:#e5e7eb;color:#64748b}.tag-drop-zone{min-height:3.25rem;border:2px dashed #1d4ed8;border-radius:.7rem;padding:.7rem;background:#f8fbff;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.tag-drop-zone.prominent{border-width:3px;background:#eff6ff;box-shadow:inset 0 0 0 1px #93c5fd}.drop-zone-callout{font-weight:700;color:#1d4ed8;margin-right:.4rem}.tag-drop-zone.drag-over{background:#dbeafe}.tag-drop-zone.drop-rejected{border-color:#dc2626;background:#fee2e2}.tag-selected.hidden{display:none!important}.tag-selected input{display:none}.tag-remove{border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;cursor:pointer;font-weight:bold;border-radius:999px;min-width:1.35rem;min-height:1.35rem}@media(max-width:760px){.button-action-grid{grid-template-columns:1fr}.button-action-panel summary{flex-direction:column}.button-action-summary-help{text-align:left}}
 </style>
 {% endblock %}

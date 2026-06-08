@@ -11,6 +11,9 @@ TENANT_SHARED_CONFIGURATION_KEYS = {
     'ssl_key_path',
     'application_external_url',
     'application_timezone',
+    'max_upload_size_mb',
+    'setup_wizard_progress_json',
+    'setup_wizard_completed',
 }
 
 TENANT_SCOPED_ADMIN_AREAS = (
@@ -28,4 +31,5 @@ TENANT_SHARED_ADMIN_AREAS = (
     'HTTPS/SSL',
     'URL applicazione',
     'Time zone applicazione',
+    'Dimensione massima upload',
 )

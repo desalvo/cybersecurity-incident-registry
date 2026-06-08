@@ -127,7 +127,7 @@ In CI il workflow `.github/workflows/agid-compliance.yml` esegue questa configur
 
 ## Ultimo run incluso nel pacchetto
 
-Il run standard incluso è `compliance/agid/20260523T013326Z/`. I controlli `pip check`, `compileall`, `pytest`, test dinamici AGID e soglia Bandit HIGH/MEDIUM sono passati. `pip-audit` non viene eseguito dalla suite standard: è disponibile solo nella modalità manuale Docker, che deve essere avviata su un sistema con accesso Internet per produrre l'evidenza completa di audit vulnerabilità dipendenze.
+La suite standard esegue pytest tramite `scripts/run_pytest_offline_safe.sh`, che isola ogni modulo di test in un processo dedicato, disabilita l'autoload dei plugin pytest esterni e forza l'uscita deterministica dei processi solo nel runner Docker/offline. Questo evita hang di chiusura dovuti a risorse o plugin del container senza modificare il comportamento produttivo. `pip-audit` è parte del flusso standard e resta bloccante nei run con rete; con `AGID_OFFLINE=1` lo skip viene registrato come limitazione ambientale e deve essere recuperato in CI con rete prima del rilascio.
 
 ## Script manuale incluso nella directory compliance
 

@@ -28,13 +28,20 @@ run_step() {
   return "$rc"
 }
 
+
+run_pytest_step() {
+  local name="$1"
+  shift
+  PYTEST_VERSION="${PYTEST_VERSION:-agid}"   CIR_TEST_PASSWORD_HASH_METHOD="${CIR_TEST_PASSWORD_HASH_METHOD:-pbkdf2:sha256:1}"   PYTEST_DISABLE_PLUGIN_AUTOLOAD="${PYTEST_DISABLE_PLUGIN_AUTOLOAD:-1}"   CIR_FORCE_PYTEST_PROCESS_EXIT="${CIR_FORCE_PYTEST_PROCESS_EXIT:-1}"   run_step "$name" "$@"
+}
+
 : > "$OUT_DIR/status.tsv"
 OVERALL=0
 
 run_step pip_check timeout 120 python -m pip check || OVERALL=1
 run_step compileall timeout 120 python -m compileall -q app tests || OVERALL=1
-run_step pytest_all timeout 180 python -m pytest -q || OVERALL=1
-run_step pytest_agid_dynamic timeout 180 python -m pytest -q tests/test_agid_compliance_dynamic.py || OVERALL=1
+run_pytest_step pytest_all timeout "${AGID_PYTEST_TIMEOUT:-900}" bash scripts/run_pytest_offline_safe.sh || OVERALL=1
+run_pytest_step pytest_agid_dynamic timeout "${AGID_PYTEST_DYNAMIC_TIMEOUT:-300}" python -m pytest -q tests/test_agid_compliance_dynamic.py || OVERALL=1
 run_step bandit_json timeout 120 python -m bandit -r app -x '*/__pycache__/*' -f json --exit-zero -o "$OUT_DIR/bandit.json" || true
 if ! python scripts/check_bandit_threshold.py "$OUT_DIR/bandit.json" >"$OUT_DIR/bandit_threshold.log" 2>&1; then
   printf '%s\t%s\n' "bandit_threshold_high_medium" "1" >> "$OUT_DIR/status.tsv"
@@ -43,11 +50,15 @@ else
   printf '%s\t%s\n' "bandit_threshold_high_medium" "0" >> "$OUT_DIR/status.tsv"
 fi
 
+if [[ "${AGID_OFFLINE:-0}" == "1" ]]; then
+  export AGID_SKIP_PIP_AUDIT=1
+  : "${AGID_PIP_AUDIT_STRICT:=0}"
+fi
 PIP_AUDIT_STRICT="${AGID_PIP_AUDIT_STRICT:-1}"
 PIP_AUDIT_TIMEOUT="${AGID_PIP_AUDIT_TIMEOUT:-300}"
 if [[ "${AGID_SKIP_PIP_AUDIT:-0}" == "1" ]]; then
   echo "pip-audit skipped by explicit AGID_SKIP_PIP_AUDIT=1; this run is not complete for Internet-connected CI." > "$OUT_DIR/pip-audit-note.txt"
-  printf '%s\t%s\n' "pip_audit_explicitly_skipped" "1" >> "$OUT_DIR/status.tsv"
+  printf '%s\t%s\n' "pip_audit_explicitly_skipped" "${PIP_AUDIT_STRICT}" >> "$OUT_DIR/status.tsv"
   [[ "$PIP_AUDIT_STRICT" == "1" ]] && OVERALL=1
 elif python - <<'PY_CHECK' >/dev/null 2>&1
 import importlib.util, sys

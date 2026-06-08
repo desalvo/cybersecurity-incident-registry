@@ -1,5 +1,6 @@
 import hashlib
 import os
+import sys
 from flask_login import LoginManager
 from .models import db
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,8 +16,8 @@ def _password_hash_method():
     configured = os.getenv('CIR_PASSWORD_HASH_METHOD')
     if configured:
         return configured
-    if os.getenv('PYTEST_CURRENT_TEST') or os.getenv('PYTEST_VERSION'):
-        return 'pbkdf2:sha256:1000'
+    if os.getenv('PYTEST_CURRENT_TEST') or os.getenv('PYTEST_VERSION') or 'pytest' in sys.modules:
+        return os.getenv('CIR_TEST_PASSWORD_HASH_METHOD', 'pbkdf2:sha256:1')
     return 'pbkdf2:sha256:600000'
 
 def hash_password(p): return generate_password_hash(norm(p), method=_password_hash_method())

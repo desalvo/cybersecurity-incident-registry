@@ -68,8 +68,8 @@ Queste tre variabili sono lette dal container `db`. L'applicazione `web` usa inv
 | Variabile | Default | Uso |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Nome visualizzato in **Info → Applicazione**. |
-| `APP_VERSION` | `0.6.0-31` | Versione applicativa visualizzata e propagata nei deploy. |
-| `APP_BUILD` | `20260530` | Numero build visualizzato. |
+| `APP_VERSION` | `0.7.0-1` | Versione applicativa visualizzata e propagata nei deploy. |
+| `APP_BUILD` | `20260608` | Numero build visualizzato. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Autore visualizzato. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | E-mail autore visualizzata. |
 | `ADMIN_EMAIL` | `admin@example.local` | E-mail assegnata all'admin bootstrap se l'utente viene creato al primo avvio. |
@@ -94,7 +94,7 @@ I percorsi sotto `/data` non devono restare effimeri in produzione. Nel `docker-
 | `SESSION_COOKIE_SAMESITE` | `Lax` | Policy SameSite del cookie di sessione. |
 | `REMEMBER_COOKIE_SAMESITE` | `Lax` | Policy SameSite del cookie “remember me”. |
 | `CIR_FORCE_HSTS` | `0` | Impostare a `1` per inviare HSTS anche quando Flask non vede direttamente una richiesta HTTPS, ad esempio dietro reverse proxy TLS. |
-| `MAX_CONTENT_LENGTH` | `26214400` | Limite globale upload in byte, default 25 MiB. |
+| `MAX_CONTENT_LENGTH` | `26214400` | Limite globale upload in byte, default 25 MiB. Il valore iniziale deriva da `MAX_CONTENT_LENGTH`, ma può essere modificato da Admin → Altre configurazioni → Dimensione massima upload (MB). L'app allinea anche `MAX_FORM_MEMORY_SIZE` allo stesso valore per evitare 413 su form multipart con campi grandi; gli import workflow usano inoltre un token temporaneo lato server dopo la preview. Allineare reverse proxy e ingress Kubernetes allo stesso valore o a un valore superiore. |
 | `LOGIN_LOCKOUT_THRESHOLD` | `5` | Numero di tentativi falliti, per coppia IP/username, dopo il quale scatta il blocco server-side. |
 | `LOGIN_LOCKOUT_WINDOW_SECONDS` | `900` | Finestra temporale in secondi entro cui contare i tentativi falliti. |
 | `LOGIN_LOCKOUT_STEP_SECONDS` | `60` | Incremento progressivo del blocco temporaneo dopo il superamento della soglia. |

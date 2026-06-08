@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Campi personalizzati nei Dati Generali</h2>
+  <p class="muted">Aggiungi campi specifici che saranno salvati nella sezione <strong>Dati Generali</strong> degli incidenti. La loro visibilità nella pagina incidente si controlla da <strong>Admin → Anagrafiche e workflow → Layout campi incidenti</strong>, voce <strong>Dati generali incidente</strong>.</p>
+  <form method="post" class="visibility-settings-form">
+    <section class="settings-panel">
+      <h3>Campi personalizzati nei Dati Generali</h3>
+      <p class="muted">I campi nascosti usano un controllo mascherato con pulsante per mostrare temporaneamente il contenuto in chiaro. Per le checkbox, la descrizione viene mostrata come testo di supporto.</p>
+      <div class="custom-incident-fields-admin" id="custom-incident-fields-admin">
+        <div class="custom-field-admin-header"><span>Attivo</span><span>Etichetta</span><span>Tipo</span><span>Descrizione</span><span></span></div>
+        {% for field in custom_incident_fields %}
+          <div class="custom-field-admin-row">
+            <label class="checkbox-inline"><input type="checkbox" name="custom_field_enabled" value="{{ loop.index0 }}" {% if field.enabled %}checked{% endif %}><span>Attivo</span></label>
+            <input name="custom_field_label" value="{{ field.label }}" placeholder="Etichetta campo">
+            <select name="custom_field_type">{% for value,label in custom_field_types %}<option value="{{ value }}" {% if field.type==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            <input name="custom_field_description" value="{{ field.description }}" placeholder="Descrizione/help o testo checkbox">
+            <button type="button" class="secondary small custom-field-remove">Rimuovi</button>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="secondary" id="add-custom-incident-field">Aggiungi campo personalizzato</button>
+    </section>
+
+    <template id="custom-incident-field-template">
+      <div class="custom-field-admin-row">
+        <label class="checkbox-inline"><input type="checkbox" name="custom_field_enabled" value="__idx__" checked><span>Attivo</span></label>
+        <input name="custom_field_label" placeholder="Etichetta campo">
+        <select name="custom_field_type">{% for value,label in custom_field_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+        <input name="custom_field_description" placeholder="Descrizione/help o testo checkbox">
+        <button type="button" class="secondary small custom-field-remove">Rimuovi</button>
+      </div>
+    </template>
+    <script>
+      (function(){
+        const list=document.getElementById('custom-incident-fields-admin');
+        const tpl=document.getElementById('custom-incident-field-template');
+        const add=document.getElementById('add-custom-incident-field');
+        function renumber(){ Array.from(list.querySelectorAll('.custom-field-admin-row')).forEach(function(row, idx){ const cb=row.querySelector('input[name="custom_field_enabled"]'); if(cb) cb.value=String(idx); }); }
+        if(add && list && tpl){ add.addEventListener('click', function(){ const html=tpl.innerHTML.replaceAll('__idx__', String(list.querySelectorAll('.custom-field-admin-row').length)); list.insertAdjacentHTML('beforeend', html); renumber(); }); }
+        document.addEventListener('click', function(ev){ const btn=ev.target.closest && ev.target.closest('.custom-field-remove'); if(!btn) return; btn.closest('.custom-field-admin-row').remove(); renumber(); });
+      })();
+    </script>
+
+    <div class="form-actions"><button>Salva campi personalizzati</button></div>
+  </form>
+</div>
+{% endblock %}

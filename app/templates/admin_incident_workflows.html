@@ -19,20 +19,6 @@
     </div>
   </div>
 {%- endmacro %}
-{% macro tag_picker(name, selected) -%}
-  {% set selected = selected or [] %}
-  <div class="workflow-tag-picker" data-tag-picker>
-    <div class="tag-palette" aria-label="Tag documento disponibili">
-      {% for nt in document_tag_options %}<span class="tag-chip" draggable="true" data-tag-code="{{ nt.code }}" title="{{ nt.description or nt.label }}">{{ nt.label }}</span>{% endfor %}
-    </div>
-    <div class="tag-drop-zone" tabindex="0" aria-label="Trascina qui i tag da applicare automaticamente al documento">
-      <span class="muted tag-empty">Nessun auto tag documento. Trascina qui un tag notifica.</span>
-    </div>
-    <div class="tag-hidden">
-      {% for nt in document_tag_options %}<label class="tag-selected" data-tag-code="{{ nt.code }}"><input type="checkbox" name="{{name}}" value="{{ nt.code }}" {% if nt.code in selected %}checked{% endif %}> {{ nt.label }} <button type="button" class="link-button tag-remove">×</button></label>{% endfor %}
-    </div>
-  </div>
-{%- endmacro %}
 {% block content %}
 <div class="card">
   <h2>Flussi operativi incidenti</h2>
@@ -190,7 +176,6 @@
     <div><label>Notifica richiesta</label><select name="required_notification_type"><option value="">-- nessuna --</option>{% for nt in notification_types %}<option value="{{nt.code}}">{{nt.label}}</option>{% endfor %}</select></div>
     <div><label><input type="checkbox" name="document_generation_enabled" value="1"> Step relativo a documento da generare</label></div>
     <div><label>Modello template documento</label><select name="document_template_name"><option value="">-- nessuno --</option>{% for tmpl in form_templates %}<option value="{{tmpl.name}}">{{tmpl.name}}</option>{% endfor %}</select></div>
-    <div class="wide"><label>Auto tag documento</label>{{ tag_picker('document_auto_tags', []) }}</div>
     <div><button>Aggiungi</button></div>
   </form>
 </div>
@@ -220,7 +205,6 @@
             <div><label><input type="checkbox" name="required_{{step.id}}" value="1" {% if step.required %}checked{% endif %}> Richiesto per avvisi procedurali</label></div>
             <div><label><input type="checkbox" name="requires_notification_{{step.id}}" value="1" {% if step.requires_notification %}checked{% endif %}> Richiede notifica</label><br><select name="required_notification_type_{{step.id}}"><option value="">-- seleziona --</option>{% for nt in notification_types %}<option value="{{nt.code}}" {% if step.required_notification_type==nt.code %}selected{% endif %}>{{nt.label}}</option>{% endfor %}</select></div>
             <div><label><input type="checkbox" name="document_generation_enabled_{{step.id}}" value="1" {% if step.document_generation_enabled %}checked{% endif %}> Step relativo a documento da generare</label><br><select name="document_template_name_{{step.id}}"><option value="">-- nessuno --</option>{% for tmpl in form_templates %}<option value="{{tmpl.name}}" {% if step.document_template_name==tmpl.name %}selected{% endif %}>{{tmpl.name}}</option>{% endfor %}</select></div>
-            <div class="wide"><label>Auto tag documento</label>{{ tag_picker('document_auto_tags_' ~ step.id, step.document_auto_tag_list) }}</div>
           </div>
           <div class="workflow-admin-actions"><button type="submit" class="secondary">Salva</button> <button class="danger" type="submit" form="del-step-{{step.id}}">Elimina</button></div>
         </details>
@@ -243,7 +227,7 @@
 
   function syncShowSectionFields(select){
     const container = select.closest('form, details.workflow-admin-step') || document;
-    const isUpdateSection = select.value === 'update_section';
+    const isUpdateSection = ['update_section','operation'].includes(select.value);
     container.querySelectorAll('[data-update-section-fields]').forEach(el=>{
       el.hidden = !isUpdateSection;
       el.querySelectorAll('select,input,textarea').forEach(field=>{ field.disabled = !isUpdateSection; });
@@ -323,26 +307,9 @@
     dz.addEventListener('drop', ev=>{ ev.preventDefault(); dz.classList.remove('drag-over'); const token=ev.dataTransfer.getData('text/plain'); const label=picker.querySelector('.condition-selected[data-token="'+CSS.escape(token)+'"]'); if(label){ label.querySelector('input').checked=true; syncPicker(picker); }});
     picker.addEventListener('click', ev=>{ if(ev.target.classList.contains('condition-remove')){ ev.preventDefault(); const label=ev.target.closest('.condition-selected'); label.querySelector('input').checked=false; syncPicker(picker); }});
   });
-  function syncTagPicker(picker){
-    const dz=picker.querySelector('.tag-drop-zone');
-    const empty=picker.querySelector('.tag-empty');
-    const hidden=picker.querySelector('.tag-hidden');
-    const labels=[...picker.querySelectorAll('.tag-selected')];
-    labels.forEach(l=>{ if(l.querySelector('input').checked){ dz.appendChild(l); l.style.display='inline-flex'; } else { hidden.appendChild(l); l.style.display='none'; }});
-    if(empty) empty.style.display = labels.some(l=>l.querySelector('input').checked) ? 'none' : 'inline';
-  }
-  document.querySelectorAll('[data-tag-picker]').forEach(picker=>{
-    syncTagPicker(picker);
-    picker.querySelectorAll('.tag-chip').forEach(chip=>chip.addEventListener('dragstart', ev=>ev.dataTransfer.setData('application/x-notification-tag', chip.dataset.tagCode)));
-    const dz=picker.querySelector('.tag-drop-zone');
-    dz.addEventListener('dragover', ev=>{ ev.preventDefault(); dz.classList.add('drag-over'); });
-    dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
-    dz.addEventListener('drop', ev=>{ ev.preventDefault(); dz.classList.remove('drag-over'); const code=ev.dataTransfer.getData('application/x-notification-tag') || ev.dataTransfer.getData('text/plain'); const label=picker.querySelector('.tag-selected[data-tag-code="'+CSS.escape(code)+'"]'); if(label){ label.querySelector('input').checked=true; syncTagPicker(picker); }});
-    picker.addEventListener('click', ev=>{ if(ev.target.classList.contains('tag-remove')){ ev.preventDefault(); const label=ev.target.closest('.tag-selected'); label.querySelector('input').checked=false; syncTagPicker(picker); }});
-  });
 })();
 </script>
 <style>
-.condition-palette,.condition-dropzone,.tag-palette,.tag-drop-zone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected,.tag-chip,.tag-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-chip.negated{border-style:dashed}.condition-dropzone,.tag-drop-zone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over,.tag-drop-zone.drag-over{outline:2px solid currentColor}.condition-hidden,.tag-hidden{display:none}.condition-selected,.tag-selected{cursor:default}.condition-selected input,.tag-selected input{display:none}.condition-remove,.tag-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1rem}.workflow-overwrite-check{justify-content:flex-start;margin:.35rem 0 .75rem!important}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:minmax(7rem,10rem) minmax(14rem,1fr) minmax(12rem,16rem) minmax(18rem,2fr);gap:1rem;align-items:start}.workflow-admin-main .workflow-admin-description,.workflow-admin-description-expanded{grid-column:1 / -1}.workflow-admin-options{grid-template-columns:minmax(18rem,2fr) minmax(12rem,16rem) minmax(16rem,1fr) minmax(16rem,1fr); margin-top:.75rem}.workflow-admin-options .wide{grid-column:1 / -1}.workflow-admin-workflow>summary,.workflow-admin-step>summary{cursor:pointer;display:flex;gap:.75rem;align-items:center;justify-content:space-between}.workflow-admin-description textarea{width:100%;min-height:8rem;resize:vertical;line-height:1.45}.workflow-admin-step label{font-size:.82rem;color:#334155}.workflow-admin-step input,.workflow-admin-step select,.workflow-admin-step textarea{font-size:.95rem}.workflow-admin-actions{margin-top:.6rem}@media(max-width:1100px){.workflow-transfer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
+.condition-palette,.condition-dropzone{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.condition-palette{max-height:5.2rem;overflow:auto;padding:.35rem;border:1px solid var(--border,#ddd);border-radius:.4rem;background:rgba(0,0,0,.02)}.condition-chip,.condition-selected{border:1px solid var(--border,#ddd);border-radius:999px;padding:.2rem .55rem;background:var(--card-bg,#fff);font-size:.88rem;cursor:grab}.condition-chip.negated{border-style:dashed}.condition-dropzone{min-height:2.4rem;margin-top:.35rem;padding:.35rem;border:1px dashed var(--border,#bbb);border-radius:.4rem}.condition-dropzone.drag-over{outline:2px solid currentColor}.condition-hidden{display:none}.condition-selected{cursor:default}.condition-selected input{display:none}.condition-remove{padding:0 .2rem}.workflow-transfer-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1rem}.workflow-overwrite-check{justify-content:flex-start;margin:.35rem 0 .75rem!important}.workflow-transfer-grid form{border:1px solid var(--border,#ddd);border-radius:.5rem;padding:.75rem}.workflow-transfer-grid select,.workflow-transfer-grid input{width:100%;margin:.25rem 0 .75rem}.workflow-admin-list{display:grid;gap:.75rem}.workflow-admin-step{border:1px solid var(--border,#ddd);border-radius:.6rem;padding:.75rem}.workflow-admin-main,.workflow-admin-options{display:grid;grid-template-columns:minmax(7rem,10rem) minmax(14rem,1fr) minmax(12rem,16rem) minmax(18rem,2fr);gap:1rem;align-items:start}.workflow-admin-main .workflow-admin-description,.workflow-admin-description-expanded{grid-column:1 / -1}.workflow-admin-options{grid-template-columns:minmax(18rem,2fr) minmax(12rem,16rem) minmax(16rem,1fr) minmax(16rem,1fr); margin-top:.75rem}.workflow-admin-options .wide{grid-column:1 / -1}.workflow-admin-workflow>summary,.workflow-admin-step>summary{cursor:pointer;display:flex;gap:.75rem;align-items:center;justify-content:space-between}.workflow-admin-description textarea{width:100%;min-height:8rem;resize:vertical;line-height:1.45}.workflow-admin-step label{font-size:.82rem;color:#334155}.workflow-admin-step input,.workflow-admin-step select,.workflow-admin-step textarea{font-size:.95rem}.workflow-admin-actions{margin-top:.6rem}@media(max-width:1100px){.workflow-transfer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:900px){.workflow-admin-main,.workflow-admin-options,.workflow-transfer-grid{grid-template-columns:1fr}}
 </style>
 {% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="setup-wizard-shell" aria-labelledby="setup-wizard-title">
+  <aside class="setup-wizard-sidebar card" aria-label="Avanzamento setup iniziale">
+    <div class="setup-wizard-brand">
+      <img class="setup-wizard-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Logo applicazione" onerror="this.style.display='none'">
+      <div>
+        <h2 id="setup-wizard-title">{{ app_name }}</h2>
+        <p class="muted">Versione {{ app_version }}{% if app_build %} · build {{ app_build }}{% endif %}</p>
+      </div>
+    </div>
+    <div class="setup-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress_percent }}">
+      <div class="setup-progress-bar" style="width: {{ progress_percent }}%"></div>
+    </div>
+    <p class="muted"><strong>{{ progress_percent }}%</strong> configurazione completata o saltata.</p>
+    <ol class="setup-step-list">
+      {% for section in sections %}
+        {% set state = 'todo' %}
+        {% if section.code in completed %}{% set state = 'completed' %}{% endif %}
+        {% if section.code in skipped %}{% set state = 'skipped' %}{% endif %}
+        <li class="setup-step-item {{ state }} {% if loop.index0 == current_index %}active{% endif %}">
+          <a href="{{ url_for('main.admin_setup_wizard', step=section.code) }}">
+            <span class="setup-step-marker" aria-hidden="true">{% if state == 'completed' %}✓{% elif state == 'skipped' %}↷{% else %}{{ loop.index }}{% endif %}</span>
+            <span>{{ section.title }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ol>
+    <form method="post" class="setup-reset-form">
+      <input type="hidden" name="step" value="{{ current_section.code }}">
+      <button class="secondary small" name="action" value="reset" type="submit">Riesegui da capo</button>
+    </form>
+  </aside>
+
+  <section class="setup-wizard-panel card">
+    <p class="muted">Wizard di setup iniziale ri-eseguibile on-demand da Admin. Ogni gruppo può essere salvato o saltato interattivamente.</p>
+    <h2>{{ current_section.title }}</h2>
+    <p>{{ current_section.description }}</p>
+    <form method="post" enctype="multipart/form-data" class="form-grid setup-wizard-form">
+      <input type="hidden" name="step" value="{{ current_section.code }}">
+      {% for field in current_section.fields %}
+        <div class="{% if field.type in ['textarea','file','note'] or field.wide %}wide{% endif %}">
+          {% if field.type == 'note' %}
+            <p class="muted">{{ field.text }}</p>
+          {% elif field.type == 'checkbox' %}
+            <label class="checkbox-inline">
+              <input type="checkbox" name="{{ field.name }}" value="1" {% if field_values.get(field.name, field.default) in ['1', 1, true, 'true', 'True'] %}checked{% endif %}>
+              <span>{{ field.label }}</span>
+            </label>
+          {% else %}
+            <label>{{ field.label }}</label>
+            {% if field.type == 'select' %}
+              <select name="{{ field.name }}">
+                {% for value, label in field.choices %}
+                  <option value="{{ value }}" {% if field_values.get(field.name, field.default) == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% elif field.type == 'textarea' %}
+              <textarea name="{{ field.name }}" rows="{{ field.rows or 4 }}" placeholder="{{ field.placeholder or '' }}">{{ field_values.get(field.name, field.default) or '' }}</textarea>
+            {% elif field.type == 'file' %}
+              <input type="file" name="{{ field.name }}" accept="{{ field.accept or '' }}">
+              {% if field.help %}<p class="muted">{{ field.help }}</p>{% endif %}
+            {% elif field.type == 'password' %}
+              <input type="password" name="{{ field.name }}" value="" placeholder="{{ field.placeholder or 'Lascia vuoto per mantenere il valore esistente' }}" autocomplete="new-password">
+            {% else %}
+              <input type="{{ field.type or 'text' }}" name="{{ field.name }}" value="{{ field_values.get(field.name, field.default) or '' }}" placeholder="{{ field.placeholder or '' }}" {% if field.min is defined %}min="{{ field.min }}"{% endif %} {% if field.max is defined %}max="{{ field.max }}"{% endif %}>
+            {% endif %}
+            {% if field.help and field.type != 'file' %}<p class="muted">{{ field.help }}</p>{% endif %}
+          {% endif %}
+        </div>
+      {% endfor %}
+      <div class="form-actions full-width setup-wizard-actions">
+        <button type="submit" name="action" value="save_next">Salva e continua</button>
+        <button type="submit" class="secondary" name="action" value="skip" formnovalidate>Salta questo gruppo</button>
+        <button type="submit" class="secondary" name="action" value="finish" formnovalidate>Termina wizard</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

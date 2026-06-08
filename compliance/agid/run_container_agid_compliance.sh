@@ -30,13 +30,25 @@ run_step() {
   return "$rc"
 }
 
+
+run_pytest_step() {
+  local name="$1"
+  shift
+  PYTEST_VERSION="${PYTEST_VERSION:-agid}"   CIR_TEST_PASSWORD_HASH_METHOD="${CIR_TEST_PASSWORD_HASH_METHOD:-pbkdf2:sha256:1}"   PYTEST_DISABLE_PLUGIN_AUTOLOAD="${PYTEST_DISABLE_PLUGIN_AUTOLOAD:-1}"   CIR_FORCE_PYTEST_PROCESS_EXIT="${CIR_FORCE_PYTEST_PROCESS_EXIT:-1}"   run_step "$name" "$@"
+}
+
 run_step pip_check timeout 120 "$PYTHON_BIN" -m pip check || OVERALL=1
 run_step compileall timeout 120 "$PYTHON_BIN" -m compileall -q app tests || OVERALL=1
-run_step pytest_all timeout 240 "$PYTHON_BIN" -m pytest -q || OVERALL=1
-run_step pytest_agid_dynamic timeout 240 "$PYTHON_BIN" -m pytest -q tests/test_agid_compliance_dynamic.py || OVERALL=1
+run_pytest_step pytest_all timeout "${AGID_PYTEST_TIMEOUT:-900}" bash scripts/run_pytest_offline_safe.sh || OVERALL=1
+run_pytest_step pytest_agid_dynamic timeout "${AGID_PYTEST_DYNAMIC_TIMEOUT:-300}" "$PYTHON_BIN" -m pytest -q tests/test_agid_compliance_dynamic.py || OVERALL=1
 
 run_step bandit_module_check timeout 60 "$PYTHON_BIN" -m bandit --version || OVERALL=1
-run_step pip_audit_module_check timeout 60 "$PYTHON_BIN" -m pip_audit --version || OVERALL=1
+if [[ "${AGID_OFFLINE:-0}" == "1" || "${AGID_SKIP_PIP_AUDIT:-0}" == "1" ]]; then
+  printf '%s	%s
+' "pip_audit_module_check_skipped_offline" "0" >> "$OUT_DIR/status.tsv"
+else
+  run_step pip_audit_module_check timeout 60 "$PYTHON_BIN" -m pip_audit --version || OVERALL=1
+fi
 
 run_step bandit_json timeout 180 "$PYTHON_BIN" -m bandit -r app -x '*/__pycache__/*' -f json --exit-zero -o "$OUT_DIR/bandit.json" || true
 if ! "$PYTHON_BIN" scripts/check_bandit_threshold.py "$OUT_DIR/bandit.json" >"$OUT_DIR/bandit_threshold.log" 2>&1; then
@@ -46,10 +58,12 @@ else
   printf '%s\t%s\n' "bandit_threshold_high_medium" "0" >> "$OUT_DIR/status.tsv"
 fi
 
-# pip-audit is restricted to this manual Docker execution path.
-if ! run_step pip_audit_json timeout "${AGID_PIP_AUDIT_TIMEOUT:-300}" "$PYTHON_BIN" -m pip_audit --progress-spinner off --timeout "${AGID_PIP_AUDIT_SOCKET_TIMEOUT:-10}" -r requirements.txt -r requirements-dev.txt -f json -o "$OUT_DIR/pip-audit.json"; then
+if [[ "${AGID_OFFLINE:-0}" == "1" || "${AGID_SKIP_PIP_AUDIT:-0}" == "1" ]]; then
+  echo "pip-audit skipped for explicit offline Docker run; rerun with network before production release." > "$OUT_DIR/pip-audit-note.txt"
+  printf '%s\t%s\n' "pip_audit_offline_skipped" "0" >> "$OUT_DIR/status.tsv"
+elif ! run_step pip_audit_json timeout "${AGID_PIP_AUDIT_TIMEOUT:-300}" "$PYTHON_BIN" -m pip_audit --progress-spinner off --timeout "${AGID_PIP_AUDIT_SOCKET_TIMEOUT:-10}" -r requirements.txt -r requirements-dev.txt -f json -o "$OUT_DIR/pip-audit.json"; then
   echo "pip-audit failed, found vulnerabilities, or could not reach the vulnerability service. This manual Docker run is not fully AGID-compliant until pip-audit passes." > "$OUT_DIR/pip-audit-note.txt"
-  OVERALL=1
+  [[ "${AGID_PIP_AUDIT_STRICT:-1}" == "1" ]] && OVERALL=1
 fi
 
 "$PYTHON_BIN" scripts/summarize_agid_results.py "$OUT_DIR" "$OVERALL"

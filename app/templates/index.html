@@ -128,7 +128,7 @@
     <div><label>Ordina per</label><select name="sort">
       <option value="name" {% if sort=='name' %}selected{% endif %}>Nome</option>
       <option value="start_at" {% if sort=='start_at' %}selected{% endif %}>Inizio / fine</option>
-      <option value="creator_name" {% if sort=='creator_name' %}selected{% endif %}>Compilatore</option>
+      <option value="reference" {% if sort=='reference' %}selected{% endif %}>Riferimento</option>
       <option value="people" {% if sort=='people' %}selected{% endif %}>Personale coinvolto</option>
       <option value="status" {% if sort=='status' %}selected{% endif %}>Stato</option>
       <option value="duration" {% if sort=='duration' %}selected{% endif %}>Durata</option>
@@ -192,7 +192,7 @@
         </summary>
         <div class="mobile-meta">
           <div><strong>Inizio / fine</strong><span class="incident-datetime-compact">{{ i.start_at.strftime('%d/%m/%Y %H:%M') if i.start_at else '—' }}{% if i.end_at %}<br>{{ i.end_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span></div>
-          <div><strong>Compilatore</strong>{{ i.creator_name }}</div>
+          <div><strong>Riferimento</strong>{{ i.reference or '—' }}</div>
           <div><strong>Personale coinvolto</strong>{{ i.people|map(attribute='name')|sort|join(', ') or '—' }}</div>
           <div><strong>Stato</strong>{{ i.status }}</div>
           <div><strong>Durata</strong>{% if i.actions|length > 1 %}{{ (i.actions|sort(attribute='when_at')|last).when_at - (i.actions|sort(attribute='when_at')|first).when_at }}{% else %}—{% endif %}</div>
@@ -219,7 +219,7 @@
         <th class="incident-select-col"><input type="checkbox" data-incident-select-all aria-label="Seleziona tutti gli incidenti visualizzati"></th>
         <th><a class="sort-link" href="{{ sort_url('name') }}">Nome dell’incidente{{ sort_indicator('name') }}</a></th>
         <th><a class="sort-link" href="{{ sort_url('start_at') }}">Inizio / fine{{ sort_indicator('start_at') }}</a></th>
-        <th><a class="sort-link" href="{{ sort_url('creator_name') }}">Compilatore{{ sort_indicator('creator_name') }}</a></th>
+        <th><a class="sort-link" href="{{ sort_url('reference') }}">Riferimento{{ sort_indicator('reference') }}</a></th>
         <th><a class="sort-link" href="{{ sort_url('people') }}">Personale coinvolto{{ sort_indicator('people') }}</a></th>
         <th><a class="sort-link" href="{{ sort_url('status') }}">Stato{{ sort_indicator('status') }}</a></th>
         <th><a class="sort-link" href="{{ sort_url('duration') }}">Durata{{ sort_indicator('duration') }}</a></th>
@@ -232,7 +232,7 @@
         <td class="incident-select-col"><input type="checkbox" class="incident-select" value="{{ i.id }}" aria-label="Seleziona incidente {{ i.name }}"></td>
         <td>{{ workflow_status_icon(i) }}<a href="{{ url_for('main.incident_detail', iid=i.id) }}">{{ i.name }}</a></td>
         <td><span class="incident-datetime-compact">{{ i.start_at.strftime('%d/%m/%Y %H:%M') if i.start_at else '—' }}{% if i.end_at %}<br>{{ i.end_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span></td>
-        <td>{{ i.creator_name }}</td>
+        <td>{{ i.reference or '—' }}</td>
         <td>{{ i.people|map(attribute='name')|sort|join(', ') }}</td>
         <td>{{ i.status }}</td>
         <td>{% if i.effective_duration %}{{ i.effective_duration }}{% endif %}</td>

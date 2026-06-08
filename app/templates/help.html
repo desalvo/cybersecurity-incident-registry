@@ -16,7 +16,7 @@
       <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
       <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p>
       
-      <p><strong>Versione applicativa: 0.6.0-31</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
+      <p><strong>Versione applicativa: 0.7.0-1</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
     </div>
   </section>
 
@@ -169,7 +169,7 @@
 
   <section id="cap-documenti" class="doc-chapter" data-doc-title="documenti allegati moduli pdf report incidente logo indice">
     <h2>10. Documenti, moduli PDF e report</h2>
-    <p>La sezione Documenti consente di allegare file all’incidente; ogni documento dispone del pulsante <strong>Scarica</strong> per il download diretto del file relativo. Gli allegati delle singole azioni restano invece collegati alla relativa attività cronologica. I report PDF degli incidenti includono copertina, loghi, indice sintetico, sezioni ordinate, numeri di pagina e durata quando disponibile.</p>
+    <p>La sezione Documenti consente di allegare file all’incidente; il pulsante <strong>Upload</strong> resta disabilitato finché non viene selezionato almeno un file con <strong>Sfoglia</strong>. Ogni documento dispone del pulsante <strong>Scarica</strong> per il download diretto del file relativo. Gli allegati delle singole azioni restano invece collegati alla relativa attività cronologica. I report PDF degli incidenti includono copertina, loghi, indice sintetico, sezioni ordinate, numeri di pagina e durata quando disponibile.</p>
     <p>I moduli PDF sono generati a partire dai template configurati dall’amministratore. Quando un template usa campi dinamici basati sulle azioni, vengono incluse solo le azioni contrassegnate come esportabili.</p><p> Prima della generazione, se un campo richiesto dal template non è compilato, l’applicazione chiede di inserire i dati mancanti anche per più campi contemporaneamente.</p>
     <figure class="doc-figure"><img src="{{ url_for('static', filename='help/screenshot-modules.png') }}" alt="Schermata illustrativa della generazione moduli"><figcaption>Figura 4 - Configurazione e generazione dei moduli PDF da template.</figcaption></figure>
   
