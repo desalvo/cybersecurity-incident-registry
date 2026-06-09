@@ -12269,7 +12269,7 @@ SETUP_WIZARD_SECTIONS = [
             {'name': 'ldap_bind_dn', 'label': 'Bind DN', 'type': 'text', 'default': ''},
             {'name': 'ldap_bind_password', 'label': 'Bind password', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la password LDAP salvata'},
             {'name': 'ldap_user_filter', 'label': 'Filtro utente login', 'type': 'text', 'default': '(uid={uid})'},
-            {'name': 'ldap_incident_search_filter', 'label': 'Filtro ricerca interessato incidente', 'type': 'text', 'default': '(uid={uid})'},
+            {'name': 'ldap_incident_search_filter', 'label': 'Filtro ricerca interessato incidente', 'type': 'text', 'default': '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))', 'placeholder': '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))'},
             {'name': 'ldap_incident_search_attributes', 'label': 'Attributi ricerca interessato', 'type': 'text', 'default': 'uid,cn,mail,displayName,givenName,sn'},
             {'name': 'ldap_incident_reference_attribute', 'label': 'Attributo riferimento', 'type': 'text', 'default': 'cn'},
             {'name': 'ldap_incident_email_attribute', 'label': 'Attributo email', 'type': 'text', 'default': 'mail'},
@@ -12589,6 +12589,19 @@ def _save_setup_wizard_sso(form):
     save_sso_profiles(new_profiles)
 
 
+
+def normalize_incident_ldap_filter_template(template):
+    template = (template or '').strip()
+    if not template:
+        return ''
+    if '{q}' not in template:
+        if '{uid}' in template:
+            template = template.replace('{uid}', '{q}')
+        else:
+            raise ValueError('Il filtro ricerca incidenti LDAP deve contenere il placeholder {q}.')
+    make_incident_ldap_filter({'ldap_incident_search_filter': template}, 'test')
+    return template
+
 def _setup_wizard_field_value(field):
     name = field.get('name')
     if not name:
@@ -12608,7 +12621,12 @@ def _setup_wizard_field_value(field):
         if name == 'sso_profile_id':
             return profile.get('id', field.get('default', 'primary'))
         return profile.get(name, field.get('default', ''))
-    return setting_value(name, field.get('default', ''))
+    value = setting_value(name, field.get('default', ''))
+    if name == 'ldap_incident_search_filter' and value and '{q}' not in str(value):
+        if '{uid}' in str(value):
+            return str(value).replace('{uid}', '{q}')
+        return field.get('default', '')
+    return value
 
 
 def _save_setup_wizard_section(section, form, files=None):
@@ -12647,8 +12665,18 @@ def _save_setup_wizard_section(section, form, files=None):
             value = str(parse_max_upload_size_mb(value, DEFAULT_MAX_UPLOAD_SIZE_MB))
             current_app.config['MAX_CONTENT_LENGTH'] = int(value) * 1024 * 1024
             current_app.config['MAX_FORM_MEMORY_SIZE'] = current_app.config['MAX_CONTENT_LENGTH']
-        if name in {'ldap_user_filter', 'ldap_incident_search_filter'} and value:
-            value = validate_ldap_filter_template(value)
+        if name == 'ldap_user_filter' and value:
+            try:
+                value = validate_ldap_filter_template(value)
+            except ValueError as exc:
+                flash(str(exc), 'error')
+                return False
+        if name == 'ldap_incident_search_filter' and value:
+            try:
+                value = normalize_incident_ldap_filter_template(value)
+            except ValueError as exc:
+                flash(str(exc), 'error')
+                return False
         if name == 'ai_chatbot_engine' and value not in SETUP_WIZARD_AI_ENGINES:
             value = 'chatgpt'
         if name == 'alfresco_timeout':
