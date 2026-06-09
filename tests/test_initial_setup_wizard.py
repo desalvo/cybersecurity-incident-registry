@@ -45,6 +45,8 @@ def test_initial_setup_wizard_is_available_and_saves_groups(monkeypatch, tmp_pat
     html = page.get_data(as_text=True)
     assert 'Cybersecurity Incident Registry' in html
     assert 'Versione 0.7.0-1' in html
+    assert 'Password utente admin' in html
+    assert html.index('Password utente admin') < html.index('Parametri generali')
     assert 'role="progressbar"' in html
     assert 'Salta questo gruppo' in html
     assert 'Riesegui da capo' in html
@@ -244,3 +246,46 @@ def test_initial_setup_wizard_saves_identity_plugin_people_and_tenant_groups(mon
         assert setting_value('alfresco_base_url') == 'https://alfresco.example.test'
         assert Person.query.filter_by(name='Mario Rossi').first() is not None
         assert Tenant.query.filter_by(name='research').first() is not None
+
+
+def test_initial_setup_wizard_changes_admin_password_first(monkeypatch, tmp_path):
+    _configure_test_env(monkeypatch, tmp_path)
+    from app import create_app
+    from app.models import User
+    from app.auth import verify_password
+
+    app = create_app()
+    app.config['TESTING'] = True
+    client = app.test_client()
+    _login_admin(client)
+
+    page = client.get('/admin/setup-wizard')
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'Password utente admin' in html
+    assert 'admin_new_password' in html
+    token = _csrf(html)
+    response = client.post('/admin/setup-wizard?step=admin_password', data={
+        '_csrf_token': token,
+        'action': 'save_next',
+        'admin_new_password': 'SicuraPwd!2026XYZ',
+        'admin_new_password2': 'SicuraPwd!2026XYZ',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+
+    with app.app_context():
+        admin = User.query.filter_by(username='admin', auth_provider='local').first()
+        assert admin is not None
+        assert verify_password(admin.password_hash, 'SicuraPwd!2026XYZ')
+
+    client.get('/logout')
+    login_page = client.get('/login')
+    token = _csrf(login_page.get_data(as_text=True))
+    old_login = client.post('/login', data={'username': 'admin', 'password': 'AdminPassword123!', '_csrf_token': token})
+    assert old_login.status_code == 200
+    assert 'Credenziali non valide' in old_login.get_data(as_text=True)
+
+    login_page = client.get('/login')
+    token = _csrf(login_page.get_data(as_text=True))
+    new_login = client.post('/login', data={'username': 'admin', 'password': 'SicuraPwd!2026XYZ', '_csrf_token': token})
+    assert new_login.status_code in (302, 303)

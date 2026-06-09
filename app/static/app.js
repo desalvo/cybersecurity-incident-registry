@@ -446,7 +446,22 @@ function makeIncidentWorkflowStepsClickable(){
   const description=actionForm ? actionForm.querySelector('textarea[name="description"]') : null;
   const activate=(step)=>{
     if(step.dataset.sectionTarget){
-      const section=document.getElementById(step.dataset.sectionTarget);
+      const sectionId = step.dataset.sectionTarget || '';
+      const section=document.getElementById(sectionId);
+      const workflowTemplate = (step.dataset.documentGenerationEnabled === '1' && sectionId === 'incident-documents') ? normalizeDocumentTemplateName(step.dataset.documentTemplateName || '') : '';
+      if(sectionId === 'incident-documents' && workflowTemplate){
+        const url = new URL(window.location.href);
+        url.searchParams.set('workflow_update_section_redirect', '1');
+        url.searchParams.set('workflow_update_section_target', 'incident-documents');
+        url.searchParams.set('workflow_document_template', workflowTemplate);
+        if(step.dataset.actionLabelId) url.searchParams.set('workflow_step_action_label_id', step.dataset.actionLabelId);
+        url.hash = 'incident-documents';
+        const target = url.pathname + url.search + url.hash;
+        const current = window.location.pathname + window.location.search + window.location.hash;
+        if(target === current) window.location.reload();
+        else window.location.href = target;
+        return;
+      }
       scrollToIncidentSection(section);
       markWorkflowRedirectedSection(section, step);
       return;

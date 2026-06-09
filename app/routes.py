@@ -12196,6 +12196,16 @@ def _setup_ai_fields():
 
 SETUP_WIZARD_SECTIONS = [
     {
+        'code': 'admin_password',
+        'title': 'Password utente admin',
+        'description': 'Cambia subito la password dell’utente locale admin. È la prima operazione consigliata durante il setup iniziale.',
+        'fields': [
+            {'type': 'note', 'text': 'La password viene aggiornata solo se entrambi i campi sono compilati. Deve rispettare le regole di robustezza dell’applicazione.'},
+            {'name': 'admin_new_password', 'label': 'Nuova password admin', 'type': 'password', 'default': '', 'placeholder': 'Inserisci la nuova password dell’utente admin'},
+            {'name': 'admin_new_password2', 'label': 'Conferma nuova password admin', 'type': 'password', 'default': '', 'placeholder': 'Ripeti la nuova password'},
+        ],
+    },
+    {
         'code': 'general',
         'title': 'Parametri generali',
         'description': 'Imposta URL esterna, fuso orario, lingua e dimensione massima degli upload.',
@@ -12515,6 +12525,34 @@ def _save_setup_wizard_tenants(form):
     flash(f'Tenant “{tenant.name}” creato dal wizard.', 'success')
 
 
+
+def _save_setup_wizard_admin_password(form):
+    new_password = form.get('admin_new_password') or ''
+    new_password2 = form.get('admin_new_password2') or ''
+    if not new_password and not new_password2:
+        flash('Password admin non modificata: gruppo salvato senza nuovi valori.', 'info')
+        return True
+    if not is_superuser():
+        flash('Il cambio password dell’utente admin dal wizard è riservato ai superuser.', 'error')
+        return False
+    if new_password != new_password2:
+        flash('Le password admin non coincidono.', 'error')
+        return False
+    admin_user = User.query.filter(func.lower(User.username) == 'admin', User.auth_provider == 'local').first()
+    if not admin_user:
+        flash('Utente locale admin non trovato.', 'error')
+        return False
+    try:
+        validate_password_strength(new_password, username=admin_user.username, email=admin_user.email)
+    except ValueError as exc:
+        flash(str(exc), 'error')
+        return False
+    admin_user.password_hash = hash_password(new_password)
+    db.session.flush()
+    audit_log('admin:setup_wizard_admin_password_change', {'user_id': admin_user.id, 'username': admin_user.username, 'by': current_user.username}, actor_type='user')
+    flash('Password dell’utente admin aggiornata dal wizard.', 'success')
+    return True
+
 def _save_setup_wizard_sso(form):
     profiles = sso_profiles(include_legacy=True)
     original = _setup_wizard_sso_profile()
@@ -12575,18 +12613,20 @@ def _setup_wizard_field_value(field):
 
 def _save_setup_wizard_section(section, form, files=None):
     section_code = section.get('code')
+    if section_code == 'admin_password':
+        return _save_setup_wizard_admin_password(form)
     if section_code == 'logo':
         _save_setup_wizard_logo(files, form)
-        return
+        return True
     if section_code == 'people':
         _save_setup_wizard_people(form)
-        return
+        return True
     if section_code == 'tenants':
         _save_setup_wizard_tenants(form)
-        return
+        return True
     if section_code == 'sso':
         _save_setup_wizard_sso(form)
-        return
+        return True
 
     checkbox_names = {field['name'] for field in section.get('fields', []) if field.get('type') == 'checkbox' and field.get('name')}
     password_names = {field['name'] for field in section.get('fields', []) if field.get('type') == 'password' and field.get('name')}
@@ -12627,6 +12667,7 @@ def _save_setup_wizard_section(section, form, files=None):
         set_setting_value('audit_retention_hours_part', str(hour))
         set_setting_value('audit_retention_minutes_part', str(minute))
         set_setting_value('audit_retention_months', str(month))
+    return True
 
 
 @bp.route('/admin/setup-wizard', methods=['GET', 'POST'])
@@ -12658,7 +12699,10 @@ def admin_setup_wizard():
             _setup_wizard_mark(progress, section['code'], 'skipped')
             flash(f'Sezione “{section["title"]}” saltata.', 'info')
         else:
-            _save_setup_wizard_section(section, request.form, request.files)
+            saved = _save_setup_wizard_section(section, request.form, request.files)
+            if saved is False:
+                db.session.rollback()
+                return redirect(url_for('main.admin_setup_wizard', step=section['code']))
             _setup_wizard_mark(progress, section['code'], 'completed')
             flash(f'Sezione “{section["title"]}” salvata.', 'success')
         _save_setup_wizard_progress(progress)

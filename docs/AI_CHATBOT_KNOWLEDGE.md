@@ -56,7 +56,7 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 
 ## Wizard di setup iniziale
 
-Da **Admin -> Wizard setup iniziale** un amministratore puo' rieseguire on-demand una procedura guidata con barra di avanzamento e gruppi saltabili. La testata del wizard mostra nome applicazione, versione, build e il logo applicativo di default, distinto dall'eventuale logo custom. Il wizard permette di impostare parametri generali, logo custom, dati struttura/titolare/responsabile, personale, tenant, LDAP, SSO/OAuth2, motori AI, Alfresco, documentazione, SMTP/notifiche e sicurezza/audit. I valori sono salvati nelle stesse configurazioni usate dalle pagine Admin dedicate.
+Da **Admin -> Wizard setup iniziale** un amministratore puo' rieseguire on-demand una procedura guidata con barra di avanzamento e gruppi saltabili. La testata del wizard mostra nome applicazione, versione, build e il logo applicativo di default, distinto dall'eventuale logo custom. La prima voce del wizard permette di cambiare la password dell'utente locale admin; le sezioni successive permettono di impostare parametri generali, logo custom, dati struttura/titolare/responsabile, personale, tenant, LDAP, SSO/OAuth2, motori AI, Alfresco, documentazione, SMTP/notifiche e sicurezza/audit. I valori sono salvati nelle stesse configurazioni usate dalle pagine Admin dedicate.
 
 ## Distribuzione e setup
 
