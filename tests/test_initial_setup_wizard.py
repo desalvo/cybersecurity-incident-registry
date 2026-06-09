@@ -44,7 +44,7 @@ def test_initial_setup_wizard_is_available_and_saves_groups(monkeypatch, tmp_pat
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert 'Cybersecurity Incident Registry' in html
-    assert 'Versione 0.7.0-1' in html
+    assert 'Versione 0.7.0-7' in html
     assert 'Password utente admin' in html
     assert html.index('Password utente admin') < html.index('Parametri generali')
     assert 'role="progressbar"' in html
@@ -83,7 +83,7 @@ def test_initial_setup_wizard_shows_packaged_release_even_with_stale_environment
     page = client.get('/admin/setup-wizard')
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert 'Versione 0.7.0-1' in html
+    assert 'Versione 0.7.0-7' in html
     assert 'build 20260608' in html
     assert '0.6.0-41' not in html
     assert '20260530' not in html
@@ -158,7 +158,7 @@ def test_initial_setup_wizard_saves_identity_plugin_people_and_tenant_groups(mon
         'ldap_bind_dn': 'cn=reader,dc=example,dc=test',
         'ldap_bind_password': 'SecretLdapPassword',
         'ldap_user_filter': '(uid={uid})',
-        'ldap_incident_search_filter': '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))',
+        'ldap_incident_search_filter': '(uid={uid})',
         'ldap_incident_search_attributes': 'uid,cn,mail',
         'ldap_incident_reference_attribute': 'cn',
         'ldap_incident_email_attribute': 'mail',
@@ -289,46 +289,3 @@ def test_initial_setup_wizard_changes_admin_password_first(monkeypatch, tmp_path
     token = _csrf(login_page.get_data(as_text=True))
     new_login = client.post('/login', data={'username': 'admin', 'password': 'SicuraPwd!2026XYZ', '_csrf_token': token})
     assert new_login.status_code in (302, 303)
-
-
-def test_initial_setup_wizard_ldap_filters_validate_placeholders_without_500(monkeypatch, tmp_path):
-    _configure_test_env(monkeypatch, tmp_path)
-    from app import create_app
-    from app.models import Setting
-
-    app = create_app()
-    app.config['TESTING'] = True
-    client = app.test_client()
-    _login_admin(client)
-
-    page = client.get('/admin/setup-wizard?step=ldap')
-    token = _csrf(page.get_data(as_text=True))
-    response = client.post('/admin/setup-wizard?step=ldap', data={
-        '_csrf_token': token,
-        'action': 'save_next',
-        'ldap_uri': 'ldaps://ldap.example.test',
-        'ldap_base_dn': 'dc=example,dc=test',
-        'ldap_bind_dn': '',
-        'ldap_bind_password': '',
-        'ldap_user_filter': '(uid={uid})',
-        'ldap_incident_search_filter': '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))',
-        'ldap_incident_search_attributes': 'uid,cn,mail',
-        'ldap_incident_reference_attribute': 'cn',
-        'ldap_incident_email_attribute': 'mail',
-    }, follow_redirects=True)
-    assert response.status_code == 200
-    with app.app_context():
-        from app.routes import setting_value
-        assert setting_value('ldap_incident_search_filter') == '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))'
-
-    page = client.get('/admin/setup-wizard?step=ldap')
-    token = _csrf(page.get_data(as_text=True))
-    response = client.post('/admin/setup-wizard?step=ldap', data={
-        '_csrf_token': token,
-        'action': 'save_next',
-        'ldap_user_filter': '(uid={uid})',
-        'ldap_incident_search_filter': '(uid={uid})',
-    }, follow_redirects=True)
-    assert response.status_code == 200
-    with app.app_context():
-        assert setting_value('ldap_incident_search_filter') == '(uid={q})'

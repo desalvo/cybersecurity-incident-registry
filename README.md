@@ -1,31 +1,31 @@
 - Esteso il wizard guidato di setup iniziale, ri-eseguibile da **Admin → Wizard setup iniziale**: la testata usa sempre il logo applicativo di default e mostra nome applicazione, versione e build; la prima sezione consente il cambio della password dell’utente locale admin e le sezioni successive includono parametri generali, logo custom, struttura, personale, tenant, LDAP, SSO/OAuth2, motori AI, Alfresco, documentazione, notifiche/SMTP e sicurezza/audit, con possibilità di saltare gruppi di impostazioni. Il wizard aggiorna le configurazioni esistenti dell’applicazione senza duplicarle.
-### Aggiornamento 0.7.0-1 - Limite upload configurabile e lista incidenti
+### Aggiornamento 0.7.0-7 - Limite upload configurabile e lista incidenti
 
 - Risolto a fondo l'errore "Request entity too large" sugli import workflow grandi: il limite configurato viene applicato sia a `MAX_CONTENT_LENGTH` sia a `MAX_FORM_MEMORY_SIZE` e la preview dell'import workflow non reinvia più il JSON come campo nascosto, ma usa un token temporaneo lato server. Il campo **Dimensione massima upload (MB)** in **Admin → Altre configurazioni** resta valido per import workflow, allegati, documenti, loghi e restore; default 25 MB, con reverse proxy e ingress da allineare a un valore almeno uguale.
 - Nella lista principale degli incidenti la colonna **Compilatore** è stata sostituita da **Riferimento**, con ordinamento dedicato per il campo riferimento.
 
-### Aggiornamento 0.7.0-1 - Workflow aggiorna sezione e azioni automatiche pulsanti
+### Aggiornamento 0.7.0-7 - Workflow aggiorna sezione e azioni automatiche pulsanti
 
 La configurazione workflow include la tipologia di sistema `Operazione`, non eliminabile ma modificabile nella descrizione, con lo stesso comportamento operativo di `Aggiorna sezione`, e la tipologia di sistema `Aggiorna sezione`, che apre una sezione del dettaglio incidente e considera lo step completato quando e' presente l'azione associata allo step. La pagina Admin include inoltre la configurazione delle azioni automatiche associate ai pulsanti operativi: ogni associazione puo' essere eseguita sempre oppure solo quando il pulsante viene premuto da una sezione aperta tramite uno step workflow `Aggiorna sezione` o `Operazione`. Il layout delle azioni permette di nascondere il campo Label per default.
 
-### Aggiornamento 0.7.0-1 - Riorganizzazione documentazione
+### Aggiornamento 0.7.0-7 - Riorganizzazione documentazione
 
 Le guide utente e amministrativa sono state ristrutturate per integrare nei capitoli corretti le note operative su notifiche schedulate, CC, conseguenze automatiche, stato servizi, AI Chatbot, workflow e destinatari esterni. Le figure di flusso sono ora collocate all’interno dei capitoli introduttivi, le sezioni finali sono numerate e contestualizzate e il layout desktop della documentazione è stato rafforzato. I risultati AGID non vengono rigenerati automaticamente: nuove evidenze vengono salvate solo su richiesta esplicita.
 
-0.7.0-1 - Abilitazione CC in anteprima notifiche manuali
+0.7.0-7 - Abilitazione CC in anteprima notifiche manuali
 - Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
 - Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.
 
-### Aggiornamento 0.7.0-1 - Template incidente e cleanup documenti orfani
+### Aggiornamento 0.7.0-7 - Template incidente e cleanup documenti orfani
 
 Il salvataggio dei modelli incidente conserva ora l’ordine delle categorie selezionate tramite drag and drop, così la modifica successiva del modello mantiene la sequenza operativa definita dall’amministratore. In **Admin → Altre configurazioni** è stato aggiunto il pulsante **Cleanup documenti orfani**, che rimuove da `uploads` solo i file generati dall’applicazione non più collegati ad alcun incidente, documento o allegato azione, senza cancellare gli allegati caricati manualmente.
 
-### Aggiornamento 0.7.0-1 - Markdown con colore/dimensione e notifiche schedulate plain text
+### Aggiornamento 0.7.0-7 - Markdown con colore/dimensione e notifiche schedulate plain text
 
 Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}`, `{size:<valore>}testo{/size}` e `{button:Etichetta|URL}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I pulsanti possono usare URL HTTP/HTTPS, percorsi relativi e ancore della pagina corrente come `#incident-main`. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
 
 
-0.7.0-1 - Anteprima CC precompilata e svuotamento manuale
+0.7.0-7 - Anteprima CC precompilata e svuotamento manuale
 - L’anteprima delle notifiche manuali precompila il CC modificabile con il default del template, se presente.
 - Se l’operatore svuota il campo CC prima della conferma, l’invio ignora il CC e procede senza destinatari in copia.
 
@@ -42,11 +42,11 @@ Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantene
 
 ## Stato applicativo
 
-La documentazione operativa descrive lo stato corrente della piattaforma 0.7.0-1, build 20260608. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+La documentazione operativa descrive lo stato corrente della piattaforma 0.7.0-7, build 20260608. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
 ## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260608
 
-La build 0.7.0-1 introduce un hardening applicativo orientato alle linee guida di sviluppo sicuro allegate:
+La build 0.7.0-7 introduce un hardening applicativo orientato alle linee guida di sviluppo sicuro allegate:
 
 - validazione server-side rafforzata per password, email, username, campi testuali e upload;
 - policy password locale con almeno 12 caratteri, complessità, blocco di password comuni/default e divieto di includere username/email;
@@ -63,9 +63,9 @@ Per la compliance operativa si raccomanda inoltre di eseguire in pipeline `pytes
 
 Questa build introduce una baseline di sicurezza applicativa per l'uso in produzione:
 
-- protezione CSRF automatica su tutte le form `POST`, `PUT`, `PATCH` e `DELETE`, con inserimento server-side del campo nascosto nei template HTML;
+- protezione CSRF automatica su tutte le form `POST`, `PUT`, `PATCH` e `DELETE`, con inserimento server-side del campo nascosto nei template HTML; per test locali è disponibile `CIR_DISABLE_CSRF=1`, che viene rifiutata quando `CIR_PRODUCTION=1`;
 - header HTTP di sicurezza: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e HSTS quando HTTPS è attivo o `CIR_FORCE_HSTS=1`;
-- cookie di sessione `HttpOnly`, `SameSite=Lax` e `Secure` quando `CIR_PRODUCTION=1` o `SESSION_COOKIE_SECURE=1`;
+- cookie di sessione `HttpOnly`, `SameSite=Lax` e `Secure` quando `SESSION_COOKIE_SECURE=1`; `CIR_PRODUCTION=1` mantiene i controlli fail-fast ma non forza più cookie `Secure`, così CSRF resta utilizzabile anche in Docker Compose plain HTTP quando `SESSION_COOKIE_SECURE=0`;
 - limite dimensione upload configurabile con `MAX_CONTENT_LENGTH`, default 25 MiB;
 - controllo fail-fast in produzione: con `CIR_PRODUCTION=1` l'applicazione rifiuta `SECRET_KEY` deboli, password bootstrap admin deboli e database SQLite;
 - scheduler notifiche/promemoria protetto da lock PostgreSQL advisory, quindi sicuro anche con più worker o repliche Kubernetes;
@@ -76,10 +76,19 @@ Per preparare un avvio sicuro:
 ```bash
 cp .env.example .env
 # modificare POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY e ADMIN_INITIAL_PASSWORD
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
 
-Nota container: l'immagine applica esplicitamente i permessi `0755` a `/app/docker-entrypoint.sh` durante la build. Questo evita crash OCI/crun del tipo `exists but it is not executable` anche quando il pacchetto ZIP o il filesystem sorgente non preservano i bit Unix.
+Per costruire localmente invece dell'immagine pubblicata usare:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml build --no-cache web
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d
+```
+
+
+Nota container: l'immagine applica esplicitamente i permessi `0755` a `/app/docker-entrypoint.sh` durante la build. L'entrypoint prepara i volumi persistenti montati sotto `/data`, corregge proprietà e permessi per UID/GID `10001`, copia gli asset predefiniti nei volumi appena creati e poi rientra come utente non privilegiato `appuser`. Se un bind mount host non può essere corretto, `CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE=1` evita crash di startup come `Permission denied: /data/sso_logos/facebook-logo.svg` continuando come root con warning.
 
 
 ## Variabili di ambiente e gestione container
@@ -91,10 +100,11 @@ La documentazione amministrativa online include lo stesso contenuto operativo in
 ## Avvio locale
 
 ```bash
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
 
-Aprire `http://localhost:8000`. L'utente locale iniziale è `admin`; la password iniziale deriva da `ADMIN_INITIAL_PASSWORD` solo alla prima creazione dell'utente. Ai riavvii non viene resettata.
+Aprire `http://localhost:8000`. L'utente locale iniziale è `admin`; la password iniziale deriva da `ADMIN_INITIAL_PASSWORD` solo alla prima creazione dell'utente. Ai riavvii non viene resettata. Per l'uso via HTTP mantenere `SESSION_COOKIE_SECURE=0`: il browser riceve e reinvia il cookie di sessione e la login protetta da CSRF funziona anche con `CIR_PRODUCTION=1`. Impostare `SESSION_COOKIE_SECURE=1` solo quando l'applicazione è servita via HTTPS o dietro reverse proxy TLS. Se la password nel file `.env` è stata copiata con virgolette o CRLF, l'applicazione normalizza il valore di bootstrap rimuovendo solo tali artefatti esterni.
 
 ## Caratteristiche principali
 
@@ -130,6 +140,10 @@ I loghi condivisi dei profili SSO/OAuth2 caricati da **Admin → SSO** sono salv
 
 All’avvio l’applicazione copia nella directory persistente i loghi predefiniti inclusi nell’immagine, solo se non sono già presenti. L’export completo include i file presenti in `SSO_LOGO_DIR` e l’import completo li ripristina nella stessa area persistente.
 
+
+
+I manifest Docker Compose e Kubernetes supportano sia l'immagine pubblicata `desalvo/cybersecurity-incident-registry:latest` sia il build locale: Compose usa l'immagine pubblicata di default e il file `docker-compose.build.yml` come override per il build; Kubernetes usa la stessa immagine `latest` e include `k8s/kustomization.yaml` per cambiare tag o immagine in cluster di test. La variabile `CIR_DISABLE_CSRF` è esposta in entrambi i setup e deve restare `0` in produzione. I volumi applicativi sono preparati per l'utente non-root del container tramite entrypoint Docker o initContainer Kubernetes; sono inclusi `sso_logos` e `ai_chatbot_docs`.
+
 ## Kubernetes
 
 Applicare i manifest in `k8s/` dopo aver pubblicato l'immagine container.
@@ -138,7 +152,8 @@ Applicare i manifest in `k8s/` dopo aver pubblicato l'immagine container.
 
 ```bash
 docker build --no-cache -t cybersecurity-incident-registry:latest .
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
 
 Questa versione usa `python:3.11-slim-bookworm`, installa le librerie native richieste da `psycopg2`, `reportlab` e `matplotlib`, usa Gunicorn come server Flask di produzione e include `.dockerignore` per evitare di copiare file locali nel build context.
@@ -182,7 +197,7 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.7.0-1
+- Versione: 0.7.0-7
 - Build: 20260608
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
@@ -339,7 +354,7 @@ I template moduli predefiniti basati su XML/DOCX sono stati rimossi. Dal menu **
 
 ## Aggiornamento documenti allegati
 
-Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload e un pulsante `Scarica` per il download diretto del file. Per ogni documento è possibile associare o rimuovere i tag dei tipi notifica tramite palette drag & drop: la zona di rilascio è evidenziata e il pulsante di rimozione del tag selezionato è esplicito; all’inizio della sezione è presente la legenda dei tag con nome e descrizione, mostrata anche come tooltip. I tag selezionati vengono salvati esplicitamente e sono usati per preselezionare gli allegati nelle notifiche manuali. Il pulsante `Salva tag` è configurabile anche nelle azioni automatiche pulsanti: la sezione dedicata, collassabile per default, permette di creare più regole; ogni regola associa una diversa label azione a uno specifico insieme di tag selezionati tramite un’area drag & drop evidenziata. Un tag può essere usato in una sola regola del pulsante `Salva tag`; quando è già selezionato altrove viene disabilitato nelle altre regole. Al salvataggio dei tag vengono registrate tutte le azioni le cui regole hanno almeno un tag corrispondente tra quelli presenti sul documento. Al pulsante `Scarica` della sezione Documenti possono essere associate più regole ordinate: una regola con template specifico si applica solo al documento generato da quel template nel flusso guidato workflow; quando lo step apre Documenti con un template associato, la pagina viene ricaricata subito sulla sezione con il filtro attivo e risultano visibili solo i pulsanti Scarica dei documenti generati da quel template. La prima regola senza template è il fallback usato nei download manuali o negli step senza template.
+Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload e un pulsante `Scarica` per il download diretto del file. Per ogni documento è possibile associare o rimuovere i tag dei tipi notifica tramite palette drag & drop: la zona di rilascio è evidenziata e il pulsante di rimozione del tag selezionato è esplicito; all’inizio della sezione è presente la legenda dei tag con nome e descrizione, mostrata anche come tooltip. I tag selezionati vengono salvati esplicitamente e sono usati per preselezionare gli allegati nelle notifiche manuali. Il pulsante `Salva tag` è configurabile anche nelle azioni automatiche pulsanti: la sezione dedicata, collassabile per default, permette di creare più regole; ogni regola associa una diversa label azione a uno specifico insieme di tag selezionati tramite un’area drag & drop evidenziata. Un tag può essere usato in una sola regola del pulsante `Salva tag`; quando è già selezionato altrove viene disabilitato nelle altre regole. Al salvataggio dei tag vengono registrate tutte le azioni le cui regole hanno almeno un tag corrispondente tra quelli presenti sul documento. Al pulsante `Scarica` della sezione Documenti possono essere associate più regole ordinate: una regola con template specifico si applica solo al documento generato da quel template nel flusso guidato workflow, mentre la prima regola senza template è il fallback usato nei download manuali o negli step senza template.
 
 
 
@@ -650,9 +665,9 @@ In **Admin → SSO** è disponibile anche il pulsante **Aggiungi profilo generic
 
 ## Aggiornamento 0.1.0-120 - Accesso HTTPS/SSL opzionale
 
-Il container espone ora anche la porta 8443 per l'accesso HTTPS/SSL opzionale. La porta HTTP 8000 resta sempre disponibile e la mancata configurazione SSL o l'assenza dei certificati non blocca l'avvio dell'applicazione.
+Il container espone ora anche la porta 8443 per l'accesso HTTPS/SSL opzionale. La porta HTTP 8000 resta sempre disponibile. Quando HTTPS è abilitato senza un certificato esterno, l'entrypoint genera automaticamente un certificato host self-signed e lo rigenera se manca, è scaduto, non ancora valido, malformato o non corrisponde alla chiave privata.
 
-La configurazione può essere eseguita tramite variabili di ambiente in Docker Compose o Kubernetes: `SSL_ENABLED`, `SSL_PORT`, `SSL_DIR`, `SSL_CERT_FILE` e `SSL_KEY_FILE`. In alternativa, un amministratore può usare la nuova voce **Admin → HTTPS/SSL** per abilitare o disabilitare l'accesso HTTPS e caricare certificato host e chiave privata in formato PEM. Se HTTPS viene abilitato ma certificato o chiave privata non sono presenti, il listener HTTPS resta spento e l'accesso HTTP continua a funzionare.
+La configurazione può essere eseguita tramite variabili di ambiente in Docker Compose o Kubernetes: `SSL_ENABLED`, `SSL_PORT`, `SSL_DIR`, `SSL_CERT_FILE` e `SSL_KEY_FILE`. In alternativa, un amministratore può usare la nuova voce **Admin → HTTPS/SSL** per abilitare o disabilitare l'accesso HTTPS e caricare certificato host e chiave privata in formato PEM. I certificati caricati da web o definiti esplicitamente con `CIR_SSL_CERT_FILE`/`CIR_SSL_KEY_FILE` oppure la coppia compatibile `SSL_CERT_FILE`/`SSL_KEY_FILE` sono sempre considerati gestiti dall'utente e non vengono sovrascritti dal fallback self-signed.
 
 Il full export/import include anche i certificati SSL caricati dall'interfaccia, così da mantenere ripristinabile la configurazione applicativa completa.
 
@@ -673,7 +688,7 @@ La documentazione utente e amministrativa è stata riorganizzata in capitoli pi�
 Le variazioni di versione sono raccolte in `CHANGELOG.txt` e nella pagina **Aiuto → Note di rilascio** dell’applicazione. Le guide operative mantengono solo le istruzioni d’uso correnti.
 
 
-## Aggiornamento 0.7.0-1 - Scheduler notifiche, anti-flooding e timezone
+## Aggiornamento 0.7.0-7 - Scheduler notifiche, anti-flooding e timezone
 
 Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker o replica tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
 
@@ -697,28 +712,28 @@ Esempi supportati:
 
 La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. La sintassi dimensione ammessa è `{size:small|normal|large|x-large|xx-large}testo{/size}` oppure `{size:8px..32px}testo{/size}`. Lo stesso rendering Markdown viene usato anche negli avvisi procedurali, che mostrano inoltre il nome del task associato. Il markup HTML libero viene escapato.
 
-### Aggiornamento 0.7.0-1 - Scheduler notifiche seriale
+### Aggiornamento 0.7.0-7 - Scheduler notifiche seriale
 
 Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale; la concorrenza viene gestita con lock/rivalutazione del record, senza saltare l’invio perché il promemoria risulta preso in carico da un altro ciclo.
 
-## Aggiornamento 0.7.0-1 - Audit degli incidenti saltati dallo scheduler notifiche
+## Aggiornamento 0.7.0-7 - Audit degli incidenti saltati dallo scheduler notifiche
 
 Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, assenza destinatari/errori SMTP, promemoria già marcati come inviati ed eccezioni.
 
-## Aggiornamento 0.7.0-1 - Controllo manuale scadenze e promemoria specifici
+## Aggiornamento 0.7.0-7 - Controllo manuale scadenze e promemoria specifici
 
 Il pulsante **Esegui controllo ora** nella sezione **Controllo scadenze azioni** riallinea preventivamente le sequence PostgreSQL e l'inserimento dei record audit gestisce subito eventuali collisioni `audit_log_pkey`. In questo modo il controllo manuale non fallisce più al commit quando il database proviene da import/restore o da sequence non allineate.
 
 Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. `deadline_notification_state` resta solo diagnostica; la protezione anti-concorrenza avviene sul record del promemoria e non introduce slot/finestra né un motivo di salto “già preso in carico”.
 
-## Aggiornamento 0.7.0-1 - Controllo manuale promemoria specifici
+## Aggiornamento 0.7.0-7 - Controllo manuale promemoria specifici
 
 La pagina **Notifiche → Impostazioni** include alla fine una sezione **Controllo promemoria specifici** con il pulsante **Esegui controllo promemoria ora**. Il controllo manuale elabora subito i promemoria specifici dei singoli incidenti già scaduti e non ancora inviati, usando la stessa logica serializzata dello scheduler automatico.
 
 Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. La concorrenza viene risolta bloccando/rivalutando il record del promemoria: un ciclo concorrente non blocca funzionalmente l’invio, ma attende l’esito e poi vede `sent_at` valorizzato.
 
 Quando un promemoria viene saltato, sia dallo scheduler sia dal pulsante manuale, l'audit `scheduler:incident_reminder_skipped` riporta incidente, identificativo promemoria, data programmata, messaggio sintetico, destinatari/CC configurati, ultimo errore disponibile, sorgente del controllo, codice motivo e descrizione leggibile del motivo.
-## Aggiornamento 0.7.0-1 - Correzione controllo promemoria specifici
+## Aggiornamento 0.7.0-7 - Correzione controllo promemoria specifici
 
 Il pulsante **Esegui controllo promemoria ora** nella sezione **Controllo promemoria specifici** non accede più a un attributo inesistente del modello `IncidentReminder`. I destinatari effettivi sono ricavati dal personale associato all’incidente, come già avviene per l’invio SMTP, e la stessa logica viene riutilizzata per compilare gli audit dei promemoria saltati.
 
@@ -731,11 +746,11 @@ Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i p
 
 La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinatari dell'invio delle notifiche per task in scadenza e mostra i destinatari effettivi anche per le notifiche già inviate di recente.
 
-### Aggiornamento 0.7.0-1 - Promemoria specifici senza blocco da presa in carico
+### Aggiornamento 0.7.0-7 - Promemoria specifici senza blocco da presa in carico
 
 Per i promemoria specifici la presa in carico tecnica da parte di un altro ciclo scheduler o di un controllo manuale concorrente non è più un motivo di blocco. L'invio viene deciso solo dal campo `incident_reminder.sent_at`: se è vuoto il promemoria è inviabile, se è valorizzato è già considerato inviato. La concorrenza viene gestita rivalutando atomicamente il record del promemoria, mentre `deadline_notification_state` resta solo diagnostico e non usa slot o finestre.
 
-### Aggiornamento 0.7.0-1 - Scheduler promemoria e pagina Stato servizi
+### Aggiornamento 0.7.0-7 - Scheduler promemoria e pagina Stato servizi
 
 Il thread scheduler esegue ad ogni ciclo sia il controllo delle notifiche periodiche dei task in scadenza sia il controllo dei promemoria specifici. I due controlli sono indipendenti: un errore o una disabilitazione del controllo dei task in scadenza non impedisce più l'elaborazione dei promemoria specifici già scaduti e non inviati. Per i promemoria specifici resta valido il solo criterio funzionale `incident_reminder.sent_at`: se è vuoto il promemoria viene considerato inviabile, se è valorizzato non viene reinviato.
 
@@ -745,13 +760,13 @@ Nel menu **Admin → Controllo e audit** è disponibile la nuova voce **Stato**,
 
 I promemoria specifici degli incidenti sono controllati da un thread separato rispetto allo scheduler delle notifiche periodiche dei task in scadenza. L'intervallo è configurabile da **Impostazioni → Notifiche**, sezione **Promemoria automatici scadenze azioni**, con default 60 secondi. Ogni esecuzione del controllo promemoria produce un record di audit, anche quando non sono presenti promemoria scaduti. La pagina **Admin → Stato** riporta lo stato del thread, l'intervallo configurato e data/ora dell'ultima esecuzione del controllo sui promemoria specifici.
 
-### Note 0.7.0-1
+### Note 0.7.0-7
 
 - Corretto il controllo promemoria specifici in thread: i link incidente nelle mail non dipendono più da un request context Flask.
 - Aggiunto intervallo configurabile per il controllo automatico dei task in scadenza, default 60 secondi.
 - La pagina Admin → Stato mostra pallini colorati per thread attivi/non attivi e per gli ultimi cicli scheduler.
 
-### Note 0.7.0-1
+### Note 0.7.0-7
 
 Corretto il problema `RuntimeError: Working outside of application context` nei thread scheduler. Gli intervalli configurabili dei controlli automatici vengono letti dalla tabella `setting` solo all'interno di `app.app_context()`, mentre le eventuali chiamate diagnostiche fuori contesto usano un fallback sicuro.
 
@@ -779,7 +794,7 @@ Il full export contiene l'intero stato applicativo necessario a riprodurre l'ins
 
 Nel manifest `export.json` la sezione `files.persistent_files` elenca anche i file presenti nei volumi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`, così l'export resta ripristinabile anche se un file operativo non è più referenziato direttamente da un singolo record. L'import completo ricrea il database e ripristina i file nelle directory applicative corrispondenti.
 
-### 0.7.0-1 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
+### 0.7.0-7 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
 
 La checkbox storica dell’incidente relativa a `personal_data` è ora mostrata nelle form come **Rischio per diritti e libertà**. La stessa denominazione è usata nella configurazione dei workflow per la condizione corrispondente; il token tecnico resta `personal_data` per compatibilità con database ed esportazioni esistenti.
 
@@ -815,13 +830,13 @@ Il plugin AI Chatbot si presenta agli utenti come **AlBot**, chiamabile anche **
 
 Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins → Chatbot AI**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice, link e pulsanti `{button:Etichetta|URL}` vengono formattati nella chat; HTML libero e script restano escapati.
 
-## Compliance AGID - hardening 0.7.0-1 build 20260608
+## Compliance AGID - hardening 0.7.0-7 build 20260608
 
 ### Rifinitura compliance completa
 
 La build blocca direttamente a livello applicativo i metodi HTTP `TRACE` e `TRACK`, generando audit `security:method_blocked` in caso di tentativo. La password di bind LDAP viene letta tramite la stessa funzione di decifrazione usata dagli altri setting sensibili, quindi il valore cifrato a riposo resta utilizzabile per login, test connessione e ricerca UID. Il pacchetto di rilascio esclude cache Python e cache pytest. È incluso `pytest.ini` per eseguire i test con `pytest` dalla radice del progetto.
 
-Questa build applica ulteriori controlli per l'allineamento alle linee guida AGID per lo sviluppo sicuro: nessun segreto statico di default, cookie e sessioni protetti, CSRF server-side, CSP con nonce, password policy, rate limiting server-side del login, validazione upload con whitelist/magic bytes, escape dei filtri LDAP, cifratura a riposo dei setting segreti e validazione preventiva degli archivi di full import. In produzione impostare sempre `CIR_PRODUCTION=1`, `SECRET_KEY` robusta, `ADMIN_INITIAL_PASSWORD` robusta, `DATABASE_URL` PostgreSQL e, preferibilmente, `SETTING_ENCRYPTION_KEY` stabile custodita come secret infrastrutturale.
+Questa build applica ulteriori controlli per l'allineamento alle linee guida AGID per lo sviluppo sicuro: nessun segreto statico di default, cookie e sessioni protetti, CSRF server-side, CSP con nonce, password policy, rate limiting server-side del login, validazione upload con whitelist/magic bytes, escape dei filtri LDAP, cifratura a riposo dei setting segreti e validazione preventiva degli archivi di full import. In produzione impostare sempre `CIR_PRODUCTION=1`, lasciare `CIR_DISABLE_CSRF=0`, usare `SECRET_KEY` robusta, `ADMIN_INITIAL_PASSWORD` robusta, `DATABASE_URL` PostgreSQL e, preferibilmente, `SETTING_ENCRYPTION_KEY` stabile custodita come secret infrastrutturale.
 
 
 ### Chiusura compliance AGID: lockout login server-side
@@ -955,4 +970,15 @@ Nota multi-tenant: la clonazione dei tenant e dei workflow è idempotente e non 
 Nota PostgreSQL multi-tenant: le migrazioni rimuovono gli indici univoci legacy non tenant-scoped, incluso `ix_notification_type_code`, sostituendoli con chiavi tenant-aware per consentire la clonazione dei tenant senza conflitti sui tipi di notifica.
 
 
-Aggiornamento UI 0.7.0-1: i tipi di notifica includono una descrizione modificabile con default generato dal nome; la descrizione è usata come help/tooltip in tutte le palette drag & drop dei tag.
+Aggiornamento UI 0.7.0-7: i tipi di notifica includono una descrizione modificabile con default generato dal nome; la descrizione è usata come help/tooltip in tutte le palette drag & drop dei tag.
+
+### Ambiente Python isolato
+
+Per evitare conflitti con pacchetti gia' installati nel sistema, ad esempio pacchetti esterni che richiedono versioni diverse di `pypdf` o `Pillow`, il progetto include lo script:
+
+```bash
+scripts/setup_python_env.sh
+source .venv/bin/activate
+```
+
+Lo script crea un virtual environment dedicato, installa `requirements-dev.txt` e verifica l'ambiente con `pip check`. La versione richiesta dal progetto per `pypdf` resta `pypdf==6.10.2`; eventuali conflitti con pacchetti non appartenenti al progetto vengono evitati isolando l'ambiente invece di rilassare il pin di sicurezza/funzionale.

@@ -7,9 +7,39 @@ spec:
   template:
     metadata: {labels: {app: cybersecurity-incident-registry}}
     spec:
+      securityContext:
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+      - name: prepare-persistent-volumes
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          set -eu
+          mkdir -p /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs
+          chown -R 10001:10001 /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs
+          chmod -R u+rwX,g+rwX /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - {name: uploads, mountPath: /data/uploads}
+        - {name: logo, mountPath: /data/logo}
+        - {name: form-templates, mountPath: /data/form_templates}
+        - {name: sso-logos, mountPath: /data/sso_logos}
+        - {name: ssl-certs, mountPath: /data/ssl}
+        - {name: backups, mountPath: /data/backups}
+        - {name: ai-chatbot-docs, mountPath: /data/ai_chatbot_docs}
       containers:
       - name: web
-        image: cybersecurity-incident-registry:latest
+        image: desalvo/cybersecurity-incident-registry:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 10001
+          runAsGroup: 10001
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
         ports:
         - {containerPort: 8000}
         - {containerPort: 8443}
@@ -17,25 +47,33 @@ spec:
         - {name: DATABASE_URL, valueFrom: {secretKeyRef: {name: cir-secrets, key: database-url}}}
         - {name: SECRET_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: secret-key}}}
         - {name: ADMIN_INITIAL_PASSWORD, valueFrom: {secretKeyRef: {name: cir-secrets, key: admin-initial-password}}}
-        - {name: APP_VERSION, value: "0.7.0-1"}
+        - {name: APP_VERSION, value: "0.7.0-7"}
         - {name: APP_BUILD, value: "20260608"}
         - {name: CIR_PRODUCTION, value: "1"}
         - {name: SESSION_COOKIE_SECURE, value: "1"}
+        - {name: CIR_DISABLE_CSRF, value: "0"}
+        - {name: UPLOAD_DIR, value: /data/uploads}
+        - {name: LOGO_DIR, value: /data/logo}
         - {name: FORM_TEMPLATE_DIR, value: /data/form_templates}
         - {name: SSO_LOGO_DIR, value: /data/sso_logos}
         - {name: SSL_DIR, value: /data/ssl}
         - {name: BACKUP_DIR, value: /data/backups}
+        - {name: AI_CHATBOT_DOC_DIR, value: /data/ai_chatbot_docs}
         - {name: SSL_PORT, value: "8443"}
         - {name: SSL_ENABLED, value: "0"}
         volumeMounts:
         - {name: uploads, mountPath: /data/uploads}
+        - {name: logo, mountPath: /data/logo}
         - {name: form-templates, mountPath: /data/form_templates}
         - {name: sso-logos, mountPath: /data/sso_logos}
         - {name: ssl-certs, mountPath: /data/ssl}
         - {name: backups, mountPath: /data/backups}
+        - {name: ai-chatbot-docs, mountPath: /data/ai_chatbot_docs}
       volumes:
       - name: uploads
         persistentVolumeClaim: {claimName: cir-uploads}
+      - name: logo
+        persistentVolumeClaim: {claimName: cir-logo}
       - name: form-templates
         persistentVolumeClaim: {claimName: cir-form-templates}
       - name: sso-logos
@@ -44,6 +82,8 @@ spec:
         persistentVolumeClaim: {claimName: cir-ssl-certs}
       - name: backups
         persistentVolumeClaim: {claimName: cir-backups}
+      - name: ai-chatbot-docs
+        persistentVolumeClaim: {claimName: cir-ai-chatbot-docs}
 ---
 apiVersion: v1
 kind: Service

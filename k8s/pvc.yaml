@@ -5,6 +5,15 @@ spec:
   accessModes: [ReadWriteOnce]
   resources: {requests: {storage: 5Gi}}
 
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: cir-logo}
+spec:
+  accessModes: [ReadWriteMany]
+  resources: {requests: {storage: 100Mi}}
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -37,3 +46,11 @@ spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests: {storage: 10Gi}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: cir-ai-chatbot-docs}
+spec:
+  accessModes: [ReadWriteMany]
+  resources: {requests: {storage: 1Gi}}

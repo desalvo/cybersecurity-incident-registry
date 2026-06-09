@@ -70,6 +70,38 @@ def test_agid_security_headers_and_cookie_flags(client):
     assert "SameSite=Lax" in set_cookie
 
 
+
+
+def _csrf_from_html(html: str) -> str:
+    import re
+    match = re.search(r'name="_csrf_token" value="([^"]+)"', html)
+    assert match, html[:500]
+    return match.group(1)
+
+
+def test_plain_http_login_sets_non_secure_csrf_cookie_and_accepts_cookie_fallback(isolated_app):
+    client = isolated_app.test_client()
+    response = client.get("/login", base_url="http://localhost")
+    assert response.status_code == 200
+    cookies = response.headers.getlist("Set-Cookie")
+    csrf_cookie = next((item for item in cookies if item.startswith("cir_csrf_token=")), "")
+    assert csrf_cookie
+    assert "Secure" not in csrf_cookie
+    token = _csrf_from_html(response.get_data(as_text=True))
+
+    # Simulate a browser/proxy situation where the Flask session cookie is not
+    # returned on the POST, while the dedicated CSRF cookie is.  This mirrors
+    # the Docker Compose/plain-HTTP regression reported for /login.
+    stateless_client = isolated_app.test_client()
+    stateless_client.set_cookie("cir_csrf_token", token, domain="localhost")
+    login = stateless_client.post(
+        "/login",
+        base_url="http://localhost",
+        data={"username": "admin", "password": "AdminPassword123!", "_csrf_token": token},
+        follow_redirects=False,
+    )
+    assert login.status_code in {302, 303}
+
 def test_agid_trace_track_are_rejected_before_routes(client):
     assert client.open("/login", method="TRACE").status_code == 405
     assert client.open("/login", method="TRACK").status_code == 405

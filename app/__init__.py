@@ -1,6 +1,6 @@
 import os, time, shutil, secrets
 
-APP_RELEASE_VERSION = '0.7.0-1'
+APP_RELEASE_VERSION = '0.7.0-7'
 APP_RELEASE_BUILD = '20260608'
 from flask import Flask, session
 from .text_filters import register_text_filters
@@ -8,6 +8,7 @@ from sqlalchemy import text, inspect, Table, MetaData, select, func
 from sqlalchemy.exc import OperationalError
 from .models import db, Tenant, User, UserTenantRole, ConfigLabel, Setting, NotificationType, NotificationTemplate, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob, AIChatbotDocument, Incident, IncidentTemplate, Person, Recommendation
 from .auth import login_manager, hash_password
+from .env_utils import get_admin_initial_password
 from .security import init_security
 from .consequences import default_consequence_settings
 
@@ -36,28 +37,35 @@ def create_app():
         'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
         'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
-    os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True); os.makedirs(app.config['LOGO_DIR'], exist_ok=True); os.makedirs(app.config['SSO_LOGO_DIR'], exist_ok=True); os.makedirs(app.config['FORM_TEMPLATE_DIR'], exist_ok=True); os.makedirs(app.config['BACKUP_DIR'], exist_ok=True); os.makedirs(app.config['AI_CHATBOT_DOC_DIR'], exist_ok=True)
+    for _persistent_dir in (app.config['UPLOAD_DIR'], app.config['LOGO_DIR'], app.config['SSO_LOGO_DIR'], app.config['FORM_TEMPLATE_DIR'], app.config['BACKUP_DIR'], app.config['AI_CHATBOT_DOC_DIR']):
+        os.makedirs(_persistent_dir, exist_ok=True)
 
+    def _copy_missing_packaged_assets(src_dir, dst_dir, allowed_exts):
+        if not os.path.isdir(src_dir):
+            return
+        for name in os.listdir(src_dir):
+            if os.path.splitext(name)[1].lower() not in allowed_exts:
+                continue
+            src = os.path.join(src_dir, name)
+            dst = os.path.join(dst_dir, name)
+            if os.path.exists(dst):
+                continue
+            try:
+                shutil.copyfile(src, dst)
+            except PermissionError:
+                app.logger.warning('Persistent directory is not writable while seeding default asset: %s', dst)
+            except OSError as exc:
+                app.logger.warning('Unable to seed default asset %s: %s', dst, exc)
 
     # Copia i loghi SSO predefiniti nella directory persistente solo se non esistono.
+    # L'entrypoint Docker li copia prima del drop dei privilegi; questo fallback
+    # resta per esecuzioni locali/non-container e non deve far fallire lo startup.
     packaged_sso_logos = os.path.join(app.static_folder or os.path.join(os.path.dirname(__file__), 'static'), 'sso')
-    if os.path.isdir(packaged_sso_logos):
-        for name in os.listdir(packaged_sso_logos):
-            if os.path.splitext(name)[1].lower() in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
-                src = os.path.join(packaged_sso_logos, name)
-                dst = os.path.join(app.config['SSO_LOGO_DIR'], name)
-                if not os.path.exists(dst):
-                    shutil.copyfile(src, dst)
+    _copy_missing_packaged_assets(packaged_sso_logos, app.config['SSO_LOGO_DIR'], {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'})
 
     # Copia i template PDF di esempio nella directory persistente solo se non esistono.
     packaged_templates = os.path.join(os.path.dirname(__file__), 'form_templates')
-    if os.path.isdir(packaged_templates):
-        for name in os.listdir(packaged_templates):
-            if name.endswith('.pdf'):
-                src = os.path.join(packaged_templates, name)
-                dst = os.path.join(app.config['FORM_TEMPLATE_DIR'], name)
-                if not os.path.exists(dst):
-                    shutil.copyfile(src, dst)
+    _copy_missing_packaged_assets(packaged_templates, app.config['FORM_TEMPLATE_DIR'], {'.pdf'})
 
 
     # Rimuove eventuali template di modulo predefiniti storici.
@@ -1032,8 +1040,8 @@ def bootstrap(app):
         admin=User.query.filter_by(username='admin', auth_provider='local').first()
         if not admin:
             repair_postgres_sequences(app)
-            initial_password = os.getenv('ADMIN_INITIAL_PASSWORD') or secrets.token_urlsafe(18)
-            if not os.getenv('ADMIN_INITIAL_PASSWORD'):
+            initial_password = get_admin_initial_password() or secrets.token_urlsafe(18)
+            if not get_admin_initial_password():
                 app.logger.warning('ADMIN_INITIAL_PASSWORD non impostata: generata password iniziale temporanea per admin; impostarla esplicitamente prima del deploy.')
             admin=User(username='admin', name='Administrator', email=os.getenv('ADMIN_EMAIL','admin@example.local'), role='superuser', tenant_id=default_tenant.id, is_ldap=False, auth_provider='local', password_hash=hash_password(initial_password))
             db.session.add(admin)

@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card">
   <h2>Configurazione HTTPS/SSL</h2>
-  <p class="muted">HTTP sulla porta 8000 resta sempre disponibile. HTTPS sulla porta {{ status.port }} viene avviato solo quando l'accesso SSL è abilitato e certificato e chiave privata sono presenti.</p>
+  <p class="muted">HTTP sulla porta 8000 resta sempre disponibile. HTTPS sulla porta {{ status.port }} viene avviato quando l'accesso SSL è abilitato e la coppia certificato/chiave è valida. Se non è stato definito un certificato esterno, il container genera o rigenera automaticamente un certificato host self-signed.</p>
 
   <div class="grid two-cols">
     <div class="status-card">
@@ -11,13 +11,17 @@
       <p><strong>Abilitato da interfaccia:</strong> {{ 'sì' if status.ui_enabled else 'no' }}</p>
       <p><strong>Certificato presente:</strong> {{ 'sì' if status.cert_present else 'no' }}</p>
       <p><strong>Chiave privata presente:</strong> {{ 'sì' if status.key_present else 'no' }}</p>
+      <p><strong>Certificato valido:</strong> {{ 'sì' if status.cert_valid else 'no' }}</p>
+      <p><strong>Origine certificato:</strong> {{ 'utente/ambiente' if status.cert_user_managed else 'host automatico self-signed' }}</p>
       <p><strong>HTTPS pronto:</strong> {{ 'sì' if status.https_ready else 'no' }}</p>
+      {% if status.cert_reason %}<p class="muted"><strong>Dettaglio:</strong> {{ status.cert_reason }}</p>{% endif %}
+      {% if status.cert_not_valid_after %}<p class="muted"><strong>Scadenza:</strong> {{ status.cert_not_valid_after }}</p>{% endif %}
     </div>
     <div class="status-card">
       <h3>Percorsi runtime</h3>
       <p><strong>Certificato:</strong><br><code>{{ status.cert_path }}</code></p>
       <p><strong>Chiave privata:</strong><br><code>{{ status.key_path }}</code></p>
-      <p class="muted">I percorsi possono essere definiti anche con <code>SSL_CERT_FILE</code> e <code>SSL_KEY_FILE</code> in Docker Compose o Kubernetes.</p>
+      <p class="muted">I percorsi possono essere definiti anche con <code>CIR_SSL_CERT_FILE</code> e <code>CIR_SSL_KEY_FILE</code> in Docker Compose o Kubernetes; per compatibilità è accettata anche la coppia <code>SSL_CERT_FILE</code>/<code>SSL_KEY_FILE</code> quando entrambe le variabili sono impostate. Quando questi percorsi sono impostati, il certificato è considerato gestito dall'utente e non viene sovrascritto dal fallback self-signed.</p>
     </div>
   </div>
 
@@ -25,7 +29,7 @@
     <input type="hidden" name="action" value="save">
     <div class="wide">
       <label><input type="checkbox" name="ssl_enabled" value="1" {% if status.ui_enabled %}checked{% endif %}> Abilita accesso HTTPS/SSL da interfaccia</label>
-      <p class="muted">Se mancano certificato o chiave privata, l'abilitazione non blocca l'avvio HTTP e il listener HTTPS resta spento.</p>
+      <p class="muted">Se non carichi un certificato esterno e non imposti percorsi espliciti via ambiente, l'abilitazione crea automaticamente un certificato host self-signed. I certificati caricati dall'utente hanno sempre precedenza.</p>
     </div>
     <div>
       <label>Certificato host PEM</label>

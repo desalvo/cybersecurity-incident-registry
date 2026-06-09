@@ -22,6 +22,15 @@ import qrcode
 from .models import *
 from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
+from .ssl_certificates import (
+    certificate_pair_status,
+    configured_certificate_paths,
+    default_certificate_paths,
+    ensure_runtime_certificate,
+    env_uses_explicit_certificate_paths,
+    is_user_managed_certificate,
+    mark_user_managed_certificate,
+)
 from .form_generation import list_templates, available_incident_fields, FormFieldMapping, generate_pdf_from_template, analyze_pdf_template, save_template_pdf, get_template_config, save_template_config, missing_required_incident_fields_for_templates, format_missing_required_incident_fields, incident_measures
 from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
 from .text_filters import strip_markdown_formatting
@@ -11776,27 +11785,38 @@ def ssl_marker_path():
     return ssl_storage_dir() / 'enabled'
 
 def ssl_cert_path():
-    configured = os.environ.get('SSL_CERT_FILE')
-    return Path(configured) if configured else ssl_storage_dir() / 'current.crt'
+    return configured_certificate_paths()[0]
 
 def ssl_key_path():
-    configured = os.environ.get('SSL_KEY_FILE')
-    return Path(configured) if configured else ssl_storage_dir() / 'current.key'
+    return configured_certificate_paths()[1]
 
 def ssl_config_status():
     cert = ssl_cert_path()
     key = ssl_key_path()
     env_enabled = (os.environ.get('SSL_ENABLED') or '0').lower() in {'1','true','yes','on'}
     ui_enabled = setting_value('ssl_enabled', '0') == '1' or ssl_marker_path().exists()
-    cert_present = cert.exists() and cert.is_file()
-    key_present = key.exists() and key.is_file()
-    https_ready = (env_enabled or ui_enabled) and cert_present and key_present
+    status = certificate_pair_status(cert, key)
+    enabled = env_enabled or ui_enabled
+    can_auto_generate = enabled and not is_user_managed_certificate()
+    if can_auto_generate and not status['valid']:
+        # Keep the status page consistent with the container runtime: when HTTPS
+        # is enabled without a user-managed certificate, a self-signed host
+        # certificate is created or refreshed automatically.
+        status = ensure_runtime_certificate()
+    https_ready = enabled and status['valid']
     return {
         'env_enabled': env_enabled,
         'ui_enabled': ui_enabled,
-        'enabled': env_enabled or ui_enabled,
-        'cert_present': cert_present,
-        'key_present': key_present,
+        'enabled': enabled,
+        'cert_present': status['cert_present'],
+        'key_present': status['key_present'],
+        'cert_valid': status['valid'],
+        'cert_reason': status['reason'],
+        'cert_not_valid_before': status.get('not_valid_before'),
+        'cert_not_valid_after': status.get('not_valid_after'),
+        'cert_self_signed': status.get('self_signed'),
+        'cert_user_managed': status.get('user_managed'),
+        'cert_auto_generate': can_auto_generate,
         'https_ready': https_ready,
         'cert_path': str(cert),
         'key_path': str(key),
@@ -12027,36 +12047,51 @@ def admin_ssl():
             cert_file = request.files.get('ssl_cert_file')
             key_file = request.files.get('ssl_key_file')
             saved = []
+            pending_cert = ssl_cert_path().read_bytes() if ssl_cert_path().exists() else None
+            pending_key = ssl_key_path().read_bytes() if ssl_key_path().exists() else None
             if cert_file and cert_file.filename:
                 data = cert_file.read()
                 if b'BEGIN CERTIFICATE' not in data[:4096]:
                     flash('Il certificato caricato non sembra essere in formato PEM valido.', 'error')
                     return redirect(url_for('main.admin_ssl'))
-                ssl_cert_path().parent.mkdir(parents=True, exist_ok=True)
-                ssl_cert_path().write_bytes(data)
+                pending_cert = data
                 saved.append('certificato')
             if key_file and key_file.filename:
                 data = key_file.read()
                 if b'PRIVATE KEY' not in data[:4096]:
                     flash('La chiave privata caricata non sembra essere in formato PEM valido.', 'error')
                     return redirect(url_for('main.admin_ssl'))
-                ssl_key_path().parent.mkdir(parents=True, exist_ok=True)
-                ssl_key_path().write_bytes(data)
-                try:
-                    os.chmod(ssl_key_path(), 0o600)
-                except OSError:
-                    pass
+                pending_key = data
                 saved.append('chiave privata')
+            if saved:
+                ssl_cert_path().parent.mkdir(parents=True, exist_ok=True)
+                ssl_key_path().parent.mkdir(parents=True, exist_ok=True)
+                if pending_cert is not None:
+                    ssl_cert_path().write_bytes(pending_cert)
+                if pending_key is not None:
+                    ssl_key_path().write_bytes(pending_key)
+                    try:
+                        os.chmod(ssl_key_path(), 0o600)
+                    except OSError:
+                        pass
+                mark_user_managed_certificate(True)
+                pair_status = certificate_pair_status(ssl_cert_path(), ssl_key_path())
+                if not pair_status['valid']:
+                    flash('Certificato o chiave salvati, ma la coppia non è ancora valida: ' + pair_status['reason'], 'warning')
             audit_log('admin:ssl_config_update', {'enabled': enabled, 'uploaded': saved}, actor_type='user')
             db.session.commit()
-            if enabled and not (ssl_cert_path().exists() and ssl_key_path().exists()):
-                flash('Configurazione salvata. HTTPS resterà inattivo finché certificato e chiave privata non saranno disponibili; HTTP su 8000 resta attivo.', 'warning')
+            status = ssl_config_status()
+            if enabled and not status['https_ready']:
+                flash('Configurazione salvata. HTTPS resterà inattivo finché certificato e chiave privata non saranno disponibili e validi; HTTP su 8000 resta attivo.', 'warning')
+            elif enabled and status.get('cert_auto_generate') and not status.get('cert_user_managed'):
+                flash('Configurazione SSL/HTTPS aggiornata. In assenza di un certificato esterno è stato predisposto un certificato host self-signed.', 'success')
             else:
                 flash('Configurazione SSL/HTTPS aggiornata. Il listener HTTPS viene avviato/arrestato automaticamente dal container entro pochi secondi.', 'success')
             return redirect(url_for('main.admin_ssl'))
         if action == 'delete_certificates':
             ssl_cert_path().unlink(missing_ok=True)
             ssl_key_path().unlink(missing_ok=True)
+            mark_user_managed_certificate(False)
             audit_log('admin:ssl_certificates_delete', {'certificates_removed': True}, actor_type='user')
             db.session.commit()
             flash('Certificati SSL rimossi. HTTP su 8000 resta attivo.', 'success')
@@ -12269,7 +12304,7 @@ SETUP_WIZARD_SECTIONS = [
             {'name': 'ldap_bind_dn', 'label': 'Bind DN', 'type': 'text', 'default': ''},
             {'name': 'ldap_bind_password', 'label': 'Bind password', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la password LDAP salvata'},
             {'name': 'ldap_user_filter', 'label': 'Filtro utente login', 'type': 'text', 'default': '(uid={uid})'},
-            {'name': 'ldap_incident_search_filter', 'label': 'Filtro ricerca interessato incidente', 'type': 'text', 'default': '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))', 'placeholder': '(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))'},
+            {'name': 'ldap_incident_search_filter', 'label': 'Filtro ricerca interessato incidente', 'type': 'text', 'default': '(uid={uid})'},
             {'name': 'ldap_incident_search_attributes', 'label': 'Attributi ricerca interessato', 'type': 'text', 'default': 'uid,cn,mail,displayName,givenName,sn'},
             {'name': 'ldap_incident_reference_attribute', 'label': 'Attributo riferimento', 'type': 'text', 'default': 'cn'},
             {'name': 'ldap_incident_email_attribute', 'label': 'Attributo email', 'type': 'text', 'default': 'mail'},
@@ -12589,19 +12624,6 @@ def _save_setup_wizard_sso(form):
     save_sso_profiles(new_profiles)
 
 
-
-def normalize_incident_ldap_filter_template(template):
-    template = (template or '').strip()
-    if not template:
-        return ''
-    if '{q}' not in template:
-        if '{uid}' in template:
-            template = template.replace('{uid}', '{q}')
-        else:
-            raise ValueError('Il filtro ricerca incidenti LDAP deve contenere il placeholder {q}.')
-    make_incident_ldap_filter({'ldap_incident_search_filter': template}, 'test')
-    return template
-
 def _setup_wizard_field_value(field):
     name = field.get('name')
     if not name:
@@ -12621,12 +12643,7 @@ def _setup_wizard_field_value(field):
         if name == 'sso_profile_id':
             return profile.get('id', field.get('default', 'primary'))
         return profile.get(name, field.get('default', ''))
-    value = setting_value(name, field.get('default', ''))
-    if name == 'ldap_incident_search_filter' and value and '{q}' not in str(value):
-        if '{uid}' in str(value):
-            return str(value).replace('{uid}', '{q}')
-        return field.get('default', '')
-    return value
+    return setting_value(name, field.get('default', ''))
 
 
 def _save_setup_wizard_section(section, form, files=None):
@@ -12665,18 +12682,8 @@ def _save_setup_wizard_section(section, form, files=None):
             value = str(parse_max_upload_size_mb(value, DEFAULT_MAX_UPLOAD_SIZE_MB))
             current_app.config['MAX_CONTENT_LENGTH'] = int(value) * 1024 * 1024
             current_app.config['MAX_FORM_MEMORY_SIZE'] = current_app.config['MAX_CONTENT_LENGTH']
-        if name == 'ldap_user_filter' and value:
-            try:
-                value = validate_ldap_filter_template(value)
-            except ValueError as exc:
-                flash(str(exc), 'error')
-                return False
-        if name == 'ldap_incident_search_filter' and value:
-            try:
-                value = normalize_incident_ldap_filter_template(value)
-            except ValueError as exc:
-                flash(str(exc), 'error')
-                return False
+        if name in {'ldap_user_filter', 'ldap_incident_search_filter'} and value:
+            value = validate_ldap_filter_template(value)
         if name == 'ai_chatbot_engine' and value not in SETUP_WIZARD_AI_ENGINES:
             value = 'chatgpt'
         if name == 'alfresco_timeout':

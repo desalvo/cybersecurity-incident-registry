@@ -204,3 +204,8 @@ La suite di regressione include `test_full_backup_includes_ai_chatbot_knowledge_
 ## Protezione API key AI Chatbot
 
 La configurazione del plugin AI Chatbot applica una gestione overwrite-only delle API key: le chiavi presenti sono mostrate agli amministratori solo in forma offuscata, il valore reale non viene renderizzato nei template HTML e un campo vuoto mantiene il segreto esistente. La sovrascrittura è possibile solo inserendo una nuova API key. Questa scelta riduce il rischio di information disclosure e mantiene la tracciabilità dell'operazione senza registrare segreti nei log.
+
+
+## Ambiente Python isolato per i controlli
+
+Per evitare falsi fallimenti di `pip check` causati da pacchetti non appartenenti all'applicazione gia' presenti nell'ambiente globale, la suite AGID locale crea e usa per default un virtual environment dedicato `.venv-agid`. E' possibile indicarne uno esistente con `AGID_PYTHON=/percorso/bin/python` oppure forzare l'ambiente corrente con `AGID_USE_CURRENT_ENV=1`. Il pin `pypdf==6.10.2` non viene modificato.

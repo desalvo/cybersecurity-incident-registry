@@ -31,10 +31,10 @@ def test_incident_title_shows_reference_and_top_icon_is_vertically_centered_stat
     assert 'translateY(-50%)' in css
 
 
-def test_release_version_is_0701_static():
+def test_release_version_is_0707_static():
     init = Path('app/__init__.py').read_text(encoding='utf-8')
     compose = Path('docker-compose.yml').read_text(encoding='utf-8')
     readme = Path('README.md').read_text(encoding='utf-8')
-    assert "APP_VERSION','0.7.0-1" in init
-    assert '0.7.0-1' in compose
-    assert '0.7.0-1' in readme
+    assert "APP_RELEASE_VERSION = '0.7.0-7'" in init
+    assert '0.7.0-7' in compose
+    assert '0.7.0-7' in readme

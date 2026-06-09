@@ -12,7 +12,7 @@ services:
       timeout: 5s
       retries: 20
   web:
-    build: .
+    image: ${CIR_IMAGE:-desalvo/cybersecurity-incident-registry:latest}
     ports: ["8000:8000", "8443:8443"]
     environment:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env, for example postgresql+psycopg2://incidents:<password>@db:5432/incidents}
@@ -20,7 +20,7 @@ services:
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env with a strong one-time bootstrap password}
       CIR_PRODUCTION: ${CIR_PRODUCTION:-0}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
-      APP_VERSION: 0.7.0-1
+      APP_VERSION: 0.7.0-7
       APP_BUILD: 20260608
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       LOGO_DIR: ${LOGO_DIR:-/data/logo}
@@ -28,6 +28,8 @@ services:
       SSO_LOGO_DIR: ${SSO_LOGO_DIR:-/data/sso_logos}
       SSL_DIR: ${SSL_DIR:-/data/ssl}
       BACKUP_DIR: ${BACKUP_DIR:-/data/backups}
+      AI_CHATBOT_DOC_DIR: ${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}
+      CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE: ${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-1}
       PORT: ${PORT:-8000}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
@@ -36,10 +38,13 @@ services:
       SSL_ENABLED: ${SSL_ENABLED:-0}
       CIR_FORCE_HSTS: ${CIR_FORCE_HSTS:-0}
       MAX_CONTENT_LENGTH: ${MAX_CONTENT_LENGTH:-26214400}
+      CIR_DISABLE_CSRF: ${CIR_DISABLE_CSRF:-0}
+      APP_UID: ${APP_UID:-10001}
+      APP_GID: ${APP_GID:-10001}
       CIR_ENABLE_DEADLINE_SCHEDULER: ${CIR_ENABLE_DEADLINE_SCHEDULER:-1}
       CIR_DEADLINE_SCHEDULER_POLL_SECONDS: ${CIR_DEADLINE_SCHEDULER_POLL_SECONDS:-60}
-    volumes: ["uploads:${UPLOAD_DIR:-/data/uploads}", "logo:${LOGO_DIR:-/data/logo}", "form_templates:${FORM_TEMPLATE_DIR:-/data/form_templates}", "sso_logos:${SSO_LOGO_DIR:-/data/sso_logos}", "ssl:${SSL_DIR:-/data/ssl}", "backups:${BACKUP_DIR:-/data/backups}"]
+    volumes: ["uploads:${UPLOAD_DIR:-/data/uploads}", "logo:${LOGO_DIR:-/data/logo}", "form_templates:${FORM_TEMPLATE_DIR:-/data/form_templates}", "sso_logos:${SSO_LOGO_DIR:-/data/sso_logos}", "ssl:${SSL_DIR:-/data/ssl}", "backups:${BACKUP_DIR:-/data/backups}", "ai_chatbot_docs:${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}"]
     depends_on:
       db:
         condition: service_healthy
-volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}, backups: {}}
+volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}, backups: {}, ai_chatbot_docs: {}}

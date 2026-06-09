@@ -29,12 +29,12 @@ run_target() {
   local tmp_root="$3"
   rm -rf "$tmp_root"
   mkdir -p "$tmp_root"
-  PYTEST_DEBUG_TEMPROOT="$tmp_root" CIR_PYTEST_ISOLATED_CHILD=1 timeout --kill-after=5 "$timeout_seconds" python -m pytest -q "$target"
+  PYTEST_DEBUG_TEMPROOT="$tmp_root" CIR_PYTEST_ISOLATED_CHILD=1 timeout --kill-after=5 "$timeout_seconds" "${PYTHON_BIN:-python}" -m pytest -q "$target"
 }
 collect_nodeids() {
   local test_file="$1"
   PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 CIR_FORCE_PYTEST_PROCESS_EXIT=0 CIR_PYTEST_ISOLATED_CHILD=1 \
-    timeout --kill-after=5 60 python -m pytest --collect-only -q "$test_file" | awk '/::/ {print $0}'
+    timeout --kill-after=5 60 "${PYTHON_BIN:-python}" -m pytest --collect-only -q "$test_file" | awk '/::/ {print $0}'
 }
 for idx in "${!TEST_FILES[@]}"; do
   test_file="${TEST_FILES[$idx]}"

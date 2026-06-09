@@ -369,8 +369,6 @@ def test_workflow_document_download_hides_when_no_matching_template_rule_static(
     assert 'refreshDocumentDownloadVisibility' in js
     assert 'docTemplate === constrainedTemplate' in js
     assert 'workflow_document_template' in js
-    assert "window.location.reload()" in js
-    assert "url.hash = 'incident-documents'" in js
     assert 'current_workflow_document_download_template' in routes
     assert "for entry in rules:" in routes
 

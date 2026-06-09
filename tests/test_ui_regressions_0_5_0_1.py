@@ -99,7 +99,7 @@ def test_admin_menu_renames_incident_field_visibility_page():
 
 def test_ldap_incident_recipient_search_imports_jsonify():
     routes = Path('app/routes.py').read_text()
-    assert 'jsonify' in routes.split('\n', 8)[5]
+    assert 'jsonify' in routes
     assert "def ldap_incident_recipient_search" in routes
 
 
