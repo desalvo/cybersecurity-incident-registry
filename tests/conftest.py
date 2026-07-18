@@ -5,18 +5,16 @@ from pathlib import Path
 
 
 def pytest_cmdline_main(config):
-    """Run the complete suite through isolated module processes.
+    """Optionally run the complete suite through isolated module processes.
 
-    A single in-process run creates many independent Flask applications, PDF
-    helpers and temporary SQLite databases.  Some environments accumulate enough
-    interpreter-level state to make the full suite stall even when every module
-    passes in isolation.  For the repository-level command ``python -m pytest``
-    we therefore delegate to the same deterministic runner used by Docker/AGID
-    compliance.  Explicit file/node invocations still run normally for debugging.
+    Module isolation is intentionally opt-in through
+    ``CIR_PYTEST_SUITE_ISOLATION=1``. Normal ``pytest`` invocations retain
+    standard pytest semantics, while CI/offline jobs can explicitly select the
+    deterministic isolated runner.
     """
     if os.environ.get('CIR_PYTEST_ISOLATED_CHILD') == '1':
         return None
-    if os.environ.get('CIR_PYTEST_DISABLE_SUITE_ISOLATION', '').lower() in {'1', 'true', 'yes'}:
+    if os.environ.get('CIR_PYTEST_SUITE_ISOLATION', '').lower() not in {'1', 'true', 'yes'}:
         return None
     args = [str(arg) for arg in getattr(config, 'args', []) or []]
     normalized = {arg.rstrip('/').replace('\\', '/') for arg in args}
@@ -42,7 +40,6 @@ def pytest_configure(config):
     os.environ.setdefault('CIR_TEST_PASSWORD_HASH_METHOD', 'pbkdf2:sha256:1')
     os.environ.setdefault('PYTEST_DISABLE_PLUGIN_AUTOLOAD', '1')
     os.environ.setdefault('CIR_DISABLE_BACKGROUND_SCHEDULERS', '1')
-    os.environ.setdefault('CIR_FORCE_PYTEST_PROCESS_EXIT', '1')
 
 
 def pytest_runtest_teardown(item, nextitem):

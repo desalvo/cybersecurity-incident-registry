@@ -817,3 +817,111 @@ def test_index_main_page_uses_collapsible_search_sort_bulk_and_mobile_cards():
     assert '.collapsible-section > summary' in style
     assert '.incident-mobile-details > summary' in style
     assert '.incident-datetime-compact' in style
+
+
+def test_move_incident_reuses_destination_person_with_same_name(monkeypatch, tmp_path):
+    """La chiave persona tenant-scoped è tenant_id + name, non include l'e-mail."""
+    _configure_test_env(monkeypatch, tmp_path)
+    from app import create_app
+    from app.models import db, Tenant, Incident, Person
+    from app.routes import move_incident_to_tenant
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        source = Tenant.query.filter_by(name='default').one()
+        target = Tenant(name='tenant-person-dedupe', description='Tenant destinazione')
+        db.session.add(target)
+        db.session.flush()
+
+        source_person = Person(
+            tenant_id=source.id,
+            name='USER',
+            email='user@example.com',
+            group='personale',
+        )
+        destination_person = Person(
+            tenant_id=target.id,
+            name='USER',
+            email='user-destination@example.com',
+            group='referenti',
+        )
+        incident = Incident(
+            tenant_id=source.id,
+            name='Incidente persona duplicata',
+            reference='PERSON-DEDUP-1',
+        )
+        incident.people = [source_person]
+        db.session.add_all([source_person, destination_person, incident])
+        db.session.flush()
+        destination_person_id = destination_person.id
+
+        assert move_incident_to_tenant(incident, target.id) is True
+        db.session.flush()
+
+        assert incident.tenant_id == target.id
+        assert [person.id for person in incident.people] == [destination_person_id]
+        assert Person.query.filter_by(tenant_id=target.id, name='USER').count() == 1
+        assert incident.people[0].email == 'user-destination@example.com'
+        assert incident.people[0].group == 'referenti'
+
+
+def test_non_default_tenant_workflow_step_matches_equivalent_action_label(monkeypatch, tmp_path):
+    """Equivalent tenant-local labels complete workflow steps despite different IDs."""
+    _configure_test_env(monkeypatch, tmp_path)
+    from datetime import datetime
+    from app import create_app
+    from app.models import db, Action, ConfigLabel, Incident, IncidentWorkflowStep, Tenant
+    from app.routes import incident_workflow_status
+
+    app = create_app()
+    app.config['TESTING'] = True
+    with app.app_context():
+        default = Tenant.query.filter_by(name='default').one()
+        tenant = Tenant(name='tenant-workflow-status', description='Tenant workflow test')
+        db.session.add(tenant)
+        db.session.flush()
+
+        legacy_or_source_label = ConfigLabel(
+            tenant_id=default.id,
+            kind='action_label',
+            group='azioni',
+            value='USER ACTION',
+        )
+        tenant_label = ConfigLabel(
+            tenant_id=tenant.id,
+            kind='action_label',
+            group='azioni',
+            value='USER ACTION',
+        )
+        db.session.add_all([legacy_or_source_label, tenant_label])
+        db.session.flush()
+        db.session.add(IncidentWorkflowStep(
+            tenant_id=tenant.id,
+            category_id=None,
+            action_label_id=tenant_label.id,
+            position=1,
+            step_type='registration',
+            required=True,
+        ))
+        incident = Incident(
+            tenant_id=tenant.id,
+            name='Workflow tenant non default',
+            reference='WF-TENANT-1',
+            status='aperto',
+        )
+        db.session.add(incident)
+        db.session.flush()
+        db.session.add(Action(
+            incident_id=incident.id,
+            when_at=datetime(2026, 7, 18, 12, 0),
+            person_name='USER',
+            label_id=legacy_or_source_label.id,
+            description='Azione corrispondente',
+        ))
+        db.session.commit()
+
+        status = incident_workflow_status(incident)
+        assert status['total'] == 1
+        assert status['completed'] == 1
+        assert status['steps'][0]['done'] is True

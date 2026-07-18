@@ -1,3 +1,24 @@
+Cybersecurity Incident Registry - Changelog
+
+0.8.0-1 - Spostamento incidenti tra tenant e aggiornamento release
+- Aggiornati versione applicativa, documentazione, manifest e packaging alla release 0.8.0-1 build 20260718.
+- Corretto lo spostamento singolo e massivo degli incidenti quando nel tenant destinazione esiste già una persona con lo stesso nome ma e-mail differente.
+- La rimappatura delle persone usa ora la stessa chiave funzionale del vincolo uq_person_tenant_name (tenant_id + name), evitando inserimenti duplicati.
+- I dati già presenti nel tenant destinazione non vengono sovrascritti; vengono completati soltanto eventuali campi mancanti.
+- Aggiunti test di regressione per riuso della persona esistente durante lo spostamento tra tenant.
+- Anonimizzati i dati del test di regressione usando USER e user@example.com.
+- Corretto il completamento degli step workflow nei tenant non default: azioni e step vengono associati tramite la chiave funzionale della label (tipo + valore), non soltanto tramite ID tenant-locali.
+- Mantenuto il conteggio uno-a-uno quando più step usano la stessa azione, evitando completamenti multipli con una sola registrazione.
+- Aggiunto un test di regressione specifico per workflow di tenant non default con label equivalenti ma ID differenti.
+
+0.7.0-11 - Coerenza release, packaging e pytest
+- Centralizzati versione e build nei file VERSION e BUILD, con override supportato tramite APP_VERSION e APP_BUILD.
+- Aggiornati metadati applicativi e manifest Docker/Kubernetes alla build 20260718.
+- Resi dinamici i riferimenti alla versione corrente nelle pagine Info e nelle guide integrate.
+- Resa esplicita e opzionale l'esecuzione pytest isolata tramite CIR_PYTEST_SUITE_ISOLATION=1; il normale comando pytest usa il runner standard.
+- Rimossa la dipendenza duplicata defusedxml da requirements-dev.txt.
+- Rafforzate le esclusioni di packaging e aggiunto scripts/package_release.sh.
+
 
 0.7.0-7 - CSRF login plain HTTP Docker Compose
 - Corretto l'errore "CSRF validation failed for POST /login" in Docker Compose senza HTTPS con CSRF abilitato.

@@ -530,17 +530,33 @@ def effective_config_labels_query(kind=None):
 
 
 def _copy_person_to_tenant(person, target_tenant_id):
+    """Riusa o copia una persona nel tenant destinazione.
+
+    Il vincolo ``uq_person_tenant_name`` rende univoco il nome della persona
+    all'interno del tenant. La ricerca deve quindi usare la stessa chiave
+    funzionale del vincolo e non anche l'e-mail, che può differire tra tenant
+    o essere stata aggiornata nel tenant destinazione.
+    """
     if person is None:
         return None
-    q = Person.query.filter_by(tenant_id=target_tenant_id, name=person.name)
-    if getattr(person, 'email', None):
-        q = q.filter_by(email=person.email)
-    existing = q.first()
+    existing = Person.query.filter_by(
+        tenant_id=target_tenant_id,
+        name=person.name,
+    ).first()
     if existing:
-        if getattr(person, 'group', None):
+        # Non sovrascrivere dati già amministrati nel tenant destinazione.
+        # Completa soltanto i campi mancanti con i valori della sorgente.
+        if not existing.email and getattr(person, 'email', None):
+            existing.email = person.email
+        if not existing.group and getattr(person, 'group', None):
             existing.group = person.group
         return existing
-    clone = Person(tenant_id=target_tenant_id, name=person.name, email=getattr(person, 'email', None), group=getattr(person, 'group', None) or 'personale')
+    clone = Person(
+        tenant_id=target_tenant_id,
+        name=person.name,
+        email=getattr(person, 'email', None),
+        group=getattr(person, 'group', None) or 'personale',
+    )
     db.session.add(clone)
     db.session.flush()
     return clone
@@ -2579,12 +2595,33 @@ def workflow_step_type_label(step_type):
             return item.get('label') or code
     return 'Registrazione'
 
+def _workflow_action_identity(label_id=None, label=None):
+    """Return a stable identity for matching workflow steps to incident actions.
+
+    Config labels are tenant-local and cloned tenants legitimately use different
+    numeric IDs for the same logical action.  Legacy data and incidents moved
+    between tenants may therefore contain an action whose label ID differs from
+    the workflow step label ID even though kind and value are equivalent.
+    Prefer the tenant-independent natural key and retain the numeric ID only as
+    a fallback for incomplete/deleted label records.
+    """
+    if label is None and label_id:
+        label = db.session.get(ConfigLabel, int(label_id))
+    if label is not None:
+        kind = (getattr(label, 'kind', '') or '').strip().casefold()
+        value = (getattr(label, 'value', '') or '').strip().casefold()
+        if kind and value:
+            return ('label', kind, value)
+    return ('id', int(label_id)) if label_id else None
+
+
 def incident_workflow_status(inc):
     steps = workflow_steps_for_incident(inc)
     action_counts = {}
     for action in incident_workflow_actions(inc):
-        if action.label_id:
-            action_counts[action.label_id] = action_counts.get(action.label_id, 0) + 1
+        identity = _workflow_action_identity(action.label_id, getattr(action, 'label', None))
+        if identity:
+            action_counts[identity] = action_counts.get(identity, 0) + 1
     used_counts = {}
     items = []
     first_missing_found = False
@@ -2592,13 +2629,14 @@ def incident_workflow_status(inc):
     now = application_now()
     for step in steps:
         label_id = step.action_label_id
+        label = step.action_label
+        action_identity = _workflow_action_identity(label_id, label)
         step_type = normalize_workflow_step_type(getattr(step, 'step_type', REGISTRATION_STEP_TYPE))
-        used = used_counts.get(label_id, 0)
-        total = action_counts.get(label_id, 0)
+        used = used_counts.get(action_identity, 0)
+        total = action_counts.get(action_identity, 0)
         done = used < total
         if done:
-            used_counts[label_id] = used + 1
-        label = step.action_label
+            used_counts[action_identity] = used + 1
         max_hours = int(getattr(label, 'max_completion_hours', 0) or 0) if label else 0
         due_at = None
         remaining_text = ''

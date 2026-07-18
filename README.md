@@ -42,7 +42,7 @@ Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantene
 
 ## Stato applicativo
 
-La documentazione operativa descrive lo stato corrente della piattaforma 0.7.0-7, build 20260608. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+La documentazione operativa descrive lo stato corrente della piattaforma 0.8.0-1, build 20260718. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
 ## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260608
 
@@ -197,8 +197,8 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.7.0-7
-- Build: 20260608
+- Versione: 0.8.0-1
+- Build: 20260718
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 Le informazioni sono visibili da **Info → Applicazione** e configurabili via variabili d’ambiente `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.

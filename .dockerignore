@@ -16,3 +16,10 @@ dist
 .DS_Store
 app/uploads/*
 !app/uploads/.gitkeep
+.pytest_tmp
+instance/*
+!instance/.gitkeep
+backups/*
+generated/*
+*.key
+*.crt

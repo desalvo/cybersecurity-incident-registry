@@ -20,8 +20,8 @@ services:
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env with a strong one-time bootstrap password}
       CIR_PRODUCTION: ${CIR_PRODUCTION:-0}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
-      APP_VERSION: 0.7.0-7
-      APP_BUILD: 20260608
+      APP_VERSION: 0.8.0-1
+      APP_BUILD: 20260718
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       LOGO_DIR: ${LOGO_DIR:-/data/logo}
       FORM_TEMPLATE_DIR: ${FORM_TEMPLATE_DIR:-/data/form_templates}

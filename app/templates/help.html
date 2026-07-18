@@ -16,7 +16,7 @@
       <p>Questa guida spiega il flusso operativo dell’applicazione con un linguaggio orientato all’uso quotidiano. Ogni capitolo descrive cosa fare, quando farlo e quali controlli verificare prima di procedere.</p>
       <p>Le configurazioni avanzate sono descritte nella <a href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>. Le novità di versione sono disponibili in <a href="{{ url_for('main.release_notes') }}">Note di rilascio</a>.</p>
       
-      <p><strong>Versione applicativa: 0.7.0-7</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
+      <p><strong>Versione applicativa: {{ app_info.version }}</strong> · <strong>Build:</strong> {{ app_info.build }} · <strong>Autore:</strong> {{ app_info.author }}.</p>
     </div>
   </section>
 

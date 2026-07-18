@@ -1,7 +1,6 @@
 import os, time, shutil, secrets
 
-APP_RELEASE_VERSION = '0.7.0-7'
-APP_RELEASE_BUILD = '20260608'
+from .version import APP_RELEASE_VERSION, APP_RELEASE_BUILD
 from flask import Flask, session
 from .text_filters import register_text_filters
 from sqlalchemy import text, inspect, Table, MetaData, select, func

@@ -25,7 +25,7 @@ Flask/Gunicorn application for a cybersecurity incident registry backed by Postg
 
 ## Application state
 
-The operational documentation describes the current state of platform 0.7.0-7, build 20260608. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
+The operational documentation describes the current state of platform 0.8.0-1, build 20260718. Chronological changes are maintained in Release notes and in `CHANGELOG.txt`, not in the user or administrator guides.
 
 ## Secure development compliance - build 20260608
 
@@ -153,8 +153,8 @@ The image is based on Debian Trixie through `python:3.12-slim-trixie`. Native ru
 ## Application information
 
 - Name: Cybersecurity Incident Registry
-- Version: 0.7.0-7
-- Build: 20260608
+- Version: 0.8.0-1
+- Build: 20260718
 - Author: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 The information is visible from **Info → Application** and can be configured through the environment variables `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
