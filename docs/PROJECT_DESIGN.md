@@ -76,7 +76,7 @@ La baseline 0.7.0-7 stabilizza l'applicazione come registro operativo bilingue p
 - HTTPS/SSL opzionale su porta 8443, non bloccante per l'accesso HTTP su porta 8000, configurabile da ambiente e da interfaccia Admin; baseline sicurezza produzione con CSRF, header HTTP, cookie sicuri e controllo fail-fast dei segreti;
 - miglioramenti mobile per i promemoria schedulati e impaginazione più robusta della documentazione online/PDF.
 
-- Database: PostgreSQL 18.4
+- Database: PostgreSQL 18.6
 - ORM: SQLAlchemy / Flask-SQLAlchemy
 - Autenticazione: account locali, LDAP configurabile e SSO/OAuth2/OpenID Connect configurabile
 - Container: Docker basato su Debian Trixie
@@ -633,7 +633,7 @@ gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 wsgi:app
 Il compose include:
 
 - servizio app
-- PostgreSQL 18.4 con volume persistente
+- PostgreSQL 18.6 con volume persistente
 - volume upload persistente
 - variabili d'ambiente per DB, secret key, admin initial password
 
@@ -661,7 +661,7 @@ Usa il testo seguente per chiedere a ChatGPT di ricreare l'applicazione da zero 
 ```text
 Scrivi un'applicazione web completa chiamata “Cybersecurity Incident Registry”, versione 0.7.0-7, build 20260608, autore Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>, da usare come registro degli incidenti informatici.
 
-L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.4 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
+L'applicazione deve essere una web app Flask servita in produzione con Gunicorn, containerizzata con Docker basato su Debian Trixie, deployabile su Kubernetes e basata su PostgreSQL 18.6 persistente. Usa SQLAlchemy/Flask-SQLAlchemy, template Jinja2, CSS/JavaScript statici, ReportLab o equivalente per PDF, smtplib/email standard per SMTP, ldap3 per LDAP. Fornisci codice completo, Dockerfile, docker-compose.yml, manifest Kubernetes, README, documentazione utente e documentazione progettuale.
 
 Implementa autenticazione locale e LDAP. L'utente locale admin deve essere creato solo se assente, chiamarsi admin e avere password iniziale configurabile via variabile d'ambiente `ADMIN_INITIAL_PASSWORD`; in produzione non deve essere un valore debole o predefinito. Non resettare mai la password admin ai riavvii. Usa hashing password senza limite bcrypt a 72 byte, per esempio PBKDF2-SHA256, con eventuale compatibilità legacy sicura. Gli utenti LDAP appena visti al login devono essere creati con ruolo disabled. Ruoli: admin, writer, reader, operator, disabled. Admin accede a tutto, writer legge/scrive, reader legge tutto, operator legge solo i propri incidenti, disabled non accede.
 
@@ -711,9 +711,9 @@ Bootstrap: attesa DB con retry, create_all per tabelle mancanti, migrazioni legg
 - Documentazione accessibile solo da Aiuto e scaricabile in PDF.
 
 
-## Aggiornamento PostgreSQL 18.4 e robustezza sugli inserimenti
+## Aggiornamento PostgreSQL 18.6 e robustezza sugli inserimenti
 
-La distribuzione container usa PostgreSQL 18.4. Nel deployment locale il servizio `db` di `docker-compose.yml` usa l'immagine `postgres:18.4`; in Kubernetes è disponibile il manifest `k8s/postgresql.yaml` con PVC persistente e servizio interno.
+La distribuzione container usa PostgreSQL 18.6. Nel deployment locale il servizio `db` di `docker-compose.yml` usa l'immagine `postgres:18.6`; in Kubernetes è disponibile il manifest `k8s/postgresql.yaml` con PVC persistente e servizio interno.
 
 Per evitare errori `duplicate key value violates unique constraint` durante la creazione di nuovi incidenti, l'applicazione deve rispettare queste regole progettuali:
 
@@ -755,9 +755,9 @@ Questi si aggiungono ai dati già disponibili per titolare, responsabile, conseg
 
 L’export completo include i template PDF originari presenti in `FORM_TEMPLATE_DIR` o, se il file operativo manca, la copia binaria persistente salvata nel database. I metadati dei campi AcroForm rilevati, le relative mappature salvate in `form_field_mapping` e la configurazione di font/dimensione salvata in `form_template_config` restano esportati insieme ai file. L’import completo ripristina i PDF nella stessa directory e ricrea le impostazioni dei template, rendendoli subito disponibili nella configurazione e nella generazione moduli; non sono richiesti file XML intermedi. La pagina di configurazione consente anche la sostituzione del PDF sorgente di un template esistente. Prima di sovrascrivere il file, il nuovo PDF viene analizzato e confrontato con il modello corrente: l’operazione è permessa solo se l’insieme dei campi AcroForm compilabili è identico. In questo modo le righe di `form_field_mapping` e la configurazione `form_template_config` rimangono valide e non vengono cancellate.
 
-## PostgreSQL 18.4 volume
+## PostgreSQL 18.6 volume
 
-Per PostgreSQL 18.4 il volume persistente deve essere montato su `/var/lib/postgresql` sia in `docker-compose.yml` sia nei manifest Kubernetes. L'applicazione continua a usare `DATABASE_URL` per la connessione; la persistenza è garantita dal volume nominato/PVC montato su tale path.
+Per PostgreSQL 18.6 il volume persistente deve essere montato su `/var/lib/postgresql` sia in `docker-compose.yml` sia nei manifest Kubernetes. L'applicazione continua a usare `DATABASE_URL` per la connessione; la persistenza è garantita dal volume nominato/PVC montato su tale path.
 
 
 ## Dati amministrativi e campi derivati degli incidenti
@@ -1838,7 +1838,7 @@ La verifica completa con audit vulnerabilità dipendenze è integrata nella suit
 
 ### Aggiornamento dipendenze Flask
 
-Le dipendenze runtime principali sono vincolate in `requirements.txt`: `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.10.2`, `requests==2.33.0` e `cryptography==46.0.7`. Le dipendenze di sviluppo includono `pytest==9.0.3`. Le verifiche di compatibilità devono essere rieseguite dopo ogni aggiornamento delle dipendenze.
+Le dipendenze runtime principali sono vincolate in `requirements.txt`: `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.16.2`, `requests==2.33.0` e `cryptography==50.0.1`. Le dipendenze di sviluppo includono `pytest==9.0.3`. Le verifiche di compatibilità devono essere rieseguite dopo ogni aggiornamento delle dipendenze.
 
 
 ### Rendering Markdown sicuro con colori e dimensioni
@@ -1959,4 +1959,4 @@ Aggiornamento azioni automatiche Salva dati incidente: il pulsante Salva dati in
 
 ## Isolamento delle dipendenze Python
 
-Il progetto distribuisce `scripts/setup_python_env.sh` per creare un virtual environment dedicato e installare `requirements-dev.txt` senza interferire con pacchetti Python gia' presenti nell'host o nel runner CI. La suite AGID locale usa per default `.venv-agid` e accetta `AGID_PYTHON` per usare un interprete esplicito. Questo evita conflitti con pacchetti esterni che richiedono versioni incompatibili di `pypdf` o `Pillow`, mantenendo invariato il pin applicativo `pypdf==6.10.2`.
+Il progetto distribuisce `scripts/setup_python_env.sh` per creare un virtual environment dedicato e installare `requirements-dev.txt` senza interferire con pacchetti Python gia' presenti nell'host o nel runner CI. La suite AGID locale usa per default `.venv-agid` e accetta `AGID_PYTHON` per usare un interprete esplicito. Questo evita conflitti con pacchetti esterni che richiedono versioni incompatibili di `pypdf` o `Pillow`, mantenendo invariato il pin applicativo `pypdf==6.16.2`.

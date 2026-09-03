@@ -331,7 +331,7 @@ class IncidentTemplate(db.Model):
 
 class IncidentReminder(db.Model):
     id=db.Column(db.Integer,primary_key=True)
-    incident_id=db.Column(db.Integer,db.ForeignKey('incident.id'),nullable=False,index=True)
+    incident_id=db.Column(db.Integer,db.ForeignKey('incident.id', ondelete='CASCADE'),nullable=False,index=True)
     scheduled_at=db.Column(db.DateTime,nullable=False,index=True)
     message=db.Column(db.Text,nullable=False,default='')
     cc_emails=db.Column(db.Text,default='')
@@ -345,7 +345,7 @@ class IncidentReminder(db.Model):
     created_by=db.relationship('User',foreign_keys=[created_by_id])
 
 class Action(db.Model):
-    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); when_at=db.Column(db.DateTime,nullable=False); person_name=db.Column(db.String(160)); description=db.Column(db.Text,nullable=True); consequence_text=db.Column(db.Text,nullable=True); label_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); exportable=db.Column(db.Boolean,default=True,nullable=False); label=db.relationship(ConfigLabel); attachments=db.relationship('ActionAttachment',cascade='all,delete-orphan')
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id', ondelete='CASCADE'),nullable=False); when_at=db.Column(db.DateTime,nullable=False); person_name=db.Column(db.String(160)); description=db.Column(db.Text,nullable=True); consequence_text=db.Column(db.Text,nullable=True); label_id=db.Column(db.Integer,db.ForeignKey('config_label.id')); exportable=db.Column(db.Boolean,default=True,nullable=False); label=db.relationship(ConfigLabel); attachments=db.relationship('ActionAttachment',cascade='all,delete-orphan')
 
     @property
     def action_at(self):
@@ -362,9 +362,9 @@ class Action(db.Model):
     def action_at(self, value):
         self.when_at = value
 class ActionAttachment(db.Model):
-    id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=utcnow)
+    id=db.Column(db.Integer,primary_key=True); action_id=db.Column(db.Integer,db.ForeignKey('action.id', ondelete='CASCADE'),nullable=False,index=True); filename=db.Column(db.String(255),nullable=False); stored_name=db.Column(db.String(255),nullable=False); uploaded_at=db.Column(db.DateTime,default=utcnow)
 class Document(db.Model):
-    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id')); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True); notification_tags=db.Column(db.Text,default='',nullable=False); alfresco_node_id=db.Column(db.String(255),nullable=True,index=True); alfresco_path=db.Column(db.Text,nullable=True); alfresco_uploaded_at=db.Column(db.DateTime,nullable=True)
+    id=db.Column(db.Integer,primary_key=True); incident_id=db.Column(db.Integer,db.ForeignKey('incident.id', ondelete='CASCADE'),nullable=False); filename=db.Column(db.String(255)); stored_name=db.Column(db.String(255)); uploaded_at=db.Column(db.DateTime,default=utcnow); generated_template_name=db.Column(db.String(255),nullable=True,index=True); notification_tags=db.Column(db.Text,default='',nullable=False); alfresco_node_id=db.Column(db.String(255),nullable=True,index=True); alfresco_path=db.Column(db.Text,nullable=True); alfresco_uploaded_at=db.Column(db.DateTime,nullable=True)
 
     @property
     def notification_tag_list(self):

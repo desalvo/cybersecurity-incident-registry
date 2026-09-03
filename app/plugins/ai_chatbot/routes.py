@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from ...models import db, Setting, AIChatbotDocument
-from ...routes import audit_log, setting_value, set_setting_value, validate_upload_file
+from ...routes import audit_log, setting_value, set_setting_value, validate_upload_file, current_tenant_id, tenant_query, can_admin
 from .knowledge import build_system_context, extract_text_from_upload
 from .database_context import database_context_enabled
 from .engines import get_engine, AIEngineError, ENGINE_CLASSES
@@ -42,7 +42,8 @@ def is_enabled():
 
 
 def admin_required():
-    return getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'role', None) in ['admin','superuser']
+    # Authorization follows the role of the active tenant, not legacy User.role.
+    return bool(getattr(current_user, 'is_authenticated', False) and can_admin())
 
 
 def _mask_secret(value):
@@ -112,6 +113,21 @@ def reset_backend_defaults():
 def docs_dir():
     path = Path(current_app.config.get('AI_CHATBOT_DOC_DIR') or os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs'))
     path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def safe_chatbot_document_path(stored_name, *, require_file=False):
+    """Resolve a DB-backed chatbot filename inside its managed directory only."""
+    raw = str(stored_name or '')
+    safe = secure_filename(raw)
+    if not raw or safe != raw or Path(raw).name != raw:
+        raise ValueError('Nome documento chatbot archiviato non valido')
+    base = docs_dir().resolve()
+    path = (base / raw).resolve()
+    if path.parent != base:
+        raise ValueError('Percorso documento chatbot non valido')
+    if require_file and (not path.exists() or not path.is_file()):
+        raise FileNotFoundError(raw)
     return path
 
 
@@ -270,10 +286,15 @@ def admin_documents():
                 flash(str(exc), 'danger')
                 return redirect(url_for('ai_chatbot.admin_documents'))
             stored = f'{uuid.uuid4().hex}_{original}'
-            path = docs_dir() / stored
+            path = safe_chatbot_document_path(stored)
             text = extract_text_from_upload(upload)
             upload.save(path)
+            try:
+                os.chmod(path, 0o600)
+            except OSError:
+                pass
             doc = AIChatbotDocument(
+                tenant_id=current_tenant_id(),
                 title=title or original,
                 filename=stored,
                 original_filename=original,
@@ -287,7 +308,7 @@ def admin_documents():
             db.session.commit()
             flash('Documento caricato nella knowledge base del chatbot.', 'success')
         return redirect(url_for('ai_chatbot.admin_documents'))
-    docs = AIChatbotDocument.query.order_by(AIChatbotDocument.uploaded_at.desc()).all()
+    docs = tenant_query(AIChatbotDocument).order_by(AIChatbotDocument.uploaded_at.desc()).all()
     return render_template('ai_chatbot_admin_documents.html', docs=docs, enabled=is_enabled())
 
 
@@ -297,9 +318,13 @@ def admin_document_delete(doc_id):
     if not admin_required():
         flash('Accesso riservato agli amministratori.', 'danger')
         return redirect(url_for('main.index'))
-    doc = AIChatbotDocument.query.get_or_404(doc_id)
+    doc = tenant_query(AIChatbotDocument).filter(AIChatbotDocument.id == doc_id).first_or_404()
     try:
-        (docs_dir() / doc.filename).unlink(missing_ok=True)
+        safe_chatbot_document_path(doc.filename).unlink(missing_ok=True)
+    except ValueError:
+        current_app.logger.exception('Refusing unsafe AI chatbot document path for id=%s', doc.id)
+        flash('Documento non rimosso: metadato file non valido. Consultare i log amministrativi.', 'danger')
+        return redirect(url_for('ai_chatbot.admin_documents'))
     except Exception:
         current_app.logger.exception('Unable to delete AI chatbot document file')
     audit_log('ai_chatbot:document_delete', {'title': doc.title, 'filename': doc.original_filename}, actor_type='user')

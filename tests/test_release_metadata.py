@@ -6,8 +6,8 @@ def test_release_metadata_files_match_defaults(monkeypatch):
     monkeypatch.delenv("APP_BUILD", raising=False)
     import app.version as release
     release = importlib.reload(release)
-    assert release.APP_RELEASE_VERSION == "0.8.0-1"
-    assert release.APP_RELEASE_BUILD == "20260718"
+    assert release.APP_RELEASE_VERSION == "0.9.0-1"
+    assert release.APP_RELEASE_BUILD == "20260902"
 
 
 def test_release_metadata_supports_environment_override(monkeypatch):
@@ -20,5 +20,5 @@ def test_release_metadata_supports_environment_override(monkeypatch):
     monkeypatch.delenv("APP_VERSION")
     monkeypatch.delenv("APP_BUILD")
     release = importlib.reload(release)
-    assert release.APP_RELEASE_VERSION == "0.8.0-1"
-    assert release.APP_RELEASE_BUILD == "20260718"
+    assert release.APP_RELEASE_VERSION == "0.9.0-1"
+    assert release.APP_RELEASE_BUILD == "20260902"

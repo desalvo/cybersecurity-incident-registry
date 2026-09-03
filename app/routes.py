@@ -15,10 +15,13 @@ from ldap3.utils.conv import escape_filter_chars
 from urllib.parse import urlencode, parse_qsl
 from cryptography.fernet import Fernet, InvalidToken
 import hashlib
+import ipaddress
 import requests
 import threading, time
+from contextlib import contextmanager
 import pyotp
 import qrcode
+from .env_utils import get_env_secret
 from .models import *
 from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
@@ -35,6 +38,7 @@ from .form_generation import list_templates, available_incident_fields, FormFiel
 from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
 from .text_filters import strip_markdown_formatting
 from .timeutils import utcnow
+from .outbound_security import validate_outbound_http_url, validate_outbound_host, validate_outbound_ldap_uri
 from . import restore_missing_default_config_labels, DEFAULT_CONFIG_LABELS
 from .route_modules.tenancy import TENANT_SHARED_CONFIGURATION_KEYS, TENANT_SCOPED_ADMIN_AREAS, TENANT_SHARED_ADMIN_AREAS
 from .route_modules.permissions import accessible_tenant_ids as _accessible_tenant_ids, is_builtin_admin_account, is_global_superuser, role_for_tenant as _role_for_tenant
@@ -218,10 +222,20 @@ def default_tenant():
 def active_tenant_id(default_to_default=True):
     """Tenant operativo per dati e configurazioni tenant-specifiche.
 
-    Il tenant attivo in sessione ha sempre precedenza. In assenza di scelta
-    esplicita si usa il tenant attivo predefinito dell'utente; i vecchi campi
-    ``User.tenant_id``/``User.role`` sono solo fallback di migrazione.
+    Request HTTP e job background condividono lo stesso confine tenant. I job
+    senza utente possono impostare ``g._cir_tenant_id_override`` tramite
+    ``tenant_execution_context``; in sua assenza si applica la normale logica
+    della sessione utente e infine il tenant predefinito.
     """
+    if has_app_context():
+        override = getattr(g, '_cir_tenant_id_override', None)
+        if override:
+            try:
+                tid = int(override)
+                if db.session.get(Tenant, tid):
+                    return tid
+            except Exception:
+                current_app.logger.warning('Tenant override background non valido: %r', override)
     if getattr(current_user, 'is_authenticated', False):
         raw_tid = session.get('active_tenant_id')
         if raw_tid:
@@ -259,6 +273,35 @@ def current_tenant_id(default_to_default=True):
 def current_tenant(default_to_default=True):
     tid = current_tenant_id(default_to_default=default_to_default)
     return db.session.get(Tenant, int(tid)) if tid else None
+
+
+@contextmanager
+def tenant_execution_context(tenant_id):
+    """Temporarily bind tenant-aware helpers to one tenant in background jobs."""
+    if not has_app_context():
+        raise RuntimeError('tenant_execution_context richiede un app context Flask')
+    tenant_id = int(tenant_id)
+    if db.session.get(Tenant, tenant_id) is None:
+        raise ValueError(f'Tenant inesistente: {tenant_id}')
+    sentinel = object()
+    previous = getattr(g, '_cir_tenant_id_override', sentinel)
+    g._cir_tenant_id_override = tenant_id
+    cache = getattr(g, '_cir_setting_cache', None)
+    if cache is not None:
+        cache.clear()
+    try:
+        yield tenant_id
+    finally:
+        if previous is sentinel:
+            try:
+                delattr(g, '_cir_tenant_id_override')
+            except AttributeError:
+                pass
+        else:
+            g._cir_tenant_id_override = previous
+        cache = getattr(g, '_cir_setting_cache', None)
+        if cache is not None:
+            cache.clear()
 
 
 def tenant_query(model, include_all_for_superuser=False):
@@ -837,11 +880,36 @@ _SECRET_SETTING_KEYS = {
 _ENC_PREFIX = 'enc:v1:'
 
 
-def _fernet():
-    raw = (os.getenv('SETTING_ENCRYPTION_KEY') or current_app.config.get('SECRET_KEY') or '').encode('utf-8')
+def _fernet_from_raw(raw):
+    raw = str(raw or '').encode('utf-8')
     key = base64.urlsafe_b64encode(hashlib.sha256(raw).digest())
     return Fernet(key)
 
+
+def _primary_encryption_material():
+    return get_env_secret('SETTING_ENCRYPTION_KEY') or current_app.config.get('SECRET_KEY') or ''
+
+
+def _fernet():
+    return _fernet_from_raw(_primary_encryption_material())
+
+
+def _decryption_fernets():
+    """Primary key plus explicitly configured legacy keys for rotation."""
+    materials = [_primary_encryption_material()]
+    previous = get_env_secret('SETTING_ENCRYPTION_PREVIOUS_KEYS', '')
+    materials.extend(item.strip() for item in previous.split(',') if item.strip())
+    # Migration compatibility: when a dedicated setting key is introduced, old
+    # enc:v1 values may still have been encrypted from Flask SECRET_KEY.
+    flask_secret = current_app.config.get('SECRET_KEY') or ''
+    if flask_secret and flask_secret not in materials:
+        materials.append(flask_secret)
+    seen = set()
+    for material in materials:
+        if not material or material in seen:
+            continue
+        seen.add(material)
+        yield _fernet_from_raw(material)
 
 def encrypt_setting_value(key, value):
     value = '' if value is None else str(value)
@@ -854,15 +922,41 @@ def decrypt_setting_value(key, value):
     value = '' if value is None else str(value)
     if key not in _SECRET_SETTING_KEYS or not value.startswith(_ENC_PREFIX):
         return value
-    try:
-        return _fernet().decrypt(value[len(_ENC_PREFIX):].encode('ascii')).decode('utf-8')
-    except InvalidToken:
-        current_app.logger.error('Impossibile decifrare il setting segreto %s', key)
-        return ''
+    token = value[len(_ENC_PREFIX):].encode('ascii')
+    for fernet in _decryption_fernets():
+        try:
+            return fernet.decrypt(token).decode('utf-8')
+        except InvalidToken:
+            continue
+    current_app.logger.error('Impossibile decifrare il setting segreto %s', key)
+    return ''
 
 
 def store_setting_value(key, value):
     return encrypt_setting_value(key, value)
+
+
+def encrypt_backup_secret(value):
+    """Encrypt backup destination credentials at rest and in exports."""
+    value = '' if value is None else str(value)
+    if not value or value.startswith(_ENC_PREFIX):
+        return value
+    return _ENC_PREFIX + _fernet().encrypt(value.encode('utf-8')).decode('ascii')
+
+
+def decrypt_backup_secret(value):
+    value = '' if value is None else str(value)
+    if not value.startswith(_ENC_PREFIX):
+        # Backward compatibility for pre-hardening databases.
+        return value
+    token = value[len(_ENC_PREFIX):].encode('ascii')
+    for fernet in _decryption_fernets():
+        try:
+            return fernet.decrypt(token).decode('utf-8')
+        except InvalidToken:
+            continue
+    current_app.logger.error('Impossibile decifrare una credenziale backup')
+    return ''
 
 
 def validate_ldap_filter_template(template):
@@ -904,6 +998,58 @@ def validate_full_import_archive(archive):
             raise ValueError('Archivio troppo grande.')
     if 'export.json' not in names:
         raise ValueError('Archivio non valido: export.json mancante.')
+    return True
+
+
+
+def validate_full_import_payload(data):
+    """Validate relational and physical-file invariants before restore."""
+    tables = (data or {}).get('tables', {}) or {}
+
+    def ids_for(name):
+        values = []
+        for row in tables.get(name, []) or []:
+            value = (row or {}).get('id')
+            if value is None:
+                raise ValueError(f'Archivio non valido: {name} contiene un record senza id.')
+            if value in values:
+                raise ValueError(f'Archivio non valido: id duplicato in {name}: {value}.')
+            values.append(value)
+        return set(values)
+
+    incident_ids = ids_for('incidents')
+    action_ids = ids_for('actions')
+    ids_for('documents')
+    ids_for('action_attachments')
+    ids_for('incident_reminders')
+
+    for row in tables.get('actions', []) or []:
+        if (row or {}).get('incident_id') not in incident_ids:
+            raise ValueError('Archivio non valido: azione riferita a incidente inesistente.')
+    for row in tables.get('documents', []) or []:
+        if (row or {}).get('incident_id') not in incident_ids:
+            raise ValueError('Archivio non valido: documento riferito a incidente inesistente.')
+    for row in tables.get('incident_reminders', []) or []:
+        if (row or {}).get('incident_id') not in incident_ids:
+            raise ValueError('Archivio non valido: reminder riferito a incidente inesistente.')
+    for row in tables.get('action_attachments', []) or []:
+        if (row or {}).get('action_id') not in action_ids:
+            raise ValueError('Archivio non valido: allegato riferito ad azione inesistente.')
+
+    # uploads share one physical directory: two logical rows must never claim
+    # the same stored_name, otherwise deleting one object corrupts the other.
+    claimed = {}
+    for table_name in ('documents', 'action_attachments'):
+        for row in tables.get(table_name, []) or []:
+            stored = (row or {}).get('stored_name') or ''
+            if not stored:
+                continue
+            safe = secure_filename(stored)
+            if safe != stored:
+                raise ValueError(f'Archivio non valido: stored_name non sicuro in {table_name}.')
+            if stored in claimed:
+                raise ValueError(f'Archivio non valido: stored_name duplicato tra {claimed[stored]} e {table_name}.')
+            claimed[stored] = table_name
     return True
 
 
@@ -997,11 +1143,55 @@ def save_validated_upload(file_storage, destination_dir, allowed_extensions=None
     return name, stored
 
 
+def _trusted_proxy_networks():
+    """Return explicitly configured proxy networks trusted to supply X-Forwarded-For."""
+    networks = []
+    for token in (os.getenv('CIR_TRUSTED_PROXY_CIDRS') or '').split(','):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            networks.append(ipaddress.ip_network(token, strict=False))
+        except ValueError:
+            # Invalid entries never broaden trust.  Keep startup compatible while
+            # failing closed for the malformed network itself.
+            current_app.logger.warning('Ignoring invalid CIR_TRUSTED_PROXY_CIDRS entry: %s', token)
+    return networks
+
+
 def _client_ip_for_rate_limit():
-    # In deployment il proxy deve sanificare X-Forwarded-For; qui prendiamo il
-    # primo valore per mantenere stabile la chiave anche dietro reverse proxy.
-    return (request.headers.get('X-Forwarded-For', request.remote_addr or '')
-            .split(',')[0].strip())[:64]
+    """Return a spoof-resistant client IP for login lockout keys.
+
+    X-Forwarded-For is ignored unless the direct peer belongs to an explicitly
+    trusted proxy CIDR.  For trusted proxy chains we walk right-to-left and use
+    the first untrusted address, which remains correct when a compliant proxy
+    appends the actual client address to a pre-existing header.
+    """
+    remote = (request.remote_addr or '').strip()
+    try:
+        remote_ip = ipaddress.ip_address(remote)
+    except ValueError:
+        return remote[:64]
+
+    trusted = _trusted_proxy_networks()
+    if not trusted or not any(remote_ip in network for network in trusted):
+        return str(remote_ip)[:64]
+
+    forwarded = []
+    for value in (request.headers.get('X-Forwarded-For') or '').split(','):
+        value = value.strip()
+        if not value:
+            continue
+        try:
+            forwarded.append(ipaddress.ip_address(value))
+        except ValueError:
+            continue
+
+    for candidate in reversed(forwarded + [remote_ip]):
+        if any(candidate in network for network in trusted):
+            continue
+        return str(candidate)[:64]
+    return str(forwarded[0] if forwarded else remote_ip)[:64]
 
 
 def login_rate_limit_key(username):
@@ -1177,14 +1367,20 @@ def purge_audit_logs_without_request_user(tenant_id=None, commit=False):
     """
     parts = _audit_retention_parts_without_request_user(tenant_id)
     delta = timedelta(days=(parts['months'] * 30) + parts['days'], hours=parts['hours'], minutes=parts['minutes'])
-    deleted = AuditLog.query.filter(AuditLog.occurred_at < (utcnow() - delta)).delete(synchronize_session=False)
+    q = AuditLog.query
+    if tenant_id is not None:
+        q = q.filter(AuditLog.tenant_id == int(tenant_id))
+    deleted = q.filter(AuditLog.occurred_at < (utcnow() - delta)).delete(synchronize_session=False)
     max_records = _bounded_int(_setting_value_without_request_user('audit_max_records', '10000', tenant_id) or '10000', 10000, 100, 1000000)
-    total = AuditLog.query.count()
+    q = AuditLog.query
+    if tenant_id is not None:
+        q = q.filter(AuditLog.tenant_id == int(tenant_id))
+    total = q.count()
     if total > max_records:
         overflow = total - max_records
-        old_ids = [row.id for row in AuditLog.query.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(overflow).all()]
+        old_ids = [row.id for row in q.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(overflow).all()]
         if old_ids:
-            deleted += AuditLog.query.filter(AuditLog.id.in_(old_ids)).delete(synchronize_session=False)
+            deleted += AuditLog.query.filter(AuditLog.id.in_(old_ids), AuditLog.tenant_id == int(tenant_id) if tenant_id is not None else db.true()).delete(synchronize_session=False)
     if commit:
         db.session.commit()
     return deleted
@@ -1196,14 +1392,16 @@ def purge_audit_logs(commit=False):
     record resta superiore al limite massimo configurato mantiene i record più
     recenti ed elimina i più vecchi.
     """
-    deleted = AuditLog.query.filter(AuditLog.occurred_at < audit_cutoff_datetime()).delete(synchronize_session=False)
+    q = AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id())
+    deleted = q.filter(AuditLog.occurred_at < audit_cutoff_datetime()).delete(synchronize_session=False)
     max_records = audit_max_records()
-    total = AuditLog.query.count()
+    q = AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id())
+    total = q.count()
     if total > max_records:
         overflow = total - max_records
-        old_ids = [row.id for row in AuditLog.query.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(overflow).all()]
+        old_ids = [row.id for row in q.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(overflow).all()]
         if old_ids:
-            deleted += AuditLog.query.filter(AuditLog.id.in_(old_ids)).delete(synchronize_session=False)
+            deleted += AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id(), AuditLog.id.in_(old_ids)).delete(synchronize_session=False)
     if commit:
         db.session.commit()
     return deleted
@@ -1211,18 +1409,19 @@ def purge_audit_logs(commit=False):
 def purge_audit_keep_latest(keep_count, commit=False):
     """Purge manuale: conserva solo gli ultimi keep_count record audit."""
     keep_count = _bounded_int(keep_count, audit_max_records(), 0, 1000000)
-    total = AuditLog.query.count()
+    q = AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id())
+    total = q.count()
     if total <= keep_count:
         return 0
-    old_ids = [row.id for row in AuditLog.query.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(total - keep_count).all()]
-    deleted = AuditLog.query.filter(AuditLog.id.in_(old_ids)).delete(synchronize_session=False) if old_ids else 0
+    old_ids = [row.id for row in q.order_by(AuditLog.occurred_at.asc(), AuditLog.id.asc()).with_entities(AuditLog.id).limit(total - keep_count).all()]
+    deleted = AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id(), AuditLog.id.in_(old_ids)).delete(synchronize_session=False) if old_ids else 0
     if commit:
         db.session.commit()
     return deleted
 
 def purge_audit_older_than(cutoff_dt, commit=False):
     """Purge manuale: elimina i record audit più vecchi della data indicata."""
-    deleted = AuditLog.query.filter(AuditLog.occurred_at < cutoff_dt).delete(synchronize_session=False)
+    deleted = AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id(), AuditLog.occurred_at < cutoff_dt).delete(synchronize_session=False)
     if commit:
         db.session.commit()
     return deleted
@@ -1405,61 +1604,39 @@ def global_messages(messages):
 
 
 def rebuild_database_for_full_import():
-    """Distrugge e ricrea completamente lo schema DB per il Full import.
+    """Ricrea lo schema nella transazione corrente del Full import.
 
-    Il full import deve sostituire lo stato persistente del database, non solo
-    svuotare le tabelle applicative. Ricreare lo schema elimina anche vincoli,
-    sequenze e tabelle di relazione nello stato corrente. Alcuni ambienti,
-    soprattutto PostgreSQL con bootstrap/migrazioni eseguiti prima del restore,
-    possono comunque lasciare o ricreare righe di servizio come il tenant
-    ``default``: per questo, subito dopo la ricreazione, viene eseguito anche
-    uno svuotamento esplicito di tutte le tabelle applicative.
+    PostgreSQL supporta DDL transazionale: usando la stessa connessione della
+    sessione, DROP/CREATE e caricamento dati diventano una singola operazione
+    atomica. Se una fase successiva fallisce, ``db.session.rollback()`` ripristina
+    anche lo schema precedente invece di lasciare un database vuoto/parziale.
     """
-    current_app.logger.warning('Full import: distruzione e ricreazione completa del database applicativo')
-    try:
-        db.session.rollback()
-    except Exception:
-        pass
-    try:
-        db.session.remove()
-    except Exception:
-        pass
-    db.drop_all()
-    db.create_all()
-    db.session.commit()
-    clear_database_rows_for_full_import()
+    current_app.logger.warning('Full import: ricreazione transazionale del database applicativo')
+    db.session.flush()
+    db.session.expunge_all()
+    connection = db.session.connection()
+    db.metadata.drop_all(bind=connection)
+    db.metadata.create_all(bind=connection)
 
 
 def clear_database_rows_for_full_import():
-    """Svuota tutte le tabelle dopo la ricreazione dello schema.
-
-    Protegge il full import da residui o righe bootstrap create tra
-    ``create_all`` e il ripristino del dump, in particolare il tenant
-    ``default`` che su PostgreSQL causa violazioni dell'indice univoco
-    ``ix_tenant_name`` quando un backup storico contiene a sua volta il tenant
-    default. L'operazione e' idempotente e sicura anche su DB gia' vuoti.
-    """
-    try:
-        db.session.rollback()
-    except Exception:
-        pass
+    """Svuota le tabelle usando la stessa transazione del Full import."""
     tables = list(reversed(db.metadata.sorted_tables))
     if not tables:
         return
-    if str(db.engine.url).startswith('postgresql'):
+    conn = db.session.connection()
+    dialect = db.engine.dialect.name
+    if dialect == 'postgresql':
         table_names = [table.name for table in tables]
         quoted = ', '.join(f'"{name}"' for name in table_names)
-        with db.engine.begin() as conn:
-            conn.execute(text(f'TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE'))  # nosec: B608 - table names come only from SQLAlchemy metadata
+        conn.execute(text(f'TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE'))  # nosec: B608 - metadata-controlled names
     else:
-        with db.engine.begin() as conn:
-            dialect = db.engine.dialect.name
-            if dialect == 'sqlite':
-                conn.execute(text('PRAGMA foreign_keys=OFF'))
-            for table in tables:
-                conn.execute(table.delete())
-            if dialect == 'sqlite':
-                conn.execute(text('PRAGMA foreign_keys=ON'))
+        if dialect == 'sqlite':
+            conn.execute(text('PRAGMA foreign_keys=OFF'))
+        for table in tables:
+            conn.execute(table.delete())
+        if dialect == 'sqlite':
+            conn.execute(text('PRAGMA foreign_keys=ON'))
 
 
 def _deduplicated_tenant_rows(rows):
@@ -1934,6 +2111,43 @@ def add_notification_action_safely(inc, label, description):
         return action
 
 
+def safe_upload_path(stored_name, *, require_file=True):
+    """Resolve a DB-backed upload name without allowing path traversal.
+
+    Stored upload names are expected to be opaque basenames.  Revalidate at the
+    filesystem boundary as defense in depth for legacy/corrupted database rows.
+    """
+    raw = str(stored_name or '')
+    safe = secure_filename(raw)
+    if not raw or safe != raw or Path(raw).name != raw:
+        raise ValueError('Nome file archiviato non valido')
+    base = Path(current_app.config['UPLOAD_DIR']).resolve()
+    path = (base / raw).resolve()
+    if path.parent != base:
+        raise ValueError('Percorso upload non valido')
+    if require_file and (not path.exists() or not path.is_file()):
+        raise FileNotFoundError(raw)
+    return path
+
+
+def safe_logo_path(value, *, require_file=True):
+    """Resolve the configured application logo inside LOGO_DIR only.
+
+    The database setting is persistent metadata and may come from legacy or
+    restored state, so never treat it as an arbitrary trusted filesystem path.
+    """
+    raw = str(value or '').strip()
+    if not raw:
+        raise ValueError('Percorso logo non configurato')
+    base = Path(current_app.config['LOGO_DIR']).resolve()
+    path = Path(raw).resolve()
+    if path.parent != base or path.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+        raise ValueError('Percorso logo non valido')
+    if require_file and (not path.exists() or not path.is_file()):
+        raise FileNotFoundError(raw)
+    return path
+
+
 def save_action_attachment_file(file_storage, action):
     """Salva un file allegato a una azione e registra il metadato."""
     if not file_storage or not file_storage.filename:
@@ -1957,7 +2171,7 @@ def attach_document_to_alfresco(doc):
     from .plugins.alfresco.client import upload_file
     if not doc or not doc.stored_name:
         raise RuntimeError('Documento locale non valido per upload Alfresco.')
-    local_path = os.path.join(current_app.config['UPLOAD_DIR'], doc.stored_name)
+    local_path = str(safe_upload_path(doc.stored_name))
     info = upload_file(local_path, doc.filename or doc.stored_name, incident_id=doc.incident_id)
     doc.alfresco_node_id = info.get('node_id')
     doc.alfresco_path = info.get('path')
@@ -2098,10 +2312,10 @@ def notification_action_label_ids(kind):
     ids = set()
     if not kind:
         return ids
-    for tmpl in NotificationTemplate.query.filter_by(kind=kind).all():
+    for tmpl in notification_template_query(kind).all():
         if tmpl.action_label_id:
             ids.add(int(tmpl.action_label_id))
-    fallback = ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
+    fallback = tenant_query(ConfigLabel).filter_by(kind='action_label', value=notification_label_value(kind)).first()
     if fallback:
         ids.add(int(fallback.id))
     return ids
@@ -2723,11 +2937,53 @@ def user_has_any_active_role(user):
 def mfa_required_for(user):
     return bool(user and getattr(user, 'mfa_enabled', False) and getattr(user, 'auth_provider', 'local') in ['local','ldap'] and MfaTotpToken.query.filter_by(user_id=user.id).filter(MfaTotpToken.verified_at.isnot(None)).first())
 
+def _safe_login_next_url(value=None):
+    next_url = (value or url_for('main.index')).strip()
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        return url_for('main.index')
+    return next_url
+
+
+def _generated_form_preview_session_key(iid):
+    return f'generated_form_previews:{int(iid)}'
+
+
+def _register_generated_form_previews(iid, filenames):
+    """Bind temporary generated-form files to this user's session and incident."""
+    key = _generated_form_preview_session_key(iid)
+    current = list(session.get(key) or [])
+    for filename in filenames or []:
+        safe = Path(str(filename or '')).name
+        if safe and safe.lower().endswith('.pdf') and safe not in current:
+            current.append(safe)
+    session[key] = current[-50:]
+    session.modified = True
+
+
+def _allowed_generated_form_previews(iid):
+    return set(session.get(_generated_form_preview_session_key(iid)) or [])
+
+
+def _forget_generated_form_previews(iid, filenames=None):
+    key = _generated_form_preview_session_key(iid)
+    if filenames is None:
+        session.pop(key, None)
+    else:
+        remove = {Path(str(name or '')).name for name in filenames}
+        remaining = [name for name in (session.get(key) or []) if name not in remove]
+        if remaining:
+            session[key] = remaining
+        else:
+            session.pop(key, None)
+    session.modified = True
+
+
 def complete_login_or_mfa(user):
     clear_login_failures(user.username)
+    next_url = _safe_login_next_url(request.args.get('next'))
     if mfa_required_for(user):
         session['mfa_user_id'] = user.id
-        session['mfa_next'] = request.args.get('next') or url_for('main.index')
+        session['mfa_next'] = next_url
         return redirect(url_for('main.mfa_verify'))
     session.clear()
     login_user(user)
@@ -2738,7 +2994,7 @@ def complete_login_or_mfa(user):
         session['active_tenant_scope_enabled'] = True
     session['last_activity'] = time.time()
     audit_log('security:login_success', {'username': user.username, 'auth_provider': user.auth_provider}, actor_type='user', commit=True)
-    return redirect(request.args.get('next') or url_for('main.index'))
+    return redirect(next_url)
 
 def visible(q):
     if hasattr(Incident, 'tenant_id'):
@@ -2997,8 +3253,8 @@ def save_sso_logo_upload(file_storage):
         return ''
     filename = secure_filename(file_storage.filename)
     ext = Path(filename).suffix.lower()
-    if ext not in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
-        raise ValueError('Formato logo SSO non supportato. Usare SVG, PNG, JPG, GIF o WEBP.')
+    if ext not in {'.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+        raise ValueError('Formato logo SSO non supportato. Usare PNG, JPG, GIF o WEBP.')
     stem = re.sub(r'[^a-zA-Z0-9_-]+', '-', Path(filename).stem).strip('-') or 'sso-logo'
     target_dir = sso_logo_storage_dir()
     target_name = f'{stem}{ext}'
@@ -3008,7 +3264,7 @@ def save_sso_logo_upload(file_storage):
         target_name = f'{stem}-{n}{ext}'
         target = target_dir / target_name
         n += 1
-    validate_upload_file(file_storage, allowed_extensions={'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}, max_size=2 * 1024 * 1024)
+    validate_upload_file(file_storage, allowed_extensions={'.png', '.jpg', '.jpeg', '.gif', '.webp'}, max_size=2 * 1024 * 1024)
     file_storage.save(target)
     try:
         os.chmod(target, 0o600)
@@ -3076,6 +3332,7 @@ def sso_test_configuration(cfg):
         if not url:
             continue
         try:
+            url = validate_outbound_http_url(url, purpose=f'SSO {label}')
             if label == 'Authorization endpoint':
                 params = {
                     'response_type': 'code',
@@ -3165,6 +3422,11 @@ def ldap_auth(username,password):
     cfg=setting_map()
     uri=cfg.get('ldap_uri'); base=cfg.get('ldap_base_dn'); filt=cfg.get('ldap_user_filter') or '(uid={uid})'
     if not uri or not base: return None
+    try:
+        uri = validate_outbound_ldap_uri(uri, purpose='LDAP login')
+    except ValueError as exc:
+        current_app.logger.warning('LDAP login bloccato dalla policy outbound: %s', exc)
+        return None
     search_filter=make_ldap_search_filter(filt, username)
     try:
         srv=Server(uri,get_info=ALL); bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
@@ -3249,8 +3511,9 @@ def sso_callback():
         flash('Codice OAuth2 mancante nella risposta SSO.', 'error')
         return redirect(url_for('main.login'))
     try:
+        token_url = validate_outbound_http_url(cfg.get('sso_token_url'), purpose='SSO token endpoint')
         token_response = requests.post(
-            cfg.get('sso_token_url'),
+            token_url,
             data={
                 'grant_type': 'authorization_code',
                 'code': code,
@@ -3260,6 +3523,7 @@ def sso_callback():
             },
             headers={'Accept': 'application/json'},
             timeout=15,
+            allow_redirects=False,
         )
         token_response.raise_for_status()
         token_data = token_response.json()
@@ -3269,7 +3533,8 @@ def sso_callback():
         userinfo_url = cfg.get('sso_userinfo_url')
         if not userinfo_url:
             raise ValueError('Endpoint UserInfo non configurato')
-        userinfo_response = requests.get(userinfo_url, headers={'Authorization': f'Bearer {access_token}', 'Accept': 'application/json'}, timeout=15)
+        userinfo_url = validate_outbound_http_url(userinfo_url, purpose='SSO UserInfo endpoint')
+        userinfo_response = requests.get(userinfo_url, headers={'Authorization': f'Bearer {access_token}', 'Accept': 'application/json'}, timeout=15, allow_redirects=False)
         userinfo_response.raise_for_status()
         claims = userinfo_response.json()
         user = sso_user_from_claims(claims, cfg)
@@ -3279,7 +3544,7 @@ def sso_callback():
         return complete_login_or_mfa(user)
     except Exception as exc:
         current_app.logger.exception('SSO login failed')
-        flash(f'Login SSO fallito: {exc}', 'error')
+        flash('Login SSO fallito. Consultare i log amministrativi.', 'error')
         return redirect(url_for('main.login'))
 
 @bp.route('/logout')
@@ -4009,7 +4274,7 @@ def incident_delete(iid):
         db.session.commit()
         flash('Incidente cancellato.', 'success')
     return redirect(url_for('main.index'))
-@bp.route('/incident/<int:iid>/clone')
+@bp.route('/incident/<int:iid>/clone', methods=['POST'])
 @login_required
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
@@ -4132,6 +4397,7 @@ def create_manual_action_safely(iid):
 @login_required
 def add_action(iid):
     if can_write():
+        visible(Incident.query).filter(Incident.id == iid).first_or_404()
         try:
             action = create_manual_action_safely(iid)
             if getattr(db.session.get(Incident, iid), '_closure_blocked_by_procedural_warnings', False):
@@ -4157,6 +4423,7 @@ def add_action(iid):
 @login_required
 def update_action(aid):
     a=model_or_404(Action, aid); iid=a.incident_id
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if can_write():
         when_value = (request.form.get('when_at') or '').strip()
         if when_value:
@@ -4191,6 +4458,7 @@ def update_action(aid):
 @login_required
 def del_action(aid):
     a=model_or_404(Action, aid); iid=a.incident_id
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if can_write(): db.session.delete(a); db.session.commit()
     return incident_detail_redirect(iid, 'incident-actions')
 @bp.route('/action/<int:aid>/exportable',methods=['POST'])
@@ -4210,7 +4478,7 @@ def download_action_attachment(att_id):
     att=model_or_404(ActionAttachment, att_id)
     action=model_or_404(Action, att.action_id)
     visible(Incident.query).filter(Incident.id == action.incident_id).first_or_404()
-    return send_file(os.path.join(current_app.config['UPLOAD_DIR'],att.stored_name),download_name=att.filename,as_attachment=True)
+    return send_file(safe_upload_path(att.stored_name), download_name=att.filename, as_attachment=True)
 
 @bp.route('/action-attachment/<int:att_id>/delete',methods=['POST'])
 @login_required
@@ -4218,9 +4486,10 @@ def del_action_attachment(att_id):
     att=model_or_404(ActionAttachment, att_id)
     action=model_or_404(Action, att.action_id)
     iid=action.incident_id
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if can_write():
-        try: os.remove(os.path.join(current_app.config['UPLOAD_DIR'],att.stored_name))
-        except OSError: pass
+        try: safe_upload_path(att.stored_name).unlink()
+        except (OSError, ValueError): pass
         db.session.delete(att); db.session.commit()
     return incident_detail_redirect(iid, 'incident-actions')
 
@@ -4228,6 +4497,7 @@ def del_action_attachment(att_id):
 @login_required
 def upload(iid):
     if can_write():
+        visible(Incident.query).filter(Incident.id == iid).first_or_404()
         try:
             saved = 0
             alfresco_saved = 0
@@ -4277,7 +4547,7 @@ def download_doc(did):
     except Exception:
         db.session.rollback()
         current_app.logger.exception('Errore registrazione azione automatica download documento %s', d.id)
-    return send_file(os.path.join(current_app.config['UPLOAD_DIR'], d.stored_name), download_name=d.filename, as_attachment=True)
+    return send_file(safe_upload_path(d.stored_name), download_name=d.filename, as_attachment=True)
 
 @bp.route('/document/<int:did>/alfresco/upload', methods=['POST'])
 @login_required
@@ -4292,7 +4562,7 @@ def upload_doc_to_alfresco(did):
                 db.session.commit()
                 section_flash(f'Documento {d.filename} caricato su Alfresco.', 'incident-documents', 'success')
             except Exception as exc:
-                db.session.rollback(); current_app.logger.exception('Upload documento Alfresco fallito'); section_flash(f'Errore upload Alfresco: {exc}', 'incident-documents', 'error')
+                db.session.rollback(); current_app.logger.exception('Upload documento Alfresco fallito'); section_flash('Errore upload Alfresco. Consultare i log amministrativi.', 'incident-documents', 'error')
     return incident_detail_redirect(d.incident_id, 'incident-documents')
 
 @bp.route('/document/<int:did>/alfresco/download')
@@ -4308,16 +4578,17 @@ def download_doc_from_alfresco(did):
         return Response(content, mimetype=mimetype, headers={'Content-Disposition': f'attachment; filename="{d.filename or "alfresco-document"}"'})
     except Exception as exc:
         current_app.logger.exception('Download documento Alfresco fallito')
-        section_flash(f'Errore download Alfresco: {exc}', 'incident-documents', 'error')
+        section_flash('Errore download Alfresco. Consultare i log amministrativi.', 'incident-documents', 'error')
         return incident_detail_redirect(d.incident_id, 'incident-documents')
 @bp.route('/document/<int:did>/delete',methods=['POST'])
 @login_required
 def del_doc(did):
     d=model_or_404(Document, did); iid=d.incident_id
+    visible(Incident.query).filter(Incident.id == iid).first_or_404()
     if can_write():
         try:
-            try: os.remove(os.path.join(current_app.config['UPLOAD_DIR'],d.stored_name))
-            except OSError: pass
+            try: safe_upload_path(d.stored_name).unlink()
+            except (OSError, ValueError): pass
             db.session.delete(d); db.session.commit(); section_flash('Documento eliminato', 'incident-documents', 'info')
         except Exception as exc:
             db.session.rollback(); current_app.logger.exception('Errore cancellazione documento'); section_flash(f'Errore cancellazione documento: {exc}', 'incident-documents', 'error')
@@ -4435,7 +4706,7 @@ def build_workflow_export_payload(category_id=None):
         if data:
             label_map[f"{data['kind']}::{data['value']}"] = data
 
-    category_label = db.session.get(ConfigLabel, category_id) if category_id else None
+    category_label = tenant_query(ConfigLabel).filter(ConfigLabel.id == category_id).first() if category_id else None
     add_label(category_label)
     exported_steps = []
     for step in steps:
@@ -4446,7 +4717,7 @@ def build_workflow_export_payload(category_id=None):
             if ':' in base_token:
                 kind, sid = base_token.split(':', 1)
                 if kind in {'severity', 'data_type'}:
-                    lab = db.session.get(ConfigLabel, int(sid)) if sid.isdigit() else None
+                    lab = tenant_query(ConfigLabel).filter(ConfigLabel.id == int(sid)).first() if sid.isdigit() else None
                     add_label(lab)
         nt = tenant_query(NotificationType).filter_by(code=step.required_notification_type).first() if step.required_notification_type else None
         if nt:
@@ -4499,7 +4770,7 @@ def workflow_import_diff(payload):
     diffs = []
     labels_data = (payload.get('dependencies') or {}).get('labels') or []
     for lab in labels_data:
-        cur = ConfigLabel.query.filter_by(kind=lab.get('kind'), value=lab.get('value')).first()
+        cur = tenant_query(ConfigLabel).filter_by(kind=lab.get('kind'), value=lab.get('value')).first()
         if cur:
             changes = {}
             for field in ['group','description','max_completion_hours','default_exportable','automatic_operations']:
@@ -4547,7 +4818,7 @@ def workflow_import_diff(payload):
             if changes:
                 diffs.append({'key': f"form_template::{ft.get('template_name')}", 'type': 'form_template', 'title': f"Template modulo {ft.get('template_name')}", 'changes': changes})
     for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
-        cur = tenant_query(NotificationTemplate).filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        cur = current_tenant_notification_template_query(tpl.get('kind')).filter_by(name=tpl.get('name')).first()
         if cur:
             changes={}
             for field in ['subject','body','linked_form_template_name','recipient_source','recipient_value','recipient_editable','recipient_external_allowed','cc_source','cc_value','cc_editable','cc_external_allowed','is_default']:
@@ -4605,9 +4876,13 @@ def workflow_import_diff(payload):
 
 
 def _upsert_config_label(data, allow_overwrite):
-    lab = ConfigLabel.query.filter_by(kind=data.get('kind'), value=data.get('value')).first()
+    lab = tenant_query(ConfigLabel).filter_by(kind=data.get('kind'), value=data.get('value')).first()
+    if lab is not None and getattr(lab, 'tenant_id', None) != current_tenant_id():
+        # A legacy global row is readable for compatibility but must never be
+        # overwritten by a tenant-scoped workflow import.
+        lab = None
     if not lab:
-        lab = ConfigLabel(kind=data.get('kind'), value=data.get('value'))
+        lab = ConfigLabel(tenant_id=current_tenant_id(), kind=data.get('kind'), value=data.get('value'))
         db.session.add(lab)
     elif not allow_overwrite:
         return lab
@@ -4635,7 +4910,7 @@ def apply_workflow_import(payload, overwrite_keys):
 
     for lab_data in (payload.get('dependencies') or {}).get('labels') or []:
         key = f"label::{lab_data.get('kind')}::{lab_data.get('value')}"
-        exists = ConfigLabel.query.filter_by(kind=lab_data.get('kind'), value=lab_data.get('value')).first()
+        exists = tenant_query(ConfigLabel).filter_by(kind=lab_data.get('kind'), value=lab_data.get('value')).first()
         if exists and key not in changed_keys:
             label_cache[(exists.kind, exists.value)] = exists
             unchanged += 1
@@ -4662,8 +4937,10 @@ def apply_workflow_import(payload, overwrite_keys):
         if exists and key not in overwrite_keys:
             skipped += 1
             continue
+        if obj is not None and getattr(obj, 'tenant_id', None) != current_tenant_id():
+            obj = None
         if not obj:
-            obj = NotificationType(code=nt.get('code'))
+            obj = NotificationType(tenant_id=current_tenant_id(), code=nt.get('code'))
             db.session.add(obj)
         obj.label = nt.get('label') or nt.get('code')
         obj.description = nt.get('description') or default_notification_type_description(obj.label, obj.code)
@@ -4705,7 +4982,7 @@ def apply_workflow_import(payload, overwrite_keys):
 
     for tpl in (payload.get('dependencies') or {}).get('notification_templates') or []:
         key = f"notification_template::{tpl.get('kind')}::{tpl.get('name')}"
-        obj = tenant_query(NotificationTemplate).filter_by(kind=tpl.get('kind'), name=tpl.get('name')).first()
+        obj = notification_template_query(tpl.get('kind')).filter_by(name=tpl.get('name')).first()
         exists = bool(obj)
         if exists and key not in changed_keys:
             unchanged += 1
@@ -4713,8 +4990,10 @@ def apply_workflow_import(payload, overwrite_keys):
         if exists and key not in overwrite_keys:
             skipped += 1
             continue
+        if obj is not None and getattr(obj, 'tenant_id', None) != current_tenant_id():
+            obj = None
         if not obj:
-            obj = NotificationTemplate(kind=tpl.get('kind'), name=tpl.get('name'))
+            obj = NotificationTemplate(tenant_id=current_tenant_id(), kind=tpl.get('kind'), name=tpl.get('name'))
             db.session.add(obj)
         obj.subject = tpl.get('subject') or ''
         obj.body = tpl.get('body') or ''
@@ -5323,10 +5602,13 @@ def admin_recommendation_delete(rid):
 @bp.route('/logo')
 def logo_image():
     setting=db.session.get(Setting, 'logo_path')
-    path=setting.value if setting and setting.value else ''
-    if not path or not os.path.exists(path):
+    try:
+        path = safe_logo_path(setting.value if setting else '')
+    except (ValueError, FileNotFoundError):
         abort(404)
-    return send_file(path)
+    response = send_file(path)
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 @bp.route('/admin/logo',methods=['GET','POST'])
 @login_required
@@ -5336,9 +5618,13 @@ def admin_logo():
     if request.method=='POST':
         action=request.form.get('action')
         if action=='delete':
-            if setting.value and os.path.exists(setting.value):
-                try: os.remove(setting.value)
-                except OSError: current_app.logger.warning('Impossibile rimuovere il logo %s', setting.value)
+            try:
+                path = safe_logo_path(setting.value)
+            except (ValueError, FileNotFoundError):
+                path = None
+            if path is not None:
+                try: path.unlink()
+                except OSError: current_app.logger.warning('Impossibile rimuovere il logo gestito %s', path)
             setting.value=''
             db.session.merge(setting); db.session.commit(); flash('Logo cancellato','info')
             return redirect(url_for('main.admin_logo'))
@@ -5347,7 +5633,7 @@ def admin_logo():
             flash('Selezionare un file logo','error')
         else:
             try:
-                filename = validate_upload_file(f, allowed_extensions={'.png','.jpg','.jpeg','.gif','.webp','.svg'}, max_size=2 * 1024 * 1024)
+                filename = validate_upload_file(f, allowed_extensions={'.png','.jpg','.jpeg','.gif','.webp'}, max_size=2 * 1024 * 1024)
                 ext=os.path.splitext(filename)[1].lower() or '.img'
                 os.makedirs(current_app.config['LOGO_DIR'],exist_ok=True)
                 path=os.path.join(current_app.config['LOGO_DIR'],f'logo{ext}')
@@ -5384,7 +5670,7 @@ def mfa_verify():
             if pyotp.TOTP(token.secret).verify(code, valid_window=1):
                 token.last_used_at = utcnow(); db.session.commit()
                 session.pop('mfa_user_id', None)
-                next_url = session.pop('mfa_next', None) or url_for('main.index')
+                next_url = _safe_login_next_url(session.pop('mfa_next', None))
                 login_user(user)
                 return redirect(next_url)
         flash('Codice MFA non valido.', 'error')
@@ -5532,7 +5818,7 @@ def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari es
             if search_query:
                 params['q'] = search_query
             return redirect(url_for(endpoint_name, **params))
-        duplicate = ExternalRecipient.query.filter(db.func.lower(ExternalRecipient.email) == email.lower())
+        duplicate = tenant_query(ExternalRecipient).filter(db.func.lower(ExternalRecipient.email) == email.lower())
         if rid:
             duplicate = duplicate.filter(ExternalRecipient.id != rid)
         if duplicate.first():
@@ -5541,13 +5827,13 @@ def _external_recipients_page(endpoint_name, audit_prefix, title='Destinatari es
             if search_query:
                 params['q'] = search_query
             return redirect(url_for(endpoint_name, **params))
-        rec = db.session.get(ExternalRecipient, rid) if rid else assign_current_tenant(ExternalRecipient())
+        rec = model_or_404(ExternalRecipient, rid) if rid else assign_current_tenant(ExternalRecipient())
         rec.name = name; rec.email = email; rec.notes = notes
         db.session.add(rec); db.session.commit()
         audit_log(f'{audit_prefix}:external_recipient_save', {'recipient_id': rec.id, 'email': rec.email}, actor_type='user', commit=True)
         flash('Destinatario esterno salvato.')
         return redirect(url_for(endpoint_name, q=search_query) if search_query else url_for(endpoint_name))
-    recipients_query = ExternalRecipient.query
+    recipients_query = tenant_query(ExternalRecipient)
     if search_query:
         like = f'%{search_query}%'
         recipients_query = recipients_query.filter(db.or_(
@@ -5616,7 +5902,7 @@ def ldap_incident_recipient_search():
             if extra and extra not in attrs:
                 attrs.append(extra)
         filt=make_incident_ldap_filter(cfg, q)
-        srv=Server(cfg.get('ldap_uri'),get_info=ALL,connect_timeout=5)
+        srv=Server(validate_outbound_ldap_uri(cfg.get('ldap_uri'), purpose='LDAP amministrativo'),get_info=ALL,connect_timeout=5)
         bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
         entries=[]
         with Connection(srv,user=bind_dn,password=bind_pw,auto_bind=True) as c:
@@ -6188,7 +6474,11 @@ def sso_logo_asset(filename):
     name = secure_filename(Path(filename).name)
     if not name or name != filename or Path(name).suffix.lower() not in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
         abort(404)
-    return send_from_directory(sso_logo_storage_dir(), name)
+    response = send_from_directory(sso_logo_storage_dir(), name)
+    if Path(name).suffix.lower() == '.svg':
+        response.headers['Content-Security-Policy'] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox"
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 def sso_logo_url(relative_path):
@@ -6251,6 +6541,8 @@ def sso_settings_admin():
             save_sso_profiles(profiles); db.session.commit()
             flash('Profilo SSO eliminato')
             return redirect(url_for('main.sso_settings_admin'))
+        original_profile_id = request.form.get('original_profile_id') or selected_id
+        existing_profile = next((p for p in profiles if p.get('id') == original_profile_id), {})
         posted = {
             'id': request.form.get('profile_id') or selected_id,
             'sso_enabled': '1' if request.form.get('sso_enabled') else '0',
@@ -6259,7 +6551,7 @@ def sso_settings_admin():
             'sso_token_url': request.form.get('sso_token_url',''),
             'sso_userinfo_url': request.form.get('sso_userinfo_url',''),
             'sso_client_id': request.form.get('sso_client_id',''),
-            'sso_client_secret': request.form.get('sso_client_secret',''),
+            'sso_client_secret': (request.form.get('sso_client_secret') or '').strip() or existing_profile.get('sso_client_secret', ''),
             'sso_scopes': request.form.get('sso_scopes','openid email profile'),
             'sso_username_claim': request.form.get('sso_username_claim','preferred_username'),
             'sso_email_claim': request.form.get('sso_email_claim','email'),
@@ -6277,7 +6569,7 @@ def sso_settings_admin():
         replaced = False
         new_profiles = []
         for prof in profiles:
-            if prof.get('id') == (request.form.get('original_profile_id') or posted['id']):
+            if prof.get('id') == original_profile_id:
                 new_profiles.append(posted); replaced = True
             else:
                 new_profiles.append(prof)
@@ -6304,7 +6596,16 @@ def sso_settings_admin():
     if not selected:
         selected = google_sso_example_profile() if not profiles else profiles[0]
         selected_id = selected['id']
-    return render_template('sso.html', settings=selected, profiles=profiles, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile(), generic_example=generic_sso_profile(), sso_logos=list_sso_logo_assets())
+    selected_for_display = dict(selected)
+    selected_for_display['sso_client_secret'] = ''
+    selected_for_display['sso_client_secret_configured'] = bool(selected.get('sso_client_secret'))
+    profiles_for_display = []
+    for profile in profiles:
+        display_profile = dict(profile)
+        display_profile['sso_client_secret'] = ''
+        display_profile['sso_client_secret_configured'] = bool(profile.get('sso_client_secret'))
+        profiles_for_display.append(display_profile)
+    return render_template('sso.html', settings=selected_for_display, profiles=profiles_for_display, callback_url=sso_callback_url(), test_result=test_result, google_example=google_sso_example_profile(), generic_example=generic_sso_profile(), sso_logos=list_sso_logo_assets())
 
 @bp.route('/admin/ldap',methods=['GET','POST'])
 @login_required
@@ -6314,27 +6615,31 @@ def ldap_settings():
     result=None
     def form_cfg():
         cfg=dict(settings)
-        for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter','ldap_incident_search_filter','ldap_incident_search_attributes','ldap_incident_reference_attribute','ldap_incident_email_attribute']:
+        for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_user_filter','ldap_incident_search_filter','ldap_incident_search_attributes','ldap_incident_reference_attribute','ldap_incident_email_attribute']:
             cfg[k]=request.form.get(k,cfg.get(k,''))
+        submitted_password = request.form.get('ldap_bind_password') or ''
+        cfg['ldap_bind_password'] = submitted_password if submitted_password else settings.get('ldap_bind_password', '')
         return cfg
     if request.method=='POST':
         action=request.form.get('action','save')
         cfg=form_cfg()
         if action=='save':
-            for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter','ldap_incident_search_filter','ldap_incident_search_attributes','ldap_incident_reference_attribute','ldap_incident_email_attribute']:
-                s=db.session.get(Setting, k) or Setting(key=k); s.value=store_setting_value(k, cfg.get(k,'')); db.session.merge(s)
+            for k in ['ldap_uri','ldap_base_dn','ldap_bind_dn','ldap_user_filter','ldap_incident_search_filter','ldap_incident_search_attributes','ldap_incident_reference_attribute','ldap_incident_email_attribute']:
+                set_setting_value(k, cfg.get(k,''))
+            if request.form.get('ldap_bind_password'):
+                set_setting_value('ldap_bind_password', cfg.get('ldap_bind_password',''))
             db.session.commit(); settings=cfg; flash('Parametri LDAP salvati')
         elif action=='test_connection':
             try:
-                srv=Server(cfg.get('ldap_uri'),get_info=ALL,connect_timeout=5)
+                srv=Server(validate_outbound_ldap_uri(cfg.get('ldap_uri'), purpose='LDAP amministrativo'),get_info=ALL,connect_timeout=5)
                 bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
                 with Connection(srv,user=bind_dn,password=bind_pw,auto_bind=True) as c:
                     result={'ok':True,'title':'Comunicazione LDAP riuscita','details':{'server':cfg.get('ldap_uri'),'bound':str(c.bound)}}
                 flash('Test comunicazione LDAP riuscito','info')
             except Exception as exc:
                 current_app.logger.exception('Test comunicazione LDAP fallito')
-                result={'ok':False,'title':'Comunicazione LDAP fallita','error':str(exc)}
-                flash(f'Test comunicazione LDAP fallito: {exc}','error')
+                result={'ok':False,'title':'Comunicazione LDAP fallita','error':'Connessione LDAP non riuscita. Consultare i log amministrativi.'}
+                flash('Test comunicazione LDAP fallito. Consultare i log amministrativi.','error')
             settings=cfg
         elif action=='search_uid':
             uid=request.form.get('test_uid','').strip()
@@ -6343,7 +6648,7 @@ def ldap_settings():
             else:
                 try:
                     filt=make_ldap_search_filter(cfg.get('ldap_user_filter') or '(uid={uid})', uid)
-                    srv=Server(cfg.get('ldap_uri'),get_info=ALL,connect_timeout=5)
+                    srv=Server(validate_outbound_ldap_uri(cfg.get('ldap_uri'), purpose='LDAP amministrativo'),get_info=ALL,connect_timeout=5)
                     bind_dn=cfg.get('ldap_bind_dn') or None; bind_pw=cfg.get('ldap_bind_password') or None
                     with Connection(srv,user=bind_dn,password=bind_pw,auto_bind=True) as c:
                         c.search(cfg.get('ldap_base_dn'),filt,attributes=['uid','cn','mail','displayName','givenName','sn'])
@@ -6358,10 +6663,13 @@ def ldap_settings():
                     else: flash('Nessun utente LDAP trovato','error')
                 except Exception as exc:
                     current_app.logger.exception('Ricerca uid LDAP fallita')
-                    result={'ok':False,'title':'Ricerca utente LDAP fallita','error':str(exc)}
-                    flash(f'Ricerca utente LDAP fallita: {exc}','error')
+                    result={'ok':False,'title':'Ricerca utente LDAP fallita','error':'Ricerca LDAP non riuscita. Consultare i log amministrativi.'}
+                    flash('Ricerca utente LDAP fallita. Consultare i log amministrativi.','error')
             settings=cfg
-    return render_template('ldap.html',settings=settings,result=result)
+    ldap_settings_for_display = dict(settings)
+    ldap_settings_for_display['ldap_bind_password_configured'] = bool(settings.get('ldap_bind_password'))
+    ldap_settings_for_display['ldap_bind_password'] = ''
+    return render_template('ldap.html',settings=ldap_settings_for_display,result=result)
 
 
 NOTIFICATION_FIELDS = [
@@ -6494,6 +6802,47 @@ def notification_type_records(enabled_only=True):
         q = q.filter_by(enabled=True)
     return q.order_by(NotificationType.label).all()
 
+
+def current_tenant_notification_type_query():
+    return NotificationType.query.filter(NotificationType.tenant_id == current_tenant_id())
+
+
+def writable_notification_type_or_404(type_id):
+    return current_tenant_notification_type_query().filter(NotificationType.id == int(type_id or 0)).first_or_404()
+
+
+def notification_template_query(kind=None):
+    """Read notification templates visible to the active tenant only.
+
+    Legacy rows with ``tenant_id IS NULL`` remain readable through
+    ``tenant_query`` for backwards compatibility, but all writes are forced to
+    the concrete active tenant by ``writable_notification_template_or_404``.
+    """
+    q = tenant_query(NotificationTemplate)
+    if kind is not None:
+        q = q.filter(NotificationTemplate.kind == kind)
+    return q
+
+
+def current_tenant_notification_template_query(kind=None):
+    """Return only templates owned by the concrete active tenant."""
+    q = NotificationTemplate.query.filter(NotificationTemplate.tenant_id == current_tenant_id())
+    if kind is not None:
+        q = q.filter(NotificationTemplate.kind == kind)
+    return q
+
+
+def writable_notification_template_or_404(template_id, kind=None):
+    """Resolve a template that may be modified in the active tenant.
+
+    Even global superusers must switch to the tenant that owns the template
+    before mutating it.  This prevents an active-tenant admin page from using
+    an arbitrary numeric id to edit/delete a template belonging to another
+    tenant.
+    """
+    q = current_tenant_notification_template_query(kind)
+    return q.filter(NotificationTemplate.id == int(template_id or 0)).first_or_404()
+
 def notification_type_map(enabled_only=True):
     rows = notification_type_records(enabled_only=enabled_only)
     if not rows:
@@ -6511,7 +6860,7 @@ def get_notification_type(kind):
         'dpo': ('Notifica DPO','manual','',''),
     }
     label, mode, recip_key, cc_key = fallback.get(kind, (kind, 'manual', '', ''))
-    t = NotificationType(code=kind, label=label, description=default_notification_type_description(label, kind), recipient_mode=mode, recipient_setting_key=recip_key, cc_setting_key=cc_key, enabled=True)
+    t = assign_current_tenant(NotificationType(code=kind, label=label, description=default_notification_type_description(label, kind), recipient_mode=mode, recipient_setting_key=recip_key, cc_setting_key=cc_key, enabled=True))
     db.session.add(t); db.session.commit()
     return t
 
@@ -7158,22 +7507,20 @@ def notification_label_value(kind):
     return '07-notifica all’utente'
 
 def ensure_default_notification_templates():
-    """Garantisce la presenza degli esempi predefiniti senza cancellare template utente.
+    """Ensure tenant-local default examples without touching another tenant.
 
-    La funzione è intenzionalmente conservativa: non elimina mai template
-    esistenti e non sovrascrive quelli creati/modificati dall'utente. A ogni
-    avvio o accesso al menu verifica solo se manca il template di esempio per
-    ciascun tipo di notifica; se manca lo crea. Se per un tipo non esiste alcun
-    default, marca come default il template di esempio o, in mancanza, il primo
-    template disponibile. Questo evita che i template aggiuntivi spariscano al
-    riavvio del container.
+    Legacy global templates may still be read for compatibility, but each
+    active tenant gets its own concrete rows before an administrator can edit,
+    clone, delete, or select a default.
     """
-    for kind in ['user','csirt','dpo']:
+    tenant_id = current_tenant_id()
+    for kind in ['user', 'csirt', 'dpo']:
         try:
-            action_label = ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
-            tmpl = NotificationTemplate.query.filter_by(kind=kind, name=DEFAULT_TEMPLATE_NAMES[kind]).first()
+            action_label = tenant_query(ConfigLabel).filter_by(kind='action_label', value=notification_label_value(kind)).first()
+            tmpl = current_tenant_notification_template_query(kind).filter_by(name=DEFAULT_TEMPLATE_NAMES[kind]).first()
             if not tmpl:
                 tmpl = NotificationTemplate(
+                    tenant_id=tenant_id,
                     kind=kind,
                     name=DEFAULT_TEMPLATE_NAMES[kind],
                     subject=DEFAULT_NOTIFICATION_SUBJECTS[kind],
@@ -7189,28 +7536,49 @@ def ensure_default_notification_templates():
                 )
                 db.session.add(tmpl)
                 db.session.flush()
-            if not NotificationTemplate.query.filter_by(kind=kind, is_default=True).first():
+            if not current_tenant_notification_template_query(kind).filter_by(is_default=True).first():
                 tmpl.is_default = True
         except IntegrityError:
             db.session.rollback()
-            current_app.logger.info('Template di notifica predefinito già presente per kind=%s', kind)
+            current_app.logger.info('Template di notifica predefinito già presente per tenant=%s kind=%s', tenant_id, kind)
         except (ProgrammingError, OperationalError):
             db.session.rollback()
             current_app.logger.exception('Tabella NotificationTemplate non disponibile o schema non aggiornato')
             raise
 
+
 def get_notification_template(kind, template_id=None):
-    q = NotificationTemplate.query.filter_by(kind=kind)
+    q = notification_template_query(kind)
     if template_id:
-        t = q.filter_by(id=template_id).first()
+        t = q.filter(NotificationTemplate.id == int(template_id)).first()
         if t:
             return t
-    t = q.filter_by(is_default=True).first() or q.order_by(NotificationTemplate.id).first()
+    # Prefer the active tenant over a legacy global row.
+    local_q = current_tenant_notification_template_query(kind)
+    t = local_q.filter_by(is_default=True).first() or local_q.order_by(NotificationTemplate.id).first()
     if not t:
-        action_label = ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
-        t = NotificationTemplate(kind=kind, name=DEFAULT_TEMPLATE_NAMES.get(kind, 'Template '+kind), subject=DEFAULT_NOTIFICATION_SUBJECTS.get(kind, 'Notifica incidente %NAME%'), body=DEFAULT_NOTIFICATION_BODIES.get(kind, DEFAULT_NOTIFICATION_BODIES['user']), action_label_id=action_label.id if action_label else None, recipient_source='incident_recipient_email' if kind == 'user' else 'empty', recipient_editable=True, recipient_external_allowed=True, cc_source='empty', cc_editable=True, cc_external_allowed=True, is_default=True)
-        db.session.add(t); db.session.commit()
+        t = q.filter_by(is_default=True).first() or q.order_by(NotificationTemplate.id).first()
+    if not t:
+        action_label = tenant_query(ConfigLabel).filter_by(kind='action_label', value=notification_label_value(kind)).first()
+        t = NotificationTemplate(
+            tenant_id=current_tenant_id(),
+            kind=kind,
+            name=DEFAULT_TEMPLATE_NAMES.get(kind, 'Template ' + kind),
+            subject=DEFAULT_NOTIFICATION_SUBJECTS.get(kind, 'Notifica incidente %NAME%'),
+            body=DEFAULT_NOTIFICATION_BODIES.get(kind, DEFAULT_NOTIFICATION_BODIES['user']),
+            action_label_id=action_label.id if action_label else None,
+            recipient_source='incident_recipient_email' if kind == 'user' else 'empty',
+            recipient_editable=True,
+            recipient_external_allowed=True,
+            cc_source='empty',
+            cc_editable=True,
+            cc_external_allowed=True,
+            is_default=True,
+        )
+        db.session.add(t)
+        db.session.commit()
     return t
+
 
 def _notification_placeholder_text(value):
     """Restituisce sempre testo sicuro per la sostituzione dei placeholder.
@@ -7559,6 +7927,7 @@ def notify_admin_disabled_user_created(user, source='auto'):
             port = int(setting_value('smtp_port', '587') or '587')
         except ValueError:
             return False, 'porta SMTP non valida'
+        host = validate_outbound_host(host, purpose='SMTP')
         smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
         with smtp_cls(host, port, timeout=20) as smtp:
             if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
@@ -7606,12 +7975,14 @@ def send_notification_email(kind, inc, recipient, cc, subject, body, attach_repo
     if attach_statistics:
         _email_add_pdf_attachment_from_path_or_buffer(msg, _statistics_pdf_for_notification(), 'statistiche-incidenti.pdf')
     for doc in selected_documents or []:
-        path = os.path.join(current_app.config['UPLOAD_DIR'], doc.stored_name or '')
-        if not os.path.isfile(path):
-            raise RuntimeError(f'Documento non trovato sul filesystem: {doc.filename}')
+        try:
+            path = safe_upload_path(doc.stored_name)
+        except (ValueError, FileNotFoundError) as exc:
+            raise RuntimeError(f'Documento non disponibile sul filesystem: {doc.filename}') from exc
         with open(path, 'rb') as fh:
             data = fh.read()
         msg.add_attachment(data, maintype='application', subtype='octet-stream', filename=doc.filename)
+    host = validate_outbound_host(host, purpose='SMTP')
     smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
     current_app.logger.info('Invio notifica %s incidente %s via SMTP host=%s port=%s ssl=%s starttls=%s auth=%s from=%s to=%s cc=%s attach_report=%s attach_statistics=%s documents=%s', kind, inc.id, host, port, use_ssl, use_tls and not use_ssl, auth_enabled, sender, recipient, cc or '', attach_report, attach_statistics, len(selected_documents or []))
     with smtp_cls(host, port, timeout=20) as smtp:
@@ -7655,6 +8026,7 @@ def send_smtp_test_email(test_recipient):
         f'Autenticazione: {"sì" if auth_enabled else "no"}\n'
     )
 
+    host = validate_outbound_host(host, purpose='SMTP')
     smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
     current_app.logger.info(
         'Invio mail di prova SMTP host=%s port=%s ssl=%s starttls=%s auth=%s from=%s to=%s',
@@ -7975,7 +8347,8 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
     # quelli appena inviati/falliti, così la pagina aggiorna lo stato dopo il
     # ciclo scheduler senza far sparire immediatamente la riga operativa.
     recent_start = now - timedelta(hours=hours)
-    reminders = IncidentReminder.query.filter(
+    reminders = IncidentReminder.query.join(Incident).filter(
+        Incident.tenant_id == current_tenant_id(),
         IncidentReminder.scheduled_at >= recent_start,
         IncidentReminder.scheduled_at <= horizon,
     ).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).limit(limit).all()
@@ -8009,7 +8382,7 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
                 break
             seen_slots.add(slot)
             next_slot = next_deadline_notification_at(slot + timedelta(minutes=1))
-            for inc in Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).order_by(Incident.id.asc()).all():
+            for inc in Incident.query.filter(Incident.tenant_id == current_tenant_id(), Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).order_by(Incident.id.asc()).all():
                 if not pending_deadline_actions_for_incident(inc, now=now):
                     continue
                 if _deadline_notification_sent_in_current_window(inc.id, slot, next_slot):
@@ -8032,7 +8405,8 @@ def upcoming_scheduled_notifications(hours=24, limit=200):
 
     # Aggiunge gli esiti recenti delle notifiche deadline già inviate o fallite,
     # usando il registro persistente anti-flooding.
-    recent_states = DeadlineNotificationState.query.filter(
+    recent_states = DeadlineNotificationState.query.join(Incident, DeadlineNotificationState.incident_id == Incident.id).filter(
+        Incident.tenant_id == current_tenant_id(),
         DeadlineNotificationState.notification_type == 'deadline_summary',
         DeadlineNotificationState.last_schedule_slot >= recent_start,
         DeadlineNotificationState.last_schedule_slot <= now,
@@ -8348,7 +8722,7 @@ def _deadline_notification_check_already_audited_for_slot(schedule_slot):
     slot_label = _deadline_slot_label(schedule_slot)
     marker_json = f'"schedule_slot": "{slot_label}"'
     marker_text = f'slot {slot_label}'
-    return AuditLog.query.filter(
+    return tenant_query(AuditLog).filter(
         AuditLog.operation_type == 'scheduler:deadline_notification_check',
         db.or_(AuditLog.details.contains(marker_json), AuditLog.details.contains(marker_text)),
     ).first() is not None
@@ -8376,6 +8750,7 @@ def send_deadline_summary_email(inc, pending_rows):
         port = int(setting_value('smtp_port', '587') or '587')
     except ValueError:
         return False, 'porta SMTP non valida'
+    host = validate_outbound_host(host, purpose='SMTP')
     smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
     with _scheduler_mail_send_lock:
         with smtp_cls(host, port, timeout=20) as smtp:
@@ -8438,6 +8813,7 @@ def send_incident_reminder_email(reminder):
         port = int(setting_value('smtp_port', '587') or '587')
     except ValueError:
         return False, 'porta SMTP non valida'
+    host = validate_outbound_host(host, purpose='SMTP')
     smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
     with _scheduler_mail_send_lock:
         with smtp_cls(host, port, timeout=20) as smtp:
@@ -8671,15 +9047,15 @@ def scheduler_service_status():
     """Return diagnostic info for the admin status page."""
     now = application_now()
     poll_seconds = deadline_scheduler_poll_seconds()
-    due_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).count()
-    future_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at > now).count()
-    sent_reminders = IncidentReminder.query.filter(IncidentReminder.sent_at.isnot(None)).count()
-    open_incidents = Incident.query.filter(Incident.status != 'chiuso').count()
+    due_reminders = IncidentReminder.query.join(Incident).filter(Incident.tenant_id == current_tenant_id(), IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).count()
+    future_reminders = IncidentReminder.query.join(Incident).filter(Incident.tenant_id == current_tenant_id(), IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at > now).count()
+    sent_reminders = IncidentReminder.query.join(Incident).filter(Incident.tenant_id == current_tenant_id(), IncidentReminder.sent_at.isnot(None)).count()
+    open_incidents = Incident.query.filter(Incident.tenant_id == current_tenant_id(), Incident.status != 'chiuso').count()
     pending_deadline_incidents = 0
-    for inc in Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all():
+    for inc in Incident.query.filter(Incident.tenant_id == current_tenant_id(), Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all():
         if pending_deadline_actions_for_incident(inc, now=now):
             pending_deadline_incidents += 1
-    backup_jobs = BackupJob.query.order_by(BackupJob.id).all()
+    backup_jobs = BackupJob.query.filter(BackupJob.tenant_id == current_tenant_id()).order_by(BackupJob.id).all()
     return {
         'now': format_application_datetime(now, include_timezone=True),
         'timezone': application_timezone_name(),
@@ -8724,7 +9100,7 @@ def scheduler_service_status():
 
 def process_due_incident_reminders(source='background_scheduler'):
     now = application_now()
-    due = IncidentReminder.query.filter(IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).all()
+    due = IncidentReminder.query.join(Incident).filter(Incident.tenant_id == current_tenant_id(), IncidentReminder.sent_at.is_(None), IncidentReminder.scheduled_at <= now).order_by(IncidentReminder.scheduled_at.asc(), IncidentReminder.id.asc()).all()
     sent = skipped = 0
     errors = []
     skipped_details = []
@@ -8858,7 +9234,7 @@ def run_deadline_notification_check(force=False, source='request'):
     incidents_with_pending = 0
     incidents_already_sent = 0
     incidents_without_recipients = 0
-    incidents = Incident.query.filter(Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all()
+    incidents = Incident.query.filter(Incident.tenant_id == current_tenant_id(), Incident.status != 'chiuso', Incident.deadline_notifications_muted.is_(False)).all()
     for inc in incidents:
         incidents_checked += 1
         rows = pending_deadline_actions_for_incident(inc, now=now)
@@ -9051,6 +9427,49 @@ def deadline_scheduler_poll_seconds():
     """Intervallo configurabile del thread dei task in scadenza."""
     return _scheduler_poll_seconds_setting('notification_deadline_poll_seconds', 60)
 
+def _background_tenant_ids():
+    """Return a stable tenant list for one background scheduler pass."""
+    return [row.id for row in Tenant.query.order_by(Tenant.id.asc()).all()]
+
+
+def _minimum_tenant_poll_seconds(getter, fallback=60):
+    values = []
+    for tenant_id in _background_tenant_ids():
+        with tenant_execution_context(tenant_id):
+            try:
+                values.append(int(getter()))
+            except Exception:
+                current_app.logger.exception('Lettura intervallo scheduler fallita per tenant %s', tenant_id)
+    return min(values) if values else int(fallback)
+
+
+def run_all_tenant_scheduler_services_cycle(source='background_scheduler'):
+    """Run deadline services independently inside every tenant boundary."""
+    results = {}
+    for tenant_id in _background_tenant_ids():
+        with tenant_execution_context(tenant_id):
+            results[tenant_id] = run_scheduler_services_cycle(source=source)
+    return results
+
+
+def process_all_tenant_incident_reminders(source='background_reminder_scheduler'):
+    """Process incident reminders tenant-by-tenant and persist tenant-local status."""
+    results = {}
+    for tenant_id in _background_tenant_ids():
+        with tenant_execution_context(tenant_id):
+            started = application_now()
+            try:
+                result = process_due_incident_reminders(source=source)
+                _record_scheduler_cycle('incident_reminders', result=result, started_at=started, ended_at=application_now(), status='ok')
+            except Exception as exc:
+                db.session.rollback()
+                current_app.logger.exception('Ciclo promemoria non completato per tenant %s', tenant_id)
+                result = {'source': source, 'errors': [str(exc)], 'executed': False}
+                _record_scheduler_cycle('incident_reminders', result=result, started_at=started, ended_at=application_now(), status='error', error=str(exc))
+            results[tenant_id] = result
+    return results
+
+
 def _try_database_scheduler_lock(lock_id=_CIR_SCHEDULER_LOCK_ID):
     """Acquire a PostgreSQL advisory lock for multi-replica deployments.
 
@@ -9104,11 +9523,11 @@ def start_deadline_notification_scheduler(app):
 
     def loop():
         with app.app_context():
-            poll_seconds = deadline_scheduler_poll_seconds()
+            poll_seconds = _minimum_tenant_poll_seconds(deadline_scheduler_poll_seconds)
         app.logger.info('Scheduler notifiche task in scadenza avviato con poll=%ss', poll_seconds)
         while not _deadline_scheduler_stop_event.is_set():
             with app.app_context():
-                poll_seconds = deadline_scheduler_poll_seconds()
+                poll_seconds = _minimum_tenant_poll_seconds(deadline_scheduler_poll_seconds)
             if not _deadline_scheduler_lock.acquire(blocking=False):
                 if _deadline_scheduler_stop_event.wait(poll_seconds):
                     break
@@ -9118,7 +9537,7 @@ def start_deadline_notification_scheduler(app):
                 with app.app_context():
                     db_lock_acquired = _try_database_scheduler_lock()
                     if db_lock_acquired:
-                        run_scheduler_services_cycle(source='background_scheduler')
+                        run_all_tenant_scheduler_services_cycle(source='background_scheduler')
             except Exception:
                 try:
                     with app.app_context():
@@ -9162,7 +9581,7 @@ def start_incident_reminder_scheduler(app):
         app.logger.info('Scheduler promemoria specifici avviato')
         while not _incident_reminder_scheduler_stop_event.is_set():
             with app.app_context():
-                poll_seconds = incident_reminder_poll_seconds()
+                poll_seconds = _minimum_tenant_poll_seconds(incident_reminder_poll_seconds)
             if not _incident_reminder_scheduler_lock.acquire(blocking=False):
                 if _incident_reminder_scheduler_stop_event.wait(poll_seconds):
                     break
@@ -9174,8 +9593,7 @@ def start_incident_reminder_scheduler(app):
                     started = application_now()
                     db_lock_acquired = _try_database_scheduler_lock(_CIR_REMINDER_SCHEDULER_LOCK_ID)
                     if db_lock_acquired:
-                        result = process_due_incident_reminders(source='background_reminder_scheduler')
-                        _record_scheduler_cycle('incident_reminders', result=result, started_at=started, ended_at=application_now(), status='ok')
+                        process_all_tenant_incident_reminders(source='background_reminder_scheduler')
             except Exception as exc:
                 try:
                     with app.app_context():
@@ -9237,8 +9655,8 @@ def notification_types():
         action = request.form.get('action','save')
         type_id = request.form.get('type_id', type=int)
         if action == 'delete':
-            t = model_or_404(NotificationType, type_id)
-            if NotificationTemplate.query.filter_by(kind=t.code).first():
+            t = writable_notification_type_or_404(type_id)
+            if tenant_query(NotificationTemplate).filter(NotificationTemplate.kind == t.code).first():
                 flash('Impossibile cancellare il tipo: esistono template associati. Cancellare o spostare prima i template.', 'error')
             elif t.code in ['user','csirt','dpo']:
                 flash('I tipi predefiniti non possono essere cancellati.', 'error')
@@ -9253,7 +9671,7 @@ def notification_types():
         if not code or not label:
             flash('Codice e nome del tipo sono obbligatori.', 'error')
         else:
-            t = db.session.get(NotificationType, type_id) if type_id else NotificationType()
+            t = writable_notification_type_or_404(type_id) if type_id else assign_current_tenant(NotificationType())
             if t.id and t.code in ['user','csirt','dpo'] and code != t.code:
                 flash('Il codice dei tipi predefiniti non può essere modificato.', 'error')
             else:
@@ -9265,7 +9683,7 @@ def notification_types():
                     db.session.rollback(); flash('Esiste già un tipo di notifica con lo stesso codice.', 'error')
         return redirect(url_for('main.notification_types'))
     edit_id=request.args.get('edit', type=int)
-    editing=db.session.get(NotificationType, edit_id) if edit_id else None
+    editing=writable_notification_type_or_404(edit_id) if edit_id else None
     return render_template('notification_types.html', types=notification_type_records(enabled_only=False), editing=editing)
 
 
@@ -9291,7 +9709,7 @@ def notification_settings():
                 flash(f'Mail di prova inviata a {test_email}')
             except Exception as exc:
                 current_app.logger.exception('Errore durante invio mail di prova SMTP')
-                flash(f'Errore invio mail di prova: {exc}', 'error')
+                flash('Errore invio mail di prova. Consultare i log amministrativi.', 'error')
         elif action == 'run_deadline_check':
             try:
                 result = run_deadline_notification_check(force=True, source='manual_button')
@@ -9336,6 +9754,9 @@ def notification_settings():
                 for k in keys:
                     if k in checkbox_keys:
                         set_setting_value(k, '1' if request.form.get(k) else '0')
+                    elif k == 'smtp_password':
+                        if request.form.get(k):
+                            set_setting_value(k, request.form.get(k, ''))
                     else:
                         set_setting_value(k, request.form.get(k, ''))
                 db.session.commit(); flash('Impostazioni notifiche salvate')
@@ -9348,6 +9769,8 @@ def notification_settings():
         'notification_incident_reminder_poll_seconds': '60',
     }
     settings = {k: setting_value(k, defaults.get(k,'')) for k in keys}
+    settings['smtp_password_configured'] = bool(settings.get('smtp_password'))
+    settings['smtp_password'] = ''
     preview_subject, preview_body = sample_deadline_preview()
     schedule_info = format_deadline_schedule_info()
     return render_template('notification_settings.html', settings=settings, deadline_placeholders=DEADLINE_NOTIFICATION_PLACEHOLDERS, preview_subject=preview_subject, preview_body=preview_body, schedule_info=schedule_info, upcoming_notifications=upcoming_scheduled_notifications())
@@ -9367,7 +9790,7 @@ def notification_template_new():
         if not name:
             flash('Nome template obbligatorio','error')
             return redirect(url_for('main.notification_template_new', kind=kind))
-        tmpl = NotificationTemplate(kind=kind)
+        tmpl = NotificationTemplate(tenant_id=current_tenant_id(), kind=kind)
         tmpl.name = name
         tmpl.subject = request.form.get('subject','')
         tmpl.body = request.form.get('body','')
@@ -9376,7 +9799,7 @@ def notification_template_new():
         action_label_id = request.form.get('action_label_id', type=int)
         tmpl.action_label_id = action_label_id or None
         if request.form.get('is_default'):
-            NotificationTemplate.query.filter_by(kind=kind).update({'is_default': False})
+            current_tenant_notification_template_query(kind).update({'is_default': False}, synchronize_session=False)
             tmpl.is_default = True
         db.session.add(tmpl); db.session.commit(); flash('Template di notifica aggiunto')
         return redirect(url_for('main.notification_template', kind=kind))
@@ -9391,23 +9814,24 @@ def notification_template(kind):
     title = kinds[kind]
     ensure_default_notification_templates(); db.session.commit()
     edit_id = request.args.get('edit', type=int)
-    editing = NotificationTemplate.query.filter_by(id=edit_id, kind=kind).first() if edit_id else None
+    editing = writable_notification_template_or_404(edit_id, kind) if edit_id else None
     if request.method == 'POST':
         action = request.form.get('action','save')
         template_id = request.form.get('template_id', type=int)
         if action == 'delete':
-            tmpl = NotificationTemplate.query.filter_by(id=template_id, kind=kind).first_or_404()
+            tmpl = writable_notification_template_or_404(template_id, kind)
             db.session.delete(tmpl); db.session.commit(); flash(f'Template {title} cancellato')
             return redirect(url_for('main.notification_template', kind=kind))
         if action == 'clone':
-            source = NotificationTemplate.query.filter_by(id=template_id, kind=kind).first_or_404()
+            source = writable_notification_template_or_404(template_id, kind)
             base_name = f'{source.name} - copia'
             candidate = base_name
             idx = 2
-            while NotificationTemplate.query.filter_by(kind=kind, name=candidate).first():
+            while current_tenant_notification_template_query(kind).filter_by(name=candidate).first():
                 candidate = f'{base_name} {idx}'
                 idx += 1
             clone = NotificationTemplate(
+                tenant_id=current_tenant_id(),
                 kind=source.kind,
                 name=candidate,
                 subject=source.subject,
@@ -9429,8 +9853,8 @@ def notification_template(kind):
             flash(f'Template "{source.name}" clonato come "{clone.name}"')
             return redirect(url_for('main.notification_template', kind=kind, edit=clone.id))
         if action == 'set_default':
-            tmpl = NotificationTemplate.query.filter_by(id=template_id, kind=kind).first_or_404()
-            NotificationTemplate.query.filter_by(kind=kind).update({'is_default': False})
+            tmpl = writable_notification_template_or_404(template_id, kind)
+            current_tenant_notification_template_query(kind).update({'is_default': False}, synchronize_session=False)
             tmpl.is_default = True; db.session.commit(); flash(f'Template {tmpl.name} impostato come predefinito')
             return redirect(url_for('main.notification_template', kind=kind))
         if not template_id:
@@ -9440,7 +9864,7 @@ def notification_template(kind):
         if not name:
             flash('Nome template obbligatorio','error')
             return redirect(url_for('main.notification_template', kind=kind, edit=template_id))
-        tmpl = NotificationTemplate.query.filter_by(id=template_id, kind=kind).first_or_404()
+        tmpl = writable_notification_template_or_404(template_id, kind)
         tmpl.name = name
         tmpl.subject = request.form.get('subject','')
         tmpl.body = request.form.get('body','')
@@ -9449,11 +9873,11 @@ def notification_template(kind):
         action_label_id = request.form.get('action_label_id', type=int)
         tmpl.action_label_id = action_label_id or None
         if request.form.get('is_default'):
-            NotificationTemplate.query.filter_by(kind=kind).update({'is_default': False})
+            current_tenant_notification_template_query(kind).update({'is_default': False}, synchronize_session=False)
             tmpl.is_default = True
         db.session.add(tmpl); db.session.commit(); flash(f'Template {title} salvato')
         return redirect(url_for('main.notification_template', kind=kind))
-    templates = NotificationTemplate.query.filter_by(kind=kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
+    templates = notification_template_query(kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
     return render_template('notification_template.html', kind=kind, title=title, fields=NOTIFICATION_FIELDS, templates=templates, editing=editing, adding=False, action_labels=labels('action_label'), form_templates=list_templates(), address_sources=notification_template_address_sources())
 
 @bp.route('/incident/<int:iid>/notify/<kind>/preview')
@@ -9484,7 +9908,7 @@ def notify_preview(iid, kind):
     attach_statistics = notification_needs_statistics(kind, tmpl.id)
     body = notification_body(kind, inc, template_id=tmpl.id)
     title = ntype.label
-    templates = NotificationTemplate.query.filter_by(kind=kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
+    templates = notification_template_query(kind).order_by(NotificationTemplate.is_default.desc(), NotificationTemplate.name).all()
     auto_documents = auto_selected_notification_documents(inc, tmpl, kind)
     auto_document_ids = {d.id for d in auto_documents}
     linked_template_missing_warning = bool(tmpl.linked_form_template_name and not auto_documents)
@@ -9566,7 +9990,7 @@ def notify_send(iid, kind):
             }
         else:
             send_info = send_notification_email(kind, inc, recipient, cc, subject, body, attach_report, selected_documents=selected_documents, attach_statistics=attach_statistics)
-        label = tmpl.action_label or ConfigLabel.query.filter_by(kind='action_label', value=notification_label_value(kind)).first()
+        label = tmpl.action_label or tenant_query(ConfigLabel).filter_by(kind='action_label', value=notification_label_value(kind)).first()
         if not label:
             label = ConfigLabel(kind='action_label', group='azioni', value=notification_label_value(kind))
             db.session.add(label); db.session.flush()
@@ -9592,7 +10016,7 @@ def notify_send(iid, kind):
     except Exception as exc:
         db.session.rollback()
         current_app.logger.exception('Errore invio notifica %s incidente %s', kind, iid)
-        flash(f'Errore invio notifica: {exc}', 'error')
+        flash('Errore invio notifica. Consultare i log amministrativi.', 'error')
     return redirect(url_for('main.incident_detail', iid=iid))
 
 @bp.route('/aiuto')
@@ -10169,6 +10593,464 @@ def _restore_persistent_files_from_archive(archive, persistent_manifest):
             restored += 1
     return restored
 
+
+
+def _full_import_managed_paths():
+    return {
+        'uploads': Path(current_app.config['UPLOAD_DIR']),
+        'form_templates': Path(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates'),
+        'custom_logos': Path(current_app.config.get('LOGO_DIR') or '/data/logo'),
+        'sso_logos': Path(sso_logo_storage_dir()),
+        'ssl': Path(ssl_storage_dir()),
+        'ai_chatbot_docs': Path(current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs'),
+    }
+
+
+def _copy_archive_member_to_path(archive, arcname, destination, *, required=False, mode=None):
+    if not arcname:
+        return False
+    try:
+        member = archive.getmember(arcname)
+        src = archive.extractfile(member)
+    except KeyError:
+        if required:
+            raise ValueError(f'File richiesto mancante nell archivio: {arcname}')
+        current_app.logger.warning('File indicato nel manifest ma mancante: %s', arcname)
+        return False
+    if src is None:
+        if required:
+            raise ValueError(f'Entry non leggibile nell archivio: {arcname}')
+        return False
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with open(destination, 'xb') as out:
+        shutil.copyfileobj(src, out)
+    if mode is not None:
+        try:
+            os.chmod(destination, mode)
+        except OSError:
+            pass
+    return True
+
+
+_FULL_IMPORT_COMMIT_MARKER_KEY = '__cir_full_import_commit_token'
+_FULL_IMPORT_JOURNAL_VERSION = 1
+
+
+def _full_import_journal_path():
+    root = Path(current_app.config.get('BACKUP_DIR') or '/data/backups').resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    return root / '.cir-full-import-restore-journal.json'
+
+
+def _fsync_directory(path):
+    """Best-effort directory fsync for durable rename/journal ordering."""
+    try:
+        fd = os.open(str(path), os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
+def _write_full_import_journal(payload):
+    journal = _full_import_journal_path()
+    tmp = journal.with_name(journal.name + '.tmp')
+    encoded = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    with open(tmp, 'wb') as out:
+        out.write(encoded)
+        out.flush()
+        os.fsync(out.fileno())
+    try:
+        os.chmod(tmp, 0o600)
+    except OSError:
+        pass
+    os.replace(tmp, journal)
+    _fsync_directory(journal.parent)
+
+
+def _remove_full_import_journal():
+    journal = _full_import_journal_path()
+    try:
+        journal.unlink()
+    except FileNotFoundError:
+        return
+    _fsync_directory(journal.parent)
+
+
+def _load_full_import_journal():
+    journal = _full_import_journal_path()
+    if not journal.exists():
+        return None
+    try:
+        payload = json.loads(journal.read_text(encoding='utf-8'))
+    except (OSError, ValueError, TypeError) as exc:
+        raise RuntimeError(f'Journal Full Import non leggibile: {journal}') from exc
+    token = str(payload.get('token') or '')
+    if payload.get('version') != _FULL_IMPORT_JOURNAL_VERSION or not re.fullmatch(r'[0-9a-f]{32}', token):
+        raise RuntimeError('Journal Full Import non valido o non supportato')
+    groups = payload.get('groups')
+    if not isinstance(groups, dict):
+        raise RuntimeError('Journal Full Import privo dello stato dei volumi')
+    allowed = set(_full_import_managed_paths())
+    if not groups or any(group not in allowed for group in groups):
+        raise RuntimeError('Journal Full Import contiene gruppi persistenti non validi')
+    for group, state in groups.items():
+        if not isinstance(state, dict) or not isinstance(state.get('had_original'), bool):
+            raise RuntimeError(f'Journal Full Import non valido per il gruppo {group}')
+    return payload
+
+
+def _full_import_artifact_paths(token, group, base):
+    return (
+        base.parent / f'.cir-restore-stage-{token}-{base.name}',
+        base.parent / f'.cir-restore-backup-{token}-{base.name}',
+    )
+
+
+def _clear_full_import_commit_marker(token=None):
+    try:
+        marker = db.session.get(Setting, _FULL_IMPORT_COMMIT_MARKER_KEY)
+    except Exception:
+        db.session.rollback()
+        return False
+    if marker is None or (token is not None and marker.value != token):
+        return True
+    db.session.delete(marker)
+    db.session.commit()
+    return True
+
+
+def recover_interrupted_full_import():
+    """Recover a Full Import interrupted by process/host termination.
+
+    The filesystem journal is durable before any destructive directory rename.
+    A matching marker is written to ``Setting`` inside the destructive database
+    transaction.  Therefore a matching marker after restart proves that the DB
+    commit completed; without it, the old filesystem snapshot must be restored.
+    """
+    payload = _load_full_import_journal()
+    if payload is None:
+        # A crash after journal deletion but before marker cleanup is harmless.
+        _clear_full_import_commit_marker()
+        return False
+
+    token = payload['token']
+    paths = _full_import_managed_paths()
+    try:
+        marker = db.session.get(Setting, _FULL_IMPORT_COMMIT_MARKER_KEY)
+        committed = bool(marker and marker.value == token)
+    except Exception:
+        db.session.rollback()
+        committed = False
+
+    failures = []
+    groups = payload['groups']
+    if committed:
+        current_app.logger.warning('Recovery Full Import: commit DB %s confermato; completo la pulizia filesystem.', token)
+        for group in groups:
+            base = paths[group]
+            stage, backup = _full_import_artifact_paths(token, group, base)
+            for artifact in (backup, stage):
+                try:
+                    if artifact.exists():
+                        shutil.rmtree(artifact)
+                except Exception:
+                    failures.append(group)
+                    current_app.logger.exception('Recovery Full Import: pulizia post-commit fallita per %s', group)
+    else:
+        current_app.logger.critical('Recovery Full Import: commit DB %s non confermato; ripristino i volumi precedenti.', token)
+        for group in reversed(list(groups)):
+            base = paths[group]
+            stage, backup = _full_import_artifact_paths(token, group, base)
+            state = groups[group]
+            try:
+                if backup.exists():
+                    state['state'] = 'restoring'
+                    _write_full_import_journal(payload)
+                    if base.exists():
+                        shutil.rmtree(base)
+                    os.replace(backup, base)
+                    _fsync_directory(base.parent)
+                elif not state['had_original'] and base.exists():
+                    state['state'] = 'removing_new'
+                    _write_full_import_journal(payload)
+                    shutil.rmtree(base)
+                    _fsync_directory(base.parent)
+                # If the old directory existed but no backup exists, either no
+                # destructive rename happened or a previous recovery already
+                # restored it.  In both cases the live path is the safe state.
+                if stage.exists():
+                    shutil.rmtree(stage)
+                state['state'] = 'restored'
+                _write_full_import_journal(payload)
+            except Exception:
+                failures.append(group)
+                current_app.logger.exception('Recovery Full Import fallita per %s', group)
+
+    if failures:
+        raise RuntimeError('Recovery Full Import incompleto: ' + ', '.join(dict.fromkeys(failures)))
+
+    _remove_full_import_journal()
+    if committed:
+        _clear_full_import_commit_marker(token)
+    current_app.logger.warning('Recovery Full Import completato per token %s.', token)
+    return True
+
+
+class _FullImportFilesystemTransaction:
+    """Stage and reversibly swap persistent directories for Full Import.
+
+    Staging happens before destructive DB work. Directory swaps happen only
+    after all DB rows have been loaded and validated; if commit or a later
+    operation fails, ``rollback`` restores every previously active directory.
+    Staging directories live next to their destination so ``os.replace`` stays
+    on the same filesystem and is atomic for each directory.
+    """
+
+    def __init__(self, archive, data):
+        self.archive = archive
+        self.data = data or {}
+        self.paths = _full_import_managed_paths()
+        self.token = uuid.uuid4().hex
+        self.stages = {}
+        self.backups = {}
+        self.activated = []
+        self.moved_to_backup = []
+        self.logo_path = None
+        self.journal = None
+
+    def _persist_journal(self):
+        if self.journal is not None:
+            _write_full_import_journal(self.journal)
+
+    def _set_journal_state(self, group, state):
+        if self.journal is not None and group in self.journal['groups']:
+            self.journal['groups'][group]['state'] = state
+            self._persist_journal()
+
+    def _stage_path(self, group, base):
+        base.parent.mkdir(parents=True, exist_ok=True)
+        stage = base.parent / f'.cir-restore-stage-{self.token}-{base.name}'
+        if stage.exists():
+            shutil.rmtree(stage)
+        stage.mkdir(parents=True, exist_ok=False)
+        self.stages[group] = stage
+        return stage
+
+    def stage(self):
+        files = self.data.get('files', {}) or {}
+        persistent = files.get('persistent_files', {}) or {}
+        legacy_groups = set()
+        if files.get('documents') or files.get('action_attachments'):
+            legacy_groups.add('uploads')
+        if files.get('form_templates'):
+            legacy_groups.add('form_templates')
+        if files.get('logo'):
+            legacy_groups.add('custom_logos')
+        if files.get('sso_logos'):
+            legacy_groups.add('sso_logos')
+        if files.get('ssl_certificates'):
+            legacy_groups.add('ssl')
+        requested_groups = (set(persistent.keys()) & set(self.paths.keys())) | legacy_groups
+        groups_to_stage = [group for group in self.paths if group in requested_groups]
+        if groups_to_stage:
+            self.journal = {
+                'version': _FULL_IMPORT_JOURNAL_VERSION,
+                'token': self.token,
+                'created_at': utcnow().isoformat(),
+                'groups': {
+                    group: {'had_original': self.paths[group].exists(), 'state': 'planned'}
+                    for group in groups_to_stage
+                },
+            }
+            # Persist intent before creating staging content.  A host/process
+            # crash from this point onward can be identified on next startup.
+            self._persist_journal()
+        for group in groups_to_stage:
+            base = self.paths[group]
+            self._set_journal_state(group, 'staging')
+            stage = self._stage_path(group, base)
+            for item in persistent.get(group, []) or []:
+                rel = Path(item.get('relative_path') or '')
+                arcname = item.get('archive_path') or ''
+                if not arcname or rel.is_absolute() or '..' in rel.parts:
+                    raise ValueError(f'Percorso persistente non sicuro nel manifest: {rel}')
+                _copy_archive_member_to_path(
+                    self.archive,
+                    arcname,
+                    stage / rel,
+                    required=True,
+                    mode=0o600 if group == 'ssl' and rel.name.endswith('.key') else None,
+                )
+
+        # Legacy/full-export compatibility: manifests before persistent_files
+        # carried these groups separately. Add them only when absent from the
+        # complete persistent snapshot.
+        upload_stage = self.stages.get('uploads')
+        if upload_stage is not None and 'uploads' not in persistent:
+            for group in ('documents', 'action_attachments'):
+                for item in files.get(group, []) or []:
+                    stored = secure_filename(item.get('stored_name') or '')
+                    if not stored or stored != (item.get('stored_name') or ''):
+                        raise ValueError(f'Nome file upload non sicuro nel manifest: {stored}')
+                    _copy_archive_member_to_path(self.archive, item.get('archive_path'), upload_stage / stored, required=True, mode=0o600)
+
+        form_stage = self.stages.get('form_templates')
+        if form_stage is not None and 'form_templates' not in persistent:
+            for item in files.get('form_templates', []) or []:
+                name = secure_filename(item.get('name') or '')
+                if not name or not name.lower().endswith('.pdf'):
+                    continue
+                _copy_archive_member_to_path(self.archive, item.get('archive_path'), form_stage / name, required=True, mode=0o600)
+
+        logo_stage = self.stages.get('custom_logos')
+        logo = files.get('logo') or {}
+        if logo_stage is not None and 'custom_logos' not in persistent and logo.get('archive_path'):
+            ext = Path(secure_filename(Path(logo['archive_path']).name)).suffix or '.img'
+            staged_logo = logo_stage / f'logo{ext}'
+            _copy_archive_member_to_path(self.archive, logo['archive_path'], staged_logo, required=True, mode=0o600)
+            self.logo_path = str(self.paths['custom_logos'] / staged_logo.name)
+
+        sso_stage = self.stages.get('sso_logos')
+        if sso_stage is not None and 'sso_logos' not in persistent:
+            for item in files.get('sso_logos', []) or []:
+                rel = Path(item.get('relative_path') or '')
+                if rel.is_absolute() or '..' in rel.parts or len(rel.parts) != 2 or rel.parts[0] != 'sso':
+                    raise ValueError(f'Percorso logo SSO non sicuro: {rel}')
+                _copy_archive_member_to_path(self.archive, item.get('archive_path'), sso_stage / rel.name, required=True, mode=0o600)
+
+        ssl_stage = self.stages.get('ssl')
+        ssl_manifest = files.get('ssl_certificates', {}) or {}
+        if ssl_stage is not None and 'ssl' not in persistent:
+            cert = ssl_manifest.get('certificate') or {}
+            key = ssl_manifest.get('private_key') or {}
+            if cert.get('archive_path'):
+                _copy_archive_member_to_path(self.archive, cert['archive_path'], ssl_stage / 'current.crt', required=True, mode=0o600)
+            if key.get('archive_path'):
+                _copy_archive_member_to_path(self.archive, key['archive_path'], ssl_stage / 'current.key', required=True, mode=0o600)
+        for group in groups_to_stage:
+            self._set_journal_state(group, 'staged')
+        return self
+
+    def activate(self):
+        try:
+            for group, stage in self.stages.items():
+                base = self.paths[group]
+                _, backup = _full_import_artifact_paths(self.token, group, base)
+                if backup.exists():
+                    shutil.rmtree(backup)
+                if base.exists():
+                    self._set_journal_state(group, 'moving_backup')
+                    os.replace(base, backup)
+                    _fsync_directory(base.parent)
+                    self.backups[group] = backup
+                    # Track the destructive half of the swap immediately.
+                    self.moved_to_backup.append(group)
+                    self._set_journal_state(group, 'backup_moved')
+                self._set_journal_state(group, 'promoting')
+                os.replace(stage, base)
+                _fsync_directory(base.parent)
+                self.activated.append(group)
+                self._set_journal_state(group, 'activated')
+        except Exception as exc:
+            rollback_failures = self.rollback()
+            if rollback_failures:
+                raise RuntimeError(
+                    'Attivazione Full Import fallita e rollback filesystem incompleto: '
+                    + ', '.join(rollback_failures)
+                ) from exc
+            raise
+
+    def mark_database_commit_pending(self):
+        """Write the recovery token inside the same DB transaction as restore."""
+        if self.journal is None:
+            return
+        marker = db.session.get(Setting, _FULL_IMPORT_COMMIT_MARKER_KEY)
+        if marker is None:
+            marker = Setting(key=_FULL_IMPORT_COMMIT_MARKER_KEY, value=self.token)
+            db.session.add(marker)
+        else:
+            marker.value = self.token
+        db.session.flush()
+
+    def rollback(self):
+        failures = []
+        touched = list(dict.fromkeys(self.activated + self.moved_to_backup))
+        for group in reversed(touched):
+            base = self.paths[group]
+            backup = self.backups.get(group)
+            try:
+                if backup and backup.exists():
+                    self._set_journal_state(group, 'restoring')
+                    if base.exists():
+                        shutil.rmtree(base)
+                    os.replace(backup, base)
+                    _fsync_directory(base.parent)
+                elif (
+                    (self.journal is not None and not self.journal['groups'][group]['had_original'])
+                    or (self.journal is None and group in self.activated)
+                ):
+                    self._set_journal_state(group, 'removing_new')
+                    if base.exists():
+                        shutil.rmtree(base)
+                        _fsync_directory(base.parent)
+                if group in self.activated:
+                    self.activated.remove(group)
+                if group in self.moved_to_backup:
+                    self.moved_to_backup.remove(group)
+                self.backups.pop(group, None)
+                self._set_journal_state(group, 'restored')
+            except Exception:
+                failures.append(group)
+                current_app.logger.exception('Rollback filesystem Full Import fallito per %s', group)
+        self.cleanup_staging()
+        if not failures and self.journal is not None:
+            _remove_full_import_journal()
+            self.journal = None
+        return failures
+
+    def finalize(self):
+        failures = []
+        for group in list(self.stages):
+            base = self.paths[group]
+            stage, backup = _full_import_artifact_paths(self.token, group, base)
+            try:
+                self._set_journal_state(group, 'finalizing')
+                for artifact in (backup, stage):
+                    if artifact.exists():
+                        shutil.rmtree(artifact)
+                self.backups.pop(group, None)
+            except Exception:
+                failures.append(group)
+                current_app.logger.exception('Pulizia post-commit filesystem Full Import fallita per %s', group)
+        if failures:
+            current_app.logger.error(
+                'Journal Full Import mantenuto per recovery startup; pulizia incompleta: %s',
+                ', '.join(failures),
+            )
+            return failures
+        if self.journal is not None:
+            _remove_full_import_journal()
+            self.journal = None
+        # Journal first, DB marker second: if the process dies between these
+        # operations, the stale marker is harmless and cleaned at next startup.
+        _clear_full_import_commit_marker(self.token)
+        self.cleanup_staging()
+        return []
+
+    def cleanup_staging(self):
+        for stage in self.stages.values():
+            try:
+                if stage.exists():
+                    shutil.rmtree(stage)
+            except Exception:
+                current_app.logger.exception('Pulizia staging Full Import fallita: %s', stage)
+
 def build_full_export_archive_for_backup(prefix='cir-full-backup'):
     fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
     os.close(fd)
@@ -10192,8 +11074,12 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
     }
     payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
     logo_setting = db.session.get(Setting, 'logo_path')
-    if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
-        payload['files']['logo'] = {'path': logo_setting.value, 'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'}
+    try:
+        managed_logo = safe_logo_path(logo_setting.value if logo_setting else '')
+    except (ValueError, FileNotFoundError):
+        managed_logo = None
+    if managed_logo is not None:
+        payload['files']['logo'] = {'path': str(managed_logo), 'archive_path': f'files/logo/{managed_logo.name}'}
     sso_dir = sso_logo_storage_dir()
     if sso_dir.exists():
         for logo_file in sorted(sso_dir.iterdir(), key=lambda p: p.name.lower()):
@@ -10210,12 +11096,14 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
         manifest = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
         info = tarfile.TarInfo('export.json'); info.size = len(manifest); archive.addfile(info, io.BytesIO(manifest))
         for doc in payload['files']['documents']:
-            src = os.path.join(current_app.config['UPLOAD_DIR'], doc['stored_name'])
-            if os.path.exists(src): archive.add(src, arcname=doc['archive_path'])
+            try: src = safe_upload_path(doc['stored_name'])
+            except (ValueError, FileNotFoundError): continue
+            archive.add(src, arcname=doc['archive_path'])
         for att in payload['files']['action_attachments']:
-            src = os.path.join(current_app.config['UPLOAD_DIR'], att['stored_name'])
-            if os.path.exists(src): archive.add(src, arcname=att['archive_path'])
-        if payload['files']['logo']: archive.add(logo_setting.value, arcname=payload['files']['logo']['archive_path'])
+            try: src = safe_upload_path(att['stored_name'])
+            except (ValueError, FileNotFoundError): continue
+            archive.add(src, arcname=att['archive_path'])
+        if payload['files']['logo']: archive.add(payload['files']['logo']['path'], arcname=payload['files']['logo']['archive_path'])
         for ssl_item in payload['files'].get('ssl_certificates', {}).values():
             src = ssl_item.get('path')
             if src and os.path.exists(src): archive.add(src, arcname=ssl_item['archive_path'])
@@ -10231,11 +11119,11 @@ def build_full_export_archive_for_backup(prefix='cir-full-backup'):
         _add_persistent_files_to_archive(archive, payload['files'].get('persistent_files', {}))
     return path
 
-def build_backup_archive(categories, prefix='cir-backup'):
+def build_backup_archive(categories, prefix='cir-backup', scope_tenant_id=None):
     categories = [c for c in (categories or BACKUP_CATEGORY_KEYS) if c in BACKUP_CATEGORY_KEYS]
     if not categories:
         categories = BACKUP_CATEGORY_KEYS[:]
-    if set(categories) == set(BACKUP_CATEGORY_KEYS):
+    if set(categories) == set(BACKUP_CATEGORY_KEYS) and not scope_tenant_id:
         return build_full_export_archive_for_backup(prefix)
     fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
     os.close(fd)
@@ -10246,6 +11134,8 @@ def build_backup_archive(categories, prefix='cir-backup'):
         'created_at': created_at,
         'categories': categories,
         'full': set(categories) == set(BACKUP_CATEGORY_KEYS),
+        'scope': 'tenant' if scope_tenant_id else 'global',
+        'scope_tenant_id': int(scope_tenant_id) if scope_tenant_id else None,
     }
     with tarfile.open(path, 'w:gz') as archive:
         data = json.dumps(manifest, ensure_ascii=False, indent=2).encode('utf-8')
@@ -10256,7 +11146,10 @@ def build_backup_archive(categories, prefix='cir-backup'):
             csv_buf = io.StringIO()
             writer = csv.writer(csv_buf)
             writer.writerow(['id','nome','riferimento','destinatario','stato','gravita','data_inizio','ora_inizio','data_fine','ora_fine','categorie','dati_interessati','descrizione'])
-            for inc in Incident.query.order_by(Incident.id).all():
+            incident_query = Incident.query
+            if scope_tenant_id:
+                incident_query = incident_query.filter(Incident.tenant_id == int(scope_tenant_id))
+            for inc in incident_query.order_by(Incident.id).all():
                 writer.writerow([
                     inc.id, inc.name or '', inc.reference or '', inc.recipient or '', inc.status or '',
                     inc.severity.value if inc.severity else '',
@@ -10274,27 +11167,50 @@ def build_backup_archive(categories, prefix='cir-backup'):
                 'version': 4,
                 'created_at': created_at,
                 'schema': _export_schema_payload(),
-                'tables': _export_tables_payload(),
-                'relations': _export_relations_payload(),
+                'scope': 'tenant' if scope_tenant_id else 'global',
+                'scope_tenant_id': int(scope_tenant_id) if scope_tenant_id else None,
+                'tables': _export_tables_payload(scope_tenant_id),
+                'relations': _export_relations_payload(scope_tenant_id),
             }
             b = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
             info = tarfile.TarInfo('database/export.json')
             info.size = len(b)
             archive.addfile(info, io.BytesIO(b))
-        if 'templates' in categories:
+        if 'templates' in categories and not scope_tenant_id:
             _add_path_to_tar(archive, current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', 'templates')
-        if 'logos' in categories:
+        if 'logos' in categories and not scope_tenant_id:
             _add_path_to_tar(archive, current_app.config.get('LOGO_DIR') or '/data/logo', 'logos/application')
             _add_path_to_tar(archive, current_app.config.get('SSO_LOGO_DIR') or '/data/sso_logos', 'logos/sso')
         if 'uploads' in categories or set(categories) == set(BACKUP_CATEGORY_KEYS):
-            _add_path_to_tar(archive, current_app.config['UPLOAD_DIR'], 'uploads')
+            if not scope_tenant_id:
+                _add_path_to_tar(archive, current_app.config['UPLOAD_DIR'], 'uploads')
+            else:
+                incident_ids = _export_incident_ids_for_scope(scope_tenant_id) or []
+                action_ids = [row[0] for row in db.session.query(Action.id).filter(Action.incident_id.in_(incident_ids or [-1])).all()]
+                stored_names = {row[0] for row in db.session.query(Document.stored_name).filter(Document.incident_id.in_(incident_ids or [-1]), Document.stored_name.isnot(None)).all() if row[0]}
+                stored_names.update(row[0] for row in db.session.query(ActionAttachment.stored_name).filter(ActionAttachment.action_id.in_(action_ids or [-1]), ActionAttachment.stored_name.isnot(None)).all() if row[0])
+                upload_dir = Path(current_app.config['UPLOAD_DIR'])
+                for stored_name in sorted(stored_names):
+                    safe_name = secure_filename(stored_name)
+                    if not safe_name or safe_name != stored_name:
+                        continue
+                    src = upload_dir / safe_name
+                    if src.exists() and src.is_file():
+                        archive.add(str(src), arcname=f'uploads/{safe_name}')
     return path
 
 
 def _send_backup_admin_email(job, status, message, filename=''):
     if not getattr(job, 'notify_admin', False):
         return
-    admin = User.query.filter_by(role='admin').filter(User.email.isnot(None)).order_by(User.id).first()
+    if getattr(job, 'tenant_id', None):
+        admin = (User.query.join(UserTenantRole, UserTenantRole.user_id == User.id)
+                 .filter(UserTenantRole.tenant_id == int(job.tenant_id),
+                         UserTenantRole.role.in_(['admin', 'superuser']),
+                         User.email.isnot(None))
+                 .order_by(User.id).first())
+    else:
+        admin = User.query.filter(User.email.isnot(None)).filter(or_(User.role == 'superuser', User.username == 'admin')).order_by(User.id).first()
     if not admin or not admin.email:
         return
     host = setting_value('smtp_host')
@@ -10307,6 +11223,7 @@ def _send_backup_admin_email(job, status, message, filename=''):
     msg['Subject'] = f'Backup Cybersecurity Incident Registry: {status}'
     msg.set_content(f'Backup: {job.name}\nEsito: {status}\nFile: {filename}\nMessaggio: {message}\n')
     port = int(setting_value('smtp_port', '587') or '587')
+    host = validate_outbound_host(host, purpose='SMTP')
     smtp_cls = smtplib.SMTP_SSL if setting_value('smtp_use_ssl', '0') == '1' else smtplib.SMTP
     with smtp_cls(host, port, timeout=20) as smtp:
         if setting_value('smtp_use_tls', '1') == '1' and setting_value('smtp_use_ssl', '0') != '1':
@@ -10316,9 +11233,185 @@ def _send_backup_admin_email(job, status, message, filename=''):
         smtp.send_message(msg)
 
 
+def _backup_root_dir():
+    return Path(current_app.config.get('BACKUP_DIR') or '/data/backups').resolve()
+
+
+def _tenant_backup_local_path(tenant_id):
+    return str((_backup_root_dir() / f'tenant-{int(tenant_id)}').resolve())
+
+
+def _safe_backup_local_path(job, requested_path=None):
+    if getattr(job, 'tenant_id', None):
+        return _tenant_backup_local_path(job.tenant_id)
+    candidate = Path((requested_path or job.local_path or str(_backup_root_dir())).strip()).expanduser().resolve()
+    root = _backup_root_dir()
+    if candidate != root and root not in candidate.parents:
+        raise ValueError(f'Il percorso backup locale deve trovarsi sotto {root}.')
+    return str(candidate)
+
+
+_backup_execution_lock = threading.Lock()
+_maintenance_execution_lock = threading.Lock()
+_CIR_BACKUP_LOCK_NAMESPACE = 4712
+_CIR_FULL_IMPORT_LOCK_ID = 47129999
+
+
+def _is_postgresql_database():
+    return getattr(getattr(db.engine, 'dialect', None), 'name', '') == 'postgresql'
+
+
+def _acquire_backup_execution_lock(job_id):
+    """Serialize a backup job and keep destructive restore mutually exclusive.
+
+    PostgreSQL uses a shared advisory lock for the global maintenance boundary,
+    allowing unrelated backup jobs to run concurrently while preventing any
+    Full Import from replacing the database/filesystem snapshot underneath a
+    backup.  A separate two-key advisory namespace serializes each individual
+    backup job without colliding with the one-key maintenance lock namespace.
+    """
+    if not _is_postgresql_database():
+        if not _maintenance_execution_lock.acquire(blocking=False):
+            return None
+        if not _backup_execution_lock.acquire(blocking=False):
+            _maintenance_execution_lock.release()
+            return None
+        return ('local-backup',)
+
+    conn = db.engine.connect()
+    job_lock_id = int(job_id or 0)
+    maintenance_acquired = False
+    try:
+        maintenance_acquired = bool(conn.execute(
+            text('SELECT pg_try_advisory_lock_shared(:lock_id)'),
+            {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+        ).scalar())
+        if not maintenance_acquired:
+            conn.close()
+            return None
+        acquired = bool(conn.execute(
+            text('SELECT pg_try_advisory_lock(:namespace, :job_id)'),
+            {'namespace': _CIR_BACKUP_LOCK_NAMESPACE, 'job_id': job_lock_id},
+        ).scalar())
+        if not acquired:
+            conn.execute(
+                text('SELECT pg_advisory_unlock_shared(:lock_id)'),
+                {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+            )
+            conn.close()
+            return None
+        return ('postgresql-backup', conn, job_lock_id)
+    except Exception:
+        if maintenance_acquired:
+            try:
+                conn.execute(
+                    text('SELECT pg_advisory_unlock_shared(:lock_id)'),
+                    {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+                )
+            except Exception:
+                pass
+        conn.close()
+        raise
+
+
+def _release_backup_execution_lock(handle):
+    if not handle:
+        return
+    if handle[0] == 'local-backup':
+        _backup_execution_lock.release()
+        _maintenance_execution_lock.release()
+        return
+    _, conn, job_lock_id = handle
+    try:
+        conn.execute(
+            text('SELECT pg_advisory_unlock(:namespace, :job_id)'),
+            {'namespace': _CIR_BACKUP_LOCK_NAMESPACE, 'job_id': job_lock_id},
+        )
+    finally:
+        try:
+            conn.execute(
+                text('SELECT pg_advisory_unlock_shared(:lock_id)'),
+                {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+            )
+        finally:
+            conn.close()
+
+
+def _acquire_full_import_execution_lock():
+    """Acquire the destructive-maintenance boundary for Full Import.
+
+    The exclusive PostgreSQL advisory lock conflicts with the shared lock held
+    by every backup, so restore/import cannot overlap a backup snapshot across
+    workers or replicas.
+    """
+    if not _is_postgresql_database():
+        return ('local-full-import',) if _maintenance_execution_lock.acquire(blocking=False) else None
+    conn = db.engine.connect()
+    try:
+        acquired = bool(conn.execute(
+            text('SELECT pg_try_advisory_lock(:lock_id)'),
+            {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+        ).scalar())
+        if not acquired:
+            conn.close()
+            return None
+        return ('postgresql-full-import', conn)
+    except Exception:
+        conn.close()
+        raise
+
+
+def _release_full_import_execution_lock(handle):
+    if not handle:
+        return
+    if handle[0] == 'local-full-import':
+        _maintenance_execution_lock.release()
+        return
+    _, conn = handle
+    try:
+        conn.execute(
+            text('SELECT pg_advisory_unlock(:lock_id)'),
+            {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+        )
+    finally:
+        conn.close()
+
+
+def recover_interrupted_full_import_serialized():
+    """Run startup recovery under the destructive-maintenance boundary.
+
+    PostgreSQL uses the same exclusive advisory lock as Full Import, preventing
+    another replica/worker from backing up or restoring while recovery decides
+    the database/filesystem outcome. Non-PostgreSQL development environments
+    retain the existing in-process maintenance lock.
+    """
+    if _is_postgresql_database():
+        conn = db.engine.connect()
+        try:
+            conn.execute(
+                text('SELECT pg_advisory_lock(:lock_id)'),
+                {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+            )
+            return recover_interrupted_full_import()
+        finally:
+            try:
+                conn.execute(
+                    text('SELECT pg_advisory_unlock(:lock_id)'),
+                    {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
+                )
+            finally:
+                conn.close()
+
+    _maintenance_execution_lock.acquire()
+    try:
+        return recover_interrupted_full_import()
+    finally:
+        _maintenance_execution_lock.release()
+
+
 def execute_backup_job(job, allow_download=False):
     categories = job.category_list() or BACKUP_CATEGORY_KEYS[:]
-    path = build_backup_archive(categories)
+    path = build_backup_archive(categories, scope_tenant_id=getattr(job, 'tenant_id', None))
     timestamp = utcnow().strftime('%Y%m%d-%H%M%S')
     filename = f'backup-cir-{timestamp}.tar.gz'
     try:
@@ -10327,16 +11420,19 @@ def execute_backup_job(job, allow_download=False):
                 import boto3
             except ImportError as exc:
                 raise RuntimeError('boto3 non installato: installare la dipendenza per usare destinazioni S3/compatibili') from exc
-            client = boto3.client('s3', endpoint_url=job.s3_endpoint_url or None,
+            endpoint_url = job.s3_endpoint_url or None
+            if endpoint_url:
+                endpoint_url = validate_outbound_http_url(endpoint_url, purpose='endpoint S3 backup')
+            client = boto3.client('s3', endpoint_url=endpoint_url,
                                   aws_access_key_id=job.s3_access_key or None,
-                                  aws_secret_access_key=job.s3_secret_key or None)
+                                  aws_secret_access_key=decrypt_backup_secret(job.s3_secret_key) or None)
             key = '/'.join(x.strip('/') for x in [job.s3_prefix or '', filename] if x.strip('/'))
             client.upload_file(path, job.s3_bucket, key)
             result = f's3://{job.s3_bucket}/{key}'
         elif job.destination == 'download' and allow_download:
             result = path
         else:
-            target_dir = Path(job.local_path or current_app.config.get('BACKUP_DIR') or '/data/backups')
+            target_dir = Path(_safe_backup_local_path(job))
             target_dir.mkdir(parents=True, exist_ok=True)
             dst = target_dir / filename
             shutil.copyfile(path, dst)
@@ -10359,14 +11455,25 @@ def execute_backup_job(job, allow_download=False):
         raise
 
 
+def execute_backup_job_serialized(job, allow_download=False):
+    handle = _acquire_backup_execution_lock(getattr(job, 'id', 0))
+    if handle is None:
+        raise RuntimeError('Backup gia in esecuzione per questa configurazione.')
+    try:
+        return execute_backup_job(job, allow_download=allow_download)
+    finally:
+        _release_backup_execution_lock(handle)
+
+
 @bp.route('/admin/backups', methods=['GET','POST'])
 @login_required
 def admin_backups():
     if not can_admin():
         flash('Permessi insufficienti','error'); return redirect(url_for('main.index'))
-    job = BackupJob.query.order_by(BackupJob.id).first()
+    tenant_id = current_tenant_id()
+    job = BackupJob.query.filter(BackupJob.tenant_id == tenant_id).order_by(BackupJob.id).first()
     if not job:
-        job = BackupJob(name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories=','.join(BACKUP_CATEGORY_KEYS), destination='local', local_path=current_app.config.get('BACKUP_DIR','/data/backups'))
+        job = BackupJob(tenant_id=tenant_id, name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories=','.join(BACKUP_CATEGORY_KEYS), destination='local', local_path=_tenant_backup_local_path(tenant_id))
         db.session.add(job); db.session.commit()
     if request.method == 'POST':
         action = request.form.get('action')
@@ -10376,25 +11483,32 @@ def admin_backups():
             job.cron_expression = request.form.get('cron_expression','0 2 * * *').strip() or '0 2 * * *'
             job.categories = ','.join(_backup_categories_from_form())
             job.destination = request.form.get('destination','local')
-            job.local_path = request.form.get('local_path','').strip() or current_app.config.get('BACKUP_DIR','/data/backups')
+            if job.destination not in {'local', 's3', 'download'}:
+                job.destination = 'local'
+            try:
+                job.local_path = _safe_backup_local_path(job, request.form.get('local_path',''))
+            except ValueError as exc:
+                db.session.rollback()
+                flash(str(exc), 'error')
+                return render_template('admin_backups.html', job=job, category_keys=BACKUP_CATEGORY_KEYS, category_labels=BACKUP_CATEGORY_LABELS, selected=set(job.category_list() or BACKUP_CATEGORY_KEYS))
             job.s3_endpoint_url = request.form.get('s3_endpoint_url','').strip()
             job.s3_bucket = request.form.get('s3_bucket','').strip()
             job.s3_prefix = request.form.get('s3_prefix','').strip()
             job.s3_access_key = request.form.get('s3_access_key','').strip()
             secret = request.form.get('s3_secret_key','')
             if secret:
-                job.s3_secret_key = secret
+                job.s3_secret_key = encrypt_backup_secret(secret)
             job.notify_admin = bool(request.form.get('notify_admin'))
             db.session.commit()
             if action == 'run':
                 try:
-                    result, tmp_path = execute_backup_job(job, allow_download=(job.destination == 'download'))
+                    result, tmp_path = execute_backup_job_serialized(job, allow_download=(job.destination == 'download'))
                     if job.destination == 'download':
                         return send_file(tmp_path, download_name=os.path.basename(result) if result != tmp_path else f'backup-cir-{utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
                     flash(f'Backup completato: {result}', 'success')
                 except Exception as exc:
                     current_app.logger.exception('Backup on-demand fallito')
-                    flash(f'Backup fallito: {exc}', 'error')
+                    flash('Backup fallito. Consultare i log amministrativi.', 'error')
             else:
                 flash('Configurazione backup salvata.', 'success')
         elif action == 'restore':
@@ -10417,7 +11531,7 @@ def admin_backups():
                     else:
                         flash('Archivio backup riconosciuto come backup di file; estrarre e ripristinare manualmente sulle directory persistenti corrispondenti.', 'warning')
                 except Exception as exc:
-                    flash(f'Backup non valido: {exc}', 'error')
+                    flash('Backup non valido o non leggibile.', 'error')
                 finally:
                     try: os.remove(tmp)
                     except OSError: pass
@@ -10442,16 +11556,19 @@ def start_backup_scheduler(app):
         while not _backup_scheduler_stop_event.is_set():
             try:
                 with app.app_context():
-                    now = application_now().replace(second=0, microsecond=0)
-                    marker = now.strftime('%Y%m%d%H%M')
-                    if marker != last_minute:
-                        last_minute = marker
+                    # The loop wakes globally every 30s, but cron/timezone and
+                    # tenant-scoped SMTP/audit settings are evaluated per job tenant.
+                    utc_marker = utcnow().replace(second=0, microsecond=0).strftime('%Y%m%d%H%M')
+                    if utc_marker != last_minute:
+                        last_minute = utc_marker
                         for job in BackupJob.query.filter_by(enabled=True).all():
-                            if cron_matches_now(job.cron_expression, now):
-                                try:
-                                    execute_backup_job(job, allow_download=False)
-                                except Exception:
-                                    app.logger.exception('Backup schedulato fallito: %s', job.name)
+                            with tenant_execution_context(job.tenant_id):
+                                now = application_now().replace(second=0, microsecond=0)
+                                if cron_matches_now(job.cron_expression, now):
+                                    try:
+                                        execute_backup_job_serialized(job, allow_download=False)
+                                    except Exception:
+                                        app.logger.exception('Backup schedulato fallito: %s', job.name)
             except Exception:
                 app.logger.exception('Scheduler backup fallito')
             if _backup_scheduler_stop_event.wait(30):
@@ -10528,6 +11645,10 @@ def _row(obj):
     data = {c.name: _dt(getattr(obj, c.name)) for c in obj.__table__.columns}
     if isinstance(obj, Incident):
         data.update(_incident_temporal_export_fields(obj))
+    if isinstance(obj, BackupJob) and data.get('s3_secret_key'):
+        # I database precedenti potevano contenere la secret S3 in chiaro.
+        # L'export non deve mai trasformarsi in un canale di esfiltrazione.
+        data['s3_secret_key'] = encrypt_backup_secret(data['s3_secret_key'])
     return data
 
 def _table_row(row):
@@ -10604,14 +11725,21 @@ def _export_query_for_model(name, model, scope_tenant_id=None):
     if model is Tenant:
         return q.filter(Tenant.id == tid)
     if model is Setting:
+        # Tenant exports are also importable by tenant admins. Global/shared
+        # settings are intentionally excluded: the tenant import path ignores
+        # them anyway, and exporting them only leaks infrastructure metadata or
+        # encrypted shared credentials.
         prefix = f'tenant:{tid}:%'
-        return q.filter(or_(Setting.key.in_(GLOBAL_SETTING_KEYS), Setting.key.like(prefix), ~Setting.key.like('tenant:%')) )
+        return q.filter(Setting.key.like(prefix))
     if model is User:
-        return q.filter(User.id.in_(user_ids or [-1]))
+        # Authentication identities are global. Tenant import deliberately does
+        # not restore them, so password hashes must not be disclosed in a tenant dump.
+        return q.filter(User.id == -1)
     if model is UserTenantRole:
-        return q.filter(UserTenantRole.tenant_id == tid)
+        return q.filter(UserTenantRole.id == -1)
     if model is MfaTotpToken:
-        return q.filter(MfaTotpToken.user_id.in_(user_ids or [-1]))
+        # TOTP seeds are authentication secrets and are never tenant-exportable.
+        return q.filter(MfaTotpToken.id == -1)
     if model in (Action, Document, IncidentReminder, DeadlineNotificationState):
         return q.filter(getattr(model, 'incident_id').in_(incident_ids or [-1]))
     if model is ActionAttachment:
@@ -10818,21 +11946,24 @@ def export_full():
             item for item in payload['files']['action_attachments']
             if (db.session.get(ActionAttachment, item.get('attachment_id')) and db.session.get(ActionAttachment, item.get('attachment_id')).action_id in scoped_action_ids)
         ]
-    payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
+    payload['files']['persistent_files'] = _full_export_persistent_file_manifest() if scope_tenant_id is None else {}
 
     logo_setting = db.session.get(Setting, 'logo_path')
-    if logo_setting and logo_setting.value and os.path.exists(logo_setting.value):
+    try:
+        managed_logo = safe_logo_path(logo_setting.value if (scope_tenant_id is None and logo_setting) else '')
+    except (ValueError, FileNotFoundError):
+        managed_logo = None
+    if managed_logo is not None:
         payload['files']['logo'] = {
-            'path': logo_setting.value,
-            'archive_path': f'files/logo/{os.path.basename(logo_setting.value)}'
+            'path': str(managed_logo),
+            'archive_path': f'files/logo/{managed_logo.name}'
         }
 
 
 
-    # Loghi SSO/OAuth2: il full export include tutto lo storage condiviso
-    # persistente SSO_LOGO_DIR, compresi i loghi predefiniti e quelli caricati da GUI.
+    # Loghi SSO/OAuth2 sono asset globali e non devono entrare negli export tenant.
     sso_dir = sso_logo_storage_dir()
-    if sso_dir.exists():
+    if scope_tenant_id is None and sso_dir.exists():
         for logo_file in sorted(sso_dir.iterdir(), key=lambda p: p.name.lower()):
             if logo_file.is_file() and logo_file.suffix.lower() in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
                 rel = f'sso/{logo_file.name}'
@@ -10844,9 +11975,9 @@ def export_full():
     ssl_files = {}
     cert = ssl_cert_path()
     key = ssl_key_path()
-    if cert.exists() and cert.is_file():
+    if scope_tenant_id is None and cert.exists() and cert.is_file():
         ssl_files['certificate'] = {'archive_path': 'files/ssl/current.crt', 'path': str(cert)}
-    if key.exists() and key.is_file():
+    if scope_tenant_id is None and key.exists() and key.is_file():
         ssl_files['private_key'] = {'archive_path': 'files/ssl/current.key', 'path': str(key)}
     payload['files']['ssl_certificates'] = ssl_files
 
@@ -10869,16 +12000,16 @@ def export_full():
         archive.addfile(info, io.BytesIO(manifest))
 
         for doc in payload['files']['documents']:
-            src = os.path.join(current_app.config['UPLOAD_DIR'], doc['stored_name'])
-            if os.path.exists(src):
-                archive.add(src, arcname=doc['archive_path'])
+            try: src = safe_upload_path(doc['stored_name'])
+            except (ValueError, FileNotFoundError): continue
+            archive.add(src, arcname=doc['archive_path'])
         for att in payload['files'].get('action_attachments', []):
-            src = os.path.join(current_app.config['UPLOAD_DIR'], att['stored_name'])
-            if os.path.exists(src):
-                archive.add(src, arcname=att['archive_path'])
+            try: src = safe_upload_path(att['stored_name'])
+            except (ValueError, FileNotFoundError): continue
+            archive.add(src, arcname=att['archive_path'])
 
         if payload['files']['logo']:
-            archive.add(logo_setting.value, arcname=payload['files']['logo']['archive_path'])
+            archive.add(payload['files']['logo']['path'], arcname=payload['files']['logo']['archive_path'])
         for ssl_item in payload['files'].get('ssl_certificates', {}).values():
             src = ssl_item.get('path')
             if src and os.path.exists(src):
@@ -10963,7 +12094,7 @@ def import_csv():
             return redirect(url_for('main.index'))
         except Exception as exc:
             current_app.logger.exception('Import CSV fallito')
-            db.session.rollback(); flash(f'Import CSV fallito: {exc}','error')
+            db.session.rollback(); flash('Import CSV fallito. Consultare i log amministrativi.','error')
     return render_template('import_csv.html')
 
 
@@ -11010,24 +12141,46 @@ def _ensure_incident_creator_exists(row):
     return row
 
 
-def _import_tenant_scoped_archive(data, archive, target_tenant_id):
-    """Import a tenant-scoped archive into exactly one tenant.
+def _remap_csv_ids(raw_value, id_map):
+    values = []
+    for item in str(raw_value or '').split(','):
+        try:
+            old_id = int(item.strip())
+        except (TypeError, ValueError):
+            continue
+        new_id = id_map.get(old_id)
+        if new_id:
+            values.append(str(new_id))
+    return ','.join(values)
 
-    This path is for tenant administrators. It is intentionally non-global: it
-    never rebuilds the database, never imports global users/MFA, never changes
-    other tenants, and refuses archives that were not produced as tenant scoped.
-    """
+
+def _tenant_import_add_row(model, row, target_tenant_id, id_map=None, transform=None):
+    source = dict(row or {})
+    old_id = source.pop('id', None)
+    if 'tenant_id' in source:
+        source['tenant_id'] = int(target_tenant_id)
+    if transform:
+        source = transform(source)
+    obj = model(**_coerce_row_for_model(model, source))
+    db.session.add(obj)
+    db.session.flush()
+    if id_map is not None and old_id is not None:
+        id_map[int(old_id)] = obj.id
+    return obj
+
+
+def _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=None):
+    """Import a tenant archive without reusing global database/file identifiers."""
     if data.get('scope') != 'tenant' or not data.get('scope_tenant_id'):
-        raise ValueError('Gli admin di tenant possono importare solo archivi esportati in modalità tenant.')
+        raise ValueError('Gli admin di tenant possono importare solo archivi esportati in modalita tenant.')
     target_tenant_id = int(target_tenant_id)
     if user_role_for_tenant(current_user, target_tenant_id) != 'admin':
-        raise ValueError('L’utente corrente non è admin del tenant di destinazione.')
+        raise ValueError('L utente corrente non e admin del tenant di destinazione.')
     tables = data.get('tables', {}) or {}
     relations = data.get('relations', {}) or {}
 
     _tenant_import_delete_existing_scope(target_tenant_id)
 
-    # Settings tenant-specifiche: rimappo sempre la chiave sul tenant di destinazione.
     source_tid = str(data.get('scope_tenant_id'))
     for row in tables.get('settings', []) or []:
         key = str(row.get('key') or '')
@@ -11039,51 +12192,165 @@ def _import_tenant_scoped_archive(data, archive, target_tenant_id):
             row['key'] = f'tenant:{target_tenant_id}:{parts[2]}'
             db.session.merge(Setting(**_coerce_row_for_model(Setting, row)))
 
-    # Utenti e ruoli globali non vengono importati da admin tenant. Se un record
-    # incidente punta a un utente non presente, viene assegnato all'admin corrente.
-    import_order = [
-        ('config_labels', ConfigLabel), ('people', Person), ('recommendations', Recommendation),
-        ('ai_chatbot_documents', AIChatbotDocument), ('incident_templates', IncidentTemplate),
-        ('incident_workflow_steps', IncidentWorkflowStep), ('notification_types', NotificationType),
-        ('notification_templates', NotificationTemplate), ('external_recipients', ExternalRecipient),
-        ('backup_jobs', BackupJob), ('audit_logs', AuditLog),
-    ]
-    for table_name, model in import_order:
-        for row in _tenant_scoped_rows(tables, table_name, target_tenant_id):
-            db.session.add(model(**_coerce_row_for_model(model, row)))
-    db.session.flush()
+    label_map, people_map, recommendation_map = {}, {}, {}
+    workflow_map, notification_type_map, notification_template_map = {}, {}, {}
+    template_map, recipient_map, backup_map, ai_doc_map, audit_map = {}, {}, {}, {}, {}
+    incident_map, action_map, document_map, attachment_map, reminder_map = {}, {}, {}, {}, {}
+    stored_name_map = {}
 
-    for row in _tenant_scoped_rows(tables, 'incidents', target_tenant_id):
-        coerced = _coerce_row_for_model(Incident, row)
-        coerced = _ensure_incident_creator_exists(coerced)
-        if not (coerced.get('reference') or '').strip():
-            coerced['reference'] = f"Incidente #{coerced.get('id') or coerced.get('name') or 'importato'}"
-        db.session.add(Incident(**coerced))
-    db.session.flush()
+    for row in tables.get('config_labels', []) or []:
+        _tenant_import_add_row(ConfigLabel, row, target_tenant_id, label_map)
+    for row in tables.get('people', []) or []:
+        _tenant_import_add_row(Person, row, target_tenant_id, people_map)
+    for row in tables.get('recommendations', []) or []:
+        _tenant_import_add_row(Recommendation, row, target_tenant_id, recommendation_map)
+    for row in tables.get('ai_chatbot_documents', []) or []:
+        def ai_transform(r):
+            if r.get('uploaded_by_id') and not db.session.get(User, int(r['uploaded_by_id'])):
+                r['uploaded_by_id'] = current_user.id
+            return r
+        _tenant_import_add_row(AIChatbotDocument, row, target_tenant_id, ai_doc_map, ai_transform)
+    for row in tables.get('notification_types', []) or []:
+        _tenant_import_add_row(NotificationType, row, target_tenant_id, notification_type_map)
+    for row in tables.get('incident_workflow_steps', []) or []:
+        def workflow_transform(r):
+            r['category_id'] = label_map.get(r.get('category_id')) if r.get('category_id') else None
+            r['action_label_id'] = label_map.get(r.get('action_label_id'))
+            return r
+        _tenant_import_add_row(IncidentWorkflowStep, row, target_tenant_id, workflow_map, workflow_transform)
+    for row in tables.get('notification_templates', []) or []:
+        def notification_transform(r):
+            r['action_label_id'] = label_map.get(r.get('action_label_id')) if r.get('action_label_id') else None
+            return r
+        _tenant_import_add_row(NotificationTemplate, row, target_tenant_id, notification_template_map, notification_transform)
+    for row in tables.get('incident_templates', []) or []:
+        def template_transform(r):
+            r['severity_id'] = label_map.get(r.get('severity_id')) if r.get('severity_id') else None
+            r['category_ids'] = _remap_csv_ids(r.get('category_ids'), label_map)
+            r['data_type_ids'] = _remap_csv_ids(r.get('data_type_ids'), label_map)
+            r['people_ids'] = _remap_csv_ids(r.get('people_ids'), people_map)
+            r['recommendation_ids'] = _remap_csv_ids(r.get('recommendation_ids'), recommendation_map)
+            return r
+        _tenant_import_add_row(IncidentTemplate, row, target_tenant_id, template_map, template_transform)
+    for row in tables.get('external_recipients', []) or []:
+        _tenant_import_add_row(ExternalRecipient, row, target_tenant_id, recipient_map)
+    for row in tables.get('backup_jobs', []) or []:
+        def backup_transform(r):
+            r['local_path'] = _tenant_backup_local_path(target_tenant_id)
+            r['enabled'] = False
+            r['s3_access_key'] = ''
+            r['s3_secret_key'] = ''
+            r['last_status'] = 'never'
+            r['last_message'] = ''
+            r['last_run_at'] = None
+            return r
+        _tenant_import_add_row(BackupJob, row, target_tenant_id, backup_map, backup_transform)
+    for row in tables.get('audit_logs', []) or []:
+        def audit_transform(r):
+            if r.get('user_id') and not db.session.get(User, int(r['user_id'])):
+                r['user_id'] = current_user.id
+            return r
+        _tenant_import_add_row(AuditLog, row, target_tenant_id, audit_map, audit_transform)
 
-    for table_name, model in [('actions', Action), ('documents', Document), ('action_attachments', ActionAttachment), ('incident_reminders', IncidentReminder), ('deadline_notification_states', DeadlineNotificationState)]:
-        for row in tables.get(table_name, []) or []:
-            db.session.add(model(**_coerce_row_for_model(model, row)))
-    db.session.flush()
+    for row in tables.get('incidents', []) or []:
+        def incident_transform(r):
+            r['severity_id'] = label_map.get(r.get('severity_id')) if r.get('severity_id') else None
+            r['category_order'] = _remap_csv_ids(r.get('category_order'), label_map)
+            r = _ensure_incident_creator_exists(r)
+            if not (r.get('reference') or '').strip():
+                r['reference'] = f"Incidente importato {r.get('name') or ''}".strip()
+            return r
+        _tenant_import_add_row(Incident, row, target_tenant_id, incident_map, incident_transform)
 
+    for row in tables.get('actions', []) or []:
+        def action_transform(r):
+            r['incident_id'] = incident_map.get(r.get('incident_id'))
+            r['label_id'] = label_map.get(r.get('label_id')) if r.get('label_id') else None
+            if not r['incident_id']:
+                raise ValueError('Azione con riferimento incidente non valido nell archivio tenant.')
+            return r
+        _tenant_import_add_row(Action, row, target_tenant_id, action_map, action_transform)
+
+    for row in tables.get('documents', []) or []:
+        source = dict(row or {})
+        old_stored = source.get('stored_name') or ''
+        def document_transform(r):
+            r['incident_id'] = incident_map.get(r.get('incident_id'))
+            if not r['incident_id']:
+                raise ValueError('Documento con riferimento incidente non valido nell archivio tenant.')
+            if r.get('stored_name'):
+                suffix = Path(secure_filename(r.get('filename') or r['stored_name'])).suffix.lower()
+                r['stored_name'] = f'{uuid.uuid4().hex}{suffix}'
+            return r
+        obj = _tenant_import_add_row(Document, source, target_tenant_id, document_map, document_transform)
+        if old_stored and obj.stored_name:
+            stored_name_map[('documents', old_stored)] = obj.stored_name
+
+    for row in tables.get('action_attachments', []) or []:
+        source = dict(row or {})
+        old_stored = source.get('stored_name') or ''
+        def attachment_transform(r):
+            r['action_id'] = action_map.get(r.get('action_id'))
+            if not r['action_id']:
+                raise ValueError('Allegato con riferimento azione non valido nell archivio tenant.')
+            suffix = Path(secure_filename(r.get('filename') or r.get('stored_name') or '')).suffix.lower()
+            r['stored_name'] = f'{uuid.uuid4().hex}{suffix}'
+            return r
+        obj = _tenant_import_add_row(ActionAttachment, source, target_tenant_id, attachment_map, attachment_transform)
+        if old_stored and obj.stored_name:
+            stored_name_map[('action_attachments', old_stored)] = obj.stored_name
+
+    for row in tables.get('incident_reminders', []) or []:
+        def reminder_transform(r):
+            r['incident_id'] = incident_map.get(r.get('incident_id'))
+            if not r['incident_id']:
+                raise ValueError('Reminder con riferimento incidente non valido nell archivio tenant.')
+            if r.get('created_by_id') and not db.session.get(User, int(r['created_by_id'])):
+                r['created_by_id'] = current_user.id
+            return r
+        _tenant_import_add_row(IncidentReminder, row, target_tenant_id, reminder_map, reminder_transform)
+    # DeadlineNotificationState e un dato derivato/idempotency state: non viene
+    # importato fra tenant, evitando collisioni sulla notification_key globale.
+
+    relation_maps = {
+        'incident_people': ('person_id', people_map),
+        'incident_categories': ('label_id', label_map),
+        'incident_data_types': ('label_id', label_map),
+        'incident_recommendations': ('recommendation_id', recommendation_map),
+    }
     for rel_name, table in FULL_EXPORT_RELATION_TABLES.items():
+        fk_name, related_map = relation_maps[rel_name]
         for row in relations.get(rel_name, []) or []:
-            db.session.execute(table.insert().values(**_relation_row_for_table(table, row)))
+            row = dict(row or {})
+            new_incident_id = incident_map.get(row.get('incident_id'))
+            new_related_id = related_map.get(row.get(fk_name))
+            if new_incident_id and new_related_id:
+                row['incident_id'] = new_incident_id
+                row[fk_name] = new_related_id
+                db.session.execute(table.insert().values(**_relation_row_for_table(table, row)))
 
     os.makedirs(current_app.config['UPLOAD_DIR'], exist_ok=True)
     for group in ['documents', 'action_attachments']:
         for item in data.get('files', {}).get(group, []) or []:
             arcname = item.get('archive_path')
-            stored = secure_filename(item.get('stored_name') or '')
-            if not arcname or not stored:
+            old_stored = secure_filename(item.get('stored_name') or '')
+            new_stored = stored_name_map.get((group, old_stored))
+            if not arcname or not old_stored or not new_stored:
                 continue
             try:
                 src = archive.extractfile(archive.getmember(arcname))
             except KeyError:
                 current_app.logger.warning('File %s mancante nell export tenant: %s', group, arcname)
                 continue
-            with open(os.path.join(current_app.config['UPLOAD_DIR'], stored), 'wb') as out:
+            target = os.path.join(current_app.config['UPLOAD_DIR'], new_stored)
+            with open(target, 'xb') as out:
                 shutil.copyfileobj(src, out)
+            if created_files is not None:
+                created_files.append(target)
+            try:
+                os.chmod(target, 0o600)
+            except OSError:
+                pass
 
 @bp.route('/import/full', methods=['GET','POST'])
 @login_required
@@ -11097,10 +12364,17 @@ def import_full():
             flash('Selezionare un export completo tar.gz da importare','error')
             return render_template('import_full.html')
 
+        import_lock = _acquire_full_import_execution_lock()
+        if not import_lock:
+            flash('Un altro import/restore e gia in esecuzione. Riprovare dopo il completamento.', 'warning')
+            return render_template('import_full.html')
+
         tmp_file = tempfile.NamedTemporaryFile(prefix='cir-import-', suffix='.tar.gz', delete=False)
         tmp = tmp_file.name
         tmp_file.close()
         f.save(tmp)
+        fs_txn = None
+        tenant_created_files = []
         try:
             with tarfile.open(tmp, 'r:gz') as archive:
                 validate_full_import_archive(archive)
@@ -11108,26 +12382,27 @@ def import_full():
                 data = json.load(archive.extractfile(member))
                 if data.get('format') != 'cybersecurity-incident-registry-full-export':
                     raise ValueError('Formato export completo non riconosciuto')
+                validate_full_import_payload(data)
                 if not can_global_export_import():
                     target_tenant_id = current_tenant_id()
-                    _import_tenant_scoped_archive(data, archive, target_tenant_id)
+                    _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=tenant_created_files)
                     purge_audit_logs()
                     db.session.commit()
                     flash('Import tenant completato: sono stati sostituiti solo dati e configurazioni del tenant attivo. Utenti globali, altri tenant e configurazioni condivise non sono stati modificati.', 'info')
                     return redirect(url_for('main.index'))
                 tables = data.get('tables', {})
                 relations = data.get('relations', {})
+                # Tutti i file vengono validati e preparati prima di toccare il DB.
+                # Lo staging vive sullo stesso filesystem delle destinazioni e
+                # verra attivato soltanto a caricamento DB completato.
+                fs_txn = _FullImportFilesystemTransaction(archive, data)
+                fs_txn.stage()
 
                 # Full import distruttivo: dopo aver validato l'archivio, lo schema
                 # database viene eliminato e ricreato completamente. In questo modo
                 # vengono rimossi residui, vincoli e sequence non allineate prima del
                 # ripristino con ID espliciti contenuti nell'export.
                 rebuild_database_for_full_import()
-
-                # Anche dopo drop/create possono esistere righe bootstrap create
-                # da hook o migrazioni. Svuotiamo esplicitamente e ripristiniamo
-                # tenant deduplicati per evitare ix_tenant_name su default.
-                clear_database_rows_for_full_import()
 
                 for row in _deduplicated_tenant_rows(tables.get('tenants', [])):
                     db.session.add(Tenant(**row))
@@ -11231,132 +12506,59 @@ def import_full():
                 for row in relations.get('incident_recommendations', []):
                     db.session.execute(incident_recommendations.insert().values(**_relation_row_for_table(incident_recommendations, row)))
 
-                # Ripristino file documenti e logo.
-                os.makedirs(current_app.config['UPLOAD_DIR'], exist_ok=True)
-                os.makedirs(current_app.config['LOGO_DIR'], exist_ok=True)
-                for doc in data.get('files', {}).get('documents', []):
-                    arcname = doc.get('archive_path')
-                    stored = secure_filename(doc.get('stored_name') or '')
-                    if not arcname or not stored:
-                        continue
-                    try:
-                        src = archive.extractfile(archive.getmember(arcname))
-                    except KeyError:
-                        current_app.logger.warning('File documento mancante nell export: %s', arcname)
-                        continue
-                    with open(os.path.join(current_app.config['UPLOAD_DIR'], stored), 'wb') as out:
-                        shutil.copyfileobj(src, out)
-                for att in data.get('files', {}).get('action_attachments', []):
-                    arcname = att.get('archive_path')
-                    stored = secure_filename(att.get('stored_name') or '')
-                    if not arcname or not stored:
-                        continue
-                    try:
-                        src = archive.extractfile(archive.getmember(arcname))
-                    except KeyError:
-                        current_app.logger.warning('File allegato azione mancante nell export: %s', arcname)
-                        continue
-                    with open(os.path.join(current_app.config['UPLOAD_DIR'], stored), 'wb') as out:
-                        shutil.copyfileobj(src, out)
+                # Il filesystem e gia stato preparato in staging. Aggiorniamo
+                # eventuali riferimenti DB ai path finali prima dello swap.
+                if fs_txn.logo_path:
+                    setting = db.session.get(Setting, 'logo_path') or Setting(key='logo_path')
+                    setting.value = fs_txn.logo_path
+                    db.session.merge(setting)
 
-                logo = data.get('files', {}).get('logo')
-                if logo and logo.get('archive_path'):
-                    try:
-                        src = archive.extractfile(archive.getmember(logo['archive_path']))
-                        ext = os.path.splitext(secure_filename(os.path.basename(logo['archive_path'])))[1] or '.img'
-                        dst = os.path.join(current_app.config['LOGO_DIR'], f'logo{ext}')
-                        with open(dst, 'wb') as out:
-                            shutil.copyfileobj(src, out)
-                        setting = db.session.get(Setting, 'logo_path') or Setting(key='logo_path')
-                        setting.value = dst
-                        db.session.merge(setting)
-                    except KeyError:
-                        current_app.logger.warning('Logo indicato nel manifest ma non presente nell archivio')
-
-                ssl_manifest = data.get('files', {}).get('ssl_certificates', {}) or {}
-                ssl_storage_dir().mkdir(parents=True, exist_ok=True)
-                cert_manifest = ssl_manifest.get('certificate')
-                if cert_manifest and cert_manifest.get('archive_path'):
-                    try:
-                        src = archive.extractfile(archive.getmember(cert_manifest['archive_path']))
-                        with open(ssl_cert_path(), 'wb') as out:
-                            shutil.copyfileobj(src, out)
-                    except KeyError:
-                        current_app.logger.warning('Certificato SSL indicato nel manifest ma non presente nell archivio')
-                key_manifest = ssl_manifest.get('private_key')
-                if key_manifest and key_manifest.get('archive_path'):
-                    try:
-                        src = archive.extractfile(archive.getmember(key_manifest['archive_path']))
-                        with open(ssl_key_path(), 'wb') as out:
-                            shutil.copyfileobj(src, out)
-                        try:
-                            os.chmod(ssl_key_path(), 0o600)
-                        except OSError:
-                            pass
-                    except KeyError:
-                        current_app.logger.warning('Chiave SSL indicata nel manifest ma non presente nell archivio')
-                if setting_value('ssl_enabled', '0') == '1':
-                    write_ssl_enabled_marker(True)
-                else:
-                    write_ssl_enabled_marker(False)
-
-                for sso_logo in data.get('files', {}).get('sso_logos', []) or []:
-                    arcname = sso_logo.get('archive_path')
-                    rel = sso_logo.get('relative_path') or ''
-                    if not arcname or not rel:
-                        continue
-                    safe_rel = Path(rel)
-                    if safe_rel.is_absolute() or '..' in safe_rel.parts:
-                        current_app.logger.warning('Logo SSO ignorato per path non sicuro: %s', rel)
-                        continue
-                    try:
-                        src = archive.extractfile(archive.getmember(arcname))
-                    except KeyError:
-                        current_app.logger.warning('Logo SSO indicato nel manifest ma non presente nell archivio: %s', arcname)
-                        continue
-                    if safe_rel.parts[0] != 'sso' or len(safe_rel.parts) != 2:
-                        current_app.logger.warning('Logo SSO ignorato per path non ammesso: %s', rel)
-                        continue
-                    dst = sso_logo_storage_dir() / safe_rel.name
-                    dst.parent.mkdir(parents=True, exist_ok=True)
-                    with open(dst, 'wb') as out:
-                        shutil.copyfileobj(src, out)
-
-                os.makedirs(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', exist_ok=True)
-                for tmpl in data.get('files', {}).get('form_templates', []):
-                    arcname = tmpl.get('archive_path')
-                    name = secure_filename(tmpl.get('name') or '')
-                    if not arcname or not name or not name.endswith('.pdf'):
-                        continue
-                    try:
-                        src = archive.extractfile(archive.getmember(arcname))
-                    except KeyError:
-                        current_app.logger.warning('Template PDF mancante nell export: %s', arcname)
-                        continue
-                    with open(os.path.join(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates', name), 'wb') as out:
-                        shutil.copyfileobj(src, out)
-
-                _restore_persistent_files_from_archive(archive, data.get('files', {}).get('persistent_files', {}))
+                # Attiva lo snapshot filesystem solo dopo che tutte le righe e
+                # relazioni del database sono state caricate con successo. Lo
+                # swap e reversibile fino al commit DB finale.
+                fs_txn.activate()
+                ssl_enabled_setting = db.session.get(Setting, 'ssl_enabled')
+                write_ssl_enabled_marker(bool(ssl_enabled_setting and str(ssl_enabled_setting.value) == '1'))
 
             # Garantisce che anche gli archivi storici precedenti alla regola del campo obbligatorio
             # producano incidenti sempre completi dopo il Full import.
             db.session.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
             purge_audit_logs_without_request_user(import_default_tenant_id)
-            db.session.commit()
-            # Dopo il restore con ID espliciti, riallineiamo tutte le sequence in
-            # una nuova transazione visibile a PostgreSQL. Questo evita che la
-            # prima operazione successiva, ad esempio la creazione di un tenant
-            # clonato, generi duplicate key su config_label_pkey o altre PK.
+            # Sequence e schema vengono riallineati prima del commit finale, nella
+            # stessa transazione del restore. Solo dopo il commit eliminiamo le
+            # copie filesystem precedenti.
             align_all_table_sequences()
-            flash('Import completo completato: database distrutto e ricreato, configurazioni, audit log, utenti, MFA, notifiche, logo, documenti, allegati e template moduli PDF ripristinati. I record audit oltre retention sono stati eliminati.','info')
+            if fs_txn:
+                # This marker commits atomically with the restored database.
+                # Startup recovery uses it to decide whether an interrupted
+                # filesystem swap must be rolled back or finalized.
+                fs_txn.mark_database_commit_pending()
+            db.session.commit()
+            if fs_txn:
+                fs_txn.finalize()
+            flash('Import completo completato in modo transazionale: database e volumi persistenti sono stati sostituiti come un unico restore controllato.','info')
             return redirect(url_for('main.index'))
-        except Exception as exc:
+        except Exception:
             current_app.logger.exception('Import completo fallito')
             db.session.rollback()
-            flash(f'Import completo fallito: {exc}','error')
+            filesystem_rollback_failures = fs_txn.rollback() if fs_txn else []
+            for created_path in tenant_created_files:
+                try:
+                    Path(created_path).unlink(missing_ok=True)
+                except OSError:
+                    current_app.logger.exception('Pulizia file tenant import fallita: %s', created_path)
+            if filesystem_rollback_failures:
+                current_app.logger.critical(
+                    'Rollback filesystem Full Import incompleto; gruppi da recuperare: %s',
+                    ', '.join(filesystem_rollback_failures),
+                )
+                flash('Import completo fallito e rollback filesystem incompleto. Non avviare un nuovo import prima di aver verificato i backup di ripristino; consultare immediatamente i log server.','error')
+            else:
+                flash('Import completo fallito. Database e volumi persistenti precedenti sono stati mantenuti o ripristinati; consultare i log server per i dettagli.','error')
         finally:
             try: os.remove(tmp)
             except OSError: pass
+            _release_full_import_execution_lock(import_lock)
     return render_template('import_full.html')
 
 def _stats_incidents_for_range(start=None, end=None):
@@ -11483,7 +12685,7 @@ def modules_configuration():
                 return render_template('modules_configuration.html', templates=templates, selected=selected, db_fields=available_incident_fields(), mappings=current_mappings, template_configs={t.name:get_template_config(t.name) for t in templates}, notification_type_tags=notification_type_tags, preview=preview)
             except Exception as exc:
                 current_app.logger.exception('Analisi PDF template fallita')
-                flash(f'Analisi del PDF fallita: {exc}', 'error')
+                flash('Analisi del PDF fallita. Consultare i log amministrativi.', 'error')
                 return redirect(url_for('main.modules_configuration'))
             finally:
                 shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -11501,7 +12703,7 @@ def modules_configuration():
                 return redirect(url_for('main.modules_configuration', template=saved.stem))
             except Exception as exc:
                 current_app.logger.exception('Salvataggio template PDF fallito')
-                flash(f'Salvataggio template fallito: {exc}', 'error')
+                flash('Salvataggio template fallito. Consultare i log amministrativi.', 'error')
                 return redirect(url_for('main.modules_configuration'))
 
         if action == 'replace_pdf_template':
@@ -11694,13 +12896,14 @@ def workflow_step_generate_document(iid, sid):
         pdf_path = generate_pdf_from_template(inc, template_name, upload_dir)
     except Exception as exc:
         current_app.logger.exception('Errore anteprima generazione modulo workflow %s', template_name)
-        section_flash(f'Errore generazione anteprima {template_name}: {exc}', 'incident-forms', 'error')
+        section_flash(f'Errore generazione anteprima {template_name}. Consultare i log amministrativi.', 'incident-forms', 'error')
         return incident_detail_redirect(iid, 'incident-forms')
     previews = [{
         'template': template_name,
         'pdf_stored': pdf_path.name,
         'suggested_name': f"{template_name}-{inc.id}",
     }]
+    _register_generated_form_previews(inc.id, [pdf_path.name])
     return render_template('generated_forms_preview.html', inc=inc, previews=previews, workflow_step=step)
 
 @bp.route('/incident/<int:iid>/forms/generate', methods=['POST'])
@@ -11730,9 +12933,10 @@ def generate_incident_forms(iid):
             })
         except Exception as exc:
             current_app.logger.exception('Errore anteprima generazione modulo %s', template_name)
-            section_flash(f'Errore generazione anteprima {template_name}: {exc}', 'incident-forms', 'error')
+            section_flash(f'Errore generazione anteprima {template_name}. Consultare i log amministrativi.', 'incident-forms', 'error')
     if not previews:
         return incident_detail_redirect(iid, 'incident-forms')
+    _register_generated_form_previews(inc.id, [item['pdf_stored'] for item in previews])
     return render_template('generated_forms_preview.html', inc=inc, previews=previews)
 
 @bp.route('/incident/<int:iid>/forms/preview-file/<path:stored_name>')
@@ -11740,8 +12944,10 @@ def generate_incident_forms(iid):
 def preview_generated_form_file(iid, stored_name):
     visible(Incident.query).filter(Incident.id == iid).first_or_404()
     safe = Path(stored_name).name
+    if safe != stored_name or safe not in _allowed_generated_form_previews(iid):
+        abort(404)
     path = Path(current_app.config['UPLOAD_DIR']) / safe
-    if not path.exists():
+    if not path.exists() or not path.is_file():
         abort(404)
     return send_file(path, as_attachment=False)
 
@@ -11754,7 +12960,12 @@ def confirm_generated_forms(iid):
         return incident_detail_redirect(iid, 'incident-forms')
     upload_dir = Path(current_app.config['UPLOAD_DIR'])
     action = request.form.get('decision','reject')
-    pdf_files = request.form.getlist('pdf_stored')
+    requested_pdf_files = request.form.getlist('pdf_stored')
+    allowed_preview_files = _allowed_generated_form_previews(iid)
+    pdf_files = [Path(name).name for name in requested_pdf_files if Path(name).name == name and Path(name).name in allowed_preview_files]
+    if len(pdf_files) != len(requested_pdf_files):
+        section_flash('Anteprima non valida o non appartenente alla sessione corrente.', 'incident-forms', 'error')
+        return incident_detail_redirect(iid, 'incident-forms')
     names = request.form.getlist('document_name')
     workflow_step_id = request.form.get('workflow_step_id', type=int)
     workflow_step = db.session.get(IncidentWorkflowStep, workflow_step_id) if workflow_step_id else None
@@ -11766,6 +12977,7 @@ def confirm_generated_forms(iid):
                 (upload_dir / Path(stored).name).unlink(missing_ok=True)
             except Exception:
                 pass
+        _forget_generated_form_previews(iid, pdf_files)
         section_flash('Generazione rifiutata: i file temporanei sono stati eliminati.', 'incident-forms', 'info')
         return incident_detail_redirect(iid, 'incident-forms')
     saved = 0
@@ -11801,6 +13013,7 @@ def confirm_generated_forms(iid):
             add_workflow_document_action(inc, workflow_step, saved_docs)
         add_automatic_button_action(inc, 'forms_confirm')
         db.session.commit()
+        _forget_generated_form_previews(iid, pdf_files)
         msg = f'Documenti generati e allegati: {saved}'
         if workflow_step and saved_docs:
             msg += '. Azione workflow inserita automaticamente.'
@@ -11931,7 +13144,7 @@ def set_setting_value(key, value):
 
 
 def _audit_filtered_query_from_request():
-    q = AuditLog.query
+    q = AuditLog.query.filter(AuditLog.tenant_id == current_tenant_id())
     search = (request.values.get('q') or '').strip()
     operation_type = (request.values.get('operation_type') or '').strip()
     username = (request.values.get('username') or '').strip()
@@ -12537,7 +13750,7 @@ def _save_setup_wizard_logo(files, form):
     f = files.get('custom_logo_file') if files else None
     if not f or not f.filename:
         return
-    filename = validate_upload_file(f, allowed_extensions={'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'}, max_size=2 * 1024 * 1024)
+    filename = validate_upload_file(f, allowed_extensions={'.png', '.jpg', '.jpeg', '.gif', '.webp'}, max_size=2 * 1024 * 1024)
     ext = os.path.splitext(filename)[1].lower() or '.img'
     os.makedirs(current_app.config['LOGO_DIR'], exist_ok=True)
     path = os.path.join(current_app.config['LOGO_DIR'], f'logo{ext}')

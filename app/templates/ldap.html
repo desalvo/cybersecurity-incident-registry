@@ -6,7 +6,7 @@
     <div><label>URI server LDAP</label><input name="ldap_uri" value="{{settings.get('ldap_uri','')}}" placeholder="ldap://ldap.example.org:389"></div>
     <div><label>Base DN</label><input name="ldap_base_dn" value="{{settings.get('ldap_base_dn','')}}" placeholder="dc=example,dc=org"></div>
     <div><label>Bind DN</label><input name="ldap_bind_dn" value="{{settings.get('ldap_bind_dn','')}}" placeholder="cn=reader,dc=example,dc=org"></div>
-    <div><label>Bind password</label><input name="ldap_bind_password" type="password" value="{{settings.get('ldap_bind_password','')}}"></div>
+    <div><label>Bind password</label><input name="ldap_bind_password" type="password" value="" autocomplete="new-password" placeholder="Lascia vuoto per mantenere la password salvata"></div>
     <div class="wide"><label>Filtro utenti, usare {uid}</label><input name="ldap_user_filter" value="{{settings.get('ldap_user_filter','(uid={uid})')}}"></div>
     <div class="wide"><label>Filtro ricerca incidenti, usare {q}</label><input name="ldap_incident_search_filter" value="{{settings.get('ldap_incident_search_filter','')}}" placeholder="(|(uid=*{q}*)(cn=*{q}*)(mail=*{q}*))"></div>
     <div><label>Attributi di ricerca incidenti</label><input name="ldap_incident_search_attributes" value="{{settings.get('ldap_incident_search_attributes','uid,cn,mail,displayName')}}"></div>

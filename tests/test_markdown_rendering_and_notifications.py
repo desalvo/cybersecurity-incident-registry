@@ -74,3 +74,10 @@ def test_strip_markdown_formatting_handles_relative_buttons():
     text = strip_markdown_formatting('{button:Dati generali|#incident-main} e {button:Guida|/help#cap-markdown-rendering}')
     assert 'Dati generali (#incident-main)' in text
     assert 'Guida (/help#cap-markdown-rendering)' in text
+
+
+def test_workflow_markdown_rejects_html_entity_encoded_unsafe_schemes():
+    html = str(workflow_markdown('{button:X|javascript&#58;alert(1)} {button:Y|data&#58;text/html,x}'))
+    assert 'javascript' not in html.lower()
+    assert 'data:' not in html.lower()
+    assert 'href=' not in html

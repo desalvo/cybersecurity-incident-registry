@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 import requests
 from flask import current_app
 from ...routes import setting_value
+from ...outbound_security import validate_outbound_http_url
 
 DEFAULTS = {
     'enabled': '0',
@@ -48,8 +49,10 @@ def reset_defaults(setter):
 
 
 def _api_url(cfg, suffix):
-    base = cfg['base_url'].rstrip('/') + '/'
-    return urljoin(base, 'alfresco/api/-default-/public/alfresco/versions/1/' + suffix.lstrip('/'))
+    base = validate_outbound_http_url(cfg['base_url'], purpose='Alfresco base URL').rstrip('/') + '/'
+    url = urljoin(base, 'alfresco/api/-default-/public/alfresco/versions/1/' + suffix.lstrip('/'))
+    # Validate the final URL too so urljoin/path changes can never escape the approved host.
+    return validate_outbound_http_url(url, purpose='Alfresco API URL')
 
 
 def _auth(cfg):
@@ -88,7 +91,7 @@ def upload_file(local_path, filename, incident_id=None, mimetype=None):
     verify_tls = bool(cfg.get('verify_tls', True))
     with path.open('rb') as fh:
         files = {'filedata': (filename, fh, mimetype or 'application/octet-stream')}
-        response = requests.post(url, auth=_auth(cfg), data=data, files=files, timeout=request_timeout, verify=verify_tls)
+        response = requests.post(url, auth=_auth(cfg), data=data, files=files, timeout=request_timeout, verify=verify_tls, allow_redirects=False)
     if response.status_code >= 400:
         raise RuntimeError(f'Errore upload Alfresco {response.status_code}: {response.text[:300]}')
     entry = (response.json() or {}).get('entry') or {}
@@ -113,7 +116,7 @@ def download_file(node_id):
     url = _api_url(cfg, f'nodes/{node_id}/content')
     request_timeout = float(cfg.get('timeout') or 20)
     verify_tls = bool(cfg.get('verify_tls', True))
-    response = requests.get(url, auth=_auth(cfg), timeout=request_timeout, verify=verify_tls)
+    response = requests.get(url, auth=_auth(cfg), timeout=request_timeout, verify=verify_tls, allow_redirects=False)
     if response.status_code >= 400:
         raise RuntimeError(f'Errore download Alfresco {response.status_code}: {response.text[:300]}')
     return response.content, response.headers.get('Content-Type') or 'application/octet-stream'

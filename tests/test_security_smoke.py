@@ -189,6 +189,7 @@ def test_csrf_login_post_works_on_plain_http_when_secure_cookie_is_disabled(monk
     monkeypatch.setenv('SESSION_COOKIE_SECURE', '0')
     monkeypatch.setenv('CIR_DISABLE_CSRF', '0')
     monkeypatch.setenv('ADMIN_INITIAL_PASSWORD', 'VeryStrongAdminPassword123!')
+    monkeypatch.setenv('SETTING_ENCRYPTION_KEY', 'E' * 64)
 
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'S' * 64
@@ -220,6 +221,7 @@ def test_secure_cookie_flag_remains_available_for_https_deployments(monkeypatch)
     monkeypatch.setenv('CIR_PRODUCTION', '1')
     monkeypatch.setenv('SESSION_COOKIE_SECURE', '1')
     monkeypatch.setenv('ADMIN_INITIAL_PASSWORD', 'VeryStrongAdminPassword123!')
+    monkeypatch.setenv('SETTING_ENCRYPTION_KEY', 'E' * 64)
 
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'S' * 64

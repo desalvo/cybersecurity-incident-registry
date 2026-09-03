@@ -11,7 +11,7 @@ minimum security baseline without adding a heavy form framework.  It provides:
 import os
 import re
 import secrets
-from .env_utils import get_admin_initial_password
+from .env_utils import get_admin_initial_password, get_env_secret
 from flask import abort, current_app, request, session, g
 
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -44,6 +44,7 @@ def validate_production_configuration(app):
     if not production_mode():
         return
     secret = (app.config.get("SECRET_KEY") or "").strip()
+    setting_key = (get_env_secret("SETTING_ENCRYPTION_KEY") or "").strip()
     admin_password = (get_admin_initial_password() or "").strip()
     database_url = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").strip()
     errors = []
@@ -51,6 +52,10 @@ def validate_production_configuration(app):
         errors.append("SECRET_KEY must be a random value of at least 32 characters")
     if admin_password.lower() in WEAK_ADMIN_PASSWORDS or len(admin_password) < 12:
         errors.append("ADMIN_INITIAL_PASSWORD must be changed and be at least 12 characters")
+    if len(setting_key) < 32 or setting_key.lower() in WEAK_SECRET_VALUES:
+        errors.append("SETTING_ENCRYPTION_KEY must be a separate random value of at least 32 characters")
+    elif setting_key == secret:
+        errors.append("SETTING_ENCRYPTION_KEY must be different from SECRET_KEY")
     if "sqlite" in database_url.lower():
         errors.append("DATABASE_URL must point to PostgreSQL in production")
     if truthy(os.getenv("CIR_DISABLE_CSRF", "0")):

@@ -72,7 +72,7 @@
     <div class="wide"><label>Token endpoint</label><input name="sso_token_url" value="{{ settings.sso_token_url or '' }}" placeholder="https://provider.example/token"></div>
     <div class="wide"><label>UserInfo endpoint</label><input name="sso_userinfo_url" value="{{ settings.sso_userinfo_url or '' }}" placeholder="https://provider.example/userinfo"></div>
     <div><label>Client ID</label><input name="sso_client_id" value="{{ settings.sso_client_id or '' }}"></div>
-    <div><label>Client secret</label><input name="sso_client_secret" type="password" value="{{ settings.sso_client_secret or '' }}"></div>
+    <div><label>Client secret</label><input name="sso_client_secret" type="password" value="" autocomplete="new-password" placeholder="Lascia vuoto per mantenere il client secret salvato"></div>
     <div><label>Scope</label><input name="sso_scopes" value="{{ settings.sso_scopes or 'openid email profile' }}"></div>
     <div><label>Claim username</label><input name="sso_username_claim" value="{{ settings.sso_username_claim or 'preferred_username' }}"></div>
     <div><label>Claim email</label><input name="sso_email_claim" value="{{ settings.sso_email_claim or 'email' }}"></div>

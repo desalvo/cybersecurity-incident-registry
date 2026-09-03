@@ -1,3 +1,9 @@
+# Cybersecurity Incident Registry 0.9.0-1
+
+## Genealogia della release
+
+La **0.8.0** (build 20260718) è la baseline funzionale da cui sono partiti i Round 1-18. Tutti i cambiamenti introdotti nei Round 1-18 confluiscono nella **0.9.0-1** (build 20260902). I round sono iterazioni interne di sviluppo/audit della 0.9.0-1 e non release funzionali intermedie. Le note cumulative della release sono in `RELEASE_NOTES_0.9.0-1.md`.
+
 - Esteso il wizard guidato di setup iniziale, ri-eseguibile da **Admin → Wizard setup iniziale**: la testata usa sempre il logo applicativo di default e mostra nome applicazione, versione e build; la prima sezione consente il cambio della password dell’utente locale admin e le sezioni successive includono parametri generali, logo custom, struttura, personale, tenant, LDAP, SSO/OAuth2, motori AI, Alfresco, documentazione, notifiche/SMTP e sicurezza/audit, con possibilità di saltare gruppi di impostazioni. Il wizard aggiorna le configurazioni esistenti dell’applicazione senza duplicarle.
 ### Aggiornamento 0.7.0-7 - Limite upload configurabile e lista incidenti
 
@@ -38,11 +44,11 @@ Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
 ## Requisiti e compatibilità
 
-Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; sono inoltre presenti pin espliciti aggiornati per `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.10.2`, `requests==2.33.0`, `cryptography==46.0.7` e, nei requisiti di sviluppo, `pytest==9.0.3`. Il pacchetto Python corretto per le chiamate HTTP è `requests`.
+Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; sono inoltre presenti pin espliciti aggiornati per `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.16.2`, `requests==2.33.0`, `cryptography==50.0.1` e, nei requisiti di sviluppo, `pytest==9.0.3`. Il pacchetto Python corretto per le chiamate HTTP è `requests`.
 
 ## Stato applicativo
 
-La documentazione operativa descrive lo stato corrente della piattaforma 0.8.0-1, build 20260718. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+La documentazione operativa descrive lo stato corrente della piattaforma 0.9.0-1, build 20260902. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
 ## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260608
 
@@ -197,8 +203,8 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.8.0-1
-- Build: 20260718
+- Versione: 0.9.0-1
+- Build: 20260902
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
 Le informazioni sono visibili da **Info → Applicazione** e configurabili via variabili d’ambiente `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
@@ -260,9 +266,9 @@ In **Admin → Notifiche** sono disponibili i campi **Oggetto** e **Corpo del me
 Il pacchetto include `docs/PROJECT_DESIGN.md`, che descrive l'architettura logica, il modello dati, i flussi applicativi, le regole di autorizzazione, il sistema notifiche, export/reportistica e una sezione testuale completa per riprodurre l'applicazione da capo mantenendo le funzionalità della build corrente.
 
 
-## Aggiornamento PostgreSQL 18.4 e fix creazione incidenti
+## Aggiornamento PostgreSQL 18.6 e fix creazione incidenti
 
-Questa build usa PostgreSQL `18.4` nel `docker-compose.yml` e include anche un manifest Kubernetes dedicato in `k8s/postgresql.yaml` con immagine `postgres:18.4`.
+Questa build usa PostgreSQL `18.4` nel `docker-compose.yml` e include anche un manifest Kubernetes dedicato in `k8s/postgresql.yaml` con immagine `postgres:18.6`.
 
 La creazione di nuovi incidenti è stata resa più robusta:
 
@@ -318,9 +324,9 @@ Oltre ai dati dell’incidente, nei mapping dei moduli sono disponibili anche:
 - `structure`: nome della struttura, configurato in **Admin → Struttura**;
 - i dati del responsabile della sicurezza configurati in **Admin → Dati responsabile**.
 
-## Nota PostgreSQL 18.4
+## Nota PostgreSQL 18.6
 
-Nei manifest Docker Compose e Kubernetes il volume persistente PostgreSQL è montato su `/var/lib/postgresql`, come richiesto per l'immagine `postgres:18.4`. La directory dati effettiva viene gestita dall'immagine ufficiale all'interno del volume, evitando problemi di permessi o inizializzazione quando si monta direttamente `/var/lib/postgresql/data`.
+Nei manifest Docker Compose e Kubernetes il volume persistente PostgreSQL è montato su `/var/lib/postgresql`, come richiesto per l'immagine `postgres:18.6`. La directory dati effettiva viene gestita dall'immagine ufficiale all'interno del volume, evitando problemi di permessi o inizializzazione quando si monta direttamente `/var/lib/postgresql/data`.
 
 
 ## Aggiornamento dati titolare, responsabile e raccomandazioni
@@ -981,4 +987,62 @@ scripts/setup_python_env.sh
 source .venv/bin/activate
 ```
 
-Lo script crea un virtual environment dedicato, installa `requirements-dev.txt` e verifica l'ambiente con `pip check`. La versione richiesta dal progetto per `pypdf` resta `pypdf==6.10.2`; eventuali conflitti con pacchetti non appartenenti al progetto vengono evitati isolando l'ambiente invece di rilassare il pin di sicurezza/funzionale.
+Lo script crea un virtual environment dedicato, installa `requirements-dev.txt` e verifica l'ambiente con `pip check`. La versione richiesta dal progetto per `pypdf` resta `pypdf==6.16.2`; eventuali conflitti con pacchetti non appartenenti al progetto vengono evitati isolando l'ambiente invece di rilassare il pin di sicurezza/funzionale.
+
+## Test di integrazione PostgreSQL reale
+
+La suite standard non richiede un server PostgreSQL. I test che verificano advisory lock, concorrenza, rollback DDL transazionale, riallineamento delle sequence e recovery dopo un vero `SIGKILL` del worker sono marcati `postgres` e vengono saltati automaticamente quando `CIR_POSTGRES_TEST_URL` non è configurata.
+
+Per eseguirli contro un PostgreSQL 18.6 temporaneo con Docker Compose:
+
+```bash
+./scripts/run_postgres_tests.sh
+```
+
+La porta host predefinita è `55432`; può essere cambiata con `CIR_POSTGRES_TEST_PORT`. Per usare un database PostgreSQL di test già esistente:
+
+**Usare esclusivamente un database usa-e-getta dedicato ai test.** Per protezione, la suite rifiuta per default database il cui nome non contiene `test`; l’override `CIR_POSTGRES_TEST_ALLOW_NONTEST_DATABASE=1` è riservato a database temporanei/CI esplicitamente isolati e non deve mai essere usato verso produzione.
+
+```bash
+CIR_POSTGRES_TEST_URL='postgresql+psycopg2://user:password@host:5432/cir_test' pytest -m postgres
+```
+
+Usare esclusivamente un database di test sacrificabile: la suite crea e rimuove tabelle temporanee con nomi univoci e acquisisce advisory lock PostgreSQL.
+
+## Hardening Round 16
+
+Il Round 16 completa l'audit trasversale di isolamento tenant e gestione dei segreti. Template/tipi di notifica, knowledge base e contesto database del chatbot AI, scheduler background e retention/audit amministrativo rispettano ora sempre il tenant attivo. Le credenziali SMTP, LDAP e SSO non vengono più reinserite in chiaro nell'HTML amministrativo: un campo password vuoto conserva il valore già cifrato. I dettagli tecnici e le verifiche sono in `SECURITY_AUDIT_ROUND16.md`.
+
+
+## Hardening Round 17
+
+Il Round 17 rafforza supply chain e deployment production. `SBOM_ROUND17.cdx.json` contiene l'inventario CycloneDX 1.6 delle dipendenze Python dirette e transitive con hash SHA-256 delle wheel disponibili; `scripts/generate_sbom.py` lo rigenera senza accesso alla rete e `scripts/run_sca.sh` esegue `pip-audit` in CI/release quando il relativo tooling e' disponibile. Le immagini runtime di riferimento sono aggiornate a Python 3.12.14 e PostgreSQL 18.6.
+
+Per Docker Compose production usare anche `docker-compose.production.yml`, impostando `CIR_PRODUCTION_IMAGE` a un tag di release immutabile o, preferibilmente, a un digest `image@sha256:...`. L'override abilita root filesystem read-only, `no-new-privileges`, capability ridotte, cookie Secure/HSTS e impedisce il fallback root su errori di permesso dei volumi. Kubernetes disabilita il service-account token automatico, usa seccomp `RuntimeDefault`, root filesystem read-only per l'applicazione e richiede Secret esterni; `k8s/secrets.example.yaml` e' soltanto un modello e non e' incluso da Kustomize.
+
+Le variabili core `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD` e `SETTING_ENCRYPTION_KEY` supportano anche la forma `NOME_FILE=/run/secrets/...`; non impostare contemporaneamente valore inline e `_FILE`. Se CIR e' dietro reverse proxy, configurare `CIR_TRUSTED_PROXY_CIDRS` con le sole reti proxy realmente fidate: `X-Forwarded-For` viene ignorato per connessioni dirette, impedendo di aggirare il rate limiting del login tramite spoofing dell'header. Dettagli e verifiche sono in `SECURITY_AUDIT_ROUND17.md`.
+
+## Release Candidate Round 18
+
+Il Round 18 sincronizza la build della release candidate a `20260902` e introduce `scripts/verify_release_candidate.py`, che verifica offline la coerenza tra `VERSION`, `BUILD`, Docker Compose, Kubernetes, SBOM e i principali requisiti di hardening production. Il controllo non sostituisce i gate che richiedono infrastruttura esterna.
+
+Prima della promozione production devono risultare completati anche: `scripts/run_sca.sh` in un ambiente con accesso al vulnerability service, i sette test PostgreSQL reali (`scripts/run_postgres_tests.sh`), la scansione dell'immagine container finale e il pin dell'immagine CIR tramite digest `@sha256:`. La checklist completa è in `RELEASE_CANDIDATE_ROUND18.md`.
+
+## Build Docker multi-arch
+
+Per generare e pubblicare l'immagine `desalvo/cybersecurity-incident-registry:latest` per **amd64** e **arm64**:
+
+```bash
+docker login
+./scripts/build_multiarch_image.sh
+```
+
+Lo script usa Docker Buildx e pubblica un unico manifest multi-arch per `linux/amd64,linux/arm64`. Repository e tag possono essere cambiati separatamente con `--repository`/`--tag` oppure con `CIR_DOCKER_REPOSITORY`/`CIR_DOCKER_TAG`. Per compatibilità resta disponibile `--image`/`CIR_DOCKER_IMAGE`, che imposta il riferimento completo e ha precedenza. Esempio: `./scripts/build_multiarch_image.sh --repository miaorg/cir --tag 0.9.0-1`.
+
+## Migrazione da 0.8.0 a >= 0.9.0
+
+Per aggiornare deployment Docker Compose o Kubernetes dalla baseline 0.8.0 alla 0.9.0-1 o successive, seguire `MIGRATION_0.8.0_TO_0.9.0.md`. La guida documenta immagine/tag, nuove variabili e secret, volumi persistenti, Compose production, Kustomize/PVC, securityContext/probe e la cautela necessaria per eventuali upgrade major di PostgreSQL.
+
+### Gate Trivy production (RC R8)
+
+Dopo la build multi-arch, eseguire `./scripts/run_trivy_production_gate.sh IMMAGINE`. Il gate controlla separatamente amd64 e arm64 contro `TRIVY_RISK_ACCEPTANCE_R8.json`; non usa una soppressione generica degli `unfixed` e fallisce su nuovi HIGH/CRITICAL, finding Python HIGH/CRITICAL o vulnerabilità accettate per cui diventa disponibile una versione corretta. Vedere `SECURITY_DISPOSITION_R8.md`.

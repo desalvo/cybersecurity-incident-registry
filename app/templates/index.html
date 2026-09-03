@@ -200,7 +200,7 @@
         <div class="mobile-actions">
           <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
           {{ tenant_move_control(i, compact=True) }}
-          {% if current_tenant_role in ['superuser','admin','writer'] %}<a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>{% endif %}
+          {% if current_tenant_role in ['superuser','admin','writer'] %}<form method="post" action="{{ url_for('main.clone', iid=i.id) }}" class="inline-form"><button class="secondary" type="submit">Clona incidente</button></form>{% endif %}
           {% if current_tenant_role in ['superuser','admin','writer'] %}
             <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
               <button class="danger" type="submit">Elimina</button>
@@ -238,7 +238,7 @@
         <td>{% if i.effective_duration %}{{ i.effective_duration }}{% endif %}</td>
         <td class="actions">
           {% if current_tenant_role in ['superuser','admin','writer'] %}
-            <a class="button secondary" href="{{ url_for('main.clone', iid=i.id) }}">Clona</a>
+            <form method="post" action="{{ url_for('main.clone', iid=i.id) }}" class="inline-form"><button class="secondary" type="submit">Clona incidente</button></form>
           {% endif %}
           <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
           {{ tenant_move_control(i) }}

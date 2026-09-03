@@ -28,7 +28,7 @@
       <div class="form-grid">
         <div class="wide"><label><input type="checkbox" id="smtp_auth_enabled" name="smtp_auth_enabled" value="1" {% if settings.get('smtp_auth_enabled','0')=='1' %}checked{% endif %}> Abilita autenticazione SMTP</label></div>
         <div><label>SMTP username</label><input name="smtp_username" value="{{ settings.get('smtp_username','') }}" autocomplete="off"></div>
-        <div><label>SMTP password</label><input type="password" name="smtp_password" value="{{ settings.get('smtp_password','') }}" autocomplete="new-password"></div>
+        <div><label>SMTP password</label><input type="password" name="smtp_password" value="" autocomplete="new-password" placeholder="Lascia vuoto per mantenere la password salvata"></div>
       </div>
     </fieldset>
 

@@ -17,15 +17,17 @@ def test_user_tenant_role_backfill_happens_after_user_tenant_id_migration():
     assert 'SELECT id, COALESCE(tenant_id' not in source
 
 
-def test_full_import_clears_bootstrap_rows_before_tenant_restore():
+def test_full_import_rebuilds_schema_before_tenant_restore():
     source = Path('app/routes.py').read_text()
-    assert 'def clear_database_rows_for_full_import()' in source
-    assert 'TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE' in source
-    assert source.count('clear_database_rows_for_full_import()') >= 2
-    import_pos = source.index("for row in _deduplicated_tenant_rows(tables.get('tenants', []))")
-    clear_pos = source.rindex('clear_database_rows_for_full_import()', 0, import_pos)
-    assert clear_pos < import_pos
-
+    assert 'def rebuild_database_for_full_import()' in source
+    rebuild = source[source.index('def rebuild_database_for_full_import():'):source.index('def clear_database_rows_for_full_import():')]
+    assert 'db.metadata.drop_all(bind=connection)' in rebuild
+    assert 'db.metadata.create_all(bind=connection)' in rebuild
+    assert 'connection = db.session.connection()' in rebuild
+    import_block = source[source.index('def import_full():'):source.index('def _stats_incidents_for_range')]
+    rebuild_pos = import_block.index('rebuild_database_for_full_import()')
+    tenant_pos = import_block.index("for row in _deduplicated_tenant_rows(tables.get('tenants', []))")
+    assert rebuild_pos < tenant_pos
 
 def test_full_import_deduplicates_default_tenant_and_legacy_memberships():
     source = Path('app/routes.py').read_text()
@@ -55,14 +57,13 @@ def test_full_import_audit_purge_does_not_touch_current_user_after_session_reset
     assert ' setting_value(' not in helper_block
 
 
-def test_full_import_realigns_sequences_after_restore_commit():
+def test_full_import_realigns_sequences_before_final_restore_commit():
     source = Path('app/routes.py').read_text()
     import_block = source[source.index('def import_full():'):source.index('def _stats_incidents_for_range')]
-    commit_pos = import_block.index('db.session.commit()\n            # Dopo il restore con ID espliciti')
-    align_pos = import_block.index('align_all_table_sequences()', commit_pos)
-    assert commit_pos < align_pos
-    assert 'prima operazione successiva, ad esempio la creazione di un tenant' in import_block
-
+    align_pos = import_block.index('align_all_table_sequences()')
+    commit_pos = import_block.index('db.session.commit()', align_pos)
+    assert align_pos < commit_pos
+    assert 'stessa transazione del restore' in import_block
 
 def test_tenant_clone_realigns_sequences_before_copying_configuration():
     source = Path('app/routes.py').read_text()

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from flask import current_app
 from ...models import AIChatbotDocument
+from ...routes import tenant_query
 from .database_context import database_context_enabled, sanitized_database_context
 
 PROJECT_FILES = [
@@ -45,7 +46,7 @@ def project_knowledge(max_chars=90000):
 
 def uploaded_knowledge(max_chars=50000):
     chunks=[]
-    for doc in AIChatbotDocument.query.order_by(AIChatbotDocument.uploaded_at.desc()).limit(20).all():
+    for doc in tenant_query(AIChatbotDocument).order_by(AIChatbotDocument.uploaded_at.desc()).limit(20).all():
         text=(doc.extracted_text or '').strip()
         if text:
             chunks.append(f"\n--- Documento caricato: {doc.title} ---\n{text[:10000]}")

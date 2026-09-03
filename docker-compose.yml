@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18.4
+    image: postgres:18.6
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-incidents}
       POSTGRES_USER: ${POSTGRES_USER:-incidents}
@@ -17,11 +17,15 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env, for example postgresql+psycopg2://incidents:<password>@db:5432/incidents}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env with a random value of at least 32 characters}
+      SECRET_KEY_FILE: ${SECRET_KEY_FILE:-}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env with a strong one-time bootstrap password}
+      ADMIN_INITIAL_PASSWORD_FILE: ${ADMIN_INITIAL_PASSWORD_FILE:-}
+      SETTING_ENCRYPTION_KEY: ${SETTING_ENCRYPTION_KEY:-}
+      SETTING_ENCRYPTION_KEY_FILE: ${SETTING_ENCRYPTION_KEY_FILE:-}
       CIR_PRODUCTION: ${CIR_PRODUCTION:-0}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
-      APP_VERSION: 0.8.0-1
-      APP_BUILD: 20260718
+      APP_VERSION: 0.9.0-1
+      APP_BUILD: 20260902
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       LOGO_DIR: ${LOGO_DIR:-/data/logo}
       FORM_TEMPLATE_DIR: ${FORM_TEMPLATE_DIR:-/data/form_templates}
@@ -29,7 +33,7 @@ services:
       SSL_DIR: ${SSL_DIR:-/data/ssl}
       BACKUP_DIR: ${BACKUP_DIR:-/data/backups}
       AI_CHATBOT_DOC_DIR: ${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}
-      CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE: ${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-1}
+      CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE: ${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-0}
       PORT: ${PORT:-8000}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
@@ -37,6 +41,7 @@ services:
       SSL_PORT: ${SSL_PORT:-8443}
       SSL_ENABLED: ${SSL_ENABLED:-0}
       CIR_FORCE_HSTS: ${CIR_FORCE_HSTS:-0}
+      CIR_TRUSTED_PROXY_CIDRS: ${CIR_TRUSTED_PROXY_CIDRS:-}
       MAX_CONTENT_LENGTH: ${MAX_CONTENT_LENGTH:-26214400}
       CIR_DISABLE_CSRF: ${CIR_DISABLE_CSRF:-0}
       APP_UID: ${APP_UID:-10001}

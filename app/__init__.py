@@ -1,4 +1,4 @@
-import os, time, shutil, secrets
+import os, time, shutil, secrets, re
 
 from .version import APP_RELEASE_VERSION, APP_RELEASE_BUILD
 from flask import Flask, session
@@ -7,15 +7,15 @@ from sqlalchemy import text, inspect, Table, MetaData, select, func
 from sqlalchemy.exc import OperationalError
 from .models import db, Tenant, User, UserTenantRole, ConfigLabel, Setting, NotificationType, NotificationTemplate, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob, AIChatbotDocument, Incident, IncidentTemplate, Person, Recommendation
 from .auth import login_manager, hash_password
-from .env_utils import get_admin_initial_password
+from .env_utils import get_admin_initial_password, get_env_secret
 from .security import init_security
 from .consequences import default_consequence_settings
 
 def create_app():
     app=Flask(__name__)
     register_text_filters(app)
-    app.config['SECRET_KEY']=os.getenv('SECRET_KEY') or secrets.token_urlsafe(48)
-    app.config['SQLALCHEMY_DATABASE_URI']=os.getenv('DATABASE_URL','sqlite:////tmp/cir.db')
+    app.config['SECRET_KEY']=get_env_secret('SECRET_KEY') or secrets.token_urlsafe(48)
+    app.config['SQLALCHEMY_DATABASE_URI']=get_env_secret('DATABASE_URL', 'sqlite:////tmp/cir.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
     init_security(app)
     app.config['UPLOAD_DIR']=os.getenv('UPLOAD_DIR','/data/cir_uploads')
@@ -115,7 +115,7 @@ def create_app():
         except Exception:
             data['modules_menu_visible'] = False
         return data
-    from .routes import bp, start_deadline_notification_scheduler, start_incident_reminder_scheduler, start_backup_scheduler, sso_logo_url, apply_configured_max_upload_size; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
+    from .routes import bp, start_deadline_notification_scheduler, start_incident_reminder_scheduler, start_backup_scheduler, sso_logo_url, apply_configured_max_upload_size, recover_interrupted_full_import_serialized; app.register_blueprint(bp); app.jinja_env.globals['sso_logo_url'] = sso_logo_url
     @app.before_request
     def _refresh_configured_upload_limit():
         try:
@@ -126,6 +126,9 @@ def create_app():
     from .plugins.alfresco import register_plugin as register_alfresco_plugin; register_alfresco_plugin(app)
     with app.app_context():
         wait_db(db)
+        # Recover a process/host crash that interrupted Full Import before any
+        # bootstrap writes can mutate the database further.
+        recover_interrupted_full_import_serialized()
         bootstrap(app)
     start_deadline_notification_scheduler(app)
     start_incident_reminder_scheduler(app)
@@ -812,6 +815,52 @@ def run_schema_migrations(app):
         if 'backup_job' not in tables:
             BackupJob.__table__.create(db.engine, checkfirst=True)
             app.logger.info('Schema migration applied: backup_job table created')
+
+        # Round 6: strengthen parent/child ownership at the PostgreSQL layer.
+        # Existing databases are upgraded only when no NULL/orphan rows exist;
+        # otherwise startup remains non-destructive and reports the condition.
+        if str(db.engine.url).startswith('postgresql'):
+            ownership_fks = [
+                ('action', 'incident_id', 'incident', 'fk_action_incident_owner'),
+                ('document', 'incident_id', 'incident', 'fk_document_incident_owner'),
+                ('incident_reminder', 'incident_id', 'incident', 'fk_incident_reminder_incident_owner'),
+                ('action_attachment', 'action_id', 'action', 'fk_action_attachment_action_owner'),
+            ]
+            with db.engine.begin() as conn:
+                pg_inspector = inspect(conn)
+                existing_tables = set(pg_inspector.get_table_names())
+                for child, child_col, parent, constraint_name in ownership_fks:
+                    if child not in existing_tables or parent not in existing_tables:
+                        continue
+                    invalid_count = conn.execute(text(
+                        f'SELECT COUNT(*) FROM "{child}" c LEFT JOIN "{parent}" p ON c."{child_col}" = p.id '
+                        f'WHERE c."{child_col}" IS NULL OR p.id IS NULL'
+                    )).scalar() or 0  # nosec B608: identifiers are static literals above
+                    if invalid_count:
+                        app.logger.warning(
+                            'Schema hardening skipped for %s.%s: %s NULL/orphan rows require manual repair',
+                            child, child_col, invalid_count,
+                        )
+                        continue
+                    conn.execute(text(f'ALTER TABLE "{child}" ALTER COLUMN "{child_col}" SET NOT NULL'))  # nosec B608
+                    current_fks = inspect(conn).get_foreign_keys(child)
+                    has_cascade = False
+                    for fk in current_fks:
+                        if fk.get('constrained_columns') != [child_col] or fk.get('referred_table') != parent:
+                            continue
+                        options = fk.get('options') or {}
+                        if str(options.get('ondelete') or '').upper() == 'CASCADE':
+                            has_cascade = True
+                            continue
+                        fk_name = fk.get('name') or ''
+                        if fk_name and re.fullmatch(r'[A-Za-z0-9_]+', fk_name):
+                            conn.execute(text(f'ALTER TABLE "{child}" DROP CONSTRAINT "{fk_name}"'))  # nosec B608
+                    if not has_cascade:
+                        conn.execute(text(
+                            f'ALTER TABLE "{child}" ADD CONSTRAINT "{constraint_name}" '
+                            f'FOREIGN KEY ("{child_col}") REFERENCES "{parent}"(id) ON DELETE CASCADE'
+                        ))  # nosec B608
+                    app.logger.info('Schema hardening applied: %s.%s ownership FK/NOT NULL', child, child_col)
 
     except Exception:
         db.session.rollback()

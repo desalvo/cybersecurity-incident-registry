@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 
@@ -29,7 +30,7 @@ def _login_admin(client):
 
 def test_initial_setup_wizard_is_available_and_saves_groups(monkeypatch, tmp_path):
     _configure_test_env(monkeypatch, tmp_path)
-    from app import create_app
+    from app import create_app, db
     from app.models import Setting
 
     app = create_app()
@@ -44,7 +45,7 @@ def test_initial_setup_wizard_is_available_and_saves_groups(monkeypatch, tmp_pat
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert 'Cybersecurity Incident Registry' in html
-    assert 'Versione 0.7.0-7' in html
+    assert f"Versione {Path('VERSION').read_text(encoding='utf-8').strip()}" in html
     assert 'Password utente admin' in html
     assert html.index('Password utente admin') < html.index('Parametri generali')
     assert 'role="progressbar"' in html
@@ -62,11 +63,11 @@ def test_initial_setup_wizard_is_available_and_saves_groups(monkeypatch, tmp_pat
     }, follow_redirects=True)
     assert response.status_code == 200
     with app.app_context():
-        assert Setting.query.get('application_external_url').value == 'https://registry.example.test'
-        assert Setting.query.get('application_timezone').value == 'Europe/Rome'
-        assert Setting.query.get('interface_language').value == 'it'
-        assert Setting.query.get('max_upload_size_mb').value == '64'
-        assert 'general' in Setting.query.get('setup_wizard_progress_json').value
+        assert db.session.get(Setting, 'application_external_url').value == 'https://registry.example.test'
+        assert db.session.get(Setting, 'application_timezone').value == 'Europe/Rome'
+        assert db.session.get(Setting, 'interface_language').value == 'it'
+        assert db.session.get(Setting, 'max_upload_size_mb').value == '64'
+        assert 'general' in db.session.get(Setting, 'setup_wizard_progress_json').value
 
 
 def test_initial_setup_wizard_shows_packaged_release_even_with_stale_environment(monkeypatch, tmp_path):
@@ -83,15 +84,15 @@ def test_initial_setup_wizard_shows_packaged_release_even_with_stale_environment
     page = client.get('/admin/setup-wizard')
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert 'Versione 0.7.0-7' in html
-    assert 'build 20260608' in html
+    assert f"Versione {Path('VERSION').read_text(encoding='utf-8').strip()}" in html
+    assert f"build {Path('BUILD').read_text(encoding='utf-8').strip()}" in html
     assert '0.6.0-41' not in html
     assert '20260530' not in html
 
 
 def test_initial_setup_wizard_can_skip_and_finish(monkeypatch, tmp_path):
     _configure_test_env(monkeypatch, tmp_path)
-    from app import create_app
+    from app import create_app, db
     from app.models import Setting
 
     app = create_app()
@@ -107,7 +108,7 @@ def test_initial_setup_wizard_can_skip_and_finish(monkeypatch, tmp_path):
     }, follow_redirects=True)
     assert skipped.status_code == 200
     with app.app_context():
-        assert 'organization' in Setting.query.get('setup_wizard_progress_json').value
+        assert 'organization' in db.session.get(Setting, 'setup_wizard_progress_json').value
 
     token = _csrf(skipped.get_data(as_text=True))
     finished = client.post('/admin/setup-wizard?step=documentation', data={
@@ -116,7 +117,7 @@ def test_initial_setup_wizard_can_skip_and_finish(monkeypatch, tmp_path):
     }, follow_redirects=True)
     assert finished.status_code == 200
     with app.app_context():
-        assert Setting.query.get('setup_wizard_completed').value == '1'
+        assert db.session.get(Setting, 'setup_wizard_completed').value == '1'
 
 
 def test_initial_setup_wizard_uses_default_app_logo_and_exposes_extended_groups(monkeypatch, tmp_path):

@@ -8,7 +8,7 @@ class OllamaEngine(BaseEngine):
         endpoint=validate_ai_endpoint((self.config.get('endpoint') or 'http://localhost:11434/api/chat').rstrip('/'), 'ollama')
         model=self.config.get('model') or 'llama3.1'
         payload={'model':model,'messages':[{'role':'system','content':system_context}]+messages,'stream':False}
-        r=requests.post(endpoint,json=payload,timeout=120)
+        r=requests.post(endpoint,json=payload,timeout=120,allow_redirects=False)
         if r.status_code>=400:
             raise AIEngineError(f'Errore Ollama: {r.status_code} {r.text[:300]}')
         return r.json().get('message',{}).get('content','')

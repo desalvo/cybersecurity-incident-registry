@@ -1,3 +1,4 @@
+import html
 import re
 
 from markupsafe import Markup, escape
@@ -37,7 +38,7 @@ def _is_safe_link_target(target):
     """
     if not target:
         return False
-    value = str(target).strip()
+    value = html.unescape(str(target)).strip()
     if not value or any(ch.isspace() for ch in value):
         return False
     lowered = value.lower()
@@ -129,10 +130,10 @@ def _apply_inline_markdown(text):
 
     def button_repl(match):
         label = match.group(1).strip()
-        target = match.group(2).strip()
+        target = html.unescape(match.group(2).strip())
         if not _is_safe_link_target(target):
             return label
-        target_attr = f' href="{target}"'
+        target_attr = f' href="{escape(target)}"'
         if _is_external_link_target(target):
             target_attr += ' target="_blank" rel="noopener noreferrer"'
         return f'<a class="workflow-button-link safe-markdown-button"{target_attr}>{label}</a>'

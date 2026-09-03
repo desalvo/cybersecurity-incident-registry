@@ -31,7 +31,7 @@ def _login_admin(client):
 
 def test_admin_can_configure_max_upload_size_and_oversized_workflow_import_is_rejected(monkeypatch, tmp_path):
     _configure_test_env(monkeypatch, tmp_path)
-    from app import create_app
+    from app import create_app, db
     from app.models import Setting
 
     app = create_app()
@@ -57,7 +57,7 @@ def test_admin_can_configure_max_upload_size_and_oversized_workflow_import_is_re
     }, follow_redirects=True)
     assert response.status_code == 200
     with app.app_context():
-        assert Setting.query.get('max_upload_size_mb').value == '1'
+        assert db.session.get(Setting, 'max_upload_size_mb').value == '1'
 
     page = client.get('/admin/incident-workflows')
     token = _csrf(page.get_data(as_text=True))

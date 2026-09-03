@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Create an isolated Python virtual environment for the application.
-# This keeps project pins such as pypdf==6.10.2 isolated from unrelated
+# This keeps project pins such as pypdf==6.16.2 isolated from unrelated
 # packages that may already be installed in a workstation or CI image.
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

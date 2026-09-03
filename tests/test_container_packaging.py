@@ -58,6 +58,6 @@ def test_kubernetes_prepares_pvcs_for_non_root_container_and_exposes_csrf_flag()
     assert "CIR_DISABLE_CSRF" in deployment
     assert "AI_CHATBOT_DOC_DIR" in deployment
     assert "cir-ai-chatbot-docs" in pvc
-    assert "desalvo/cybersecurity-incident-registry:latest" in deployment
+    assert "desalvo/cybersecurity-incident-registry:0.9.0-1" in deployment
     assert "cir-logo" in pvc
-    assert "newTag: latest" in kustomization
+    assert 'newTag: "0.9.0-1"' in kustomization

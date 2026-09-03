@@ -1,9 +1,27 @@
 Cybersecurity Incident Registry - Changelog
 
-0.8.0-1 - Spostamento incidenti tra tenant e aggiornamento release
-- Aggiornati versione applicativa, documentazione, manifest e packaging alla release 0.8.0-1 build 20260718.
+0.9.0-1 build 20260902 - Production Release
+- Baseline funzionale: versione 0.8.0, build 20260718.
+- La versione 0.9.0-1 incorpora cumulativamente tutti i cambiamenti sviluppati, verificati e documentati nei Round 1-18.
+- I Round 1-18 sono iterazioni interne di sviluppo, audit e hardening della 0.9.0-1; non rappresentano release funzionali intermedie e non devono essere interpretati come versioni 0.8.x pubblicate separatamente.
+- Rafforzati autenticazione, sessioni, CSRF, rate limiting, gestione proxy fidati, cookie e header HTTP di sicurezza.
+- Rafforzato l'isolamento multi-tenant per dati amministrativi, template/tipi di notifica, chatbot AI, scheduler, audit, import/export e operazioni di manutenzione.
+- Rafforzati upload/download e accessi filesystem con canonicalizzazione dei percorsi, validazione dei nomi persistiti e confinamento delle directory gestite.
+- Rafforzati outbound HTTP/SSRF, plugin AI/Alfresco, gestione dei redirect e validazione delle destinazioni di rete.
+- Rafforzati backup e restore: locking PostgreSQL, transazioni atomiche, staging filesystem, rollback, recovery journal persistente e recovery dopo crash/SIGKILL.
+- Rafforzata la protezione dei segreti SMTP/LDAP/SSO e introdotta gestione production tramite secret file/variabili senza riflettere credenziali nel browser.
+- Rafforzati container e deployment production con runtime non-root, filesystem read-only, capability ridotte, seccomp, manifest senza :latest e PostgreSQL 18.6.
+- Aggiunti SBOM CycloneDX transitive, gate SCA/RC, checksum SHA-256, test PostgreSQL opt-in e failure-injection end-to-end.
+- Aggiunto build Docker multi-arch amd64/arm64 con repository e tag configurabili e default desalvo/cybersecurity-incident-registry:latest.
+- Aggiunte guide IT/EN per la migrazione deployment da 0.8.0 a >= 0.9.0 (Docker Compose, Kubernetes/Kustomize, Secret, PVC e PostgreSQL).
+- Validazione finale production: suite standard 295 passed, 7 skipped; suite PostgreSQL reale 7 passed, 295 deselected; pip check PASS; SCA live: nessuna vulnerabilita nota; gate Trivy R8 PASS su linux/amd64 e linux/arm64.
+- Immagine production multi-arch: desalvo/cybersecurity-incident-registry:0.9.0-1, digest OCI sha256:ff734b8ed7cbc3a979081cd782396088ca0d1dea07092ebfb702efd5d48c8c9b.
+- Dettagli completi: RELEASE_NOTES_0.9.0-1.md, RELEASE_CANDIDATE_ROUND18.md e SECURITY_AUDIT_ROUND2.md ... SECURITY_AUDIT_ROUND18.md.
+
+0.8.0 build 20260718 - Baseline di partenza dei Round 1-18
+- Questa è la baseline funzionale da cui è iniziato il lavoro che confluisce nella 0.9.0-1.
 - Corretto lo spostamento singolo e massivo degli incidenti quando nel tenant destinazione esiste già una persona con lo stesso nome ma e-mail differente.
-- La rimappatura delle persone usa ora la stessa chiave funzionale del vincolo uq_person_tenant_name (tenant_id + name), evitando inserimenti duplicati.
+- La rimappatura delle persone usa la stessa chiave funzionale del vincolo uq_person_tenant_name (tenant_id + name), evitando inserimenti duplicati.
 - I dati già presenti nel tenant destinazione non vengono sovrascritti; vengono completati soltanto eventuali campi mancanti.
 - Aggiunti test di regressione per riuso della persona esistente durante lo spostamento tra tenant.
 - Anonimizzati i dati del test di regressione usando USER e user@example.com.

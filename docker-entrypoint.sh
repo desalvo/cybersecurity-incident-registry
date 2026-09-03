@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+# Restrictive default for files created by the runtime; explicit chmods may tighten further.
+umask 027
+
 APP_UID="${APP_UID:-10001}"
 APP_GID="${APP_GID:-10001}"
 APP_USER="${APP_USER:-appuser}"
@@ -12,7 +15,7 @@ SSL_DIR="${SSL_DIR:-/data/ssl}"
 BACKUP_DIR="${BACKUP_DIR:-/data/backups}"
 AI_CHATBOT_DOC_DIR="${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}"
 DATA_DIRS="$UPLOAD_DIR $LOGO_DIR $FORM_TEMPLATE_DIR $SSO_LOGO_DIR $SSL_DIR $BACKUP_DIR $AI_CHATBOT_DOC_DIR"
-RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE="${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-1}"
+RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE="${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-0}"
 
 warn() {
   echo "[entrypoint] WARNING: $*" >&2

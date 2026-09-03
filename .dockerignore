@@ -23,3 +23,21 @@ backups/*
 generated/*
 *.key
 *.crt
+
+# Release/audit artifacts are shipped in the source package but must not be copied
+# into the runtime image. Apart from reducing image size, this prevents scanners
+# from treating historical CycloneDX files as installed runtime dependencies.
+SBOM_*.cdx.json
+SECURITY_AUDIT_*.md
+SECURITY_UPDATE_*.md
+RC_*_TEST_HARNESS_FIX.md
+RELEASE_CANDIDATE_*.md
+RELEASE_NOTES_*.md
+MIGRATION_*.md
+tests/
+.pytest_cache/
+pytest.ini
+requirements-dev.txt
+
+SECURITY_DISPOSITION_*.md
+TRIVY_RISK_ACCEPTANCE_*.json

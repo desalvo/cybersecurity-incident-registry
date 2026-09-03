@@ -12,7 +12,7 @@ from flask import current_app
 from sqlalchemy import func
 from flask_login import current_user
 from ...models import db
-from ...routes import setting_value, current_tenant_id, is_superuser
+from ...routes import setting_value, current_tenant_id
 
 # Tables entirely excluded because their content is inherently personal,
 # credential-like, binary, or already injected through the dedicated chatbot KB.
@@ -76,13 +76,13 @@ SAFE_SETTING_KEYS = {
 
 def _tenant_filtered_statement(table, columns=None):
     stmt = db.select(*(columns or [table]))
-    if 'tenant_id' in table.c and not is_superuser():
+    if 'tenant_id' in table.c:
         stmt = stmt.where(table.c.tenant_id == current_tenant_id())
     return stmt
 
 def _tenant_filtered_count(table):
     stmt = db.select(func.count()).select_from(table)
-    if 'tenant_id' in table.c and not is_superuser():
+    if 'tenant_id' in table.c:
         stmt = stmt.where(table.c.tenant_id == current_tenant_id())
     return db.session.execute(stmt).scalar() or 0
 

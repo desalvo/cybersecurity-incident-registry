@@ -11,7 +11,7 @@ class GeminiEngine(BaseEngine):
         if not api_key:
             raise AIEngineError('API key Gemini non configurata.')
         text=system_context+'\n\nDomanda utente:\n'+'\n'.join(m.get('content','') for m in messages if m.get('role')=='user')
-        r=requests.post(endpoint,params={'key':api_key},json={'contents':[{'parts':[{'text':text}]}]},timeout=60)
+        r=requests.post(endpoint,params={'key':api_key},json={'contents':[{'parts':[{'text':text}]}]},timeout=60,allow_redirects=False)
         if r.status_code>=400:
             raise AIEngineError(f'Errore Gemini: {r.status_code} {r.text[:300]}')
         return r.json()['candidates'][0]['content']['parts'][0]['text']

@@ -1,0 +1,40 @@
+# Production hardening override.
+# Use together with docker-compose.yml and set CIR_PRODUCTION_IMAGE to an
+# immutable release tag or, preferably, an image@sha256:... reference.
+services:
+  db:
+    image: ${CIR_POSTGRES_IMAGE:-postgres:18.6}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+  web:
+    image: ${CIR_PRODUCTION_IMAGE:?Set CIR_PRODUCTION_IMAGE to an immutable CIR image tag or digest}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    environment:
+      HOME: /tmp/cir-home
+      CIR_PRODUCTION: "1"
+      CIR_DISABLE_CSRF: "0"
+      SESSION_COOKIE_SECURE: "1"
+      CIR_FORCE_HSTS: "1"
+      CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE: "0"

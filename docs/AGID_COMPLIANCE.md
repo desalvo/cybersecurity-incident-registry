@@ -193,7 +193,7 @@ AGID_DOCKER_BUILD_FLAGS="--pull --no-cache" ./compliance/agid/run_docker_agid_co
 
 ## Nota dipendenze runtime
 
-La suite di compliance è stata aggiornata per verificare il progetto con `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.10.2`, `requests==2.33.0`, `cryptography==46.0.7` e `pytest==9.0.3`. La modalità Docker manuale resta necessaria per eseguire anche `pip-audit` con accesso Internet.
+La suite di compliance è stata aggiornata per verificare il progetto con `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.16.2`, `requests==2.33.0`, `cryptography==50.0.1` e `pytest==9.0.3`. La modalità Docker manuale resta necessaria per eseguire anche `pip-audit` con accesso Internet.
 
 
 ## Copertura backup AI Chatbot
@@ -208,4 +208,4 @@ La configurazione del plugin AI Chatbot applica una gestione overwrite-only dell
 
 ## Ambiente Python isolato per i controlli
 
-Per evitare falsi fallimenti di `pip check` causati da pacchetti non appartenenti all'applicazione gia' presenti nell'ambiente globale, la suite AGID locale crea e usa per default un virtual environment dedicato `.venv-agid`. E' possibile indicarne uno esistente con `AGID_PYTHON=/percorso/bin/python` oppure forzare l'ambiente corrente con `AGID_USE_CURRENT_ENV=1`. Il pin `pypdf==6.10.2` non viene modificato.
+Per evitare falsi fallimenti di `pip check` causati da pacchetti non appartenenti all'applicazione gia' presenti nell'ambiente globale, la suite AGID locale crea e usa per default un virtual environment dedicato `.venv-agid`. E' possibile indicarne uno esistente con `AGID_PYTHON=/percorso/bin/python` oppure forzare l'ambiente corrente con `AGID_USE_CURRENT_ENV=1`. Il pin `pypdf==6.16.2` non viene modificato.

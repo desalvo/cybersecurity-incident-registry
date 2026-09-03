@@ -12,7 +12,7 @@ class ClaudeEngine(BaseEngine):
             raise AIEngineError('API key Claude non configurata.')
         user_text='\n\n'.join(m.get('content','') for m in messages if m.get('role')=='user')
         payload={'model':model,'max_tokens':1200,'system':system_context,'messages':[{'role':'user','content':user_text}]}
-        r=requests.post(endpoint,json=payload,headers={'x-api-key':api_key,'anthropic-version':'2023-06-01'},timeout=60)
+        r=requests.post(endpoint,json=payload,headers={'x-api-key':api_key,'anthropic-version':'2023-06-01'},timeout=60,allow_redirects=False)
         if r.status_code>=400:
             raise AIEngineError(f'Errore Claude: {r.status_code} {r.text[:300]}')
         data=r.json().get('content') or []

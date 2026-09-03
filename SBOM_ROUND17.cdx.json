@@ -1,0 +1,1384 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "pkg:pypi/blinker@1.9.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc"
+        }
+      ],
+      "name": "blinker",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "blinker-1.9.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/blinker@1.9.0",
+      "type": "library",
+      "version": "1.9.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/boto3@1.42.95",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f0175de8f52448e9ecade9573532c25bed390a7c30435920a0da42a10f4cafb3"
+        }
+      ],
+      "name": "boto3",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "boto3-1.42.95-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/boto3@1.42.95",
+      "type": "library",
+      "version": "1.42.95"
+    },
+    {
+      "bom-ref": "pkg:pypi/botocore@1.42.97",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "77d2c8ce1bc592d3fbd7c01c35836f4a5b0cac2ca03ccdf6ffc60faa16b5fadc"
+        }
+      ],
+      "name": "botocore",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "botocore-1.42.97-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/botocore@1.42.97",
+      "type": "library",
+      "version": "1.42.97"
+    },
+    {
+      "bom-ref": "pkg:pypi/certifi@2026.7.22",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775"
+        }
+      ],
+      "name": "certifi",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "certifi-2026.7.22-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/certifi@2026.7.22",
+      "type": "library",
+      "version": "2026.7.22"
+    },
+    {
+      "bom-ref": "pkg:pypi/cffi@2.1.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a931079504ecc49efed7744c476a5c343a92fabf66dec2db95edb1b2fdc770e2"
+        }
+      ],
+      "name": "cffi",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/cffi@2.1.1",
+      "type": "library",
+      "version": "2.1.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/charset-normalizer@3.5.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "62b55f6722735a6c472f88361cde6640608773d9443cebdbb51abf436a1fcdd3"
+        }
+      ],
+      "name": "charset-normalizer",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "charset_normalizer-3.5.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/charset-normalizer@3.5.1",
+      "type": "library",
+      "version": "3.5.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/click@8.5.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360"
+        }
+      ],
+      "name": "click",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "click-8.5.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/click@8.5.0",
+      "type": "library",
+      "version": "8.5.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/contourpy@1.3.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4debd64f124ca62069f313a9cb86656ff087786016d76927ae2cf37846b006c9"
+        }
+      ],
+      "name": "contourpy",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "contourpy-1.3.3-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/contourpy@1.3.3",
+      "type": "library",
+      "version": "1.3.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/cryptography@46.0.7",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "42a1e5f98abb6391717978baf9f90dc28a743b7d9be7f0751a6f56a75d14065b"
+        }
+      ],
+      "name": "cryptography",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "cryptography-46.0.7-cp311-abi3-manylinux_2_34_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/cryptography@46.0.7",
+      "type": "library",
+      "version": "46.0.7"
+    },
+    {
+      "bom-ref": "pkg:pypi/cycler@0.12.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30"
+        }
+      ],
+      "name": "cycler",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "cycler-0.12.1-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/cycler@0.12.1",
+      "type": "library",
+      "version": "0.12.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/defusedxml@0.7.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+        }
+      ],
+      "name": "defusedxml",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "defusedxml-0.7.1-py2.py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/defusedxml@0.7.1",
+      "type": "library",
+      "version": "0.7.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/flask@3.1.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c"
+        }
+      ],
+      "name": "Flask",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "flask-3.1.3-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/flask@3.1.3",
+      "type": "library",
+      "version": "3.1.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/flask-login@0.6.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "849b25b82a436bf830a054e74214074af59097171562ab10bfa999e6b78aae5d"
+        }
+      ],
+      "name": "Flask-Login",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "Flask_Login-0.6.3-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/flask-login@0.6.3",
+      "type": "library",
+      "version": "0.6.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/flask-sqlalchemy@3.1.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4ba4be7f419dc72f4efd8802d69974803c37259dd42f3913b0dcf75c9447e0a0"
+        }
+      ],
+      "name": "Flask-SQLAlchemy",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "flask_sqlalchemy-3.1.1-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/flask-sqlalchemy@3.1.1",
+      "type": "library",
+      "version": "3.1.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/fonttools@4.64.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2c42237b7e8c6813643e57d3efed3be094d4c06339dc2166b626e2cc5c12ee93"
+        }
+      ],
+      "name": "fonttools",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "fonttools-4.64.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/fonttools@4.64.0",
+      "type": "library",
+      "version": "4.64.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/greenlet@3.5.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2eabb980975cba5b93a95f6f69287d05fc05ac955bfd6a320a7c083eeb52c0b0"
+        }
+      ],
+      "name": "greenlet",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "greenlet-3.5.5-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/greenlet@3.5.5",
+      "type": "library",
+      "version": "3.5.5"
+    },
+    {
+      "bom-ref": "pkg:pypi/gunicorn@26.2.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "bd249d0b3f7972f7432f0a6b6ff3b3ee2d129f70cd1ff6c09a9dd9e29a2b88e3"
+        }
+      ],
+      "name": "gunicorn",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "gunicorn-26.2.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/gunicorn@26.2.0",
+      "type": "library",
+      "version": "26.2.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/idna@3.19",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4"
+        }
+      ],
+      "name": "idna",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "idna-3.19-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/idna@3.19",
+      "type": "library",
+      "version": "3.19"
+    },
+    {
+      "bom-ref": "pkg:pypi/itsdangerous@2.2.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"
+        }
+      ],
+      "name": "itsdangerous",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "itsdangerous-2.2.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/itsdangerous@2.2.0",
+      "type": "library",
+      "version": "2.2.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/jinja2@3.1.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"
+        }
+      ],
+      "name": "Jinja2",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "jinja2-3.1.6-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/jinja2@3.1.6",
+      "type": "library",
+      "version": "3.1.6"
+    },
+    {
+      "bom-ref": "pkg:pypi/jmespath@1.1.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64"
+        }
+      ],
+      "name": "jmespath",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "jmespath-1.1.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/jmespath@1.1.0",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/kiwisolver@1.5.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "74ad5c3dad54a4641b4c28cd15ded70899d04459c6c7aeacafea716be97cce6d"
+        }
+      ],
+      "name": "kiwisolver",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "kiwisolver-1.5.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/kiwisolver@1.5.1",
+      "type": "library",
+      "version": "1.5.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/ldap3@2.9.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5869596fc4948797020d3f03b7939da938778a0f9e2009f7a072ccf92b8e8d70"
+        }
+      ],
+      "name": "ldap3",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "ldap3-2.9.1-py2.py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/ldap3@2.9.1",
+      "type": "library",
+      "version": "2.9.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/lxml@6.1.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e8b9a92652e75e7731309ea51db5dee892eef414ce70a6ec3441e5d36bf5189f"
+        }
+      ],
+      "name": "lxml",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "lxml-6.1.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/lxml@6.1.2",
+      "type": "library",
+      "version": "6.1.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/markupsafe@3.0.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ccfcd093f13f0f0b7fdd0f198b90053bf7b2f02a3927a30e63f3ccc9df56b676"
+        }
+      ],
+      "name": "MarkupSafe",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/markupsafe@3.0.3",
+      "type": "library",
+      "version": "3.0.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/matplotlib@3.10.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a80fcccbef63302c0efd78042ea3c2436104c5b1a4d3ae20f864593696364ac7"
+        }
+      ],
+      "name": "matplotlib",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "matplotlib-3.10.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/matplotlib@3.10.3",
+      "type": "library",
+      "version": "3.10.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/numpy@2.5.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "29b86ff8a6cc556b47ec6b64b194815cc80e6bf5eedcc6cddfd65318cb0b4eee"
+        }
+      ],
+      "name": "numpy",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "numpy-2.5.2-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/numpy@2.5.2",
+      "type": "library",
+      "version": "2.5.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/packaging@26.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+        }
+      ],
+      "name": "packaging",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "packaging-26.3-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/packaging@26.3",
+      "type": "library",
+      "version": "26.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0847a763afefb695bc912d7c131e7e0632d4edc1d8698f58ddabec8e46b8b6d3"
+        }
+      ],
+      "name": "pillow",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "pillow-12.3.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0",
+      "type": "library",
+      "version": "12.3.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/psycopg2-binary@2.9.10",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8608c078134f0b3cbd9f89b34bd60a943b23fd33cc5f065e8d5f840061bd0673"
+        }
+      ],
+      "name": "psycopg2-binary",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "psycopg2_binary-2.9.10-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/psycopg2-binary@2.9.10",
+      "type": "library",
+      "version": "2.9.10"
+    },
+    {
+      "bom-ref": "pkg:pypi/pyasn1@0.6.4",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b"
+        }
+      ],
+      "name": "pyasn1",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "pyasn1-0.6.4-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/pyasn1@0.6.4",
+      "type": "library",
+      "version": "0.6.4"
+    },
+    {
+      "bom-ref": "pkg:pypi/pycparser@3.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"
+        }
+      ],
+      "name": "pycparser",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "pycparser-3.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/pycparser@3.0",
+      "type": "library",
+      "version": "3.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/pyotp@2.9.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "81c2e5865b8ac55e825b0358e496e1d9387c811e85bb40e71a3b29b288963612"
+        }
+      ],
+      "name": "pyotp",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "pyotp-2.9.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/pyotp@2.9.0",
+      "type": "library",
+      "version": "2.9.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/pyparsing@3.3.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d"
+        }
+      ],
+      "name": "pyparsing",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "pyparsing-3.3.2-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/pyparsing@3.3.2",
+      "type": "library",
+      "version": "3.3.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/pypdf@6.10.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "aa53be9826655b51c96741e5d7983ca224d898ac0a77896e64636810517624aa"
+        }
+      ],
+      "name": "pypdf",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "pypdf-6.10.2-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/pypdf@6.10.2",
+      "type": "library",
+      "version": "6.10.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/python-dateutil@2.9.0.post0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"
+        }
+      ],
+      "name": "python-dateutil",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/python-dateutil@2.9.0.post0",
+      "type": "library",
+      "version": "2.9.0.post0"
+    },
+    {
+      "bom-ref": "pkg:pypi/python-docx@1.2.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7"
+        }
+      ],
+      "name": "python-docx",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "python_docx-1.2.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/python-docx@1.2.0",
+      "type": "library",
+      "version": "1.2.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/python-dotenv@1.2.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a"
+        }
+      ],
+      "name": "python-dotenv",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "python_dotenv-1.2.2-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/python-dotenv@1.2.2",
+      "type": "library",
+      "version": "1.2.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/qrcode@8.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "16e64e0716c14960108e85d853062c9e8bba5ca8252c0b4d0231b9df4060ff4f"
+        }
+      ],
+      "name": "qrcode",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "qrcode-8.2-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/qrcode@8.2",
+      "type": "library",
+      "version": "8.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/reportlab@4.4.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "df905dc5ec5ddaae91fc9cb3371af863311271d555236410954961c5ee6ee1b5"
+        }
+      ],
+      "name": "reportlab",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "reportlab-4.4.3-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/reportlab@4.4.3",
+      "type": "library",
+      "version": "4.4.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/requests@2.33.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3324635456fa185245e24865e810cecec7b4caf933d7eb133dcde67d48cee69b"
+        }
+      ],
+      "name": "requests",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "requests-2.33.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/requests@2.33.0",
+      "type": "library",
+      "version": "2.33.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/s3transfer@0.16.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "61bcd00ccb83b21a0fe7e91a553fff9729d46c83b4e0106e7c314a733891f7c2"
+        }
+      ],
+      "name": "s3transfer",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "s3transfer-0.16.1-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/s3transfer@0.16.1",
+      "type": "library",
+      "version": "0.16.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/six@1.17.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+        }
+      ],
+      "name": "six",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "six-1.17.0-py2.py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/six@1.17.0",
+      "type": "library",
+      "version": "1.17.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/sqlalchemy@2.0.52",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "651d6d8782e80679e6151707c7b490834d46ada526328895abf567f25e63d29c"
+        }
+      ],
+      "name": "SQLAlchemy",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "sqlalchemy-2.0.52-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "purl": "pkg:pypi/sqlalchemy@2.0.52",
+      "type": "library",
+      "version": "2.0.52"
+    },
+    {
+      "bom-ref": "pkg:pypi/typing-extensions@4.16.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+        }
+      ],
+      "name": "typing_extensions",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "typing_extensions-4.16.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/typing-extensions@4.16.0",
+      "type": "library",
+      "version": "4.16.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/urllib3@2.7.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897"
+        }
+      ],
+      "name": "urllib3",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "transitive"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "urllib3-2.7.0-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/urllib3@2.7.0",
+      "type": "library",
+      "version": "2.7.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/werkzeug@3.1.8",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50"
+        }
+      ],
+      "name": "Werkzeug",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:wheel-filename",
+          "value": "werkzeug-3.1.8-py3-none-any.whl"
+        }
+      ],
+      "purl": "pkg:pypi/werkzeug@3.1.8",
+      "type": "library",
+      "version": "3.1.8"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "pkg:pypi/boto3@1.42.95",
+        "pkg:pypi/cryptography@46.0.7",
+        "pkg:pypi/defusedxml@0.7.1",
+        "pkg:pypi/flask@3.1.3",
+        "pkg:pypi/flask-login@0.6.3",
+        "pkg:pypi/flask-sqlalchemy@3.1.1",
+        "pkg:pypi/gunicorn@26.2.0",
+        "pkg:pypi/ldap3@2.9.1",
+        "pkg:pypi/matplotlib@3.10.3",
+        "pkg:pypi/pillow@12.3.0",
+        "pkg:pypi/psycopg2-binary@2.9.10",
+        "pkg:pypi/pyotp@2.9.0",
+        "pkg:pypi/pypdf@6.10.2",
+        "pkg:pypi/python-docx@1.2.0",
+        "pkg:pypi/python-dotenv@1.2.2",
+        "pkg:pypi/qrcode@8.2",
+        "pkg:pypi/reportlab@4.4.3",
+        "pkg:pypi/requests@2.33.0",
+        "pkg:pypi/werkzeug@3.1.8"
+      ],
+      "ref": "pkg:generic/cybersecurity-incident-registry@0.8.0-1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/blinker@1.9.0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/botocore@1.42.97",
+        "pkg:pypi/jmespath@1.1.0",
+        "pkg:pypi/s3transfer@0.16.1"
+      ],
+      "ref": "pkg:pypi/boto3@1.42.95"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/jmespath@1.1.0",
+        "pkg:pypi/python-dateutil@2.9.0.post0",
+        "pkg:pypi/urllib3@2.7.0"
+      ],
+      "ref": "pkg:pypi/botocore@1.42.97"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/certifi@2026.7.22"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/pycparser@3.0"
+      ],
+      "ref": "pkg:pypi/cffi@2.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/charset-normalizer@3.5.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/click@8.5.0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/numpy@2.5.2"
+      ],
+      "ref": "pkg:pypi/contourpy@1.3.3"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/cffi@2.1.1"
+      ],
+      "ref": "pkg:pypi/cryptography@46.0.7"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/cycler@0.12.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/defusedxml@0.7.1"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/blinker@1.9.0",
+        "pkg:pypi/click@8.5.0",
+        "pkg:pypi/itsdangerous@2.2.0",
+        "pkg:pypi/jinja2@3.1.6",
+        "pkg:pypi/markupsafe@3.0.3",
+        "pkg:pypi/werkzeug@3.1.8"
+      ],
+      "ref": "pkg:pypi/flask@3.1.3"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/flask@3.1.3",
+        "pkg:pypi/werkzeug@3.1.8"
+      ],
+      "ref": "pkg:pypi/flask-login@0.6.3"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/flask@3.1.3",
+        "pkg:pypi/sqlalchemy@2.0.52"
+      ],
+      "ref": "pkg:pypi/flask-sqlalchemy@3.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/fonttools@4.64.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/greenlet@3.5.5"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/gunicorn@26.2.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/idna@3.19"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/itsdangerous@2.2.0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/markupsafe@3.0.3"
+      ],
+      "ref": "pkg:pypi/jinja2@3.1.6"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/jmespath@1.1.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/kiwisolver@1.5.1"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/pyasn1@0.6.4"
+      ],
+      "ref": "pkg:pypi/ldap3@2.9.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/lxml@6.1.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/markupsafe@3.0.3"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/contourpy@1.3.3",
+        "pkg:pypi/cycler@0.12.1",
+        "pkg:pypi/fonttools@4.64.0",
+        "pkg:pypi/kiwisolver@1.5.1",
+        "pkg:pypi/numpy@2.5.2",
+        "pkg:pypi/packaging@26.3",
+        "pkg:pypi/pillow@12.3.0",
+        "pkg:pypi/pyparsing@3.3.2",
+        "pkg:pypi/python-dateutil@2.9.0.post0"
+      ],
+      "ref": "pkg:pypi/matplotlib@3.10.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/numpy@2.5.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/packaging@26.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/pillow@12.3.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/psycopg2-binary@2.9.10"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/pyasn1@0.6.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/pycparser@3.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/pyotp@2.9.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/pyparsing@3.3.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/pypdf@6.10.2"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/six@1.17.0"
+      ],
+      "ref": "pkg:pypi/python-dateutil@2.9.0.post0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/lxml@6.1.2",
+        "pkg:pypi/typing-extensions@4.16.0"
+      ],
+      "ref": "pkg:pypi/python-docx@1.2.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/python-dotenv@1.2.2"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/pillow@12.3.0"
+      ],
+      "ref": "pkg:pypi/qrcode@8.2"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/charset-normalizer@3.5.1",
+        "pkg:pypi/pillow@12.3.0"
+      ],
+      "ref": "pkg:pypi/reportlab@4.4.3"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/certifi@2026.7.22",
+        "pkg:pypi/charset-normalizer@3.5.1",
+        "pkg:pypi/idna@3.19",
+        "pkg:pypi/urllib3@2.7.0"
+      ],
+      "ref": "pkg:pypi/requests@2.33.0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/botocore@1.42.97"
+      ],
+      "ref": "pkg:pypi/s3transfer@0.16.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/six@1.17.0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/greenlet@3.5.5",
+        "pkg:pypi/typing-extensions@4.16.0"
+      ],
+      "ref": "pkg:pypi/sqlalchemy@2.0.52"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/typing-extensions@4.16.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/urllib3@2.7.0"
+    },
+    {
+      "dependsOn": [
+        "pkg:pypi/markupsafe@3.0.3"
+      ],
+      "ref": "pkg:pypi/werkzeug@3.1.8"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "pkg:generic/cybersecurity-incident-registry@0.8.0-1",
+      "name": "cybersecurity-incident-registry",
+      "purl": "pkg:generic/cybersecurity-incident-registry@0.8.0-1",
+      "type": "application",
+      "version": "0.8.0-1"
+    },
+    "properties": [
+      {
+        "name": "cir:python-version",
+        "value": "3.13.5"
+      },
+      {
+        "name": "cir:source-requirements",
+        "value": "requirements.txt"
+      }
+    ]
+  },
+  "specVersion": "1.6",
+  "version": 1
+}
