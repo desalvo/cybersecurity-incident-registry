@@ -182,6 +182,14 @@ Il manifest 0.9.x introduce/rafforza:
 
 Se si mantengono manifest Kubernetes personalizzati della 0.8.0, riportare questi controlli anziché aggiornare soltanto il tag immagine.
 
+## Bootstrap anonimizzato da un'istanza configurata
+
+La 0.9.0-1 supporta un export bootstrap del solo tenant `default`, disponibile ai superuser dal menu **Export**. L'archivio usa il formato Full Export ma include il profilo `default-tenant-anonymized-bootstrap-v1`, in modo che l'import possa applicare regole aggiuntive di sicurezza.
+
+Il bootstrap conserva la configurazione riutilizzabile del tenant default (label, raccomandazioni, workflow, tipi/template di notifica e template PDF referenziati) e le configurazioni tecniche sanificate. Sono esclusi dati operativi o personali: incidenti, azioni, documenti/allegati operativi, persone, destinatari esterni, utenti diversi da `admin`, MFA, audit, knowledge base AI e job di backup. Secret e credenziali vengono eliminati; SSO resta configurato a livello di endpoint/claim/Client ID ma disabilitato finché non viene inserito un nuovo Client Secret.
+
+Prima dell'import su una nuova istanza impostare almeno `SECRET_KEY`, `SETTING_ENCRYPTION_KEY`, `DATABASE_URL` e `ADMIN_INITIAL_PASSWORD` con valori propri della destinazione. La password dell'admin **non viene copiata dalla sorgente**: l'import richiede `ADMIN_INITIAL_PASSWORD` e genera un nuovo hash con quel valore. Dopo l'import riconfigurare tutti i secret SMTP/LDAP/SSO/AI/Alfresco, verificare endpoint e URL, quindi eseguire i test operativi prima del passaggio in produzione.
+
 ## Verifica post-migrazione
 
 Dopo l'upgrade:

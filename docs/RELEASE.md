@@ -512,3 +512,7 @@ The GitHub production pipeline completed the quality gates, real PostgreSQL test
 `PRODUCTION_IMAGE_DIGEST` and `k8s/kustomization.yaml` pin this same OCI index digest. Production deployment should use the immutable reference above rather than relying on the mutable `latest` tag.
 
 **Final metadata commit:** recording this already-promoted digest is release metadata only. Do not rebuild or republish the production image after changing only `PRODUCTION_IMAGE_DIGEST`, Kustomize, release documentation, or changelog; otherwise a new image digest is created and the recorded value becomes stale. When committing only this final pin, skip the production workflow (for example with GitHub Actions’ supported CI-skip commit instruction).
+
+## Bootstrap export development state
+
+The anonymized default-tenant bootstrap export changes application code relative to the last published Hotfix 7 final2 image (`sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a`). Therefore `PRODUCTION_IMAGE_DIGEST` is intentionally reset to `PENDING_HOTFIX_REBUILD` and Kustomize uses the non-publishable `PENDING_HOTFIX_REBUILD` tag until a new multi-architecture image has passed the complete production gates. The previous digest remains historical evidence only and must not be used to claim that it contains this feature.

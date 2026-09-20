@@ -21,7 +21,7 @@ import threading, time
 from contextlib import contextmanager
 import pyotp
 import qrcode
-from .env_utils import get_env_secret
+from .env_utils import get_env_secret, get_admin_initial_password
 from .models import *
 from .auth import verify_password, hash_password
 from .reports import incident_pdf, statistics_pdf
@@ -12097,6 +12097,320 @@ def _relation_row_for_table(table, row):
     allowed = {column.name for column in table.columns}
     return {k: v for k, v in dict(row or {}).items() if k in allowed}
 
+
+BOOTSTRAP_EXPORT_FORMAT = 'cybersecurity-incident-registry-full-export'
+BOOTSTRAP_EXPORT_PROFILE = 'default-tenant-anonymized-bootstrap-v1'
+BOOTSTRAP_RESET_SETTING_KEYS = {
+    'security_owner_name', 'security_owner_role', 'security_owner_email',
+    'security_responsible_name', 'security_responsible_email',
+    'security_responsible_phone', 'security_responsible_function',
+    'smtp_username', 'smtp_default_sender', 'ldap_bind_dn',
+    'alfresco_username', 'logo_path', 'structure_name', 'documentation_location',
+}
+BOOTSTRAP_SECRET_SETTING_KEYS = {
+    'smtp_password', 'ldap_bind_password', 'sso_client_secret',
+    'ai_chatbot_chatgpt_api_key', 'ai_chatbot_claude_api_key',
+    'ai_chatbot_gemini_api_key', 'ai_chatbot_ollama_api_key',
+    'ai_chatbot_perplexity_api_key', 'alfresco_password',
+}
+
+
+def _bootstrap_logical_setting_key(physical_key, default_tenant_id):
+    key = str(physical_key or '')
+    prefix = f'tenant:{int(default_tenant_id)}:'
+    return key[len(prefix):] if key.startswith(prefix) else key
+
+
+def _sanitize_bootstrap_sso_profiles(raw_value):
+    try:
+        profiles = json.loads(raw_value or '[]')
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return '[]'
+    if not isinstance(profiles, list):
+        return '[]'
+    sanitized = []
+    for item in profiles:
+        if not isinstance(item, dict):
+            continue
+        profile = dict(item)
+        profile['sso_client_secret'] = ''
+        # A bootstrap must remain accessible with the local admin until the
+        # destination-specific credential has been configured.
+        profile['sso_enabled'] = '0'
+        sanitized.append(profile)
+    return json.dumps(sanitized, ensure_ascii=False, indent=2)
+
+
+def _bootstrap_setting_rows(default_tenant_id):
+    rows = []
+    prefix = f'tenant:{int(default_tenant_id)}:'
+    for setting in Setting.query.order_by(Setting.key).all():
+        key = str(setting.key or '')
+        if key.startswith('tenant:') and not key.startswith(prefix):
+            continue
+        logical_key = _bootstrap_logical_setting_key(key, default_tenant_id)
+        value = setting.value or ''
+        if logical_key == 'sso_profiles_json':
+            value = _sanitize_bootstrap_sso_profiles(decrypt_setting_value(logical_key, value))
+        elif logical_key in BOOTSTRAP_SECRET_SETTING_KEYS:
+            value = ''
+        elif logical_key in BOOTSTRAP_RESET_SETTING_KEYS:
+            value = ''
+        elif logical_key == 'sso_enabled':
+            value = '0'
+        elif logical_key == 'application_external_url':
+            value = 'http://localhost:8000'
+        elif logical_key in {'ssl_cert_path', 'ssl_key_path'}:
+            value = ''
+        rows.append({'key': key, 'value': value})
+    return rows
+
+
+def _bootstrap_redaction_values(default_tenant_id):
+    tid = int(default_tenant_id)
+    values = set()
+    def add(value):
+        value = str(value or '').strip()
+        if len(value) >= 3 and value.lower() not in {'admin', 'administrator', 'default'}:
+            values.add(value)
+    for user in User.query.all():
+        for value in (user.username, user.name, user.email, user.external_id): add(value)
+    for person in Person.query.filter(Person.tenant_id == tid).all():
+        for value in (person.name, person.email): add(value)
+    for recipient in ExternalRecipient.query.filter(ExternalRecipient.tenant_id == tid).all():
+        for value in (recipient.name, recipient.email): add(value)
+    for incident in Incident.query.filter(Incident.tenant_id == tid).all():
+        for value in (incident.creator_name, incident.creator_email, incident.recipient, incident.recipient_email): add(value)
+    for key in BOOTSTRAP_RESET_SETTING_KEYS:
+        physical = tenant_setting_key(key, tid)
+        row = db.session.get(Setting, physical) or db.session.get(Setting, key)
+        if row:
+            add(decrypt_setting_value(key, row.value))
+    return sorted(values, key=len, reverse=True)
+
+
+def _redact_bootstrap_value(value, redactions):
+    if isinstance(value, dict):
+        return {k: _redact_bootstrap_value(v, redactions) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_redact_bootstrap_value(v, redactions) for v in value]
+    if not isinstance(value, str) or not value:
+        return value
+    result = value
+    for token in redactions:
+        result = re.sub(re.escape(token), '[REDACTED]', result, flags=re.IGNORECASE)
+    # Structured e-mail addresses that are not tied to a known database
+    # identity are still personal/contact data and must not leave the source.
+    result = re.sub(r'(?i)(?<![A-Z0-9._%+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![A-Z0-9._%+-])', '[REDACTED_EMAIL]', result)
+    return result
+
+
+def _bootstrap_referenced_sso_logos(default_tenant_id):
+    names = set()
+    for row in _bootstrap_setting_rows(default_tenant_id):
+        logical = _bootstrap_logical_setting_key(row.get('key'), default_tenant_id)
+        if logical == 'sso_profiles_json':
+            try:
+                profiles = json.loads(row.get('value') or '[]')
+            except Exception:
+                profiles = []
+            for profile in profiles if isinstance(profiles, list) else []:
+                if isinstance(profile, dict) and profile.get('sso_logo_path'):
+                    names.add(Path(str(profile.get('sso_logo_path'))).name)
+        elif logical == 'sso_logo_path' and row.get('value'):
+            names.add(Path(str(row.get('value'))).name)
+    return names
+
+
+def _bootstrap_referenced_form_templates(default_tenant_id):
+    names = set()
+    for row in IncidentWorkflowStep.query.filter(IncidentWorkflowStep.tenant_id == int(default_tenant_id)).all():
+        if row.document_template_name:
+            names.add(str(row.document_template_name).strip())
+    for row in NotificationTemplate.query.filter(NotificationTemplate.tenant_id == int(default_tenant_id)).all():
+        if row.linked_form_template_name:
+            names.add(str(row.linked_form_template_name).strip())
+    return {name for name in names if name}
+
+
+def _bootstrap_rows_for_model(name, model, default_tenant_id, template_names):
+    tid = int(default_tenant_id)
+    if model is Tenant:
+        tenant = db.session.get(Tenant, tid)
+        if not tenant:
+            return []
+        row = _row(tenant)
+        row['name'] = 'default'
+        row['description'] = ''
+        return [row]
+    if model is Setting:
+        return _bootstrap_setting_rows(tid)
+    if model is User:
+        admin = User.query.filter_by(username='admin', auth_provider='local').first()
+        if not admin:
+            return []
+        row = _row(admin)
+        row.update({
+            'username': 'admin', 'name': 'Administrator', 'email': 'admin@example.local',
+            'role': 'superuser', 'is_ldap': False, 'auth_provider': 'local',
+            'external_id': None, 'mfa_enabled': False, 'tenant_id': tid,
+            'default_tenant_id': None, 'password_hash': None,
+        })
+        return [row]
+    if model is UserTenantRole:
+        admin = User.query.filter_by(username='admin', auth_provider='local').first()
+        if not admin:
+            return []
+        memberships = UserTenantRole.query.filter_by(user_id=admin.id, tenant_id=tid).all()
+        if memberships:
+            rows = [_row(x) for x in memberships]
+            for row in rows:
+                row['role'] = 'superuser'
+            return rows
+        return [{'id': 1, 'user_id': admin.id, 'tenant_id': tid, 'role': 'superuser', 'created_at': utcnow().isoformat(), 'updated_at': utcnow().isoformat()}]
+    if model in (MfaTotpToken, Person, AIChatbotDocument, IncidentTemplate, Incident,
+                 Action, Document, ActionAttachment, IncidentReminder,
+                 DeadlineNotificationState, ExternalRecipient, BackupJob, AuditLog):
+        return []
+    if model is NotificationTemplate:
+        rows = [_row(x) for x in model.query.filter(model.tenant_id == tid).order_by(*model.__table__.primary_key.columns).all()]
+        for row in rows:
+            row['recipient_value'] = ''
+            row['cc_value'] = ''
+        return rows
+    if model is FormTemplateConfig:
+        return [_row(x) for x in model.query.filter(model.template_name.in_(template_names or ['__none__'])).order_by(*model.__table__.primary_key.columns).all()]
+    if model is FormTemplateBinary:
+        return [_row(x) for x in model.query.filter(model.template_name.in_(template_names or ['__none__'])).order_by(*model.__table__.primary_key.columns).all()]
+    if model is FormFieldMapping:
+        return [_row(x) for x in model.query.filter(model.template_name.in_(template_names or ['__none__'])).order_by(*model.__table__.primary_key.columns).all()]
+    if hasattr(model, 'tenant_id'):
+        return [_row(x) for x in model.query.filter(model.tenant_id == tid).order_by(*model.__table__.primary_key.columns).all()]
+    return []
+
+
+def _bootstrap_export_tables(default_tenant_id, template_names):
+    return {
+        name: _bootstrap_rows_for_model(name, model, default_tenant_id, template_names)
+        for name, model in FULL_EXPORT_TABLES.items()
+    }
+
+
+def _bootstrap_export_files(default_tenant_id, template_names):
+    files = {
+        'documents': [], 'action_attachments': [], 'logo': None,
+        'application_logos': [], 'ssl_certificates': {}, 'sso_logos': [],
+        'form_templates': [], 'persistent_files': {},
+    }
+    by_name = {tmpl.path.stem: tmpl for tmpl in list_templates() if getattr(tmpl, 'path', None)}
+    for template_name in sorted(template_names):
+        tmpl = by_name.get(template_name)
+        path = getattr(tmpl, 'path', None) if tmpl else None
+        binary = FormTemplateBinary.query.filter_by(template_name=template_name).first()
+        filename = path.name if path and path.exists() else (binary.filename if binary else f'{template_name}.pdf')
+        files['form_templates'].append({
+            'name': filename,
+            'template_name': template_name,
+            'archive_path': f'files/form_templates/{filename}',
+            'fields': list(getattr(tmpl, 'fields', []) or []) if tmpl else [],
+            'source': 'pdf_acroform',
+        })
+    # Generic application assets are safe and make the bootstrap archive self-contained.
+    for logo_path in [Path(current_app.static_folder or '') / 'cir-application-logo.svg', Path(current_app.static_folder or '') / 'help' / 'app-logo.png']:
+        if logo_path.exists() and logo_path.is_file():
+            files['application_logos'].append({
+                'name': logo_path.name,
+                'relative_path': str(logo_path.relative_to(current_app.static_folder)),
+                'archive_path': f"files/application_logos/{logo_path.relative_to(current_app.static_folder)}",
+            })
+    # Include only SSO logos actually referenced by the default tenant.
+    referenced_sso_logos = _bootstrap_referenced_sso_logos(default_tenant_id)
+    sso_dir = sso_logo_storage_dir()
+    if sso_dir.exists():
+        for logo_file in sorted(sso_dir.iterdir(), key=lambda p: p.name.lower()):
+            if logo_file.name in referenced_sso_logos and logo_file.is_file() and logo_file.suffix.lower() in {'.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'}:
+                files['sso_logos'].append({'relative_path': f'sso/{logo_file.name}', 'archive_path': f'files/sso_logos/{logo_file.name}'})
+    files['persistent_files'] = {
+        'uploads': [],
+        'form_templates': [
+            {'relative_path': item['name'], 'archive_path': item['archive_path']}
+            for item in files['form_templates']
+        ],
+        'custom_logos': [],
+        'sso_logos': [
+            {'relative_path': Path(item['relative_path']).name, 'archive_path': item['archive_path']}
+            for item in files['sso_logos']
+        ],
+        'ssl': [],
+        'ai_chatbot_docs': [],
+    }
+    return files
+
+
+def _reset_bootstrap_admin_credentials(admin_user, password):
+    admin_user.password_hash = hash_password(password)
+    admin_user.name = 'Administrator'
+    admin_user.email = 'admin@example.local'
+    admin_user.mfa_enabled = False
+    admin_user.external_id = None
+    admin_user.role = 'superuser'
+    return admin_user
+
+
+def build_anonymized_default_tenant_bootstrap_archive(prefix='cir-bootstrap-default-tenant'):
+    tenant = default_tenant()
+    if not tenant:
+        raise ValueError('Tenant default non disponibile.')
+    template_names = _bootstrap_referenced_form_templates(tenant.id)
+    redactions = _bootstrap_redaction_values(tenant.id)
+    tables = _bootstrap_export_tables(tenant.id, template_names)
+    tables = _redact_bootstrap_value(tables, redactions)
+    payload = {
+        'format': BOOTSTRAP_EXPORT_FORMAT,
+        'version': 4,
+        'created_at': utcnow().isoformat(),
+        'schema': _export_schema_payload(),
+        'scope': 'global',
+        'scope_tenant_id': None,
+        'bootstrap': {
+            'profile': BOOTSTRAP_EXPORT_PROFILE,
+            'anonymized': True,
+            'source_tenant': 'default',
+            'admin_password_policy': 'reset-from-destination-ADMIN_INITIAL_PASSWORD',
+            'excluded_operational_data': True,
+            'structured_personal_data_removed': True,
+            'free_text_known_identity_redaction': True,
+            'secrets_removed': True,
+        },
+        'tables': tables,
+        'relations': {name: [] for name in FULL_EXPORT_RELATION_TABLES},
+        'files': _bootstrap_export_files(tenant.id, template_names),
+    }
+    fd, path = tempfile.mkstemp(prefix=f'{prefix}-', suffix='.tar.gz')
+    os.close(fd)
+    with tarfile.open(path, 'w:gz') as archive:
+        manifest = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
+        info = tarfile.TarInfo('export.json'); info.size = len(manifest)
+        archive.addfile(info, io.BytesIO(manifest))
+        for app_logo in payload['files']['application_logos']:
+            src = Path(current_app.static_folder or '') / app_logo['relative_path']
+            if src.exists() and src.is_file():
+                archive.add(src, arcname=app_logo['archive_path'])
+        for sso_logo in payload['files']['sso_logos']:
+            src = sso_logo_storage_dir() / Path(sso_logo['relative_path']).name
+            if src.exists() and src.is_file():
+                archive.add(src, arcname=sso_logo['archive_path'])
+        for tmpl in payload['files']['form_templates']:
+            src = Path(current_app.config.get('FORM_TEMPLATE_DIR') or '/data/form_templates') / tmpl['name']
+            if src.exists() and src.is_file():
+                archive.add(src, arcname=tmpl['archive_path'])
+            else:
+                row = FormTemplateBinary.query.filter_by(template_name=tmpl['template_name']).first()
+                if row and row.pdf_data:
+                    info = tarfile.TarInfo(tmpl['archive_path']); info.size = len(row.pdf_data)
+                    archive.addfile(info, io.BytesIO(row.pdf_data))
+    return path
+
 @bp.route('/export/full')
 @login_required
 def export_full():
@@ -12116,6 +12430,12 @@ def export_full():
     if not can_admin():
         flash('Permessi insufficienti per esportare i dati applicativi','error')
         return redirect(url_for('main.index'))
+    if request.args.get('mode') == 'bootstrap':
+        if not can_global_export_import():
+            flash('Solo il superuser o l admin locale possono creare un bootstrap anonimizzato del tenant default.','error')
+            return redirect(url_for('main.index'))
+        path = build_anonymized_default_tenant_bootstrap_archive()
+        return send_file(path, download_name=f'bootstrap-default-anonimizzato-{utcnow().strftime("%Y%m%d-%H%M%S")}.tar.gz', as_attachment=True)
     scope_tenant_id = None if can_global_export_import() else current_tenant_id()
 
     fd, path = tempfile.mkstemp(prefix='cir-full-export-', suffix='.tar.gz')
@@ -12623,6 +12943,14 @@ def import_full():
                 if data.get('format') != 'cybersecurity-incident-registry-full-export':
                     raise ValueError('Formato export completo non riconosciuto')
                 validate_full_import_payload(data)
+                bootstrap_profile = (data.get('bootstrap') or {}).get('profile')
+                bootstrap_password = None
+                if bootstrap_profile == BOOTSTRAP_EXPORT_PROFILE:
+                    if not can_global_export_import():
+                        raise ValueError('Il bootstrap anonimizzato puo essere importato solo dal superuser o dall admin locale.')
+                    bootstrap_password = (get_admin_initial_password() or '').strip()
+                    if not bootstrap_password:
+                        raise ValueError('Impostare ADMIN_INITIAL_PASSWORD nella nuova istanza prima di importare un bootstrap anonimizzato.')
                 if not can_global_export_import():
                     target_tenant_id = current_tenant_id()
                     _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=tenant_created_files)
@@ -12654,6 +12982,11 @@ def import_full():
                 for row in tables.get('users', []):
                     db.session.add(User(**_coerce_row_for_full_import(User, row, import_default_tenant_id)))
                 db.session.flush()
+                if bootstrap_password is not None:
+                    bootstrap_admin = User.query.filter_by(username='admin', auth_provider='local').first()
+                    if not bootstrap_admin:
+                        raise ValueError('Bootstrap anonimizzato privo dell account admin locale.')
+                    _reset_bootstrap_admin_credentials(bootstrap_admin, bootstrap_password)
                 for user in User.query.all():
                     if getattr(user, 'is_builtin_admin', False) or user.username == 'admin':
                         user.role = 'superuser'

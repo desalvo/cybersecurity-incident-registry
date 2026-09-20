@@ -66,7 +66,8 @@ def test_kubernetes_prepares_pvcs_for_non_root_container_and_exposes_csrf_flag()
     assert "mountPath: /data/uploads}" not in deployment
     digest_state = (PROJECT_ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip()
     if digest_state.startswith("PENDING_"):
-        assert 'newTag: "0.9.0-1"' in kustomization
+        assert 'newTag: "PENDING_HOTFIX_REBUILD"' in kustomization
+        assert 'digest:' not in kustomization
     else:
         digest = digest_state.split("@sha256:", 1)[-1]
         assert f"digest: sha256:{digest}" in kustomization

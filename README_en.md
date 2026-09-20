@@ -242,6 +242,14 @@ The full export includes:
 
 Binary database values are serialized as Base64 inside the JSON manifest. Full import rebuilds the database, settings, files, templates and logos.
 
+### Anonymized bootstrap export for the default tenant
+
+Superusers and the built-in `admin` account can also choose **Anonymized bootstrap export (default tenant)** from the Export menu. This produces a full-import-compatible archive designed to initialize a separate instance from an already configured setup without carrying operational or personal data. It retains reusable default-tenant taxonomies, recommendations, workflows, notification types/templates, sanitized technical settings and only the PDF templates referenced by workflows or notification templates. Incidents, actions, operational documents/attachments, people, external recipients, real users, MFA, audit data, AI knowledge-base content and backup jobs are excluded.
+
+The archive contains only the local `admin` identity, without the source password hash, source e-mail address or external identity. During import the destination instance must provide `ADMIN_INITIAL_PASSWORD`; a fresh password hash is generated from that destination-specific value. SMTP/LDAP/SSO/AI/Alfresco secrets are removed. SSO profiles retain reusable endpoints, claims and Client ID values but are disabled and have no Client Secret until destination-specific credentials are configured. Known identities and e-mail addresses are redacted from retained configuration text. Custom branding, SSL keys/certificates and unreferenced SSO assets are not transferred.
+
+After importing a bootstrap archive, configure destination secrets and verify SSO/LDAP/SMTP/Alfresco before production use.
+
 The `audit_log` table and all settings stored in `setting` are included in full export and full import. After a full import, imported audit records older than the configured retention are removed automatically.
 
 ## Audit log

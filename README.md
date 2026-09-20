@@ -355,6 +355,15 @@ Ogni incidente richiede il campo **Riferimento**, normalmente corrispondente all
 
 L’export completo produce un archivio `tar.gz` autosufficiente. Il file `export.json` contiene tutte le colonne reali delle tabelle applicative SQLAlchemy, le tabelle di relazione molti-a-molti e una sezione `schema` con l’elenco dei campi esportati per ogni tabella. Per gli incidenti, i campi temporali granulari `start_date`, `start_time`, `end_date` ed `end_time` sono sempre serializzati esplicitamente, con fallback dai valori compatibili `start_at`/`end_at` quando necessario; nel manifest sono presenti anche gli alias `start_at` ed `end_at` per compatibilità con script o import di versioni precedenti. L’archivio include inoltre i file fisici collegati: documenti degli incidenti, allegati delle azioni, logo e template PDF dei moduli. L’import completo filtra e converte i campi in base al modello corrente, così gli export restano compatibili anche in presenza di campi aggiunti da versioni successive.
 
+
+### Export bootstrap anonimizzato del tenant default
+
+Per superuser e account locale `admin`, il menu **Export** espone anche **Export bootstrap anonimizzato (tenant default)**. Questa modalità crea un full export importabile in una nuova istanza, ma conserva soltanto la configurazione riutilizzabile del tenant `default`: tassonomie/label, raccomandazioni, workflow, tipi e template di notifica, configurazioni tecniche sanificate e i soli template PDF effettivamente referenziati dai workflow o dai template di notifica. Non vengono esportati incidenti, azioni, documenti operativi, allegati, persone, destinatari esterni, audit, MFA, knowledge base AI, job di backup o utenti reali.
+
+L'archivio contiene un unico account locale `admin` privo di hash password, e-mail o identità della sorgente. Durante il Full Import bootstrap la password viene rigenerata usando `ADMIN_INITIAL_PASSWORD` configurata **sulla nuova istanza**; se la variabile non è impostata l'import viene rifiutato prima del rebuild del database. I secret SMTP/LDAP/SSO/AI/Alfresco vengono svuotati; i profili SSO mantengono endpoint, claim e Client ID ma vengono disabilitati e privati del Client Secret finché non vengono riconfigurati sulla destinazione. Gli indirizzi e-mail e le identità note presenti nei testi di configurazione vengono redatti. Il logo custom, le chiavi/certificati SSL e gli asset SSO non referenziati non vengono trasferiti.
+
+Il bootstrap è pensato per clonare un **setup**, non dati operativi. Dopo l'import occorre impostare i secret della nuova istanza, verificare SSO/LDAP/SMTP/Alfresco, controllare gli eventuali testi/template mantenuti e completare il wizard/configurazione locale prima dell'uso in produzione.
+
 ## Template moduli
 I template moduli predefiniti basati su XML/DOCX sono stati rimossi. Dal menu **Moduli → Configurazione** è possibile caricare PDF AcroForm compilabili, salvarli come template originari e cancellare template esistenti con conferma.
 

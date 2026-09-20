@@ -24,6 +24,7 @@
       <div id="menu-export" class="dropdown-content" role="menu" aria-label="Export">
         <a role="menuitem" href="{{ url_for('main.export_csv') }}">Export incidenti in CSV</a>
         <a role="menuitem" href="{{ url_for('main.export_full') }}">Export completo</a>
+        {% if current_user_is_superuser %}<a role="menuitem" href="{{ url_for('main.export_full', mode='bootstrap') }}">Export bootstrap anonimizzato (tenant default)</a>{% endif %}
         <a role="menuitem" href="{{ url_for('main.import_csv') }}">CSV import</a>
         <a role="menuitem" href="{{ url_for('main.import_full') }}">Full import</a>
       </div>

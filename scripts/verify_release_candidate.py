@@ -56,7 +56,12 @@ def check_source_tree() -> list[str]:
     digest_value = production_digest.split("@sha256:", 1)[1] if "@sha256:" in production_digest else ""
     has_release_tag = f'newTag: "{version}"' in kustomization
     has_release_digest = bool(digest_value) and f"digest: sha256:{digest_value}" in kustomization
-    if not (has_release_tag or has_release_digest):
+    pending_rebuild = production_digest.startswith("PENDING_")
+    has_pending_tag = 'newTag: "PENDING_HOTFIX_REBUILD"' in kustomization and "digest:" not in kustomization
+    if pending_rebuild:
+        if not has_pending_tag:
+            fail(errors, "pending production rebuild requires fail-closed PENDING_HOTFIX_REBUILD Kustomize tag")
+    elif not (has_release_tag or has_release_digest):
         fail(errors, "k8s/kustomization.yaml must match VERSION tag or recorded production digest")
     if ":latest" in deployment or ":latest" in kustomization:
         fail(errors, "active Kubernetes release manifests must not use :latest")
