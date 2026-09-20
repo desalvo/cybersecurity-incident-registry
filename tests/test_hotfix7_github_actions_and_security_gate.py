@@ -39,8 +39,13 @@ def test_github_workflow_runs_required_gates_and_release_rules():
         'BACKUP_DIR: ${{ runner.temp }}/cir-pytest/backups',
         'AI_CHATBOT_DOC_DIR: ${{ runner.temp }}/cir-pytest/ai-chatbot-docs',
         'SSL_DIR: ${{ runner.temp }}/cir-pytest/ssl',
+        'actions/checkout@v7',
+        'actions/setup-python@v7',
     ):
         assert needle in workflow
+
+    assert 'actions/checkout@v6' not in workflow
+    assert 'actions/setup-python@v6' not in workflow
 
     postgres_step = workflow.split('- name: Run real PostgreSQL test suite', 1)[1].split('- name: Verify release candidate', 1)[0]
     for needle in (
