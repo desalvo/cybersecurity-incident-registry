@@ -12365,6 +12365,13 @@ def build_anonymized_default_tenant_bootstrap_archive(prefix='cir-bootstrap-defa
     redactions = _bootstrap_redaction_values(tenant.id)
     tables = _bootstrap_export_tables(tenant.id, template_names)
     tables = _redact_bootstrap_value(tables, redactions)
+    # Re-apply the canonical bootstrap identity after generic free-text redaction.
+    # admin@example.local is an intentional non-personal placeholder, not source data.
+    for admin_row in tables.get('users', []):
+        if admin_row.get('username') == 'admin' and admin_row.get('auth_provider') == 'local':
+            admin_row['name'] = 'Administrator'
+            admin_row['email'] = 'admin@example.local'
+            admin_row['password_hash'] = None
     payload = {
         'format': BOOTSTRAP_EXPORT_FORMAT,
         'version': 4,
