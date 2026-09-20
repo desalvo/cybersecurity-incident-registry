@@ -924,3 +924,22 @@ It aligns legacy regression expectations and README wording with the Hotfix 6 Al
 The Alfresco parent-resolution regression now supplies an explicit incident name and verifies the Hotfix 6 path instead of the pre-Hotfix-6 `incident-<id>` path.
 
 ---
+
+## Bootstrap export and CI stabilization (RC1-RC11) — 2026-09-20
+
+After cumulative Hotfix 7, development remained within functional version **0.9.0-1** and added an anonymized bootstrap export for tenant `default`. The RC sequence was not a sequence of new functional versions; it was an implementation/regression-hardening cycle of the same 0.9.0-1 source line.
+
+- RC1 introduced the default-tenant bootstrap profile, selective workflow/template retention, secret stripping and destination-side admin password regeneration.
+- RC2 corrected canonical bootstrap admin identity sanitization (`admin@example.local`) without weakening generic email redaction.
+- RC3 introduced automatic production-digest recording after successful promotion.
+- RC4 incorporated `actions/checkout@v7` and `actions/setup-python@v7`.
+- RC5 replaced the invalid assumption that a retagged OCI index must preserve the top-level digest with descriptor-level verification of approved amd64/arm64 manifests and attestations.
+- RC6 adapted digest recording to protected `main` by using a dedicated metadata branch and pull request, plus metadata-only Docker-build suppression.
+- RC7 added more robust Buildx manifest inspection/retry diagnostics.
+- RC8 corrected workflow YAML serialization and added YAML parsing regression coverage.
+- RC9 made the production-digest tests valid in both pre-promotion `PENDING_HOTFIX_REBUILD` state and post-promotion immutable-digest state.
+- RC10 incorporated `actions/upload-artifact@v7`.
+- RC11 incorporated the reviewed `aquasecurity/setup-trivy` v0.3.1 commit pin while keeping Trivy scanner `v0.74.0`.
+
+The stabilized flow is: protected-branch PR -> quality/PostgreSQL/SCA gates -> multi-arch candidate -> Trivy gate -> promotion -> OCI descriptor verification -> automated production-digest PR -> metadata-only checks -> merge without Docker rebuild.
+
