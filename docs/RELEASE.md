@@ -124,11 +124,11 @@ After production validation, a Kubernetes-only packaging defect was confirmed in
 
 A PostgreSQL application hotfix was prepared after production migration testing. It fixes sequence alignment after Full Import and advisory-lock connection ownership. Because application code changed, the OCI digest recorded above describes the **pre-hotfix** production image only and must not be used as evidence that the hotfix is deployed.
 
-The hotfix source package intentionally sets `PRODUCTION_IMAGE_DIGEST` to `PENDING_HOTFIX_REBUILD` and changes Kustomize back to the version tag until a new multi-arch image is built and validated. After the external gates pass, replace the pending marker and Kustomize tag with the new immutable OCI index digest and update this release record with the new gate evidence. See `docs/RELEASE.md`.
+At this historical stage the hotfix source package deliberately left the production digest unpinned and Kustomize temporarily referenced the version tag. The cumulative Hotfix 7 image was subsequently rebuilt, gated and promoted; the authoritative final digest is recorded in the Hotfix 7 final production record below.
 
 ## Pending cumulative Hotfix 2 - Alfresco (2026-09-03)
 
-The current source package also contains the Alfresco parent-node resolution hotfix documented in `docs/ADMIN_ALFRESCO.md`. Because application code changed after the previously validated image, the old OCI digest must not be reused. `PRODUCTION_IMAGE_DIGEST` remains `PENDING_HOTFIX_REBUILD` until the cumulative Hotfix 1 + Hotfix 2 image passes the standard suite, real PostgreSQL tests, SCA, multi-arch Trivy gate and registry digest verification.
+The package also contains the Alfresco parent-node resolution hotfix documented in `docs/ADMIN_ALFRESCO.md`. At this historical stage the old OCI digest could not be reused; cumulative Hotfix 1-7 was later rebuilt and validated, with the final immutable digest recorded below.
 
 ## Pending cumulative Hotfix 3 + Hotfix 4 - Alfresco storage and automatic incident reports (2026-09-03)
 
@@ -138,7 +138,7 @@ For Hotfix 4, tenant policy controls whether the per-incident option `Genera e a
 
 When enabled for an incident, CIR keeps one canonical PDF report directly below the corresponding Alfresco incident directory as `incident-<id>/incident-<id>-report.pdf`. Report-relevant mutations update the existing Alfresco node when possible; a missing remote node is recreated. A content fingerprint suppresses redundant updates, and safe GET requests do not trigger remote writes.
 
-Because this is application code, the historical OCI digest at the top of this document remains pre-hotfix evidence only. `PRODUCTION_IMAGE_DIGEST` must remain `PENDING_HOTFIX_REBUILD` until the cumulative Hotfix 1-4 image passes the complete host test suite, real PostgreSQL suite, SCA, multi-architecture image scan and immutable registry-digest verification.
+Because this is application code, the historical OCI digest at the top of this document remains pre-hotfix evidence only. Cumulative Hotfix 1-7 was later rebuilt and passed the complete production gate; the final immutable digest is recorded below.
 
 ## Pending cumulative Hotfix 5-7 - Alfresco, naming, security disposition and GitHub automation (2026-09-20)
 
@@ -146,7 +146,7 @@ The current source package also contains Hotfix 5 (tenant-scoped Alfresco config
 
 The original R8 acceptance of 30 CVEs through 2026-10-03 is historical evidence for the pre-hotfix image. Hotfix 7 supersedes the active policy with **35 explicitly reviewed CVEs**, including the five findings reviewed on 2026-09-20, and extends the time-bounded review deadline to **2026-10-20**. The new findings are package-scoped; util-linux findings are additionally constrained to the reviewed `2.41.5-0+deb13u1` version family. Any new HIGH/CRITICAL, Python HIGH/CRITICAL, out-of-scope package/version, available `FixedVersion`, or expired acceptance remains blocking.
 
-`PRODUCTION_IMAGE_DIGEST` remains `PENDING_HOTFIX_REBUILD`. The historical digest at the top of this file does not contain Hotfix 1-7. The new GitHub workflow can build the cumulative image, scan its exact multi-architecture digest, and promote that same digest to `latest` on `main` or to the Git tag on tag pushes only after all gates pass.
+The historical digest at the top of this file does not contain Hotfix 1-7. The GitHub workflow built the cumulative candidate, scanned its exact multi-architecture digest and promoted that same digest to `latest` only after all gates passed. The resulting immutable OCI index digest is recorded in the final production record below.
 
 ---
 
@@ -476,7 +476,7 @@ This hotfix changes application code. The previously validated image digest
 `sha256:ff734b8ed7cbc3a979081cd782396088ca0d1dea07092ebfb702efd5d48c8c9b`
 does **not** contain this hotfix and must not be used to claim deployment of it.
 
-`PRODUCTION_IMAGE_DIGEST` is intentionally set to `PENDING_HOTFIX_REBUILD` and Kubernetes Kustomize temporarily references tag `0.9.0-1`. Build, test and scan the new multi-arch image, then replace `PRODUCTION_IMAGE_DIGEST` and Kustomize with the new immutable digest before final deployment.
+At preparation time the production digest was intentionally left unpinned and Kubernetes Kustomize temporarily referenced tag `0.9.0-1`. The cumulative Hotfix 7 image has now been built, tested, scanned and promoted; `PRODUCTION_IMAGE_DIGEST` and Kustomize are pinned to the final immutable OCI index digest recorded below.
 
 ## Required external validation
 
@@ -493,3 +493,20 @@ does **not** contain this hotfix and must not be used to claim deployment of it.
 The source package also includes the Alfresco destination-resolution fix documented in `docs/ADMIN_ALFRESCO.md`. The rebuilt image must therefore contain both Hotfix 1 (PostgreSQL sequence/advisory-lock lifecycle) and Hotfix 2 (Alfresco real parent-node resolution). A single new immutable multi-arch digest will cover the cumulative hotfix package after external validation.
 
 ---
+
+
+## Hotfix 7 final production record — 2026-09-20
+
+Functional version remains **0.9.0-1**. Hotfixes 1-7 are cumulative corrections to that release, not new functional versions.
+
+The GitHub production pipeline completed the quality gates, real PostgreSQL tests, SCA, multi-architecture build and Trivy production gate before promotion. The scanned candidate was promoted without rebuilding.
+
+- Published tag: `desalvo/cybersecurity-incident-registry:latest`
+- OCI index digest: `sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87`
+- Immutable production reference: `desalvo/cybersecurity-incident-registry@sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87`
+- linux/amd64 manifest: `sha256:0c8e841885858230655801345ecee171a899856fb8eb7e710d98aa5bdd62dd2d`
+- linux/arm64 manifest: `sha256:1c3b11678da66650d5d92f5bfe888189e87f4d69eab9a3e4a7f1b46d1e84a7d5`
+- Additional `unknown/unknown` manifests are Buildx attestation manifests associated with the platform images, not runnable application platforms.
+- Active Trivy risk acceptance remains time-bounded through **2026-10-20** and fail-closed for new HIGH/CRITICAL findings, Python HIGH/CRITICAL findings, accepted findings that become fixable, package/version scope changes, or expiry.
+
+`PRODUCTION_IMAGE_DIGEST` and `k8s/kustomization.yaml` pin this same OCI index digest. Production deployment should use the immutable reference above rather than relying on the mutable `latest` tag.

@@ -161,7 +161,7 @@ Il wizard iniziale espone anche il nuovo `alfresco_parent_node_id`.
 
 ## Verifica locale della hotfix
 
-I test mirati Alfresco/wizard/outbound piu i test Hotfix 1 sono eseguiti prima del packaging. Poiche questa hotfix modifica il codice applicativo, l'immagine Docker deve essere ricostruita e sottoposta nuovamente ai gate production; `PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD` fino alla nuova promozione.
+I test mirati Alfresco/wizard/outbound piu i test Hotfix 1 sono eseguiti prima del packaging. Poiche questa hotfix modifica il codice applicativo, l'immagine Docker deve essere ricostruita e sottoposta nuovamente ai gate production; in quella fase il digest production rimase volutamente non fissato fino alla nuova promozione; il digest finale Hotfix 7 è registrato in `docs/RELEASE.md`.
 
 ---
 
@@ -210,7 +210,7 @@ Cumulative over Hotfix 4.
 - Admin documentation now explains per-tenant setup, Parent Node ID/Site resolution, permissions, delete behavior and sync semantics.
 
 ## Deployment
-This hotfix changes application code/schema. Rebuild and rescan the multi-arch image before production promotion. `PRODUCTION_IMAGE_DIGEST` intentionally remains `PENDING_HOTFIX_REBUILD`.
+This hotfix changes application code/schema. Rebuild and rescan the multi-arch image before production promotion. at that stage the production digest intentionally remained unpinned; the final Hotfix 7 digest is recorded in `docs/RELEASE.md`.
 
 ## Hotfix 6 - naming incidente Alfresco
 
@@ -274,7 +274,7 @@ Full Export/Import automatically carries these fields through the existing model
 
 ## Image status
 
-This hotfix changes application code. `PRODUCTION_IMAGE_DIGEST` remains `PENDING_HOTFIX_REBUILD`; the previously validated production image digest does not contain this hotfix.
+This hotfix changes application code. at that stage the production digest remained unpinned because the previously validated production image did not contain this hotfix; the final Hotfix 7 digest is recorded in `docs/RELEASE.md`.
 
 ---
 

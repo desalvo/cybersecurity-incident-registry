@@ -124,10 +124,15 @@ def test_trivy_gate_rejects_expired_acceptance_and_empty_scan() -> None:
     assert r.returncode != 0 and "no Results" in r.stderr
 
 
-def test_security_context_verifier_and_digest_placeholder() -> None:
+def test_security_context_verifier_and_final_production_digest() -> None:
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_security_gate_context.py")], cwd=ROOT, text=True, capture_output=True)
     assert r.returncode == 0, r.stderr
-    assert (ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip() == "PENDING_HOTFIX_REBUILD"
+    production_image = (ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip()
+    assert production_image == "desalvo/cybersecurity-incident-registry@sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87"
+    assert not production_image.startswith("PENDING_")
+    kustomization = (ROOT / "k8s" / "kustomization.yaml").read_text(encoding="utf-8")
+    assert "digest: sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87" in kustomization
+    assert 'newTag: "0.9.0-1"' not in kustomization
 
 
 def test_release_package_has_new_layout_and_excludes_runtime_artifacts(tmp_path: Path) -> None:

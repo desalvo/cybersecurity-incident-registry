@@ -36,7 +36,13 @@ Core settings support the documented `_FILE` form for container secrets. Never s
 
 ## Production image digest
 
-`PRODUCTION_IMAGE_DIGEST` must remain `PENDING_HOTFIX_REBUILD` until the Hotfix 7 image has been rebuilt and passed all production gates. After approval, promotion must use the already-scanned candidate digest rather than rebuilding under the final tag.
+Hotfix 7 passed the production gates and the promoted multi-architecture OCI index is pinned in `PRODUCTION_IMAGE_DIGEST` as:
+
+```text
+desalvo/cybersecurity-incident-registry@sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87
+```
+
+Kustomize pins the same OCI index digest. Production rollout should use this immutable reference rather than `:latest`; the promoted digest must not be rebuilt under the final tag.
 
 ## Related documents
 
