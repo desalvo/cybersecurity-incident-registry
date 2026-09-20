@@ -32,6 +32,13 @@ def test_github_workflow_runs_required_gates_and_release_rules():
         'imagetools create',
         'DOCKERHUB_USERNAME',
         'DOCKERHUB_TOKEN',
+        'UPLOAD_DIR: ${{ runner.temp }}/cir-pytest/uploads',
+        'LOGO_DIR: ${{ runner.temp }}/cir-pytest/logos',
+        'SSO_LOGO_DIR: ${{ runner.temp }}/cir-pytest/sso-logos',
+        'FORM_TEMPLATE_DIR: ${{ runner.temp }}/cir-pytest/form-templates',
+        'BACKUP_DIR: ${{ runner.temp }}/cir-pytest/backups',
+        'AI_CHATBOT_DOC_DIR: ${{ runner.temp }}/cir-pytest/ai-chatbot-docs',
+        'SSL_DIR: ${{ runner.temp }}/cir-pytest/ssl',
     ):
         assert needle in workflow
 

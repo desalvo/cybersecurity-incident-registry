@@ -49,6 +49,13 @@ jobs:
       - name: Run complete pytest suite
         env:
           CIR_DISABLE_BACKGROUND_SCHEDULERS: '1'
+          UPLOAD_DIR: ${{ runner.temp }}/cir-pytest/uploads
+          LOGO_DIR: ${{ runner.temp }}/cir-pytest/logos
+          SSO_LOGO_DIR: ${{ runner.temp }}/cir-pytest/sso-logos
+          FORM_TEMPLATE_DIR: ${{ runner.temp }}/cir-pytest/form-templates
+          BACKUP_DIR: ${{ runner.temp }}/cir-pytest/backups
+          AI_CHATBOT_DOC_DIR: ${{ runner.temp }}/cir-pytest/ai-chatbot-docs
+          SSL_DIR: ${{ runner.temp }}/cir-pytest/ssl
         run: python -m pytest -q
 
       - name: Run real PostgreSQL test suite
