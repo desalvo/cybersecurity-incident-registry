@@ -191,16 +191,24 @@ jobs:
         run: |
           set -euo pipefail
           image="${{ steps.image.outputs.final_image }}"
+          candidate="${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
+
           docker buildx imagetools inspect "$image"
           digest="$(docker buildx imagetools inspect "$image" | awk '$1 == "Digest:" {print $2; exit}')"
           if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "Unable to resolve immutable manifest digest for $image" >&2
             exit 1
           fi
-          if [[ "$digest" != "${{ steps.build.outputs.digest }}" ]]; then
-            echo "Promoted tag digest $digest differs from approved candidate ${{ steps.build.outputs.digest }}" >&2
-            exit 1
-          fi
+
+          # The top-level index digest may change during registry-side retagging.
+          # Fail closed unless every immutable child descriptor (platform images
+          # and attestations) is exactly the one that passed the Trivy gate.
+          docker buildx imagetools inspect --raw "$candidate" > "${RUNNER_TEMP}/candidate-index.json"
+          docker buildx imagetools inspect --raw "$image" > "${RUNNER_TEMP}/published-index.json"
+          python scripts/verify_promoted_manifest.py \
+            "${RUNNER_TEMP}/candidate-index.json" \
+            "${RUNNER_TEMP}/published-index.json"
+
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           {
             echo "## CIR Docker release"
@@ -208,6 +216,7 @@ jobs:
             echo "- Image: \`$image\`"
             echo "- Digest: \`$digest\`"
             echo "- Platforms: \`linux/amd64, linux/arm64\`"
+            echo "- Platform manifest equivalence: PASS"
             echo "- Trivy gate: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
 

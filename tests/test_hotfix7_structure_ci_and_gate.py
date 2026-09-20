@@ -193,6 +193,10 @@ def test_ci_auto_records_promoted_digest_without_tag_side_effects() -> None:
     assert "if: github.ref == 'refs/heads/main'" in workflow
     assert "scripts/record_production_digest.py" in workflow
     assert '--digest "${{ steps.published.outputs.digest }}"' in workflow
+    assert 'imagetools inspect --raw "$candidate"' in workflow
+    assert 'imagetools inspect --raw "$image"' in workflow
+    assert 'scripts/verify_promoted_manifest.py' in workflow
+    assert 'Promoted tag digest $digest differs from approved candidate' not in workflow
     assert 'git config user.name "github-actions[bot]"' in workflow
     assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' in workflow
     assert "[skip ci]" not in workflow
