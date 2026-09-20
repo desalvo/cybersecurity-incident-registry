@@ -51,12 +51,14 @@ def test_github_workflow_runs_required_gates_and_release_rules():
         'actions/checkout@v7',
         'actions/setup-python@v7',
         'actions/upload-artifact@v7',
+        'aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567',
     ):
         assert needle in workflow
 
     assert 'actions/checkout@v6' not in workflow
     assert 'actions/setup-python@v6' not in workflow
     assert 'actions/upload-artifact@v4' not in workflow
+    assert 'aquasecurity/setup-trivy@e07451d2e059ed86c2870430ea286b3a9e0bf241' not in workflow
 
     postgres_step = workflow.split('- name: Run real PostgreSQL test suite', 1)[1].split('- name: Verify release candidate', 1)[0]
     for needle in (
