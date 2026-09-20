@@ -39,10 +39,11 @@ Core settings support the documented `_FILE` form for container secrets. Never s
 Hotfix 7 passed the production gates and the promoted multi-architecture OCI index is pinned in `PRODUCTION_IMAGE_DIGEST` as:
 
 ```text
-desalvo/cybersecurity-incident-registry@sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87
+desalvo/cybersecurity-incident-registry@sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a
 ```
 
 Kustomize pins the same OCI index digest. Production rollout should use this immutable reference rather than `:latest`; the promoted digest must not be rebuilt under the final tag.
+The commit that records an already-promoted digest is metadata-only and must not trigger another production image build, because rebuilding would necessarily produce a different digest and invalidate the pin.
 
 ## Related documents
 

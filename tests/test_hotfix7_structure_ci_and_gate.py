@@ -128,10 +128,10 @@ def test_security_context_verifier_and_final_production_digest() -> None:
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_security_gate_context.py")], cwd=ROOT, text=True, capture_output=True)
     assert r.returncode == 0, r.stderr
     production_image = (ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip()
-    assert production_image == "desalvo/cybersecurity-incident-registry@sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87"
+    assert production_image == "desalvo/cybersecurity-incident-registry@sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a"
     assert not production_image.startswith("PENDING_")
     kustomization = (ROOT / "k8s" / "kustomization.yaml").read_text(encoding="utf-8")
-    assert "digest: sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87" in kustomization
+    assert "digest: sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a" in kustomization
     assert 'newTag: "0.9.0-1"' not in kustomization
 
 

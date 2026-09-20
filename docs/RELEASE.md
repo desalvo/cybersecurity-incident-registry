@@ -502,11 +502,13 @@ Functional version remains **0.9.0-1**. Hotfixes 1-7 are cumulative corrections 
 The GitHub production pipeline completed the quality gates, real PostgreSQL tests, SCA, multi-architecture build and Trivy production gate before promotion. The scanned candidate was promoted without rebuilding.
 
 - Published tag: `desalvo/cybersecurity-incident-registry:latest`
-- OCI index digest: `sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87`
-- Immutable production reference: `desalvo/cybersecurity-incident-registry@sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87`
-- linux/amd64 manifest: `sha256:0c8e841885858230655801345ecee171a899856fb8eb7e710d98aa5bdd62dd2d`
-- linux/arm64 manifest: `sha256:1c3b11678da66650d5d92f5bfe888189e87f4d69eab9a3e4a7f1b46d1e84a7d5`
+- OCI index digest: `sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a`
+- Immutable production reference: `desalvo/cybersecurity-incident-registry@sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a`
+- linux/amd64 manifest: `sha256:134b7eeccba5940b07c72e5116c9ab1626d079ed961ffce7884a568c9ee11e73`
+- linux/arm64 manifest: `sha256:e8dd548dd1a81063aa609efe26d3d34b1dd8d7e035884cf45b462ec1d239c079`
 - Additional `unknown/unknown` manifests are Buildx attestation manifests associated with the platform images, not runnable application platforms.
 - Active Trivy risk acceptance remains time-bounded through **2026-10-20** and fail-closed for new HIGH/CRITICAL findings, Python HIGH/CRITICAL findings, accepted findings that become fixable, package/version scope changes, or expiry.
 
 `PRODUCTION_IMAGE_DIGEST` and `k8s/kustomization.yaml` pin this same OCI index digest. Production deployment should use the immutable reference above rather than relying on the mutable `latest` tag.
+
+**Final metadata commit:** recording this already-promoted digest is release metadata only. Do not rebuild or republish the production image after changing only `PRODUCTION_IMAGE_DIGEST`, Kustomize, release documentation, or changelog; otherwise a new image digest is created and the recorded value becomes stale. When committing only this final pin, skip the production workflow (for example with GitHub Actions’ supported CI-skip commit instruction).

@@ -1,8 +1,9 @@
 
 0.9.0-1 Hotfix 7 final - 2026-09-20
 - Completata la pipeline production fail-closed con suite completa, PostgreSQL reale, SCA, build multi-arch e Trivy gate amd64/arm64.
-- Promosso senza rebuild il candidato validato; OCI index production: sha256:6f4f48c64cc62c64ab6663166fb80e14caaeb88b5652ea0d030e9684e67e5e87 .
+- Promosso senza rebuild il candidato validato; OCI index production: sha256:37ad92c7437abce6f5a7b8504b8c440cab6f1ac5e38ecdaf287128bffbb9702a .
 - PRODUCTION_IMAGE_DIGEST e Kustomize fissati al medesimo digest immutabile.
+- Il commit finale di pinning del digest e solo metadata di release e non deve ricostruire/promuovere una nuova immagine.
 - La versione funzionale resta 0.9.0-1; Hotfix 1-7 sono correzioni cumulative della stessa release.
 
 0.9.0-1 hotfix 2026-09-03
