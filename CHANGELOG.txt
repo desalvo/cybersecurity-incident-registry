@@ -1,3 +1,10 @@
+0.9.0-1 final source consolidation - 2026-09-20
+- Consolidato l'export bootstrap anonimizzato del tenant `default`: conserva workflow, tassonomie/configurazioni riutilizzabili e template PDF necessari, esclude dati operativi/personali e secret, e rigenera la password dell'admin da `ADMIN_INITIAL_PASSWORD` sulla destinazione.
+- Consolidata la pipeline GitHub Actions fail-closed con `main` protetto: build/scansione/promozione production, verifica OCI multi-arch, branch/PR automatica per il digest production e rilevazione metadata-only che evita rebuild ricorsivi.
+- Allineate le GitHub Actions a `actions/checkout@v7`, `actions/setup-python@v7`, `actions/upload-artifact@v7` e `aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567`, mantenendo Trivy scanner `v0.74.0`.
+- La risk acceptance Debian attiva contiene 44 CVE esplicitamente riesaminati ed è valida fino al 2026-10-20; restano bloccanti nuovi HIGH/CRITICAL, qualunque HIGH/CRITICAL Python, `FixedVersion` disponibili, package/version mismatch e scadenza.
+- Questo package sorgente lascia intenzionalmente `PRODUCTION_IMAGE_DIGEST=PENDING_HOTFIX_REBUILD`: il merge della PR finale deve produrre l'immagine definitiva e la PR automatica `chore: record promoted production OCI digest` deve registrare il digest immutabile finale.
+
 - Aggiunto export bootstrap anonimizzato del tenant default: conserva workflow/configurazioni riutilizzabili e template PDF necessari, elimina dati operativi/personali e secret, e reimposta l'admin dall'ADMIN_INITIAL_PASSWORD della destinazione durante l'import.
 - La pipeline CI registra automaticamente il digest OCI promosso su main in PRODUCTION_IMAGE_DIGEST e Kustomize tramite GITHUB_TOKEN, senza ciclo di rebuild; i release tag non modificano main.
 
