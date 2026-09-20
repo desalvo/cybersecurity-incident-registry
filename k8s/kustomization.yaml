@@ -7,4 +7,4 @@ resources:
 images:
 - name: desalvo/cybersecurity-incident-registry
   newName: desalvo/cybersecurity-incident-registry
-  digest: sha256:ff734b8ed7cbc3a979081cd782396088ca0d1dea07092ebfb702efd5d48c8c9b
+  newTag: "0.9.0-1"

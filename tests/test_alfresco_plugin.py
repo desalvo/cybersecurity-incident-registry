@@ -27,7 +27,8 @@ def test_incident_documents_expose_alfresco_actions_only_when_enabled():
     routes = Path('app/routes.py').read_text(encoding='utf-8')
     models = Path('app/models.py').read_text(encoding='utf-8')
     assert 'alfresco_plugin_enabled()' in detail
-    assert 'Carica anche su Alfresco' in detail
+    assert 'Solo Alfresco' in detail
+    assert 'CIR + Alfresco' in detail
     assert 'Download Alfresco' in detail
     assert 'Invia ad Alfresco' in detail
     assert 'def attach_document_to_alfresco' in routes

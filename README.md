@@ -2,7 +2,7 @@
 
 ## Genealogia della release
 
-La **0.8.0** (build 20260718) è la baseline funzionale da cui sono partiti i Round 1-18. Tutti i cambiamenti introdotti nei Round 1-18 confluiscono nella **0.9.0-1** (build 20260902). I round sono iterazioni interne di sviluppo/audit della 0.9.0-1 e non release funzionali intermedie. Le note cumulative della release sono in `RELEASE_NOTES_0.9.0-1.md`.
+La **0.8.0** (build 20260718) è la baseline funzionale da cui sono partiti i Round 1-18. Tutti i cambiamenti introdotti nei Round 1-18 confluiscono nella **0.9.0-1** (build 20260902). I round sono iterazioni interne di sviluppo/audit della 0.9.0-1 e non release funzionali intermedie. Le note cumulative della release sono in `docs/RELEASE.md`.
 
 - Esteso il wizard guidato di setup iniziale, ri-eseguibile da **Admin → Wizard setup iniziale**: la testata usa sempre il logo applicativo di default e mostra nome applicazione, versione e build; la prima sezione consente il cambio della password dell’utente locale admin e le sezioni successive includono parametri generali, logo custom, struttura, personale, tenant, LDAP, SSO/OAuth2, motori AI, Alfresco, documentazione, notifiche/SMTP e sicurezza/audit, con possibilità di saltare gruppi di impostazioni. Il wizard aggiorna le configurazioni esistenti dell’applicazione senza duplicarle.
 ### Aggiornamento 0.7.0-7 - Limite upload configurabile e lista incidenti
@@ -958,7 +958,21 @@ In **Admin → Flussi operativi incidenti** è disponibile la funzione **Clona w
 
 ### Plugin Alfresco
 
-È disponibile un plugin opzionale **Alfresco**, disabilitato per default, configurabile da **Admin → Plugins → Alfresco**. Il plugin usa le API REST di Alfresco per caricare e scaricare documenti degli incidenti. La configurazione comprende URL base, credenziali API, site opzionale, cartella destinazione, timeout e verifica TLS. Quando il plugin è abilitato, nella sezione **Documenti** di un incidente è possibile caricare i file anche su Alfresco o inviare ad Alfresco un documento già presente; i documenti collegati a un node id Alfresco espongono anche il download via API. La password/API secret è salvata come setting segreto e non viene mostrata in chiaro.
+Il plugin opzionale **Alfresco** è **disabilitato per default** ed è configurabile da **Admin → Plugins → Alfresco**. Ogni tenant possiede una configurazione separata: stato on/off, endpoint, username, password/API secret, Site/Parent Node ID, percorso destinazione, timeout e opzioni di organizzazione non vengono condivisi tra tenant. Per configurare un tenant selezionarlo come tenant attivo e aprire la pagina Alfresco. Le installazioni legacy possono usare i valori non scoped solo per il tenant default; gli altri tenant non ereditano credenziali legacy.
+
+Configurazione consigliata:
+
+1. creare in Alfresco un account tecnico dedicato con permessi limitati alla cartella del tenant;
+2. impostare URL base e credenziali;
+3. indicare il **Parent Node ID** (UUID della cartella padre) oppure un **Site**; se entrambi sono presenti, il Parent Node ID ha precedenza;
+4. impostare la cartella destinazione;
+5. usare **Salva e testa destinazione** prima degli upload.
+
+Ogni incidente usa una directory `incident-<id> - <nome-incidente>` sotto la destinazione configurata. Per default i documenti sono ulteriormente raggruppati in `pdf`, `office`, `images`, `archives`, `data` e `other`. Gli upload supportano **Solo CIR**, **CIR + Alfresco** e **Solo Alfresco**. ZIP e GZIP sono supportati come documenti opachi. Il report automatico, se abilitato a livello tenant e incidente, viene mantenuto come `incident-<id> - <nome-incidente> - report.pdf` direttamente nella directory dell’incidente.
+
+Nella sezione **Documenti** di ogni incidente, quando il plugin del tenant è attivo, CIR consente download, upload manuale e **cancellazione da Alfresco** del nodo remoto mantenendo il record CIR. La cancellazione usa la normale API Alfresco e, salvo diversa policy server, il contenuto può passare dal cestino anziché essere eliminato permanentemente. È inoltre disponibile **Sync Alfresco**: il comando controlla esclusivamente lo stato dei node id già registrati, marca in CIR i file come presenti/mancanti/non verificabili e aggiorna il timestamp di verifica. Il sync è deliberatamente in sola lettura verso Alfresco: **non carica, non ricrea e non modifica file remoti**. Questo permette di rilevare documenti cancellati direttamente dall’interfaccia web Alfresco.
+
+Per sicurezza, utilizzare TLS verificato, credenziali dedicate e `CIR_OUTBOUND_PRIVATE_HOSTS` quando l’hostname Alfresco risolve a reti private. La password/API secret è cifrata come setting segreto e non viene mostrata in chiaro.
 
 ### Multi-tenancy
 
@@ -1011,22 +1025,22 @@ Usare esclusivamente un database di test sacrificabile: la suite crea e rimuove 
 
 ## Hardening Round 16
 
-Il Round 16 completa l'audit trasversale di isolamento tenant e gestione dei segreti. Template/tipi di notifica, knowledge base e contesto database del chatbot AI, scheduler background e retention/audit amministrativo rispettano ora sempre il tenant attivo. Le credenziali SMTP, LDAP e SSO non vengono più reinserite in chiaro nell'HTML amministrativo: un campo password vuoto conserva il valore già cifrato. I dettagli tecnici e le verifiche sono in `SECURITY_AUDIT_ROUND16.md`.
+Il Round 16 completa l'audit trasversale di isolamento tenant e gestione dei segreti. Template/tipi di notifica, knowledge base e contesto database del chatbot AI, scheduler background e retention/audit amministrativo rispettano ora sempre il tenant attivo. Le credenziali SMTP, LDAP e SSO non vengono più reinserite in chiaro nell'HTML amministrativo: un campo password vuoto conserva il valore già cifrato. I dettagli tecnici e le verifiche sono in `docs/DEVELOPMENT_HISTORY.md`.
 
 
 ## Hardening Round 17
 
-Il Round 17 rafforza supply chain e deployment production. `SBOM_ROUND17.cdx.json` contiene l'inventario CycloneDX 1.6 delle dipendenze Python dirette e transitive con hash SHA-256 delle wheel disponibili; `scripts/generate_sbom.py` lo rigenera senza accesso alla rete e `scripts/run_sca.sh` esegue `pip-audit` in CI/release quando il relativo tooling e' disponibile. Le immagini runtime di riferimento sono aggiornate a Python 3.12.14 e PostgreSQL 18.6.
+Il Round 17 rafforza supply chain e deployment production. `sbom/SBOM_ROUND17.cdx.json` contiene l'inventario CycloneDX 1.6 delle dipendenze Python dirette e transitive con hash SHA-256 delle wheel disponibili; `scripts/generate_sbom.py` lo rigenera senza accesso alla rete e `scripts/run_sca.sh` esegue `pip-audit` in CI/release quando il relativo tooling e' disponibile. Le immagini runtime di riferimento sono aggiornate a Python 3.12.14 e PostgreSQL 18.6.
 
 Per Docker Compose production usare anche `docker-compose.production.yml`, impostando `CIR_PRODUCTION_IMAGE` a un tag di release immutabile o, preferibilmente, a un digest `image@sha256:...`. L'override abilita root filesystem read-only, `no-new-privileges`, capability ridotte, cookie Secure/HSTS e impedisce il fallback root su errori di permesso dei volumi. Kubernetes disabilita il service-account token automatico, usa seccomp `RuntimeDefault`, root filesystem read-only per l'applicazione e richiede Secret esterni; `k8s/secrets.example.yaml` e' soltanto un modello e non e' incluso da Kustomize.
 
-Le variabili core `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD` e `SETTING_ENCRYPTION_KEY` supportano anche la forma `NOME_FILE=/run/secrets/...`; non impostare contemporaneamente valore inline e `_FILE`. Se CIR e' dietro reverse proxy, configurare `CIR_TRUSTED_PROXY_CIDRS` con le sole reti proxy realmente fidate: `X-Forwarded-For` viene ignorato per connessioni dirette, impedendo di aggirare il rate limiting del login tramite spoofing dell'header. Dettagli e verifiche sono in `SECURITY_AUDIT_ROUND17.md`.
+Le variabili core `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD` e `SETTING_ENCRYPTION_KEY` supportano anche la forma `NOME_FILE=/run/secrets/...`; non impostare contemporaneamente valore inline e `_FILE`. Se CIR e' dietro reverse proxy, configurare `CIR_TRUSTED_PROXY_CIDRS` con le sole reti proxy realmente fidate: `X-Forwarded-For` viene ignorato per connessioni dirette, impedendo di aggirare il rate limiting del login tramite spoofing dell'header. Dettagli e verifiche sono in `docs/DEVELOPMENT_HISTORY.md`.
 
 ## Release Candidate Round 18
 
 Il Round 18 sincronizza la build della release candidate a `20260902` e introduce `scripts/verify_release_candidate.py`, che verifica offline la coerenza tra `VERSION`, `BUILD`, Docker Compose, Kubernetes, SBOM e i principali requisiti di hardening production. Il controllo non sostituisce i gate che richiedono infrastruttura esterna.
 
-Prima della promozione production devono risultare completati anche: `scripts/run_sca.sh` in un ambiente con accesso al vulnerability service, i sette test PostgreSQL reali (`scripts/run_postgres_tests.sh`), la scansione dell'immagine container finale e il pin dell'immagine CIR tramite digest `@sha256:`. La checklist completa è in `RELEASE_CANDIDATE_ROUND18.md`.
+Prima della promozione production devono risultare completati anche: `scripts/run_sca.sh` in un ambiente con accesso al vulnerability service, i sette test PostgreSQL reali (`scripts/run_postgres_tests.sh`), la scansione dell'immagine container finale e il pin dell'immagine CIR tramite digest `@sha256:`. La checklist completa è in `docs/RELEASE.md`.
 
 ## Build Docker multi-arch
 
@@ -1041,8 +1055,17 @@ Lo script usa Docker Buildx e pubblica un unico manifest multi-arch per `linux/a
 
 ## Migrazione da 0.8.0 a >= 0.9.0
 
-Per aggiornare deployment Docker Compose o Kubernetes dalla baseline 0.8.0 alla 0.9.0-1 o successive, seguire `MIGRATION_0.8.0_TO_0.9.0.md`. La guida documenta immagine/tag, nuove variabili e secret, volumi persistenti, Compose production, Kustomize/PVC, securityContext/probe e la cautela necessaria per eventuali upgrade major di PostgreSQL.
+Per aggiornare deployment Docker Compose o Kubernetes dalla baseline 0.8.0 alla 0.9.0-1 o successive, seguire `docs/MIGRATION.md`. La guida documenta immagine/tag, nuove variabili e secret, volumi persistenti, Compose production, Kustomize/PVC, securityContext/probe e la cautela necessaria per eventuali upgrade major di PostgreSQL.
 
 ### Gate Trivy production (RC R8)
 
-Dopo la build multi-arch, eseguire `./scripts/run_trivy_production_gate.sh IMMAGINE`. Il gate controlla separatamente amd64 e arm64 contro `TRIVY_RISK_ACCEPTANCE_R8.json`; non usa una soppressione generica degli `unfixed` e fallisce su nuovi HIGH/CRITICAL, finding Python HIGH/CRITICAL o vulnerabilità accettate per cui diventa disponibile una versione corretta. Vedere `SECURITY_DISPOSITION_R8.md`.
+Dopo la build multi-arch, eseguire `./scripts/run_trivy_production_gate.sh IMMAGINE`. Il gate controlla separatamente amd64 e arm64 contro `TRIVY_RISK_ACCEPTANCE_R8.json`; non usa una soppressione generica degli `unfixed` e fallisce su nuovi HIGH/CRITICAL, finding Python HIGH/CRITICAL o vulnerabilità accettate per cui diventa disponibile una versione corretta. Vedere `docs/SECURITY.md`.
+
+
+### Naming incidenti su Alfresco (Hotfix 6)
+
+Le directory incidenti includono ID e nome leggibile (`incident-<id> - <nome-incidente>`) e il report canonico usa `<cartella-incidente> - report.pdf`. Vedere `docs/ADMIN_ALFRESCO.md`.
+
+### CI/CD GitHub Actions
+
+La release include `.github/workflows/ci-release.yml`: pull request e push eseguono i gate automatici; un push su `main` pubblica `latest` solo dopo il PASS dei gate, mentre un tag Git pubblica lo stesso tag Docker. Configurazione, secrets Docker Hub e strategia di promozione per digest sono documentati in `docs/TESTING_AND_PRODUCTION.md`.

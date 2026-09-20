@@ -1,3 +1,9 @@
+
+0.9.0-1 hotfix 2026-09-03
+- Flush esplicito prima del riallineamento globale delle sequence PostgreSQL dopo restore/import.
+- Advisory lock scheduler/bootstrap/backup/import/recovery su connessioni dedicate; cleanup con pg_advisory_unlock_all e invalidazione fail-safe.
+- Richiesta nuova build multi-arch e nuovo digest OCI prima del deployment della hotfix.
+
 Cybersecurity Incident Registry - Changelog
 
 0.9.0-1 build 20260902 - Production Release
@@ -6,6 +12,8 @@ Cybersecurity Incident Registry - Changelog
 - I Round 1-18 sono iterazioni interne di sviluppo, audit e hardening della 0.9.0-1; non rappresentano release funzionali intermedie e non devono essere interpretati come versioni 0.8.x pubblicate separatamente.
 - Rafforzati autenticazione, sessioni, CSRF, rate limiting, gestione proxy fidati, cookie e header HTTP di sicurezza.
 - Rafforzato l'isolamento multi-tenant per dati amministrativi, template/tipi di notifica, chatbot AI, scheduler, audit, import/export e operazioni di manutenzione.
+
+Kubernetes Full Import hotfix (2026-09-03): manifest aggiornato a un unico PVC cir-data montato su /data; immagine OCI invariata.
 - Rafforzati upload/download e accessi filesystem con canonicalizzazione dei percorsi, validazione dei nomi persistiti e confinamento delle directory gestite.
 - Rafforzati outbound HTTP/SSRF, plugin AI/Alfresco, gestione dei redirect e validazione delle destinazioni di rete.
 - Rafforzati backup e restore: locking PostgreSQL, transazioni atomiche, staging filesystem, rollback, recovery journal persistente e recovery dopo crash/SIGKILL.
@@ -16,7 +24,7 @@ Cybersecurity Incident Registry - Changelog
 - Aggiunte guide IT/EN per la migrazione deployment da 0.8.0 a >= 0.9.0 (Docker Compose, Kubernetes/Kustomize, Secret, PVC e PostgreSQL).
 - Validazione finale production: suite standard 295 passed, 7 skipped; suite PostgreSQL reale 7 passed, 295 deselected; pip check PASS; SCA live: nessuna vulnerabilita nota; gate Trivy R8 PASS su linux/amd64 e linux/arm64.
 - Immagine production multi-arch: desalvo/cybersecurity-incident-registry:0.9.0-1, digest OCI sha256:ff734b8ed7cbc3a979081cd782396088ca0d1dea07092ebfb702efd5d48c8c9b.
-- Dettagli completi: RELEASE_NOTES_0.9.0-1.md, RELEASE_CANDIDATE_ROUND18.md e SECURITY_AUDIT_ROUND2.md ... SECURITY_AUDIT_ROUND18.md.
+- Dettagli completi: docs/RELEASE.md, docs/RELEASE.md e docs/DEVELOPMENT_HISTORY.md ... docs/DEVELOPMENT_HISTORY.md.
 
 0.8.0 build 20260718 - Baseline di partenza dei Round 1-18
 - Questa è la baseline funzionale da cui è iniziato il lavoro che confluisce nella 0.9.0-1.
@@ -1590,3 +1598,8 @@ Versione 0.5.0-1 - aggiornamento compliance AGID
 
 - Corretto comportamento della clonazione tenant per evitare moltiplicazione delle label: le label legacy/globali vengono assorbite nel tenant default, le label duplicate nello stesso tenant vengono fuse e tutti i riferimenti applicativi vengono rimappati alla label canonica.
 - Corretto il menu di gestione label per i superuser: ora mostra solo le label del tenant attivo, evitando duplicati apparenti causati dalla visualizzazione contemporanea di label di tenant diversi o legacy.
+
+0.9.0-1 hotfix4 (2026-09-03)
+- Tenant-governed per-incident automatic Alfresco PDF report generation/update.
+- Canonical report stored directly under incident-<id> and updated in-place through Alfresco node content API.
+- Persisted report node/path/update/fingerprint metadata and idempotent schema migration.

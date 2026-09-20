@@ -1,16 +1,18 @@
 {
-  "schema": 1,
+  "schema": 2,
   "release": "0.9.0-1",
   "build": "20260902",
-  "baseline_image": "desalvo/cybersecurity-incident-registry:0.9.0",
-  "baseline_scan_date": "2026-09-02",
-  "reviewed_on": "2026-09-03",
-  "valid_until": "2026-10-03",
+  "baseline_image": "desalvo/cybersecurity-incident-registry:0.9.0-1",
+  "baseline_scan_date": "2026-09-20",
+  "reviewed_on": "2026-09-20",
+  "valid_until": "2026-10-20",
   "policy": {
     "python_high_critical_allowed": false,
     "new_os_high_critical_allowed": false,
     "fixed_version_available_allowed": false,
-    "require_exact_allowlist_for_residual_os": true
+    "require_exact_allowlist_for_residual_os": true,
+    "enforce_package_scope_when_declared": true,
+    "require_runtime_hardening_verification": true
   },
   "production_conditions": [
     "Production deployments use PostgreSQL rather than SQLite.",
@@ -18,38 +20,212 @@
     "The image is rebuilt with --pull and --no-cache before release scanning.",
     "Both linux/amd64 and linux/arm64 manifests are scanned.",
     "The final production image is pinned by registry sha256 digest.",
-    "The acceptance is temporary and must be re-evaluated no later than valid_until or when Debian publishes a fix."
+    "The acceptance is temporary and must be re-evaluated no later than valid_until or when Debian publishes a fix.",
+    "The packaged Dockerfile and Kubernetes deployment pass scripts/verify_security_gate_context.py before image publication.",
+    "The five CVEs added on 2026-09-20 are accepted only for their explicitly listed Debian binary packages and only while Trivy reports no FixedVersion."
   ],
   "accepted_residual_vulnerabilities": {
-    "CVE-2026-24882": {"component_group": "GnuPG transitives", "reason": "Transitive OS component; no fixed version was reported by the reviewed R7 Trivy scan. CIR does not invoke tpm2daemon. Temporary upstream residual acceptance."},
-    "CVE-2026-41992": {"component_group": "base OS", "reason": "gzip runtime component; no fixed version was reported by the reviewed R7 scan. No CIR workflow exposes LZH decompression through gzip. Temporary upstream residual acceptance."},
-    "CVE-2026-54369": {"component_group": "base OS", "reason": "libacl runtime component; no fixed version was reported by the reviewed R7 scan. Container runs non-root and does not expose libacl mutation APIs to users."},
-    "CVE-2026-12064": {"component_group": "libcurl transitives", "reason": "libcurl is transitive; curl CLI was removed and CIR outbound HTTP uses Python requests, not libcurl SFTP/SCP. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-8286": {"component_group": "libcurl transitives", "reason": "libcurl is transitive; CIR outbound HTTP uses Python requests. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-8458": {"component_group": "libcurl transitives", "reason": "libcurl is transitive and not CIR's HTTP client. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-8927": {"component_group": "libcurl transitives", "reason": "libcurl is transitive and not CIR's HTTP client. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-66046": {"component_group": "XML transitives", "reason": "Expat is an OS/runtime transitive. No fixed version was reported by the reviewed R7 scan; document/upload limits reduce denial-of-service exposure."},
-    "CVE-2026-58010": {"component_group": "GLib/LibreOffice transitives", "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."},
-    "CVE-2026-58011": {"component_group": "GLib/LibreOffice transitives", "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."},
-    "CVE-2026-58012": {"component_group": "GLib/LibreOffice transitives", "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."},
-    "CVE-2026-58013": {"component_group": "GLib/LibreOffice transitives", "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."},
-    "CVE-2026-58014": {"component_group": "GLib/LibreOffice transitives", "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."},
-    "CVE-2026-58015": {"component_group": "GLib/LibreOffice transitives", "reason": "GLib D-Bus auth path is not exposed by CIR. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."},
-    "CVE-2026-58016": {"component_group": "GLib/LibreOffice transitives", "reason": "Reviewed as an upstream Debian/Trixie residual affecting a GLib D-Bus XML parsing path; CIR does not expose that API directly. Temporary acceptance under container isolation."},
-    "CVE-2025-69720": {"component_group": "base OS/ncurses", "reason": "ncurses is a base/runtime transitive; CIR is a non-interactive web service. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-11822": {"component_group": "SQLite runtime", "reason": "Production deployment is required to use PostgreSQL. The vulnerable SQLite FTS5 path is not used by CIR production. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-11824": {"component_group": "SQLite runtime", "reason": "Production deployment is required to use PostgreSQL. The vulnerable SQLite path is not used by CIR production. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-58050": {"component_group": "libssh2 transitives", "reason": "libssh2 is transitive; CIR does not expose SSH/SFTP operations. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-36849": {"component_group": "libtiff/LibreOffice transitives", "reason": "R7 scan reports will_not_fix. Exposure is constrained by upload limits and container isolation; temporary acceptance pending upstream disposition."},
-    "CVE-2026-52490": {"component_group": "libtiff tooling", "reason": "The reported path is in tiffcrop process_command_opts(); CIR does not invoke tiffcrop. No fixed Trixie version was reported by the reviewed R7 scan. Temporary acceptance only while this remains true."},
-    "CVE-2026-6653": {"component_group": "libxml2/LibreOffice transitives", "reason": "Reviewed as an upstream Debian/Trixie residual. CIR XML handling uses hardened Python paths; libxml2 is primarily transitive to headless document tooling. Temporary acceptance."},
-    "CVE-2026-13221": {"component_group": "Perl/base transitives", "reason": "Perl is not an application runtime used by CIR. Reviewed as an upstream Debian/Trixie residual; accepted temporarily while no fixed version is available."},
-    "CVE-2026-42496": {"component_group": "Perl Archive::Tar transitives", "reason": "CIR does not invoke Perl Archive::Tar; R7 reports fix_deferred. Archive import is implemented in Python with separate validation."},
-    "CVE-2026-8376": {"component_group": "Perl/base transitives", "reason": "CIR does not execute Perl regex processing. R7 reports affected with no fixed version; temporary residual acceptance."},
-    "CVE-2026-42497": {"component_group": "Perl Archive::Tar transitives", "reason": "CIR does not invoke Perl Archive::Tar; R7 reports fix_deferred. Archive import is implemented in Python with separate validation."},
-    "CVE-2026-48962": {"component_group": "Perl IO::Compress transitives", "reason": "CIR does not use Perl IO::Compress. R7 reports affected with no fixed version; temporary residual acceptance."},
-    "CVE-2026-57432": {"component_group": "Perl/base transitives", "reason": "CIR does not execute Perl pack/unpack operations. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-57433": {"component_group": "Perl Storable transitives", "reason": "CIR does not use Perl Storable deserialization. No fixed version was reported by the reviewed R7 scan."},
-    "CVE-2026-9538": {"component_group": "Perl Archive::Tar transitives", "reason": "CIR does not invoke Perl Archive::Tar; R7 reports fix_deferred. Temporary residual acceptance."}
+    "CVE-2026-24882": {
+      "component_group": "GnuPG transitives",
+      "reason": "Transitive OS component; no fixed version was reported by the reviewed R7 Trivy scan. CIR does not invoke tpm2daemon. Temporary upstream residual acceptance."
+    },
+    "CVE-2026-41992": {
+      "component_group": "base OS",
+      "reason": "gzip runtime component; no fixed version was reported by the reviewed R7 scan. No CIR workflow exposes LZH decompression through gzip. Temporary upstream residual acceptance."
+    },
+    "CVE-2026-54369": {
+      "component_group": "base OS",
+      "reason": "libacl runtime component; no fixed version was reported by the reviewed R7 scan. Container runs non-root and does not expose libacl mutation APIs to users."
+    },
+    "CVE-2026-12064": {
+      "component_group": "libcurl transitives",
+      "reason": "libcurl is transitive; curl CLI was removed and CIR outbound HTTP uses Python requests, not libcurl SFTP/SCP. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-8286": {
+      "component_group": "libcurl transitives",
+      "reason": "libcurl is transitive; CIR outbound HTTP uses Python requests. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-8458": {
+      "component_group": "libcurl transitives",
+      "reason": "libcurl is transitive and not CIR's HTTP client. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-8927": {
+      "component_group": "libcurl transitives",
+      "reason": "libcurl is transitive and not CIR's HTTP client. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-66046": {
+      "component_group": "XML transitives",
+      "reason": "Expat is an OS/runtime transitive. No fixed version was reported by the reviewed R7 scan; document/upload limits reduce denial-of-service exposure."
+    },
+    "CVE-2026-58010": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."
+    },
+    "CVE-2026-58011": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."
+    },
+    "CVE-2026-58012": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."
+    },
+    "CVE-2026-58013": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."
+    },
+    "CVE-2026-58014": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "GLib is a headless LibreOffice/runtime transitive. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."
+    },
+    "CVE-2026-58015": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "GLib D-Bus auth path is not exposed by CIR. No fixed version was reported by the reviewed R7 scan; accepted temporarily under container isolation."
+    },
+    "CVE-2026-58016": {
+      "component_group": "GLib/LibreOffice transitives",
+      "reason": "Reviewed as an upstream Debian/Trixie residual affecting a GLib D-Bus XML parsing path; CIR does not expose that API directly. Temporary acceptance under container isolation."
+    },
+    "CVE-2025-69720": {
+      "component_group": "base OS/ncurses",
+      "reason": "ncurses is a base/runtime transitive; CIR is a non-interactive web service. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-11822": {
+      "component_group": "SQLite runtime",
+      "reason": "Production deployment is required to use PostgreSQL. The vulnerable SQLite FTS5 path is not used by CIR production. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-11824": {
+      "component_group": "SQLite runtime",
+      "reason": "Production deployment is required to use PostgreSQL. The vulnerable SQLite path is not used by CIR production. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-58050": {
+      "component_group": "libssh2 transitives",
+      "reason": "libssh2 is transitive; CIR does not expose SSH/SFTP operations. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-36849": {
+      "component_group": "libtiff/LibreOffice transitives",
+      "reason": "R7 scan reports will_not_fix. Exposure is constrained by upload limits and container isolation; temporary acceptance pending upstream disposition."
+    },
+    "CVE-2026-52490": {
+      "component_group": "libtiff tooling",
+      "reason": "The reported path is in tiffcrop process_command_opts(); CIR does not invoke tiffcrop. No fixed Trixie version was reported by the reviewed R7 scan. Temporary acceptance only while this remains true."
+    },
+    "CVE-2026-6653": {
+      "component_group": "libxml2/LibreOffice transitives",
+      "reason": "Reviewed as an upstream Debian/Trixie residual. CIR XML handling uses hardened Python paths; libxml2 is primarily transitive to headless document tooling. Temporary acceptance."
+    },
+    "CVE-2026-13221": {
+      "component_group": "Perl/base transitives",
+      "reason": "Perl is not an application runtime used by CIR. Reviewed as an upstream Debian/Trixie residual; accepted temporarily while no fixed version is available."
+    },
+    "CVE-2026-42496": {
+      "component_group": "Perl Archive::Tar transitives",
+      "reason": "CIR does not invoke Perl Archive::Tar; R7 reports fix_deferred. Archive import is implemented in Python with separate validation."
+    },
+    "CVE-2026-8376": {
+      "component_group": "Perl/base transitives",
+      "reason": "CIR does not execute Perl regex processing. R7 reports affected with no fixed version; temporary residual acceptance."
+    },
+    "CVE-2026-42497": {
+      "component_group": "Perl Archive::Tar transitives",
+      "reason": "CIR does not invoke Perl Archive::Tar; R7 reports fix_deferred. Archive import is implemented in Python with separate validation."
+    },
+    "CVE-2026-48962": {
+      "component_group": "Perl IO::Compress transitives",
+      "reason": "CIR does not use Perl IO::Compress. R7 reports affected with no fixed version; temporary residual acceptance."
+    },
+    "CVE-2026-57432": {
+      "component_group": "Perl/base transitives",
+      "reason": "CIR does not execute Perl pack/unpack operations. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-57433": {
+      "component_group": "Perl Storable transitives",
+      "reason": "CIR does not use Perl Storable deserialization. No fixed version was reported by the reviewed R7 scan."
+    },
+    "CVE-2026-9538": {
+      "component_group": "Perl Archive::Tar transitives",
+      "reason": "CIR does not invoke Perl Archive::Tar; R7 reports fix_deferred. Temporary residual acceptance."
+    },
+    "CVE-2026-76642": {
+      "component_group": "util-linux/Trixie local privilege tooling",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "reason": "Debian Trixie currently marks this util-linux issue no-DSA. CIR does not expose privileged mount/nsenter functionality; production runs non-root with all Linux capabilities dropped, allowPrivilegeEscalation=false and a read-only root filesystem. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-78408": {
+      "component_group": "util-linux/Trixie local privilege tooling",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "reason": "Debian Trixie currently marks this util-linux issue no-DSA. The affected nsenter/join-cgroup functionality is not used by CIR and requires local privilege-oriented tooling unavailable to the hardened application runtime. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-78409": {
+      "component_group": "util-linux/Trixie local privilege tooling",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "reason": "Debian Trixie currently marks this util-linux issue no-DSA. The affected mount/X-mount.subdir path is not invoked by CIR; runtime capabilities are dropped and privilege escalation is disabled. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-78410": {
+      "component_group": "util-linux/Trixie local privilege tooling",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "reason": "Debian Trixie currently marks this util-linux issue no-DSA. The affected restricted bind-mount functionality is not used by CIR; the production runtime is non-root and does not receive mount capabilities. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-16742": {
+      "component_group": "systemd-homed transitives",
+      "packages": [
+        "libsystemd0",
+        "libudev1"
+      ],
+      "reason": "Debian Trixie currently marks this issue no-DSA. The vulnerable functionality is systemd-homed; the CIR container does not boot systemd or systemd-homed. Temporary acceptance only for libsystemd0/libudev1 while no Trixie FixedVersion is reported.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20"
+    }
   }
 }

@@ -215,13 +215,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--requirements", default=str(PROJECT_ROOT / "requirements.txt"))
     parser.add_argument("--wheel-dir", default=None)
-    parser.add_argument("--output", default=str(PROJECT_ROOT / "SBOM_ROUND18.cdx.json"))
+    parser.add_argument("--output", default=str(PROJECT_ROOT / "sbom/SBOM_ROUND18.cdx.json"))
     args = parser.parse_args()
 
     requirements_path = Path(args.requirements).resolve()
     wheel_dir = Path(args.wheel_dir).resolve() if args.wheel_dir else None
     output = Path(args.output).resolve()
     sbom = build_sbom(requirements_path, wheel_dir)
+    output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote {output} with {len(sbom['components'])} Python components")
     return 0

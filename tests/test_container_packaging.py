@@ -57,7 +57,16 @@ def test_kubernetes_prepares_pvcs_for_non_root_container_and_exposes_csrf_flag()
     assert "fsGroup: 10001" in deployment
     assert "CIR_DISABLE_CSRF" in deployment
     assert "AI_CHATBOT_DOC_DIR" in deployment
-    assert "cir-ai-chatbot-docs" in pvc
     assert "desalvo/cybersecurity-incident-registry:0.9.0-1" in deployment
-    assert "cir-logo" in pvc
-    assert 'newTag: "0.9.0-1"' in kustomization
+    assert "name: cir-data" in pvc
+    assert "ReadWriteMany" in pvc
+    assert "claimName: cir-data" in deployment
+    assert "mountPath: /data}" in deployment
+    assert "claimName: cir-uploads" not in deployment
+    assert "mountPath: /data/uploads}" not in deployment
+    digest_state = (PROJECT_ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip()
+    if digest_state.startswith("PENDING_"):
+        assert 'newTag: "0.9.0-1"' in kustomization
+    else:
+        digest = digest_state.split("@sha256:", 1)[-1]
+        assert f"digest: sha256:{digest}" in kustomization

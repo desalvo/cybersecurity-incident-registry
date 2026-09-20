@@ -81,25 +81,53 @@ def check_source_tree() -> list[str]:
         if needle not in deployment:
             fail(errors, f"Kubernetes deployment missing hardening requirement: {needle}")
 
+    pvc = read("k8s/pvc.yaml")
+    if "mountPath: /data}" not in deployment or "claimName: cir-data" not in deployment:
+        fail(errors, "Kubernetes deployment must mount the shared cir-data PVC at /data")
+    for obsolete_mount in ("mountPath: /data/uploads}", "mountPath: /data/backups}", "claimName: cir-uploads", "claimName: cir-backups"):
+        if obsolete_mount in deployment:
+            fail(errors, f"Kubernetes deployment still contains obsolete split-PVC layout: {obsolete_mount}")
+    if "name: cir-data" not in pvc or "ReadWriteMany" not in pvc:
+        fail(errors, "k8s/pvc.yaml must define the shared cir-data RWX claim used by the two-replica example")
+
     kustomized = {line.strip()[2:] for line in kustomization.splitlines() if line.strip().startswith("- ")}
     if "secrets.example.yaml" in kustomized:
         fail(errors, "k8s/secrets.example.yaml must never be an active Kustomize resource")
 
+    root_markdown = sorted(p.name for p in ROOT.glob("*.md"))
+    if root_markdown != ["README.md", "README_en.md"]:
+        fail(errors, f"root Markdown layout must contain only README.md and README_en.md, found: {root_markdown}")
+    required_docs = {
+        "DEVELOPMENT_HISTORY.md", "SECURITY.md", "RELEASE.md", "DEPLOYMENT.md",
+        "ADMIN_ALFRESCO.md", "MIGRATION.md", "TESTING_AND_PRODUCTION.md",
+    }
+    missing_docs = sorted(name for name in required_docs if not (ROOT / "docs" / name).is_file())
+    if missing_docs:
+        fail(errors, f"consolidated docs missing: {missing_docs}")
+    root_sboms = sorted(p.name for p in ROOT.glob("SBOM*.json"))
+    if root_sboms:
+        fail(errors, f"SBOM artifacts must not remain in root: {root_sboms}")
+
     package_script = read("scripts/package_release.sh")
     required_release_docs = (
-        "RELEASE_NOTES_0.9.0-1.md",
-        "RELEASE_NOTES_0.9.0-1_en.md",
-        "MIGRATION_0.8.0_TO_0.9.0.md",
-        "MIGRATION_0.8.0_TO_0.9.0_en.md",
-        "scripts/build_multiarch_image.sh",
-        "RC_R7_FINAL_CONTAINER_MINIMIZATION.md",
-        "SECURITY_DISPOSITION_R8.md",
+        "README.md",
+        "README_en.md",
+        "docs/DEVELOPMENT_HISTORY.md",
+        "docs/SECURITY.md",
+        "docs/RELEASE.md",
+        "docs/DEPLOYMENT.md",
+        "docs/ADMIN_ALFRESCO.md",
+        "docs/MIGRATION.md",
+        "docs/TESTING_AND_PRODUCTION.md",
+        "sbom/SBOM_ROUND18.cdx.json",
         "TRIVY_RISK_ACCEPTANCE_R8.json",
+        "scripts/build_multiarch_image.sh",
         "scripts/run_trivy_production_gate.sh",
         "scripts/evaluate_trivy_gate.py",
-        "PRODUCTION_RELEASE_0.9.0-1.md",
+        "scripts/verify_security_gate_context.py",
         "PRODUCTION_IMAGE_DIGEST",
-        "scripts/verify_production_release.sh",
+        ".github/workflows/ci-release.yml",
+        "k8s/migrate-separated-pvcs-to-cir-data.example.yaml",
     )
     for relative in required_release_docs:
         if not (ROOT / relative).is_file():
@@ -127,14 +155,14 @@ def check_source_tree() -> list[str]:
         if required_pin not in requirements_text:
             fail(errors, f"required R4 security pin missing: {required_pin}")
 
-    sbom_path = ROOT / "SBOM_ROUND18.cdx.json"
+    sbom_path = ROOT / "sbom/SBOM_ROUND18.cdx.json"
     if not sbom_path.exists():
-        fail(errors, "SBOM_ROUND18.cdx.json is missing")
+        fail(errors, "sbom/SBOM_ROUND18.cdx.json is missing")
     else:
         try:
             sbom = json.loads(sbom_path.read_text(encoding="utf-8"))
         except Exception as exc:
-            fail(errors, f"SBOM_ROUND18.cdx.json is invalid JSON: {exc}")
+            fail(errors, f"sbom/SBOM_ROUND18.cdx.json is invalid JSON: {exc}")
         else:
             component = sbom.get("metadata", {}).get("component", {})
             if component.get("version") != version:
@@ -186,7 +214,7 @@ def main() -> int:
         print("Release-candidate offline verification: PASS")
         print(f"Version: {read('VERSION').strip()}  Build: {read('BUILD').strip()}")
         print(f"Immutable production digest syntax verified: {args.require_production_digest}")
-        print("External gate evidence is recorded separately in PRODUCTION_RELEASE_0.9.0-1.md.")
+        print("External gate evidence is recorded separately in docs/RELEASE.md.")
     else:
         print("Release-candidate offline verification: PASS")
         print(f"Version: {read('VERSION').strip()}  Build: {read('BUILD').strip()}")

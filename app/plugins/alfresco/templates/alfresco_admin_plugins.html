@@ -2,7 +2,8 @@
 {% block content %}
 <section class="card">
   <h2>Alfresco</h2>
-  <p class="muted">Il plugin consente di caricare e scaricare documenti incidente anche da Alfresco tramite API REST. È disabilitato per default.</p>
+  <p><strong>Tenant configurato:</strong> {{ tenant.name if tenant else 'default' }}</p>
+  <p class="muted">Il plugin consente di caricare, scaricare, verificare e rimuovere documenti incidente su Alfresco tramite API REST. La configurazione (abilitazione, endpoint, credenziali e destinazione) è separata per ogni tenant ed è disabilitata per default.</p>
   <form method="post" class="stacked-form">
     <label class="checkbox-row"><input type="checkbox" name="plugin_alfresco_enabled" value="1" {% if config.enabled %}checked{% endif %}> <span>Abilita Alfresco</span></label>
     <label for="alfresco_base_url">URL base Alfresco</label>
@@ -15,19 +16,35 @@
     <label class="checkbox-row"><input type="checkbox" name="clear_alfresco_password" value="1"> <span>Cancella password salvata</span></label>
     <label for="alfresco_site">Site Alfresco opzionale</label>
     <input id="alfresco_site" name="alfresco_site" value="{{ config.site }}" placeholder="es. cybersecurity">
+    <p class="muted">Se valorizzato e il Parent Node ID è vuoto, CIR risolve via API il container <code>documentLibrary</code> del Site.</p>
+    <label for="alfresco_parent_node_id">Parent Node ID opzionale</label>
+    <input id="alfresco_parent_node_id" name="alfresco_parent_node_id" value="{{ config.parent_node_id }}" placeholder="UUID della cartella Alfresco di destinazione">
+    <p class="muted">Ha precedenza sul Site. Inserire l’ID del nodo/cartella padre restituito dalla REST API Alfresco.</p>
     <label for="alfresco_target_path">Cartella destinazione</label>
     <input id="alfresco_target_path" name="alfresco_target_path" value="{{ config.target_path }}" placeholder="Cybersecurity Incident Registry">
+    <label class="checkbox-row"><input type="checkbox" name="alfresco_group_by_type" value="1" {% if config.group_by_type %}checked{% endif %}> <span>Crea sottocartelle per tipo file (pdf, office, images, archives, data, other)</span></label>
     <label for="alfresco_timeout">Timeout API secondi</label>
     <input id="alfresco_timeout" name="alfresco_timeout" type="number" min="5" max="300" value="{{ config.timeout }}">
     <label class="checkbox-row"><input type="checkbox" name="alfresco_verify_tls" value="1" {% if config.verify_tls %}checked{% endif %}> <span>Verifica certificato TLS</span></label>
     <div class="button-row">
       <button type="submit" name="action" value="save" class="btn primary">Salva configurazione Alfresco</button>
+      <button type="submit" name="action" value="test_alfresco_destination" class="btn secondary">Salva e testa destinazione</button>
       <button type="submit" name="action" value="reset_alfresco_defaults" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare Alfresco ai valori di default? Il plugin verrà disabilitato e la password salvata verrà cancellata.');">Reset configurazione Alfresco</button>
     </div>
   </form>
 </section>
 <section class="card">
-  <h3>Uso nei documenti incidente</h3>
-  <p>Quando il plugin è abilitato, nella sezione <strong>Documenti</strong> degli incidenti compare l’opzione per caricare i file anche su Alfresco. I documenti già collegati a un nodo Alfresco espongono anche il download diretto tramite API.</p>
+  <h3>Uso negli incidenti</h3>
+  <p>Quando il plugin è abilitato, nella sezione <strong>Documenti</strong> degli incidenti compare l’opzione per caricare i file anche su Alfresco. I documenti già collegati a un nodo Alfresco espongono download e cancellazione remota. Il pulsante Sync Alfresco nella sezione Documenti controlla soltanto l'esistenza dei node id remoti e aggiorna lo stato in CIR; non carica né ricrea file.</p>
+  <p>La cartella di ogni incidente include ID e nome leggibile, ad esempio <code>incident-42 - Phishing account amministratore</code>. Il report PDF automatico viene mantenuto direttamente nella stessa cartella con un nome coerente, ad esempio <code>incident-42 - Phishing account amministratore - report.pdf</code>. La visibilità del relativo checkbox e il suo valore predefinito per i nuovi incidenti sono configurati per tenant da <strong>Admin → Tenant</strong>. Il checkbox non viene mai mostrato quando il plugin Alfresco è disabilitato.</p>
+  <h4>Configurazione amministrativa</h4>
+  <ol>
+    <li>Seleziona il tenant attivo dal menu tenant e apri <strong>Admin → Plugins → Alfresco</strong>.</li>
+    <li>Abilita il plugin e inserisci URL base e credenziali API dedicate a quel tenant.</li>
+    <li>Imposta un <strong>Parent Node ID</strong> (UUID della cartella padre) oppure un <strong>Site</strong>; il Parent Node ID ha precedenza.</li>
+    <li>Imposta la cartella destinazione e usa <strong>Salva e testa destinazione</strong>.</li>
+    <li>Ripeti la configurazione per ciascun tenant: le credenziali e le destinazioni non vengono condivise tra tenant.</li>
+  </ol>
+  <p class="muted">La cancellazione da CIR rimuove il nodo dal repository Alfresco secondo la policy di cancellazione del server (tipicamente cestino, non eliminazione permanente). Il record documento CIR resta disponibile. Il Sync è intenzionalmente read-only verso Alfresco.</p>
 </section>
 {% endblock %}

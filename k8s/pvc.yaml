@@ -1,56 +1,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: cir-uploads}
+metadata: {name: cir-data}
 spec:
-  accessModes: [ReadWriteOnce]
-  resources: {requests: {storage: 5Gi}}
-
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: cir-logo}
-spec:
+  # The shipped Deployment uses two replicas, therefore the default manifest
+  # requests RWX storage. If the cluster only provides RWO storage, run CIR
+  # with one replica or provide an equivalent shared storage class.
   accessModes: [ReadWriteMany]
-  resources: {requests: {storage: 100Mi}}
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: cir-form-templates}
-spec:
-  accessModes: [ReadWriteMany]
-  resources: {requests: {storage: 1Gi}}
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: cir-sso-logos}
-spec:
-  accessModes: [ReadWriteMany]
-  resources: {requests: {storage: 100Mi}}
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: cir-ssl-certs}
-spec:
-  accessModes: [ReadWriteOnce]
-  resources: {requests: {storage: 100Mi}}
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: cir-backups}
-spec:
-  accessModes: [ReadWriteOnce]
   resources:
-    requests: {storage: 10Gi}
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: cir-ai-chatbot-docs}
-spec:
-  accessModes: [ReadWriteMany]
-  resources: {requests: {storage: 1Gi}}
+    requests: {storage: 20Gi}

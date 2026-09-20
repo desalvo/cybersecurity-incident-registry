@@ -53,6 +53,11 @@ DEFAULT_MAX_UPLOAD_SIZE_MB = 25
 MAX_UPLOAD_SIZE_MB_MIN = 1
 MAX_UPLOAD_SIZE_MB_MAX = 2048
 
+ALFRESCO_AUTO_REPORT_VISIBLE_SETTING = 'alfresco_auto_report_option_visible'
+ALFRESCO_AUTO_REPORT_DEFAULT_SETTING = 'alfresco_auto_report_default_enabled'
+ALFRESCO_AUTO_REPORT_VISIBLE_DEFAULT = '1'
+ALFRESCO_AUTO_REPORT_ENABLED_DEFAULT = '0'
+
 
 def parse_max_upload_size_mb(value, default=DEFAULT_MAX_UPLOAD_SIZE_MB):
     try:
@@ -863,10 +868,11 @@ _PASSWORD_RE_DIGIT = re.compile(r'\d')
 _PASSWORD_RE_SPECIAL = re.compile(r'[^A-Za-z0-9]')
 _SAFE_TEXT_RE = re.compile(r'^[\w\sÀ-ÖØ-öø-ÿ.,;:!?@#%&()\[\]{}+\-=\/\\\'"’`\n\r\t]*$')
 _EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-_ALLOWED_UPLOAD_EXTENSIONS = {'.pdf','.txt','.csv','.json','.xml','.docx','.xlsx','.png','.jpg','.jpeg','.gif','.webp'}
+_ALLOWED_UPLOAD_EXTENSIONS = {'.pdf','.txt','.csv','.json','.xml','.docx','.xlsx','.png','.jpg','.jpeg','.gif','.webp','.zip','.gz'}
 _ALLOWED_UPLOAD_MAGIC = {
     '.pdf': (b'%PDF',), '.png': (b'\x89PNG\r\n\x1a\n',), '.jpg': (b'\xff\xd8\xff',), '.jpeg': (b'\xff\xd8\xff'),
-    '.gif': (b'GIF87a', b'GIF89a'), '.docx': (b'PK\x03\x04',), '.xlsx': (b'PK\x03\x04',)
+    '.gif': (b'GIF87a', b'GIF89a'), '.docx': (b'PK\x03\x04',), '.xlsx': (b'PK\x03\x04',),
+    '.zip': (b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08'), '.gz': (b'\x1f\x8b',),
 }
 _TEXT_UPLOAD_EXTENSIONS = {'.txt','.csv','.json','.xml'}
 
@@ -1762,9 +1768,15 @@ def align_all_table_sequences():
 
     Da usare dopo full import/restore e come recupero generalizzato quando una
     qualsiasi INSERT segnala ``duplicate key value violates unique constraint``.
+
+    Prima del calcolo di ``MAX(id)`` forza il flush della sessione: durante un
+    Full Import molte righe vengono aggiunte con PK esplicite ma possono essere
+    ancora pending nell'identity map. Senza flush, il riallineamento potrebbe
+    vedere un massimo precedente e lasciare la sequence indietro.
     """
-    if not str(db.engine.url).startswith('postgresql'):
+    if not _is_postgresql_database():
         return
+    db.session.flush()
     for table_name in sequence_managed_table_names():
         align_table_sequence(table_name)
 
@@ -2166,17 +2178,109 @@ def alfresco_is_enabled_safe():
         return False
 
 
-def attach_document_to_alfresco(doc):
-    """Upload an incident document to Alfresco when the plugin is enabled."""
-    from .plugins.alfresco.client import upload_file
-    if not doc or not doc.stored_name:
-        raise RuntimeError('Documento locale non valido per upload Alfresco.')
-    local_path = str(safe_upload_path(doc.stored_name))
-    info = upload_file(local_path, doc.filename or doc.stored_name, incident_id=doc.incident_id)
+def _apply_alfresco_document_info(doc, info):
     doc.alfresco_node_id = info.get('node_id')
     doc.alfresco_path = info.get('path')
     doc.alfresco_uploaded_at = application_now()
+    doc.alfresco_status = 'present'
+    doc.alfresco_checked_at = application_now()
     return info
+
+
+def attach_document_path_to_alfresco(doc, local_path):
+    """Upload a validated document path and persist its Alfresco metadata."""
+    from .plugins.alfresco.client import upload_file
+    if not doc:
+        raise RuntimeError('Documento non valido per upload Alfresco.')
+    inc = db.session.get(Incident, int(doc.incident_id)) if doc.incident_id else None
+    info = upload_file(
+        str(local_path), doc.filename or Path(local_path).name,
+        incident_id=doc.incident_id,
+        incident_name=(inc.name if inc else None),
+    )
+    return _apply_alfresco_document_info(doc, info)
+
+
+def attach_document_to_alfresco(doc):
+    """Upload an incident document already stored locally to Alfresco."""
+    if not doc or not doc.stored_name:
+        raise RuntimeError('Documento locale non valido per upload Alfresco.')
+    return attach_document_path_to_alfresco(doc, safe_upload_path(doc.stored_name))
+
+
+def _incident_alfresco_report_fingerprint(inc):
+    """Return a stable digest of the data rendered by incident_pdf()."""
+    payload = {
+        'id': inc.id,
+        'name': inc.name,
+        'reference': inc.reference,
+        'creator_name': inc.creator_name,
+        'creator_email': inc.creator_email,
+        'description': inc.description,
+        'severity': inc.severity.value if inc.severity else '',
+        'status': inc.status,
+        'start_at': inc.start_at.isoformat() if inc.start_at else '',
+        'end_at': inc.end_at.isoformat() if inc.end_at else '',
+        'personal_data': bool(inc.personal_data),
+        'data_subjects_count': inc.data_subjects_count,
+        'data_volume': inc.data_volume,
+        'categories': [x.value for x in incident_ordered_categories(inc)],
+        'data_types': sorted(x.value for x in inc.data_types),
+        'people': sorted((p.name or '', p.email or '') for p in inc.people),
+        'recommendations': sorted(r.text or '' for r in inc.recommendations),
+        'actions': [
+            [a.id, a.when_at.isoformat() if a.when_at else '', a.label.value if a.label else '', a.person_name or '', a.description or '', a.consequence_text or '']
+            for a in inc.actions
+        ],
+        'documents': [[d.id, d.filename or '', d.uploaded_at.isoformat() if d.uploaded_at else ''] for d in inc.documents],
+        'report_settings': {
+            key: setting_value(key, '') for key in (
+                'security_owner_name', 'security_owner_role', 'security_owner_email',
+                'structure_name', 'security_responsible_name', 'security_responsible_email',
+                'security_responsible_phone', 'security_responsible_function',
+            )
+        },
+    }
+    raw = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(raw).hexdigest()
+
+
+def refresh_incident_alfresco_report_if_needed(incident_or_id, *, force=False, reason=''):
+    """Synchronize the canonical incident PDF to Alfresco when its content changed.
+
+    Alfresco is an external system: a synchronization failure is logged but does
+    not undo an incident/action/document transaction that already committed.
+    """
+    inc = incident_or_id if isinstance(incident_or_id, Incident) else db.session.get(Incident, int(incident_or_id))
+    if not inc or not getattr(inc, 'alfresco_auto_report_enabled', False) or not alfresco_is_enabled_safe():
+        return False
+    fingerprint = _incident_alfresco_report_fingerprint(inc)
+    if not force and fingerprint == (getattr(inc, 'alfresco_report_fingerprint', None) or '') and getattr(inc, 'alfresco_report_node_id', None):
+        return False
+    report_path = incident_pdf(inc)
+    try:
+        from .plugins.alfresco.client import upload_or_update_incident_report, incident_report_filename
+        filename = incident_report_filename(inc.id, inc.name)
+        info = upload_or_update_incident_report(
+            report_path, filename, incident_id=inc.id, incident_name=inc.name,
+            existing_node_id=getattr(inc, 'alfresco_report_node_id', None),
+        )
+        inc.alfresco_report_node_id = info.get('node_id')
+        inc.alfresco_report_path = info.get('path')
+        inc.alfresco_report_updated_at = application_now()
+        inc.alfresco_report_fingerprint = fingerprint
+        db.session.commit()
+        current_app.logger.info('Report incidente %s sincronizzato su Alfresco (%s)', inc.id, reason or 'refresh')
+        return True
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Aggiornamento automatico report Alfresco fallito per incidente %s (%s)', inc.id, reason or 'refresh')
+        return False
+    finally:
+        try:
+            Path(report_path).unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc):
@@ -3954,7 +4058,7 @@ def incident_new():
             return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
-        inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'))
+        inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'),alfresco_auto_report_enabled=bool(alfresco_is_enabled_safe() and alfresco_auto_report_default_enabled()))
         sync_incident_split_datetime(inc)
         inc.categories = labels_from_form('category', 'categories')
         inc.category_order = _csv_ids_from_form('categories')
@@ -3966,6 +4070,7 @@ def incident_new():
         try:
             add_automatic_button_action(inc, 'incident_update')
             db.session.commit()
+            refresh_incident_alfresco_report_if_needed(inc.id, reason='incident-create')
             return redirect(url_for('main.incident_detail', iid=inc.id))
         except IntegrityError as exc:
             db.session.rollback()
@@ -3995,6 +4100,8 @@ def incident_detail(iid):
             section_flash(recipient_email_error, 'incident-main', 'danger')
             return incident_detail_redirect(iid, 'incident-main')
         inc.name=request.form['name']; inc.reference=reference_value; inc.recipient=recipient_value or None; inc.recipient_email=recipient_email_value or None; inc.description=request.form.get('description'); inc.severity_id=request.form.get('severity_id') or None; inc.personal_data=bool(request.form.get('personal_data')); inc.data_subjects_count=request.form.get('data_subjects_count') or None; inc.data_volume=request.form.get('data_volume') or None; inc.deadline_notifications_muted=bool(request.form.get('deadline_notifications_muted')); inc.start_at=combine_incident_date_time('start', 'start_at', default_now=True); inc.end_at=combine_incident_date_time('end', 'end_at'); sync_incident_split_datetime(inc)
+        if alfresco_is_enabled_safe() and alfresco_auto_report_option_visible():
+            inc.alfresco_auto_report_enabled = bool(request.form.get('alfresco_auto_report_enabled'))
         if requested_status == 'chiuso' and incident_procedural_status(inc)['has_warnings']:
             section_flash('Impossibile chiudere l’incidente: sono ancora presenti avvisi procedurali attivi.', 'incident-main', 'danger')
         else:
@@ -4008,6 +4115,7 @@ def incident_detail(iid):
         try:
             add_automatic_button_action(inc, 'incident_update')
             db.session.commit()
+            refresh_incident_alfresco_report_if_needed(iid, reason='incident-update')
             section_flash('Incidente aggiornato', 'incident-main', 'success')
         except IntegrityError as exc:
             db.session.rollback()
@@ -4207,6 +4315,7 @@ def add_incident_reminder(iid):
     audit_log('incident_reminder:create', json.dumps({'reminder_id': rem.id, 'incident_id': inc.id, 'scheduled_at': scheduled_at.isoformat(timespec='seconds')}, ensure_ascii=False))
     add_automatic_button_action(inc, 'reminder_add')
     db.session.commit()
+    refresh_incident_alfresco_report_if_needed(iid, reason='reminder-add')
     section_flash('Promemoria aggiunto','incident-reminders','success')
     return incident_detail_redirect(iid, 'incident-reminders')
 
@@ -4233,6 +4342,7 @@ def update_incident_reminder(rid):
     audit_log('incident_reminder:update', json.dumps({'reminder_id': rem.id, 'incident_id': inc.id, 'scheduled_at': scheduled_at.isoformat(timespec='seconds'), 'reset_sent': bool(request.form.get('reset_sent'))}, ensure_ascii=False))
     add_automatic_button_action(inc, 'reminder_update')
     db.session.commit()
+    refresh_incident_alfresco_report_if_needed(inc.id, reason='reminder-update')
     section_flash('Promemoria aggiornato','incident-reminders','success')
     return incident_detail_redirect(inc.id, 'incident-reminders')
 
@@ -4278,8 +4388,8 @@ def incident_delete(iid):
 @login_required
 def clone(iid):
     if not can_write(): return redirect(url_for('main.index'))
-    src=model_or_404(Incident, iid); inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto',custom_fields_json=getattr(src, 'custom_fields_json', '') or '')
-    sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.category_order=getattr(src, 'category_order', '') or _csv_ids_from_objects(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); return redirect(url_for('main.incident_detail',iid=inc.id))
+    src=model_or_404(Incident, iid); inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name='Copia di '+src.name,reference=(src.reference or f'Incidente #{src.id}'),recipient=src.recipient,recipient_email=getattr(src, 'recipient_email', None),description=src.description,severity_id=src.severity_id,personal_data=src.personal_data,data_subjects_count=src.data_subjects_count,data_volume=src.data_volume,start_at=utcnow(),status='aperto',custom_fields_json=getattr(src, 'custom_fields_json', '') or '',alfresco_auto_report_enabled=bool(alfresco_is_enabled_safe() and alfresco_auto_report_default_enabled()))
+    sync_incident_split_datetime(inc); inc.categories=list(src.categories); inc.category_order=getattr(src, 'category_order', '') or _csv_ids_from_objects(src.categories); inc.data_types=list(src.data_types); inc.people=list(src.people); inc.recommendations=list(src.recommendations); db.session.add(inc); db.session.commit(); refresh_incident_alfresco_report_if_needed(inc.id, reason='incident-clone'); return redirect(url_for('main.incident_detail',iid=inc.id))
 
 def workflow_notification_blocking_message(inc, label_id):
     if not label_id:
@@ -4406,6 +4516,7 @@ def add_action(iid):
                 save_action_attachment_file(f, action)
             add_automatic_button_action(db.session.get(Incident, iid), 'action_add')
             db.session.commit()
+            refresh_incident_alfresco_report_if_needed(iid, reason='action-add')
             section_flash('Azione aggiunta correttamente', 'incident-actions', 'success')
         except IntegrityError:
             db.session.rollback()
@@ -4449,7 +4560,7 @@ def update_action(aid):
         if getattr(db.session.get(Incident, iid), '_closure_blocked_by_procedural_warnings', False):
             section_flash('Incidente non chiuso: sono ancora presenti avvisi procedurali attivi.', 'incident-actions', 'warning')
         try:
-            db.session.commit(); section_flash('Azione aggiornata', 'incident-actions', 'success')
+            db.session.commit(); refresh_incident_alfresco_report_if_needed(iid, reason='action-update'); section_flash('Azione aggiornata', 'incident-actions', 'success')
         except Exception as exc:
             db.session.rollback(); current_app.logger.exception('Errore aggiornamento azione'); section_flash(f'Errore aggiornamento azione: {exc}', 'incident-actions', 'error')
     return incident_detail_redirect(iid, 'incident-actions')
@@ -4459,7 +4570,8 @@ def update_action(aid):
 def del_action(aid):
     a=model_or_404(Action, aid); iid=a.incident_id
     visible(Incident.query).filter(Incident.id == iid).first_or_404()
-    if can_write(): db.session.delete(a); db.session.commit()
+    if can_write():
+        db.session.delete(a); db.session.commit(); refresh_incident_alfresco_report_if_needed(iid, reason='action-delete')
     return incident_detail_redirect(iid, 'incident-actions')
 @bp.route('/action/<int:aid>/exportable',methods=['POST'])
 @login_required
@@ -4469,6 +4581,7 @@ def update_action_exportable(aid):
     if can_write():
         a.exportable = bool(request.form.get('exportable'))
         db.session.commit()
+        refresh_incident_alfresco_report_if_needed(iid, reason='action-exportable')
         section_flash('Flag exportable aggiornato', 'incident-actions', 'success')
     return incident_detail_redirect(iid, 'incident-actions')
 
@@ -4502,16 +4615,51 @@ def upload(iid):
             saved = 0
             alfresco_saved = 0
             alfresco_errors = []
-            upload_to_alfresco = request.form.get('upload_to_alfresco') == '1' and alfresco_is_enabled_safe()
+            alfresco_enabled = alfresco_is_enabled_safe()
+            storage_mode = (request.form.get('storage_mode') or '').strip().lower()
+            # Backward compatibility with the previous checkbox-only form.
+            if not storage_mode:
+                storage_mode = 'both' if request.form.get('upload_to_alfresco') == '1' else 'local'
+            if storage_mode not in {'local', 'both', 'alfresco'}:
+                raise ValueError('Destinazione documenti non valida.')
+            if storage_mode in {'both', 'alfresco'} and not alfresco_enabled:
+                raise ValueError('Il plugin Alfresco deve essere abilitato per la destinazione selezionata.')
+            upload_to_alfresco = storage_mode in {'both', 'alfresco'}
+            alfresco_only = storage_mode == 'alfresco'
             saved_docs = []
             for f in request.files.getlist('files'):
-                if f.filename:
+                if not f.filename:
+                    continue
+                if alfresco_only:
+                    name = validate_upload_file(f)
+                    suffix = Path(name).suffix.lower()
+                    fd, temp_name = tempfile.mkstemp(prefix='cir-alfresco-upload-', suffix=suffix)
+                    os.close(fd)
+                    try:
+                        f.save(temp_name)
+                        try:
+                            os.chmod(temp_name, 0o600)
+                        except OSError:
+                            pass
+                        doc = Document(incident_id=iid, filename=name, stored_name=None)
+                        db.session.add(doc)
+                        db.session.flush()
+                        try:
+                            attach_document_path_to_alfresco(doc, temp_name)
+                            alfresco_saved += 1
+                        except Exception as exc:
+                            current_app.logger.exception('Upload solo Alfresco fallito per %s', name)
+                            alfresco_errors.append(f'{name}: {exc}')
+                            db.session.delete(doc)
+                            continue
+                    finally:
+                        try: os.remove(temp_name)
+                        except OSError: pass
+                else:
                     name, stored = save_validated_upload(f, current_app.config['UPLOAD_DIR'])
                     doc = Document(incident_id=iid,filename=name,stored_name=stored)
                     db.session.add(doc)
                     db.session.flush()
-                    saved_docs.append(doc)
-                    saved += 1
                     if upload_to_alfresco:
                         try:
                             attach_document_to_alfresco(doc)
@@ -4519,14 +4667,19 @@ def upload(iid):
                         except Exception as exc:
                             current_app.logger.exception('Upload Alfresco fallito per %s', name)
                             alfresco_errors.append(f'{name}: {exc}')
-            add_automatic_button_action(db.session.get(Incident, iid), 'document_upload', description=f'Azione automatica da pulsante: Upload documenti ({saved} file).', context_documents=saved_docs)
+                saved_docs.append(doc)
+                saved += 1
+            add_automatic_button_action(db.session.get(Incident, iid), 'document_upload', description=f'Azione automatica da pulsante: Upload documenti ({saved} file; destinazione {storage_mode}).', context_documents=saved_docs)
             db.session.commit()
-            if upload_to_alfresco:
-                section_flash(f'Documenti caricati: {saved}; inviati ad Alfresco: {alfresco_saved}', 'incident-documents', 'success')
+            refresh_incident_alfresco_report_if_needed(iid, reason='document-upload')
+            if alfresco_only:
+                section_flash(f'Documenti registrati in CIR: {saved}; salvati solamente su Alfresco: {alfresco_saved}', 'incident-documents', 'success')
+            elif upload_to_alfresco:
+                section_flash(f'Documenti caricati in CIR: {saved}; inviati ad Alfresco: {alfresco_saved}', 'incident-documents', 'success')
                 if alfresco_errors:
                     section_flash('Errori Alfresco: ' + '; '.join(alfresco_errors[:3]), 'incident-documents', 'warning')
             else:
-                section_flash(f'Documenti caricati: {saved}', 'incident-documents', 'success')
+                section_flash(f'Documenti caricati in CIR: {saved}', 'incident-documents', 'success')
         except Exception as exc:
             db.session.rollback(); current_app.logger.exception('Errore upload documenti'); section_flash(f'Errore upload documenti: {exc}', 'incident-documents', 'error')
     return incident_detail_redirect(iid, 'incident-documents')
@@ -4544,10 +4697,16 @@ def download_doc(did):
         )
         if action:
             db.session.commit()
+            refresh_incident_alfresco_report_if_needed(inc.id, reason='document-download-action')
     except Exception:
         db.session.rollback()
         current_app.logger.exception('Errore registrazione azione automatica download documento %s', d.id)
-    return send_file(safe_upload_path(d.stored_name), download_name=d.filename, as_attachment=True)
+    if d.stored_name:
+        return send_file(safe_upload_path(d.stored_name), download_name=d.filename, as_attachment=True)
+    if d.alfresco_node_id and alfresco_is_enabled_safe():
+        return redirect(url_for('main.download_doc_from_alfresco', did=d.id))
+    section_flash('Documento disponibile solo su Alfresco, ma il plugin non e attualmente disponibile.', 'incident-documents', 'warning')
+    return incident_detail_redirect(d.incident_id, 'incident-documents')
 
 @bp.route('/document/<int:did>/alfresco/upload', methods=['POST'])
 @login_required
@@ -4572,6 +4731,9 @@ def download_doc_from_alfresco(did):
     if not alfresco_is_enabled_safe():
         section_flash('Plugin Alfresco non abilitato.', 'incident-documents', 'warning')
         return incident_detail_redirect(d.incident_id, 'incident-documents')
+    if getattr(d, 'alfresco_status', None) == 'missing':
+        section_flash('Il documento risulta mancante su Alfresco. Eseguire un nuovo upload se deve essere ripristinato.', 'incident-documents', 'warning')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
     try:
         from .plugins.alfresco.client import download_file
         content, mimetype = download_file(d.alfresco_node_id)
@@ -4580,6 +4742,69 @@ def download_doc_from_alfresco(did):
         current_app.logger.exception('Download documento Alfresco fallito')
         section_flash('Errore download Alfresco. Consultare i log amministrativi.', 'incident-documents', 'error')
         return incident_detail_redirect(d.incident_id, 'incident-documents')
+@bp.route('/document/<int:did>/alfresco/delete', methods=['POST'])
+@login_required
+def delete_doc_from_alfresco(did):
+    d=model_or_404(Document, did); visible(Incident.query).filter(Incident.id == d.incident_id).first_or_404()
+    if not can_write():
+        section_flash('Permessi insufficienti.', 'incident-documents', 'error')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
+    if not alfresco_is_enabled_safe():
+        section_flash('Plugin Alfresco non abilitato.', 'incident-documents', 'warning')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
+    if not d.alfresco_node_id:
+        section_flash('Documento non collegato ad Alfresco.', 'incident-documents', 'warning')
+        return incident_detail_redirect(d.incident_id, 'incident-documents')
+    try:
+        from .plugins.alfresco.client import delete_file
+        delete_file(d.alfresco_node_id)
+        d.alfresco_status = 'missing'
+        d.alfresco_checked_at = application_now()
+        audit_log('alfresco:document_delete', {'document_id': d.id, 'incident_id': d.incident_id}, actor_type='user')
+        db.session.commit()
+        section_flash(f'Documento {d.filename} rimosso da Alfresco. Il record CIR è stato mantenuto.', 'incident-documents', 'success')
+    except Exception:
+        db.session.rollback(); current_app.logger.exception('Cancellazione documento Alfresco fallita')
+        section_flash('Errore cancellazione Alfresco. Consultare i log amministrativi.', 'incident-documents', 'error')
+    return incident_detail_redirect(d.incident_id, 'incident-documents')
+
+
+@bp.route('/incident/<int:iid>/alfresco/sync-documents', methods=['POST'])
+@login_required
+def sync_incident_alfresco_documents(iid):
+    inc=visible(Incident.query).filter(Incident.id == iid).first_or_404()
+    if not alfresco_is_enabled_safe():
+        section_flash('Plugin Alfresco non abilitato.', 'incident-documents', 'warning')
+        return incident_detail_redirect(iid, 'incident-documents')
+    if not can_write():
+        section_flash('Permessi insufficienti.', 'incident-documents', 'error')
+        return incident_detail_redirect(iid, 'incident-documents')
+    from .plugins.alfresco.client import node_status
+    checked=present=missing=errors=0
+    for d in Document.query.filter_by(incident_id=inc.id).order_by(Document.id).all():
+        if not d.alfresco_node_id:
+            continue
+        checked += 1
+        try:
+            info = node_status(d.alfresco_node_id)
+            d.alfresco_status = info.get('status') or 'unknown'
+            d.alfresco_checked_at = application_now()
+            if d.alfresco_status == 'present':
+                present += 1
+            elif d.alfresco_status == 'missing':
+                missing += 1
+        except Exception:
+            errors += 1
+            d.alfresco_status = 'unknown'
+            d.alfresco_checked_at = application_now()
+            current_app.logger.exception('Sync stato Alfresco fallito per documento %s', d.id)
+    db.session.commit()
+    audit_log('alfresco:incident_documents_sync', {'incident_id': iid, 'checked': checked, 'present': present, 'missing': missing, 'errors': errors}, actor_type='user')
+    db.session.commit()
+    section_flash(f'Sync Alfresco completato: controllati {checked}, presenti {present}, mancanti {missing}, errori {errors}. Nessun file è stato caricato.', 'incident-documents', 'success' if not errors else 'warning')
+    return incident_detail_redirect(iid, 'incident-documents')
+
+
 @bp.route('/document/<int:did>/delete',methods=['POST'])
 @login_required
 def del_doc(did):
@@ -4589,7 +4814,7 @@ def del_doc(did):
         try:
             try: safe_upload_path(d.stored_name).unlink()
             except (OSError, ValueError): pass
-            db.session.delete(d); db.session.commit(); section_flash('Documento eliminato', 'incident-documents', 'info')
+            db.session.delete(d); db.session.commit(); refresh_incident_alfresco_report_if_needed(iid, reason='document-delete'); section_flash('Documento eliminato', 'incident-documents', 'info')
         except Exception as exc:
             db.session.rollback(); current_app.logger.exception('Errore cancellazione documento'); section_flash(f'Errore cancellazione documento: {exc}', 'incident-documents', 'error')
     return incident_detail_redirect(iid, 'incident-documents')
@@ -4614,6 +4839,7 @@ def update_document_notification_tags(did):
         context_tags=tags,
     )
     db.session.commit()
+    refresh_incident_alfresco_report_if_needed(d.incident_id, reason='document-tags-action')
     section_flash(f'Tag notifiche aggiornati per {d.filename}', 'incident-documents', 'success')
     return incident_detail_redirect(d.incident_id, 'incident-documents')
 
@@ -6124,7 +6350,9 @@ def admin_tenants():
             else:
                 tenant.name = validate_text_field((request.form.get('name') or '').strip(), 'Nome tenant', 80, required=True, allow_multiline=False)
                 tenant.description = validate_text_field(request.form.get('description') or '', 'Descrizione tenant', 2000)
-            audit_log('admin:tenant_update', {'tenant_id': tenant.id, 'name': tenant.name}, actor_type='user')
+            set_tenant_setting_value_for_id(ALFRESCO_AUTO_REPORT_VISIBLE_SETTING, tenant.id, '1' if request.form.get('alfresco_auto_report_option_visible') == '1' else '0')
+            set_tenant_setting_value_for_id(ALFRESCO_AUTO_REPORT_DEFAULT_SETTING, tenant.id, '1' if request.form.get('alfresco_auto_report_default_enabled') == '1' else '0')
+            audit_log('admin:tenant_update', {'tenant_id': tenant.id, 'name': tenant.name, 'alfresco_auto_report_option_visible': request.form.get('alfresco_auto_report_option_visible') == '1', 'alfresco_auto_report_default_enabled': request.form.get('alfresco_auto_report_default_enabled') == '1'}, actor_type='user')
             db.session.commit(); flash('Tenant aggiornato.', 'success')
             return redirect(url_for('main.admin_tenants'))
         if action == 'delete':
@@ -6152,7 +6380,14 @@ def admin_tenants():
             db.session.commit(); flash('Tenant eliminato.', 'success')
             return redirect(url_for('main.admin_tenants'))
     tenants = Tenant.query.order_by(Tenant.name).all()
-    return render_template('admin_tenants.html', tenants=tenants, active_tenant_id=current_tenant_id(), tenant_scoped_admin_areas=TENANT_SCOPED_ADMIN_AREAS, tenant_shared_admin_areas=TENANT_SHARED_ADMIN_AREAS)
+    alfresco_report_tenant_settings = {
+        tenant.id: {
+            'visible': alfresco_auto_report_option_visible(tenant.id),
+            'default_enabled': alfresco_auto_report_default_enabled(tenant.id),
+        }
+        for tenant in tenants
+    }
+    return render_template('admin_tenants.html', tenants=tenants, active_tenant_id=current_tenant_id(), tenant_scoped_admin_areas=TENANT_SCOPED_ADMIN_AREAS, tenant_shared_admin_areas=TENANT_SHARED_ADMIN_AREAS, alfresco_report_tenant_settings=alfresco_report_tenant_settings)
 
 @bp.route('/admin/tenants/active', methods=['POST'])
 @login_required
@@ -9471,32 +9706,38 @@ def process_all_tenant_incident_reminders(source='background_reminder_scheduler'
 
 
 def _try_database_scheduler_lock(lock_id=_CIR_SCHEDULER_LOCK_ID):
-    """Acquire a PostgreSQL advisory lock for multi-replica deployments.
+    """Acquire a PostgreSQL advisory lock on a dedicated connection.
 
-    Gunicorn workers and Kubernetes replicas can all start the in-process
-    scheduler. The existing Python lock protects only a single process; this
-    advisory lock makes every poll mutually exclusive across all processes that
-    share the same PostgreSQL database. Non-PostgreSQL deployments keep using
-    the local lock only.
+    The application scheduler performs commits while it works. A lock acquired
+    through ``db.session`` can therefore become detached when SQLAlchemy returns
+    that physical connection to the pool. Keeping a dedicated connection for the
+    whole scheduler cycle guarantees that acquire and release happen in the same
+    PostgreSQL session.
     """
-    if not str(db.engine.url).startswith('postgresql'):
-        return True
+    if not _is_postgresql_database():
+        return ('local-scheduler',)
+    conn = db.engine.connect()
     try:
-        return bool(db.session.execute(text('SELECT pg_try_advisory_lock(:lock_id)'), {'lock_id': lock_id}).scalar())
+        acquired = bool(conn.execute(
+            text('SELECT pg_try_advisory_lock(:lock_id)'),
+            {'lock_id': int(lock_id)},
+        ).scalar())
+        if not acquired:
+            conn.close()
+            return None
+        conn.commit()
+        return ('postgresql-scheduler', conn, int(lock_id))
     except Exception:
-        db.session.rollback()
+        conn.close()
         current_app.logger.exception('Impossibile acquisire il lock PostgreSQL dello scheduler')
-        return False
+        return None
 
-def _release_database_scheduler_lock(lock_id=_CIR_SCHEDULER_LOCK_ID):
-    if not str(db.engine.url).startswith('postgresql'):
+
+def _release_database_scheduler_lock(handle):
+    if not handle or handle[0] == 'local-scheduler':
         return
-    try:
-        db.session.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id})
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        current_app.logger.exception('Impossibile rilasciare il lock PostgreSQL dello scheduler')
+    _, conn, _lock_id = handle
+    _release_all_postgresql_advisory_locks(conn)
 
 def start_deadline_notification_scheduler(app):
     """Avvia il controllo periodico automatico delle notifiche in scadenza.
@@ -9532,11 +9773,11 @@ def start_deadline_notification_scheduler(app):
                 if _deadline_scheduler_stop_event.wait(poll_seconds):
                     break
                 continue
-            db_lock_acquired = False
+            db_lock_handle = None
             try:
                 with app.app_context():
-                    db_lock_acquired = _try_database_scheduler_lock()
-                    if db_lock_acquired:
+                    db_lock_handle = _try_database_scheduler_lock()
+                    if db_lock_handle:
                         run_all_tenant_scheduler_services_cycle(source='background_scheduler')
             except Exception:
                 try:
@@ -9546,10 +9787,10 @@ def start_deadline_notification_scheduler(app):
                 except Exception:
                     app.logger.exception('Scheduler notifiche task in scadenza non completato')
             finally:
-                if db_lock_acquired:
+                if db_lock_handle:
                     try:
                         with app.app_context():
-                            _release_database_scheduler_lock()
+                            _release_database_scheduler_lock(db_lock_handle)
                     except Exception:
                         app.logger.exception('Rilascio lock scheduler non completato')
                 _deadline_scheduler_lock.release()
@@ -9586,13 +9827,13 @@ def start_incident_reminder_scheduler(app):
                 if _incident_reminder_scheduler_stop_event.wait(poll_seconds):
                     break
                 continue
-            db_lock_acquired = False
+            db_lock_handle = None
             started = None
             try:
                 with app.app_context():
                     started = application_now()
-                    db_lock_acquired = _try_database_scheduler_lock(_CIR_REMINDER_SCHEDULER_LOCK_ID)
-                    if db_lock_acquired:
+                    db_lock_handle = _try_database_scheduler_lock(_CIR_REMINDER_SCHEDULER_LOCK_ID)
+                    if db_lock_handle:
                         process_all_tenant_incident_reminders(source='background_reminder_scheduler')
             except Exception as exc:
                 try:
@@ -9603,10 +9844,10 @@ def start_incident_reminder_scheduler(app):
                 except Exception:
                     app.logger.exception('Aggiornamento stato scheduler promemoria non completato')
             finally:
-                if db_lock_acquired:
+                if db_lock_handle:
                     try:
                         with app.app_context():
-                            _release_database_scheduler_lock(_CIR_REMINDER_SCHEDULER_LOCK_ID)
+                            _release_database_scheduler_lock(db_lock_handle)
                     except Exception:
                         app.logger.exception('Rilascio lock scheduler promemoria non completato')
                 _incident_reminder_scheduler_lock.release()
@@ -11294,24 +11535,45 @@ def _acquire_backup_execution_lock(job_id):
             {'namespace': _CIR_BACKUP_LOCK_NAMESPACE, 'job_id': job_lock_id},
         ).scalar())
         if not acquired:
-            conn.execute(
-                text('SELECT pg_advisory_unlock_shared(:lock_id)'),
-                {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
-            )
-            conn.close()
+            _release_all_postgresql_advisory_locks(conn)
             return None
+        # Advisory locks are session-level; finish the SELECT transaction so a
+        # long backup does not appear as an idle/open DB transaction.
+        conn.commit()
         return ('postgresql-backup', conn, job_lock_id)
     except Exception:
         if maintenance_acquired:
-            try:
-                conn.execute(
-                    text('SELECT pg_advisory_unlock_shared(:lock_id)'),
-                    {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
-                )
-            except Exception:
-                pass
-        conn.close()
+            _release_all_postgresql_advisory_locks(conn)
+        else:
+            conn.close()
         raise
+
+
+def _release_all_postgresql_advisory_locks(conn):
+    """Release every session-level advisory lock held by a dedicated lock connection.
+
+    Lock coordination connections in CIR are reserved exclusively for advisory
+    locking. Releasing all locks in one operation avoids noisy PostgreSQL warnings
+    from attempting to unlock a lock that was already released, and invalidating
+    the connection on cleanup failure guarantees that a leaked session-level lock
+    cannot return to SQLAlchemy's pool.
+    """
+    if conn is None:
+        return
+    try:
+        conn.execute(text('SELECT pg_advisory_unlock_all()'))
+        try:
+            conn.commit()
+        except Exception:
+            pass
+    except Exception:
+        current_app.logger.exception('Cleanup advisory lock PostgreSQL fallito; invalido la connessione dedicata')
+        try:
+            conn.invalidate()
+        except Exception:
+            pass
+    finally:
+        conn.close()
 
 
 def _release_backup_execution_lock(handle):
@@ -11321,20 +11583,8 @@ def _release_backup_execution_lock(handle):
         _backup_execution_lock.release()
         _maintenance_execution_lock.release()
         return
-    _, conn, job_lock_id = handle
-    try:
-        conn.execute(
-            text('SELECT pg_advisory_unlock(:namespace, :job_id)'),
-            {'namespace': _CIR_BACKUP_LOCK_NAMESPACE, 'job_id': job_lock_id},
-        )
-    finally:
-        try:
-            conn.execute(
-                text('SELECT pg_advisory_unlock_shared(:lock_id)'),
-                {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
-            )
-        finally:
-            conn.close()
+    _, conn, _job_lock_id = handle
+    _release_all_postgresql_advisory_locks(conn)
 
 
 def _acquire_full_import_execution_lock():
@@ -11355,6 +11605,7 @@ def _acquire_full_import_execution_lock():
         if not acquired:
             conn.close()
             return None
+        conn.commit()
         return ('postgresql-full-import', conn)
     except Exception:
         conn.close()
@@ -11368,13 +11619,7 @@ def _release_full_import_execution_lock(handle):
         _maintenance_execution_lock.release()
         return
     _, conn = handle
-    try:
-        conn.execute(
-            text('SELECT pg_advisory_unlock(:lock_id)'),
-            {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
-        )
-    finally:
-        conn.close()
+    _release_all_postgresql_advisory_locks(conn)
 
 
 def recover_interrupted_full_import_serialized():
@@ -11392,15 +11637,10 @@ def recover_interrupted_full_import_serialized():
                 text('SELECT pg_advisory_lock(:lock_id)'),
                 {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
             )
+            conn.commit()
             return recover_interrupted_full_import()
         finally:
-            try:
-                conn.execute(
-                    text('SELECT pg_advisory_unlock(:lock_id)'),
-                    {'lock_id': _CIR_FULL_IMPORT_LOCK_ID},
-                )
-            finally:
-                conn.close()
+            _release_all_postgresql_advisory_locks(conn)
 
     _maintenance_execution_lock.acquire()
     try:
@@ -13013,6 +13253,7 @@ def confirm_generated_forms(iid):
             add_workflow_document_action(inc, workflow_step, saved_docs)
         add_automatic_button_action(inc, 'forms_confirm')
         db.session.commit()
+        refresh_incident_alfresco_report_if_needed(iid, reason='generated-forms')
         _forget_generated_form_previews(iid, pdf_files)
         msg = f'Documenti generati e allegati: {saved}'
         if workflow_step and saved_docs:
@@ -13141,6 +13382,40 @@ def set_setting_value(key, value):
     except Exception:
         pass
     return s
+
+
+def tenant_setting_value_for_id(key, tenant_id, default=''):
+    return _setting_value_without_request_user(key, default, tenant_id)
+
+
+def set_tenant_setting_value_for_id(key, tenant_id, value):
+    key = str(key or '')
+    tenant_id = int(tenant_id)
+    physical_key = key if key in GLOBAL_SETTING_KEYS else f'tenant:{tenant_id}:{key}'
+    row = db.session.get(Setting, physical_key)
+    encrypted = store_setting_value(key, value or '')
+    if row is None:
+        row = Setting(key=physical_key, value=encrypted)
+        db.session.add(row)
+    else:
+        row.value = encrypted
+    return row
+
+
+def alfresco_auto_report_option_visible(tenant_id=None):
+    if tenant_id is None:
+        value = setting_value(ALFRESCO_AUTO_REPORT_VISIBLE_SETTING, ALFRESCO_AUTO_REPORT_VISIBLE_DEFAULT)
+    else:
+        value = tenant_setting_value_for_id(ALFRESCO_AUTO_REPORT_VISIBLE_SETTING, tenant_id, ALFRESCO_AUTO_REPORT_VISIBLE_DEFAULT)
+    return str(value or '').strip().lower() in {'1', 'true', 'yes', 'on', 'si', 'sì'}
+
+
+def alfresco_auto_report_default_enabled(tenant_id=None):
+    if tenant_id is None:
+        value = setting_value(ALFRESCO_AUTO_REPORT_DEFAULT_SETTING, ALFRESCO_AUTO_REPORT_ENABLED_DEFAULT)
+    else:
+        value = tenant_setting_value_for_id(ALFRESCO_AUTO_REPORT_DEFAULT_SETTING, tenant_id, ALFRESCO_AUTO_REPORT_ENABLED_DEFAULT)
+    return str(value or '').strip().lower() in {'1', 'true', 'yes', 'on', 'si', 'sì'}
 
 
 def _audit_filtered_query_from_request():
@@ -13599,7 +13874,9 @@ SETUP_WIZARD_SECTIONS = [
             {'name': 'alfresco_username', 'label': 'Username API', 'type': 'text', 'default': ''},
             {'name': 'alfresco_password', 'label': 'Password/API secret', 'type': 'password', 'default': '', 'placeholder': 'Lascia vuoto per mantenere la password salvata'},
             {'name': 'alfresco_site', 'label': 'Site Alfresco opzionale', 'type': 'text', 'default': ''},
+            {'name': 'alfresco_parent_node_id', 'label': 'Parent Node ID Alfresco opzionale', 'type': 'text', 'default': '', 'placeholder': 'UUID della cartella padre; ha precedenza sul Site'},
             {'name': 'alfresco_target_path', 'label': 'Cartella destinazione', 'type': 'text', 'default': 'Cybersecurity Incident Registry'},
+            {'name': 'alfresco_group_by_type', 'label': 'Crea sottocartelle per tipo file', 'type': 'checkbox', 'default': '1'},
             {'name': 'alfresco_timeout', 'label': 'Timeout API secondi', 'type': 'number', 'default': '30', 'min': 5, 'max': 300},
             {'name': 'alfresco_verify_tls', 'label': 'Verifica certificato TLS', 'type': 'checkbox', 'default': '1'},
         ],

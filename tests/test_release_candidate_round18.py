@@ -19,7 +19,7 @@ def test_round18_release_candidate_offline_gate_passes() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert "offline verification: PASS" in result.stdout
-    assert "live SCA" in result.stdout
+    assert "External production gates must be evidenced separately before promotion." in result.stdout
 
 
 def test_round18_digest_gate_rejects_mutable_tag_and_accepts_digest() -> None:
@@ -46,7 +46,7 @@ def test_round18_digest_gate_rejects_mutable_tag_and_accepts_digest() -> None:
 
 
 def test_round18_sbom_is_transitive_and_matches_release() -> None:
-    sbom = json.loads((ROOT / "SBOM_ROUND18.cdx.json").read_text(encoding="utf-8"))
+    sbom = json.loads((ROOT / "sbom/SBOM_ROUND18.cdx.json").read_text(encoding="utf-8"))
     assert sbom["bomFormat"] == "CycloneDX"
     assert sbom["specVersion"] == "1.6"
     assert sbom["metadata"]["component"]["version"] == (ROOT / "VERSION").read_text().strip()
@@ -70,9 +70,9 @@ def test_round18_build_metadata_is_current_rc_build() -> None:
 
 def test_round18_release_lineage_is_documented_consistently() -> None:
     changelog = (ROOT / "CHANGELOG.txt").read_text(encoding="utf-8")
-    rc = (ROOT / "RELEASE_CANDIDATE_ROUND18.md").read_text(encoding="utf-8")
-    notes_it = (ROOT / "RELEASE_NOTES_0.9.0-1.md").read_text(encoding="utf-8")
-    notes_en = (ROOT / "RELEASE_NOTES_0.9.0-1_en.md").read_text(encoding="utf-8")
+    rc = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
+    notes_it = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
+    notes_en = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     readme_en = (ROOT / "README_en.md").read_text(encoding="utf-8")
 
@@ -96,11 +96,11 @@ def test_release_package_includes_release_notes_and_multiarch_builder() -> None:
     package_script = (ROOT / "scripts" / "package_release.sh").read_text(encoding="utf-8")
     # package_release copies the source tree by default; these files must exist and must not be excluded.
     required = (
-        "RELEASE_NOTES_0.9.0-1.md",
-        "RELEASE_NOTES_0.9.0-1_en.md",
+        "docs/RELEASE.md",
+        "docs/RELEASE.md",
         "scripts/build_multiarch_image.sh",
-        "MIGRATION_0.8.0_TO_0.9.0.md",
-        "MIGRATION_0.8.0_TO_0.9.0_en.md",
+        "docs/MIGRATION.md",
+        "docs/MIGRATION.md",
     )
     for relative in required:
         assert (ROOT / relative).is_file(), relative
@@ -119,8 +119,8 @@ def test_release_package_includes_release_notes_and_multiarch_builder() -> None:
     assert "docker buildx build" in build
     assert "--push" in build
 
-    migration_it = (ROOT / "MIGRATION_0.8.0_TO_0.9.0.md").read_text(encoding="utf-8")
-    migration_en = (ROOT / "MIGRATION_0.8.0_TO_0.9.0_en.md").read_text(encoding="utf-8")
+    migration_it = (ROOT / "docs/MIGRATION.md").read_text(encoding="utf-8")
+    migration_en = (ROOT / "docs/MIGRATION.md").read_text(encoding="utf-8")
     for text in (migration_it, migration_en):
         assert "docker-compose" in text.lower()
         assert "kubernetes" in text.lower()

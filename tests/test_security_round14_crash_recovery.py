@@ -135,5 +135,5 @@ def test_startup_recovery_uses_full_import_advisory_lock_on_postgres():
     source = Path(routes.__file__).read_text(encoding='utf-8')
     block = source[source.index('def recover_interrupted_full_import_serialized():'):source.index('def execute_backup_job', source.index('def recover_interrupted_full_import_serialized():'))]
     assert "SELECT pg_advisory_lock(:lock_id)" in block
-    assert "SELECT pg_advisory_unlock(:lock_id)" in block
+    assert "_release_all_postgresql_advisory_locks(conn)" in block
     assert "{'lock_id': _CIR_FULL_IMPORT_LOCK_ID}" in block

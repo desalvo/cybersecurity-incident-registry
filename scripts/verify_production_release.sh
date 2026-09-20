@@ -7,6 +7,10 @@ if [[ ! -s "$DIGEST_FILE" ]]; then
   exit 1
 fi
 IMAGE="$(tr -d "[:space:]" < "$DIGEST_FILE")"
+if [[ "$IMAGE" == PENDING_* ]]; then
+  echo "ERROR: hotfix image has not been rebuilt/pinned yet: $IMAGE" >&2
+  exit 1
+fi
 python3 "$ROOT_DIR/scripts/verify_release_candidate.py" --require-production-digest "$IMAGE"
 echo "Production release metadata verification: PASS"
 echo "Image: $IMAGE"

@@ -13,7 +13,7 @@ def test_r4_security_dependency_pins():
 
 
 def test_r4_release_notes_document_security_update():
-    for name in ('RELEASE_NOTES_0.9.0-1.md', 'RELEASE_NOTES_0.9.0-1_en.md'):
+    for name in ('docs/RELEASE.md', 'docs/RELEASE.md'):
         text = (ROOT / name).read_text(encoding='utf-8')
         assert '6.16.2' in text
         assert '50.0.1' in text
@@ -21,7 +21,7 @@ def test_r4_release_notes_document_security_update():
 
 
 def test_r4_sbom_uses_security_fixed_direct_versions():
-    sbom = json.loads((ROOT / 'SBOM_ROUND18.cdx.json').read_text(encoding='utf-8'))
+    sbom = json.loads((ROOT / 'sbom/SBOM_ROUND18.cdx.json').read_text(encoding='utf-8'))
     versions = {c['name'].lower(): c['version'] for c in sbom['components']}
     assert versions['pypdf'] == '6.16.2'
     assert versions['cryptography'] == '50.0.1'

@@ -21,7 +21,7 @@
 <div class="card">
   <h3>Tenant configurati</h3>
   <table class="table">
-    <tr><th>Nome</th><th>Descrizione</th><th>Attivo</th><th>Salva</th><th>Elimina</th></tr>
+    <tr><th>Nome</th><th>Descrizione</th><th>Auto-report Alfresco</th><th>Attivo</th><th>Salva</th><th>Elimina</th></tr>
     {% for t in tenants %}
     <tr>
       <td>
@@ -32,6 +32,12 @@
         </form>
       </td>
       <td><textarea name="description" form="tenant-update-{{ t.id }}">{{ t.description or '' }}</textarea></td>
+      <td>
+        {% set arf = alfresco_report_tenant_settings.get(t.id, {}) %}
+        <label class="checkbox-row"><input type="checkbox" name="alfresco_auto_report_option_visible" value="1" form="tenant-update-{{ t.id }}" {% if arf.get('visible', True) %}checked{% endif %}> <span>Mostra opzione nei singoli incidenti</span></label>
+        <label class="checkbox-row"><input type="checkbox" name="alfresco_auto_report_default_enabled" value="1" form="tenant-update-{{ t.id }}" {% if arf.get('default_enabled', False) %}checked{% endif %}> <span>Attiva per default sui nuovi incidenti</span></label>
+        <p class="muted">L’opzione per incidente viene comunque mostrata solo quando il plugin Alfresco è abilitato nel tenant.</p>
+      </td>
       <td>
         {% if active_tenant_id == t.id %}<span class="badge">attivo</span>{% else %}
         <form method="post" action="{{ url_for('main.admin_tenant_activate') }}">

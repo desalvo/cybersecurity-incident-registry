@@ -465,6 +465,19 @@ def run_schema_migrations(app):
                     conn.execute(text("ALTER TABLE incident ADD COLUMN custom_fields_json TEXT"))
                     conn.execute(text("UPDATE incident SET custom_fields_json = '' WHERE custom_fields_json IS NULL"))
                 app.logger.info('Schema migration applied: incident.custom_fields_json added')
+            cols = {c['name'] for c in inspector.get_columns('incident')}
+            alfresco_report_columns = {
+                'alfresco_auto_report_enabled': 'BOOLEAN DEFAULT FALSE NOT NULL',
+                'alfresco_report_node_id': 'VARCHAR(255)',
+                'alfresco_report_path': 'TEXT',
+                'alfresco_report_updated_at': 'TIMESTAMP',
+                'alfresco_report_fingerprint': 'VARCHAR(64)',
+            }
+            for col_name, col_type in alfresco_report_columns.items():
+                if col_name not in cols:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f'ALTER TABLE incident ADD COLUMN {col_name} {col_type}'))
+                    app.logger.info('Schema migration applied: incident.%s added', col_name)
             split_columns = {
                 'start_date': 'DATE',
                 'start_time': 'TIME',
@@ -780,12 +793,16 @@ def run_schema_migrations(app):
                 'alfresco_node_id': 'VARCHAR(255)',
                 'alfresco_path': 'TEXT',
                 'alfresco_uploaded_at': 'TIMESTAMP',
+                'alfresco_status': "VARCHAR(20) DEFAULT 'not_linked' NOT NULL",
+                'alfresco_checked_at': 'TIMESTAMP',
             }
             for col_name, col_type in document_extra_columns.items():
                 if col_name not in cols:
                     with db.engine.begin() as conn:
                         conn.execute(text(f'ALTER TABLE document ADD COLUMN {col_name} {col_type}'))
                     app.logger.info('Schema migration applied: document.%s added', col_name)
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE document SET alfresco_status = CASE WHEN alfresco_node_id IS NOT NULL AND alfresco_node_id <> '' THEN 'present' ELSE 'not_linked' END WHERE alfresco_status IS NULL OR alfresco_status = ''"))
         if 'user' in tables:
             cols = {c['name'] for c in inspector.get_columns('user')}
             if 'mfa_enabled' not in cols:
@@ -1059,20 +1076,27 @@ def bootstrap(app):
     # container apparentemente avviato ma senza risposte HTTP. Qui proviamo il
     # lock per un tempo limitato e logghiamo chiaramente l'errore.
     lock_ok = False
-    is_postgres = str(db.engine.url).startswith('postgresql')
+    bootstrap_lock_conn = None
+    is_postgres = getattr(getattr(db.engine, 'dialect', None), 'name', '') == 'postgresql'
     if is_postgres:
+        bootstrap_lock_conn = db.engine.connect()
         for _ in range(60):
             try:
-                lock_ok = bool(db.session.execute(text('SELECT pg_try_advisory_lock(7420171)')).scalar())
-                db.session.commit()
+                lock_ok = bool(bootstrap_lock_conn.execute(text('SELECT pg_try_advisory_lock(7420171)')).scalar())
+                bootstrap_lock_conn.commit()
                 if lock_ok:
                     break
             except Exception:
-                db.session.rollback()
+                try:
+                    bootstrap_lock_conn.rollback()
+                except Exception:
+                    pass
                 app.logger.exception('Unable to acquire PostgreSQL bootstrap advisory lock')
                 break
             time.sleep(1)
         if not lock_ok:
+            bootstrap_lock_conn.close()
+            bootstrap_lock_conn = None
             raise RuntimeError('Timeout waiting for PostgreSQL bootstrap advisory lock')
     try:
         db.create_all()
@@ -1142,6 +1166,15 @@ def bootstrap(app):
     except Exception:
         db.session.rollback(); app.logger.exception('Bootstrap failed'); raise
     finally:
-        if lock_ok:
-            try: db.session.execute(text('SELECT pg_advisory_unlock(7420171)')); db.session.commit()
-            except Exception: db.session.rollback()
+        if bootstrap_lock_conn is not None:
+            try:
+                bootstrap_lock_conn.execute(text('SELECT pg_advisory_unlock_all()'))
+                bootstrap_lock_conn.commit()
+            except Exception:
+                app.logger.exception('Unable to release PostgreSQL bootstrap advisory lock; invalidating connection')
+                try:
+                    bootstrap_lock_conn.invalidate()
+                except Exception:
+                    pass
+            finally:
+                bootstrap_lock_conn.close()

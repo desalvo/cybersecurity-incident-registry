@@ -93,7 +93,7 @@ def test_rate_limit_uses_first_untrusted_hop_from_trusted_proxy(monkeypatch):
 
 
 def test_round17_sbom_is_transitive_and_contains_wheel_evidence():
-    path = ROOT / 'SBOM_ROUND17.cdx.json'
+    path = ROOT / 'sbom/SBOM_ROUND17.cdx.json'
     assert path.exists()
     data = json.loads(path.read_text(encoding='utf-8'))
     assert data['bomFormat'] == 'CycloneDX'

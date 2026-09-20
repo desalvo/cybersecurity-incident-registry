@@ -23,11 +23,19 @@ class _FakeConnection:
         self.results = iter(results)
         self.calls = []
         self.closed = False
+        self.commits = 0
+        self.invalidated = False
 
     def execute(self, statement, params=None):
         sql = str(statement)
         self.calls.append((sql, dict(params or {})))
         return _ScalarResult(next(self.results, True))
+
+    def commit(self):
+        self.commits += 1
+
+    def invalidate(self):
+        self.invalidated = True
 
     def close(self):
         self.closed = True
@@ -52,7 +60,7 @@ def _sql_calls(connection):
 
 
 def test_backup_takes_shared_maintenance_lock_and_namespaced_job_lock(monkeypatch):
-    conn = _FakeConnection([True, True, True, True])
+    conn = _FakeConnection([True, True, True])
     monkeypatch.setattr(routes, 'db', _FakeDB(conn))
 
     handle = routes._acquire_backup_execution_lock(9999)
@@ -64,8 +72,8 @@ def test_backup_takes_shared_maintenance_lock_and_namespaced_job_lock(monkeypatc
 
     routes._release_backup_execution_lock(handle)
     calls = _sql_calls(conn)
-    assert 'pg_advisory_unlock(:namespace, :job_id)' in calls[2]
-    assert 'pg_advisory_unlock_shared' in calls[3]
+    assert 'pg_advisory_unlock_all()' in calls[2]
+    assert conn.commits >= 2
     assert conn.closed
 
 
@@ -77,7 +85,7 @@ def test_backup_releases_shared_lock_when_job_lock_is_busy(monkeypatch):
     calls = _sql_calls(conn)
     assert 'pg_try_advisory_lock_shared' in calls[0]
     assert 'pg_try_advisory_lock(:namespace, :job_id)' in calls[1]
-    assert 'pg_advisory_unlock_shared' in calls[2]
+    assert 'pg_advisory_unlock_all()' in calls[2]
     assert conn.closed
 
 
@@ -92,7 +100,8 @@ def test_full_import_uses_exclusive_version_of_backup_maintenance_lock(monkeypat
     assert first_params['lock_id'] == routes._CIR_FULL_IMPORT_LOCK_ID
 
     routes._release_full_import_execution_lock(handle)
-    assert 'pg_advisory_unlock(:lock_id)' in conn.calls[1][0]
+    assert 'pg_advisory_unlock_all()' in conn.calls[1][0]
+    assert conn.commits >= 2
     assert conn.closed
 
 

@@ -10,3 +10,5 @@ from .routes import bp, is_enabled
 def register_plugin(app):
     app.register_blueprint(bp)
     app.jinja_env.globals['alfresco_plugin_enabled'] = is_enabled
+    from ...routes import alfresco_auto_report_option_visible
+    app.jinja_env.globals['alfresco_auto_report_option_visible'] = alfresco_auto_report_option_visible

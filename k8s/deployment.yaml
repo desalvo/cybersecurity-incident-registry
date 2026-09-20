@@ -22,8 +22,8 @@ spec:
         - |
           set -eu
           mkdir -p /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs
-          chown -R 10001:10001 /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs
-          chmod -R u+rwX,g+rwX /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs
+          chown -R 10001:10001 /data
+          chmod -R u+rwX,g+rwX /data
         securityContext:
           runAsUser: 0
           allowPrivilegeEscalation: false
@@ -31,13 +31,7 @@ spec:
             drop: ["ALL"]
             add: ["CHOWN", "DAC_OVERRIDE", "FOWNER"]
         volumeMounts:
-        - {name: uploads, mountPath: /data/uploads}
-        - {name: logo, mountPath: /data/logo}
-        - {name: form-templates, mountPath: /data/form_templates}
-        - {name: sso-logos, mountPath: /data/sso_logos}
-        - {name: ssl-certs, mountPath: /data/ssl}
-        - {name: backups, mountPath: /data/backups}
-        - {name: ai-chatbot-docs, mountPath: /data/ai_chatbot_docs}
+        - {name: data, mountPath: /data}
       containers:
       - name: web
         image: desalvo/cybersecurity-incident-registry:0.9.0-1
@@ -75,13 +69,7 @@ spec:
         - {name: SSL_PORT, value: "8443"}
         - {name: SSL_ENABLED, value: "0"}
         volumeMounts:
-        - {name: uploads, mountPath: /data/uploads}
-        - {name: logo, mountPath: /data/logo}
-        - {name: form-templates, mountPath: /data/form_templates}
-        - {name: sso-logos, mountPath: /data/sso_logos}
-        - {name: ssl-certs, mountPath: /data/ssl}
-        - {name: backups, mountPath: /data/backups}
-        - {name: ai-chatbot-docs, mountPath: /data/ai_chatbot_docs}
+        - {name: data, mountPath: /data}
         - {name: tmp, mountPath: /tmp}
         readinessProbe:
           httpGet: {path: /healthz, port: 8000}
@@ -92,20 +80,8 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 20
       volumes:
-      - name: uploads
-        persistentVolumeClaim: {claimName: cir-uploads}
-      - name: logo
-        persistentVolumeClaim: {claimName: cir-logo}
-      - name: form-templates
-        persistentVolumeClaim: {claimName: cir-form-templates}
-      - name: sso-logos
-        persistentVolumeClaim: {claimName: cir-sso-logos}
-      - name: ssl-certs
-        persistentVolumeClaim: {claimName: cir-ssl-certs}
-      - name: backups
-        persistentVolumeClaim: {claimName: cir-backups}
-      - name: ai-chatbot-docs
-        persistentVolumeClaim: {claimName: cir-ai-chatbot-docs}
+      - name: data
+        persistentVolumeClaim: {claimName: cir-data}
       - name: tmp
         emptyDir:
           sizeLimit: 256Mi

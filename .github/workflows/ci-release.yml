@@ -1,0 +1,196 @@
+name: CIR CI and Docker release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cir-ci-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  DEFAULT_DOCKER_REPOSITORY: desalvo/cybersecurity-incident-registry
+
+jobs:
+  quality-gates:
+    name: Tests, PostgreSQL, SCA and offline gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install application and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt pip-audit
+
+      - name: Check Python dependency consistency
+        run: python -m pip check
+
+      - name: Run complete pytest suite
+        env:
+          CIR_DISABLE_BACKGROUND_SCHEDULERS: '1'
+        run: python -m pytest -q
+
+      - name: Run real PostgreSQL test suite
+        run: ./scripts/run_postgres_tests.sh
+
+      - name: Verify release candidate
+        run: python scripts/verify_release_candidate.py
+
+      - name: Verify temporary security-acceptance runtime assumptions
+        run: python scripts/verify_security_gate_context.py
+
+      - name: Run software-composition analysis
+        run: ./scripts/run_sca.sh
+
+      - name: Build release package as packaging smoke test
+        run: ./scripts/package_release.sh "${RUNNER_TEMP}/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
+
+      - name: Upload SCA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-${{ github.sha }}
+          path: SCA_PIP_AUDIT.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  docker-release:
+    name: Build, scan and promote multi-arch image
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    needs: quality-gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve Docker repository and final tag
+        id: image
+        shell: bash
+        env:
+          CONFIGURED_REPOSITORY: ${{ vars.CIR_DOCKER_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          repository="${CONFIGURED_REPOSITORY:-${DEFAULT_DOCKER_REPOSITORY}}"
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            final_tag=latest
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            final_tag="$GITHUB_REF_NAME"
+            if [[ ! "$final_tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+              echo "Git tag '$final_tag' is not a valid Docker tag" >&2
+              exit 1
+            fi
+          else
+            echo "Unsupported release ref: $GITHUB_REF" >&2
+            exit 1
+          fi
+          candidate_tag="ci-${GITHUB_SHA}"
+          echo "repository=$repository" >> "$GITHUB_OUTPUT"
+          echo "candidate_tag=$candidate_tag" >> "$GITHUB_OUTPUT"
+          echo "final_tag=$final_tag" >> "$GITHUB_OUTPUT"
+          echo "candidate_image=${repository}:${candidate_tag}" >> "$GITHUB_OUTPUT"
+          echo "final_image=${repository}:${final_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push candidate multi-arch image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          no-cache: true
+          tags: ${{ steps.image.outputs.candidate_image }}
+          provenance: mode=max
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@e07451d2e059ed86c2870430ea286b3a9e0bf241
+        with:
+          version: v0.74.0
+          cache: true
+
+      - name: Run CIR Trivy production gate on exact candidate digest
+        env:
+          TRIVY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          TRIVY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          ./scripts/run_trivy_production_gate.sh \
+            "${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
+
+      - name: Upload Trivy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ github.sha }}
+          path: generated/trivy-r8/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Promote approved digest to final Docker tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "${{ steps.image.outputs.final_image }}" \
+            "${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
+
+      - name: Verify published manifest and report digest
+        id: published
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="${{ steps.image.outputs.final_image }}"
+          docker buildx imagetools inspect "$image"
+          digest="$(docker buildx imagetools inspect "$image" | awk '$1 == "Digest:" {print $2; exit}')"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Unable to resolve immutable manifest digest for $image" >&2
+            exit 1
+          fi
+          if [[ "$digest" != "${{ steps.build.outputs.digest }}" ]]; then
+            echo "Promoted tag digest $digest differs from approved candidate ${{ steps.build.outputs.digest }}" >&2
+            exit 1
+          fi
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          {
+            echo "## CIR Docker release"
+            echo
+            echo "- Image: \`$image\`"
+            echo "- Digest: \`$digest\`"
+            echo "- Platforms: \`linux/amd64, linux/arm64\`"
+            echo "- Trivy gate: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -14,6 +14,7 @@ fi
 command -v trivy >/dev/null 2>&1 || { echo "ERROR: trivy not found in PATH" >&2; exit 1; }
 [[ -f "$POLICY" ]] || { echo "ERROR: policy not found: $POLICY" >&2; exit 1; }
 mkdir -p "$OUT_DIR"
+python3 "$ROOT_DIR/scripts/verify_security_gate_context.py"
 
 IFS=',' read -r -a platform_array <<< "$PLATFORMS"
 for platform in "${platform_array[@]}"; do
