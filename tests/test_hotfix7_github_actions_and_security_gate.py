@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import subprocess
 import sys
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -10,6 +11,14 @@ def test_runtime_hardening_verifier_passes_packaged_manifests():
     r = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'verify_security_gate_context.py')], text=True, capture_output=True)
     assert r.returncode == 0, r.stderr
     assert 'PASS' in r.stdout
+
+
+
+def test_github_workflow_yaml_is_valid():
+    workflow_path = ROOT / '.github' / 'workflows' / 'ci-release.yml'
+    parsed = yaml.safe_load(workflow_path.read_text(encoding='utf-8'))
+    assert isinstance(parsed, dict)
+    assert 'jobs' in parsed
 
 
 def test_github_workflow_runs_required_gates_and_release_rules():
