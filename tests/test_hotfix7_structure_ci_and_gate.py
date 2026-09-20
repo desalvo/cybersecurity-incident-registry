@@ -143,3 +143,40 @@ def test_release_package_has_new_layout_and_excludes_runtime_artifacts(tmp_path:
     assert base + "sbom/SBOM_ROUND18.cdx.json" in names
     assert not any(Path(n).name.startswith("SECURITY_AUDIT_ROUND") and n.endswith(".md") for n in names)
     assert not any("/.pytest_cache/" in n or "/__pycache__/" in n or n.endswith("SCA_PIP_AUDIT.json") for n in names)
+
+
+def test_runtime_image_excludes_historical_sbom_directory() -> None:
+    dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
+    assert re.search(r"(?m)^sbom/$", dockerignore), "sbom/ must not be copied into the runtime image"
+    requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+    assert "cryptography==50.0.1" in requirements
+    assert "pypdf==6.16.2" in requirements
+
+
+def test_trivy_gate_package_specific_util_linux_versions() -> None:
+    bsd = _run_gate(_report([_vuln("CVE-2026-76642", "bsdutils", installed="1:2.41.5-0+deb13u1")]))
+    assert bsd.returncode == 0, bsd.stderr
+    login = _run_gate(_report([_vuln("CVE-2026-76642", "login", installed="1:4.16.0-2+really2.41.5-0+deb13u1")]))
+    assert login.returncode == 0, login.stderr
+    wrong = _run_gate(_report([_vuln("CVE-2026-76642", "bsdutils", installed="1:2.41.6-0+deb13u1")]))
+    assert wrong.returncode != 0
+
+
+def test_trivy_gate_accepts_reviewed_new_trixie_residuals_only_at_exact_versions() -> None:
+    cases = [
+        _vuln("CVE-2026-76956", "libexpat1", installed="2.8.3-1~deb13u1"),
+        _vuln("CVE-2026-76957", "libexpat1", installed="2.8.3-1~deb13u1"),
+        _vuln("CVE-2026-74860", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+        _vuln("CVE-2026-86138", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+        _vuln("CVE-2026-86139", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+        _vuln("CVE-2026-86140", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+        _vuln("CVE-2026-86142", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+        _vuln("CVE-2026-86143", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+        _vuln("CVE-2026-86144", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3"),
+    ]
+    r = _run_gate(_report(cases))
+    assert r.returncode == 0, r.stderr
+    fixed = _run_gate(_report([_vuln("CVE-2026-86144", "libxml2", installed="2.12.7+dfsg+really2.9.14-2.1+deb13u3", fixed="2.15.4")]))
+    assert fixed.returncode != 0 and "patchable" in fixed.stderr
+    wrong_pkg = _run_gate(_report([_vuln("CVE-2026-76956", "expat", installed="2.8.3-1~deb13u1")]))
+    assert wrong_pkg.returncode != 0

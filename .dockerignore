@@ -28,6 +28,7 @@ generated/*
 # into the runtime image. Apart from reducing image size, this prevents scanners
 # from treating historical CycloneDX files as installed runtime dependencies.
 SBOM_*.cdx.json
+sbom/
 SECURITY_AUDIT_*.md
 SECURITY_UPDATE_*.md
 RC_*_TEST_HARNESS_FIX.md

@@ -98,7 +98,11 @@ def main() -> int:
                 f"accepted package scope is {','.join(package_scope)}"
             )
             continue
-        version_pattern = str(rule.get("installed_version_regex") or "").strip()
+        package_version_patterns = rule.get("package_version_regex") or {}
+        if package_version_patterns and not isinstance(package_version_patterns, dict):
+            errors.append(f"{args.platform}: invalid package_version_regex policy for {vid}")
+            continue
+        version_pattern = str(package_version_patterns.get(pkg) or rule.get("installed_version_regex") or "").strip()
         installed = str(vuln.get("InstalledVersion") or "").strip()
         if version_pattern and not re.fullmatch(version_pattern, installed):
             errors.append(

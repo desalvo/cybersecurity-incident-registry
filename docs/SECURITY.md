@@ -126,3 +126,12 @@ Vedere `docs/TESTING_AND_PRODUCTION.md` per configurazione di secrets/variables 
 - Debian systemd tracker: https://security-tracker.debian.org/tracker/source-package/systemd
 
 ---
+
+
+## Hotfix 7 follow-up: 2026-09-20 Trivy refresh
+
+The production gate was intentionally re-evaluated against a freshly downloaded Trivy database before image promotion. The refreshed scan surfaced two categories of findings. First, historical CycloneDX files under `sbom/` were being copied into the runtime image after the documentation/SBOM reorganization; Trivy correctly warned that third-party SBOMs can produce inaccurate package detection and reported stale Python package versions from those historical files. The runtime image now excludes the entire `sbom/` directory. Python HIGH/CRITICAL findings remain unconditionally forbidden by the gate.
+
+Second, the refreshed Debian Trixie scan surfaced residual OS findings for Expat (`CVE-2026-76956`, `CVE-2026-76957`) and libxml2 (`CVE-2026-74860`, `CVE-2026-86138`, `CVE-2026-86139`, `CVE-2026-86140`, `CVE-2026-86142`, `CVE-2026-86143`, `CVE-2026-86144`). At review time Trixie has no fixed package for these findings. They are accepted only temporarily, only for the exact binary package and reviewed Trixie version, and only through 2026-10-20. Any Trivy `FixedVersion`, package mismatch, version mismatch, expiry, Python HIGH/CRITICAL, or new HIGH/CRITICAL remains a hard failure.
+
+The util-linux disposition was also tightened to account for Debian epochs and the special `login` binary version (`1:4.16.0-2+really2.41.5-0+deb13u1`) using package-specific version expressions, rather than broadening the global version rule.

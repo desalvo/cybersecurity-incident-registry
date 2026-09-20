@@ -161,7 +161,11 @@
       "reason": "Debian Trixie currently marks this util-linux issue no-DSA. CIR does not expose privileged mount/nsenter functionality; production runs non-root with all Linux capabilities dropped, allowPrivilegeEscalation=false and a read-only root filesystem. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
       "reviewed_on": "2026-09-20",
       "review_before": "2026-10-20",
-      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+      "package_version_regex": {
+        "bsdutils": "^1:2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+        "login": "^1:4\\.16\\.0-2\\+really2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      }
     },
     "CVE-2026-78408": {
       "component_group": "util-linux/Trixie local privilege tooling",
@@ -179,7 +183,11 @@
       "reason": "Debian Trixie currently marks this util-linux issue no-DSA. The affected nsenter/join-cgroup functionality is not used by CIR and requires local privilege-oriented tooling unavailable to the hardened application runtime. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
       "reviewed_on": "2026-09-20",
       "review_before": "2026-10-20",
-      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+      "package_version_regex": {
+        "bsdutils": "^1:2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+        "login": "^1:4\\.16\\.0-2\\+really2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      }
     },
     "CVE-2026-78409": {
       "component_group": "util-linux/Trixie local privilege tooling",
@@ -197,7 +205,11 @@
       "reason": "Debian Trixie currently marks this util-linux issue no-DSA. The affected mount/X-mount.subdir path is not invoked by CIR; runtime capabilities are dropped and privilege escalation is disabled. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
       "reviewed_on": "2026-09-20",
       "review_before": "2026-10-20",
-      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+      "package_version_regex": {
+        "bsdutils": "^1:2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+        "login": "^1:4\\.16\\.0-2\\+really2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      }
     },
     "CVE-2026-78410": {
       "component_group": "util-linux/Trixie local privilege tooling",
@@ -215,7 +227,11 @@
       "reason": "Debian Trixie currently marks this util-linux issue no-DSA. The affected restricted bind-mount functionality is not used by CIR; the production runtime is non-root and does not receive mount capabilities. Temporary acceptance only for the listed util-linux binary packages while no Trixie FixedVersion is reported.",
       "reviewed_on": "2026-09-20",
       "review_before": "2026-10-20",
-      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      "installed_version_regex": "^2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+      "package_version_regex": {
+        "bsdutils": "^1:2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$",
+        "login": "^1:4\\.16\\.0-2\\+really2\\.41\\.5-0\\+deb13u1(?:\\+b[0-9]+)?$"
+      }
     },
     "CVE-2026-16742": {
       "component_group": "systemd-homed transitives",
@@ -226,6 +242,96 @@
       "reason": "Debian Trixie currently marks this issue no-DSA. The vulnerable functionality is systemd-homed; the CIR container does not boot systemd or systemd-homed. Temporary acceptance only for libsystemd0/libudev1 while no Trixie FixedVersion is reported.",
       "reviewed_on": "2026-09-20",
       "review_before": "2026-10-20"
+    },
+    "CVE-2026-76956": {
+      "component_group": "expat/Trixie transitive",
+      "packages": [
+        "libexpat1"
+      ],
+      "reason": "Debian Trixie marks this Expat issue no-DSA (minor) and currently has no fixed Trixie package. Expat is an OS/runtime transitive used by document tooling; temporary acceptance is limited to libexpat1 at the reviewed Trixie version and expires with this policy.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.8\\.3-1~deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-76957": {
+      "component_group": "expat/Trixie transitive",
+      "packages": [
+        "libexpat1"
+      ],
+      "reason": "Debian Trixie marks this Expat issue no-DSA (minor) and currently has no fixed Trixie package. Expat is an OS/runtime transitive used by document tooling; temporary acceptance is limited to libexpat1 at the reviewed Trixie version and expires with this policy.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.8\\.3-1~deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-74860": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; fixed upstream/unstable packages are not available in Trixie. libxml2 is transitive to headless document tooling. Temporary acceptance is exact-package/version scoped and remains fail-closed if Trivy reports a FixedVersion.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-86138": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; the fix is present only in newer libxml2 2.15.4 packages outside Trixie. Temporary acceptance is limited to the reviewed libxml2 package/version and container hardening remains mandatory.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-86139": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; the fix is present only in newer libxml2 2.15.4 packages outside Trixie. Temporary acceptance is limited to the reviewed libxml2 package/version and container hardening remains mandatory.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-86140": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; the fix is present only in newer libxml2 2.15.4 packages outside Trixie. Temporary acceptance is limited to the reviewed libxml2 package/version and container hardening remains mandatory.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-86142": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; the fix is present only in newer libxml2 2.15.4 packages outside Trixie. Temporary acceptance is limited to the reviewed libxml2 package/version and container hardening remains mandatory.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-86143": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; the fix is present only in newer libxml2 2.15.4 packages outside Trixie. Temporary acceptance is limited to the reviewed libxml2 package/version and container hardening remains mandatory.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-86144": {
+      "component_group": "libxml2/LibreOffice transitive",
+      "packages": [
+        "libxml2"
+      ],
+      "reason": "Debian Trixie currently remains vulnerable and publishes no fixed Trixie version; the fix is present only in newer libxml2 2.15.4 packages outside Trixie. Temporary acceptance is limited to the reviewed libxml2 package/version and container hardening remains mandatory.",
+      "reviewed_on": "2026-09-20",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
     }
   }
 }
