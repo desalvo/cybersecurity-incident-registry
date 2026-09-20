@@ -59,6 +59,15 @@ jobs:
         run: python -m pytest -q
 
       - name: Run real PostgreSQL test suite
+        env:
+          CIR_DISABLE_BACKGROUND_SCHEDULERS: '1'
+          UPLOAD_DIR: ${{ runner.temp }}/cir-postgres-tests/uploads
+          LOGO_DIR: ${{ runner.temp }}/cir-postgres-tests/logos
+          SSO_LOGO_DIR: ${{ runner.temp }}/cir-postgres-tests/sso-logos
+          FORM_TEMPLATE_DIR: ${{ runner.temp }}/cir-postgres-tests/form-templates
+          BACKUP_DIR: ${{ runner.temp }}/cir-postgres-tests/backups
+          AI_CHATBOT_DOC_DIR: ${{ runner.temp }}/cir-postgres-tests/ai-chatbot-docs
+          SSL_DIR: ${{ runner.temp }}/cir-postgres-tests/ssl
         run: ./scripts/run_postgres_tests.sh
 
       - name: Verify release candidate

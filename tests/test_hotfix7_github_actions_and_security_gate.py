@@ -42,6 +42,15 @@ def test_github_workflow_runs_required_gates_and_release_rules():
     ):
         assert needle in workflow
 
+    postgres_step = workflow.split('- name: Run real PostgreSQL test suite', 1)[1].split('- name: Verify release candidate', 1)[0]
+    for needle in (
+        'UPLOAD_DIR: ${{ runner.temp }}/cir-postgres-tests/uploads',
+        'BACKUP_DIR: ${{ runner.temp }}/cir-postgres-tests/backups',
+        'AI_CHATBOT_DOC_DIR: ${{ runner.temp }}/cir-postgres-tests/ai-chatbot-docs',
+        'SSL_DIR: ${{ runner.temp }}/cir-postgres-tests/ssl',
+    ):
+        assert needle in postgres_step
+
 
 def test_new_risk_acceptance_is_scoped_and_time_bounded():
     p = json.loads((ROOT / 'TRIVY_RISK_ACCEPTANCE_R8.json').read_text(encoding='utf-8'))
