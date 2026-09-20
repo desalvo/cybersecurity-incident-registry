@@ -128,10 +128,24 @@ def test_security_context_verifier_and_final_production_digest() -> None:
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_security_gate_context.py")], cwd=ROOT, text=True, capture_output=True)
     assert r.returncode == 0, r.stderr
     production_image = (ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip()
-    assert production_image == "PENDING_HOTFIX_REBUILD"
     kustomization = (ROOT / "k8s" / "kustomization.yaml").read_text(encoding="utf-8")
-    assert 'newTag: "PENDING_HOTFIX_REBUILD"' in kustomization
-    assert "digest:" not in kustomization
+
+    if production_image == "PENDING_HOTFIX_REBUILD":
+        assert 'newTag: "PENDING_HOTFIX_REBUILD"' in kustomization
+        assert "digest:" not in kustomization
+        return
+
+    match = re.fullmatch(
+        r"desalvo/cybersecurity-incident-registry@(sha256:[0-9a-f]{64})",
+        production_image,
+    )
+    assert match, f"invalid immutable production image reference: {production_image!r}"
+    digest = match.group(1)
+    assert "PENDING_HOTFIX_REBUILD" not in kustomization
+    assert "- name: desalvo/cybersecurity-incident-registry" in kustomization
+    assert "  newName: desalvo/cybersecurity-incident-registry" in kustomization
+    assert f"  digest: {digest}" in kustomization
+    assert "newTag:" not in kustomization
 
 
 def test_release_package_has_new_layout_and_excludes_runtime_artifacts(tmp_path: Path) -> None:
