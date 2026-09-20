@@ -91,14 +91,63 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  release-scope:
+    name: Detect production-impacting changes
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-24.04
+    outputs:
+      production_changed: ${{ steps.diff.outputs.production_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Detect metadata-only production digest update
+        id: diff
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "production_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          before="$BEFORE_SHA"
+          if [[ -z "$before" || "$before" == "0000000000000000000000000000000000000000" ]]; then
+            echo "production_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mapfile -t changed < <(git diff --name-only "$before" "$GITHUB_SHA")
+          printf 'Changed files:\n'
+          printf ' - %s\n' "${changed[@]}"
+          metadata_only=true
+          for path in "${changed[@]}"; do
+            case "$path" in
+              PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml) ;;
+              *) metadata_only=false ;;
+            esac
+          done
+          if [[ ${#changed[@]} -eq 0 ]]; then
+            metadata_only=false
+          fi
+          if [[ "$metadata_only" == true ]]; then
+            echo "production_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "production_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   docker-release:
     name: Build, scan and promote multi-arch image
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-    needs: quality-gates
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/main' && needs.release-scope.outputs.production_changed == 'true'))
+    needs: [quality-gates, release-scope]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
+      actions: write
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -220,9 +269,11 @@ jobs:
             echo "- Trivy gate: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Record promoted production digest on main
+      - name: Open production digest metadata pull request
         if: github.ref == 'refs/heads/main'
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python scripts/record_production_digest.py \
@@ -237,5 +288,26 @@ jobs:
             echo "Production digest metadata already up to date."
             exit 0
           fi
+
+          short_digest="${{ steps.published.outputs.digest }}"
+          short_digest="${short_digest#sha256:}"
+          branch="automation/production-digest-${short_digest:0:16}"
+          git checkout -b "$branch"
           git commit -m "chore: record promoted production OCI digest"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:$branch"
+
+          existing="$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
+          if [[ -z "$existing" ]]; then
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: record promoted production OCI digest" \
+              --body "Records the immutable OCI digest already promoted to production after all CIR quality, PostgreSQL, SCA and Trivy gates passed. This PR changes only production digest metadata and must not rebuild the production image."
+          else
+            echo "Production digest PR already open: #$existing"
+          fi
+
+          # Pushes/PRs created with GITHUB_TOKEN do not recursively trigger this
+          # workflow. Explicitly dispatch the quality gates on the metadata branch
+          # so protected-main required checks can complete without rebuilding Docker.
+          gh workflow run ci-release.yml --ref "$branch"

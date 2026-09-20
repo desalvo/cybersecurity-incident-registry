@@ -186,29 +186,36 @@ def test_trivy_gate_accepts_reviewed_new_trixie_residuals_only_at_exact_versions
     assert wrong_pkg.returncode != 0
 
 
-def test_ci_auto_records_promoted_digest_without_tag_side_effects() -> None:
+def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_rebuilds() -> None:
     workflow = (ROOT / ".github" / "workflows" / "ci-release.yml").read_text(encoding="utf-8")
-    assert "contents: write" in workflow
-    assert "Record promoted production digest on main" in workflow
+    assert "Detect production-impacting changes" in workflow
+    assert "PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml" in workflow
+    assert "needs.release-scope.outputs.production_changed == 'true'" in workflow
+    assert 'if [[ "$GITHUB_REF" == refs/tags/* ]]' in workflow
+    assert "pull-requests: write" in workflow
+    assert "actions: write" in workflow
+    assert "Open production digest metadata pull request" in workflow
     assert "if: github.ref == 'refs/heads/main'" in workflow
     assert "scripts/record_production_digest.py" in workflow
     assert '--digest "${{ steps.published.outputs.digest }}"' in workflow
     assert 'imagetools inspect --raw "$candidate"' in workflow
     assert 'imagetools inspect --raw "$image"' in workflow
     assert 'scripts/verify_promoted_manifest.py' in workflow
-    assert 'Promoted tag digest $digest differs from approved candidate' not in workflow
-    assert 'git config user.name "github-actions[bot]"' in workflow
-    assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' in workflow
+    assert 'git checkout -b "$branch"' in workflow
+    assert 'git push origin "HEAD:$branch"' in workflow
+    assert 'gh pr create' in workflow
+    assert '--base main' in workflow
+    assert 'gh workflow run ci-release.yml --ref "$branch"' in workflow
+    assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' not in workflow
     assert "[skip ci]" not in workflow
 
     verify_idx = workflow.index("Verify published manifest and report digest")
-    record_idx = workflow.index("Record promoted production digest on main")
+    record_idx = workflow.index("Open production digest metadata pull request")
     assert verify_idx < record_idx
 
-    # The digest-recording step is main-only: tag releases are published/reported,
-    # but must not mutate main release metadata.
+    # Tag releases publish/report only and never mutate main metadata.
     record_block = workflow[record_idx:]
-    assert "if: github.ref == 'refs/heads/main'" in record_block[:250]
+    assert "if: github.ref == 'refs/heads/main'" in record_block[:260]
 
 
 def test_record_production_digest_script_is_strict_and_deterministic() -> None:
