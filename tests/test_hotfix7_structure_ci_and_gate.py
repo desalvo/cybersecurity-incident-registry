@@ -198,8 +198,11 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert "if: github.ref == 'refs/heads/main'" in workflow
     assert "scripts/record_production_digest.py" in workflow
     assert '--digest "${{ steps.published.outputs.digest }}"' in workflow
-    assert 'imagetools inspect --raw "$candidate"' in workflow
-    assert 'imagetools inspect --raw "$image"' in workflow
+    assert "--format '{{json .Manifest}}'" in workflow
+    assert 'Structured manifest inspection' in workflow
+    assert 'candidate-index.json' in workflow
+    assert 'published-index.json' in workflow
+    assert 'imagetools inspect --raw' not in workflow
     assert 'scripts/verify_promoted_manifest.py' in workflow
     assert 'git checkout -b "$branch"' in workflow
     assert 'git push origin "HEAD:$branch"' in workflow

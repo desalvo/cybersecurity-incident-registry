@@ -243,17 +243,41 @@ jobs:
           candidate="${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
 
           docker buildx imagetools inspect "$image"
-          digest="$(docker buildx imagetools inspect "$image" | awk '$1 == "Digest:" {print $2; exit}')"
-          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            echo "Unable to resolve immutable manifest digest for $image" >&2
-            exit 1
-          fi
+
+          inspect_manifest_json() {
+            local ref="$1"
+            local output="$2"
+            local label="$3"
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              echo "Structured manifest inspection ($label), attempt ${attempt}/5: $ref"
+              if docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' > "$output"; then
+                python -m json.tool "$output" >/dev/null
+                return 0
+              fi
+              rc=$?
+              echo "Structured manifest inspection failed for $label (rc=$rc)" >&2
+              if [[ "$attempt" -lt 5 ]]; then
+                sleep $((attempt * 2))
+              fi
+            done
+            echo "Unable to obtain structured OCI manifest for $label after 5 attempts" >&2
+            return 1
+          }
+
+          # Use Buildx structured Manifest output instead of --raw.  Besides being
+          # parseable JSON, it carries the resolved top-level digest and avoids
+          # relying on the human-readable formatter/awk combination.  Registry
+          # propagation immediately after retagging can be briefly eventually
+          # consistent, so retry a bounded number of times and fail closed.
+          inspect_manifest_json "$candidate" "${RUNNER_TEMP}/candidate-index.json" candidate
+          inspect_manifest_json "$image" "${RUNNER_TEMP}/published-index.json" published
+
+          digest="$(python -c 'import json,re,sys; payload=json.load(open(sys.argv[1], encoding="utf-8")); digest=payload.get("digest", ""); (isinstance(digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", digest)) or sys.exit(f"Unable to resolve immutable manifest digest from structured OCI manifest: {digest!r}"); print(digest)' "${RUNNER_TEMP}/published-index.json")"
 
           # The top-level index digest may change during registry-side retagging.
           # Fail closed unless every immutable child descriptor (platform images
           # and attestations) is exactly the one that passed the Trivy gate.
-          docker buildx imagetools inspect --raw "$candidate" > "${RUNNER_TEMP}/candidate-index.json"
-          docker buildx imagetools inspect --raw "$image" > "${RUNNER_TEMP}/published-index.json"
           python scripts/verify_promoted_manifest.py \
             "${RUNNER_TEMP}/candidate-index.json" \
             "${RUNNER_TEMP}/published-index.json"
