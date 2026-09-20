@@ -1,4 +1,5 @@
 - Aggiunto export bootstrap anonimizzato del tenant default: conserva workflow/configurazioni riutilizzabili e template PDF necessari, elimina dati operativi/personali e secret, e reimposta l'admin dall'ADMIN_INITIAL_PASSWORD della destinazione durante l'import.
+- La pipeline CI registra automaticamente il digest OCI promosso su main in PRODUCTION_IMAGE_DIGEST e Kustomize tramite GITHUB_TOKEN, senza ciclo di rebuild; i release tag non modificano main.
 
 0.9.0-1 Hotfix 7 final - 2026-09-20
 - Completata la pipeline production fail-closed con suite completa, PostgreSQL reale, SCA, build multi-arch e Trivy gate amd64/arm64.

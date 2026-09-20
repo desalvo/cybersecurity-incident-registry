@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -210,3 +210,23 @@ jobs:
             echo "- Platforms: \`linux/amd64, linux/arm64\`"
             echo "- Trivy gate: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record promoted production digest on main
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/record_production_digest.py \
+            --repository "${{ steps.image.outputs.repository }}" \
+            --digest "${{ steps.published.outputs.digest }}"
+          ./scripts/verify_production_release.sh
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "Production digest metadata already up to date."
+            exit 0
+          fi
+          git commit -m "chore: record promoted production OCI digest"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

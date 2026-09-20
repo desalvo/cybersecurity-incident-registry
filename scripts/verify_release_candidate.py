@@ -130,6 +130,7 @@ def check_source_tree() -> list[str]:
         "scripts/run_trivy_production_gate.sh",
         "scripts/evaluate_trivy_gate.py",
         "scripts/verify_security_gate_context.py",
+        "scripts/record_production_digest.py",
         "PRODUCTION_IMAGE_DIGEST",
         ".github/workflows/ci-release.yml",
         "k8s/migrate-separated-pvcs-to-cir-data.example.yaml",

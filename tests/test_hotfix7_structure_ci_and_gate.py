@@ -184,3 +184,60 @@ def test_trivy_gate_accepts_reviewed_new_trixie_residuals_only_at_exact_versions
     assert fixed.returncode != 0 and "patchable" in fixed.stderr
     wrong_pkg = _run_gate(_report([_vuln("CVE-2026-76956", "expat", installed="2.8.3-1~deb13u1")]))
     assert wrong_pkg.returncode != 0
+
+
+def test_ci_auto_records_promoted_digest_without_tag_side_effects() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci-release.yml").read_text(encoding="utf-8")
+    assert "contents: write" in workflow
+    assert "Record promoted production digest on main" in workflow
+    assert "if: github.ref == 'refs/heads/main'" in workflow
+    assert "scripts/record_production_digest.py" in workflow
+    assert '--digest "${{ steps.published.outputs.digest }}"' in workflow
+    assert 'git config user.name "github-actions[bot]"' in workflow
+    assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' in workflow
+    assert "[skip ci]" not in workflow
+
+    verify_idx = workflow.index("Verify published manifest and report digest")
+    record_idx = workflow.index("Record promoted production digest on main")
+    assert verify_idx < record_idx
+
+    # The digest-recording step is main-only: tag releases are published/reported,
+    # but must not mutate main release metadata.
+    record_block = workflow[record_idx:]
+    assert "if: github.ref == 'refs/heads/main'" in record_block[:250]
+
+
+def test_record_production_digest_script_is_strict_and_deterministic() -> None:
+    script = ROOT / "scripts" / "record_production_digest.py"
+    assert script.is_file()
+    original_digest = (ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8")
+    kustomization_path = ROOT / "k8s" / "kustomization.yaml"
+    original_kustomization = kustomization_path.read_text(encoding="utf-8")
+    digest = "sha256:" + "a" * 64
+    try:
+        r = subprocess.run(
+            [sys.executable, str(script), "--repository", "desalvo/cybersecurity-incident-registry", "--digest", digest],
+            cwd=ROOT, text=True, capture_output=True, check=False,
+        )
+        assert r.returncode == 0, r.stderr
+        assert (ROOT / "PRODUCTION_IMAGE_DIGEST").read_text(encoding="utf-8").strip() == (
+            "desalvo/cybersecurity-incident-registry@" + digest
+        )
+        rendered = kustomization_path.read_text(encoding="utf-8")
+        assert "newTag: \"PENDING_HOTFIX_REBUILD\"" not in rendered
+        assert "newName: desalvo/cybersecurity-incident-registry" in rendered
+        assert f"digest: {digest}" in rendered
+
+        bad = subprocess.run(
+            [sys.executable, str(script), "--repository", "desalvo/cybersecurity-incident-registry:latest", "--digest", digest],
+            cwd=ROOT, text=True, capture_output=True, check=False,
+        )
+        assert bad.returncode != 0
+        bad = subprocess.run(
+            [sys.executable, str(script), "--repository", "desalvo/cybersecurity-incident-registry", "--digest", "sha256:bad"],
+            cwd=ROOT, text=True, capture_output=True, check=False,
+        )
+        assert bad.returncode != 0
+    finally:
+        (ROOT / "PRODUCTION_IMAGE_DIGEST").write_text(original_digest, encoding="utf-8")
+        kustomization_path.write_text(original_kustomization, encoding="utf-8")

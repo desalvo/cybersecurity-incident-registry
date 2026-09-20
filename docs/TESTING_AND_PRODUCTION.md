@@ -59,3 +59,11 @@ La workflow usa `TRIVY_RISK_ACCEPTANCE_R8.json`. L'allowlist resta fail-closed: 
 La disposition aggiunta il 20 settembre 2026 per i CVE util-linux/systemd scade il 20 ottobre 2026 e dipende dall'hardening runtime verificato da `scripts/verify_security_gate_context.py`.
 
 ---
+
+## Automatic production-digest recording
+
+For a push to `main`, the production workflow is self-closing after all quality, PostgreSQL, SCA and Trivy gates pass. The candidate OCI index is promoted to `latest`, the registry is re-inspected, and the published digest must exactly match the approved candidate digest. Only then does CI run `scripts/record_production_digest.py` to update `PRODUCTION_IMAGE_DIGEST` and `k8s/kustomization.yaml`, verify the resulting production metadata, and commit those two files back to `main` as `github-actions[bot]`.
+
+The digest-recording step uses the workflow's standard `GITHUB_TOKEN` with job-scoped `contents: write`; no personal access token is required. Pushes made with that token do not recursively start another `push` workflow, so the metadata commit does not rebuild the image it just recorded. Tag-triggered releases never write back to `main`: they publish and report their tag digest only.
+
+Repository/organization Actions policy must permit `GITHUB_TOKEN` write access, and branch protection must allow the Actions bot to push this metadata commit. If either policy forbids the push, the workflow fails rather than silently claiming that repository metadata was updated. The push is non-forced, so a concurrent change to `main` also fails safely instead of overwriting it.

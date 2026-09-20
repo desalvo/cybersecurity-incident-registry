@@ -26,6 +26,7 @@ REQUIRED_RELEASE_FILES=(
   "scripts/verify_security_gate_context.py"
   "scripts/verify_release_candidate.py"
   "scripts/verify_production_release.sh"
+  "scripts/record_production_digest.py"
   ".github/workflows/ci-release.yml"
   ".github/dependabot.yml"
   "PRODUCTION_IMAGE_DIGEST"
