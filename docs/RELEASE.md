@@ -526,3 +526,17 @@ The active Debian risk acceptance contains **44 explicitly reviewed CVEs** and e
 ### Final source-package state
 
 This consolidated source archive intentionally carries `PRODUCTION_IMAGE_DIGEST=PENDING_HOTFIX_REBUILD` and the non-publishable Kustomize pending marker. The consolidation itself changes files included in the Docker build context, so reusing a digest from RC11 or an earlier `chore` would be incorrect. The authoritative final production digest is the digest written by the **next successful post-merge `chore: record promoted production OCI digest` PR** after this final source consolidation passes the complete production pipeline.
+
+
+---
+
+## RC12 import/bootstrap compatibility correction - 2026-10-01
+
+This cumulative **0.9.0-1** maintenance candidate corrects first-install and Full Import behavior seen with Docker/Podman Compose.
+
+- Fresh PostgreSQL databases no longer receive a query against `setting` before the application schema exists. Full Import crash recovery still runs before bootstrap, but first checks whether the table exists.
+- Full Import and anonymized Bootstrap Import now support managed persistent directories that are independent container mountpoints. CIR never attempts to rename the mount root; staging, backup, promotion and rollback are performed inside that mounted filesystem.
+- Recovery remains fail-safe if the process is interrupted part-way through moving old mountpoint contents: journal state distinguishes a partial old-data backup from a completed backup before deciding whether live entries may be discarded.
+- Existing non-mountpoint behavior remains unchanged.
+
+Because RC12 changes application source, any previously recorded OCI digest is historical for this candidate. The production pipeline must build, test, scan and promote a new multi-architecture image, then record the resulting immutable digest through the protected-main metadata PR flow.
