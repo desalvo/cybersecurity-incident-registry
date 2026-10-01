@@ -943,3 +943,18 @@ After cumulative Hotfix 7, development remained within functional version **0.9.
 
 The stabilized flow is: protected-branch PR -> quality/PostgreSQL/SCA gates -> multi-arch candidate -> Trivy gate -> promotion -> OCI descriptor verification -> automated production-digest PR -> metadata-only checks -> merge without Docker rebuild.
 
+
+
+---
+
+## RC12 - Fresh database and Compose-mounted Full Import fix - 2026-10-01
+
+RC12 remains part of functional release **0.9.0-1** and fixes two defects reproduced with Docker/Podman Compose.
+
+On a brand-new PostgreSQL database, startup crash recovery ran before `bootstrap()` by design, but attempted to read the Full Import commit marker from `Setting` even though the schema had not yet been created. Recovery now performs a schema-presence check through SQLAlchemy inspection before querying `Setting`. This preserves the required recovery-before-bootstrap ordering without emitting `relation "setting" does not exist` on first installation.
+
+Docker/Podman Compose mounts the persistent CIR directories as separate volumes. Linux does not permit renaming a mountpoint, so the previous filesystem transaction failed with `OSError: [Errno 16] Device or resource busy` when it attempted `os.replace(/data/uploads, backup)`. RC12 detects separately mounted managed paths and keeps staging/backup directories inside the mounted filesystem. It swaps child entries rather than the mount root, preserving same-filesystem rename semantics.
+
+Crash safety is preserved for the non-atomic multi-entry mountpoint backup phase. The journal state `moving_backup` is interpreted specially: if a process dies while only part of the old tree has moved, startup recovery merges the partial backup back into the still-live old entries rather than deleting them. Once the journal reaches `backup_moved`/`promoting`, rollback discards partially promoted new entries before restoring the complete old snapshot.
+
+Regression coverage includes fresh-schema startup, mountpoint activate/rollback/finalize, injected failure during partial mountpoint backup, and startup recovery from an interrupted `moving_backup` phase.

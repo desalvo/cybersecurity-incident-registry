@@ -10946,14 +10946,49 @@ def _load_full_import_journal():
     return payload
 
 
+def _is_full_import_mountpoint(base):
+    """Return True when *base* is a separately mounted persistent volume.
+
+    Docker/Podman Compose commonly mounts each /data subdirectory as its own
+    named volume. Renaming such a mountpoint itself fails with EBUSY. The
+    st_dev check also covers mount layouts where os.path.ismount() alone is not
+    sufficient inside a container.
+    """
+    base = Path(base)
+    try:
+        if not base.exists():
+            return False
+        if os.path.ismount(str(base)):
+            return True
+        return base.stat().st_dev != base.parent.stat().st_dev
+    except OSError:
+        return False
+
+
 def _full_import_artifact_paths(token, group, base):
+    base = Path(base)
+    if _is_full_import_mountpoint(base):
+        return (
+            base / f'.cir-restore-stage-{token}',
+            base / f'.cir-restore-backup-{token}',
+        )
     return (
         base.parent / f'.cir-restore-stage-{token}-{base.name}',
         base.parent / f'.cir-restore-backup-{token}-{base.name}',
     )
 
 
+def _setting_table_exists():
+    """Check schema availability without issuing a SELECT against Setting."""
+    try:
+        return bool(inspect(db.engine).has_table(Setting.__tablename__))
+    except Exception:
+        return False
+
+
 def _clear_full_import_commit_marker(token=None):
+    if not _setting_table_exists():
+        return True
     try:
         marker = db.session.get(Setting, _FULL_IMPORT_COMMIT_MARKER_KEY)
     except Exception:
@@ -10982,11 +11017,14 @@ def recover_interrupted_full_import():
 
     token = payload['token']
     paths = _full_import_managed_paths()
-    try:
-        marker = db.session.get(Setting, _FULL_IMPORT_COMMIT_MARKER_KEY)
-        committed = bool(marker and marker.value == token)
-    except Exception:
-        db.session.rollback()
+    if _setting_table_exists():
+        try:
+            marker = db.session.get(Setting, _FULL_IMPORT_COMMIT_MARKER_KEY)
+            committed = bool(marker and marker.value == token)
+        except Exception:
+            db.session.rollback()
+            committed = False
+    else:
         committed = False
 
     failures = []
@@ -11011,17 +11049,47 @@ def recover_interrupted_full_import():
             state = groups[group]
             try:
                 if backup.exists():
+                    previous_state = state.get('state')
                     state['state'] = 'restoring'
                     _write_full_import_journal(payload)
-                    if base.exists():
-                        shutil.rmtree(base)
-                    os.replace(backup, base)
-                    _fsync_directory(base.parent)
+                    if _is_full_import_mountpoint(base):
+                        # During 'moving_backup' the live root still contains
+                        # old entries not yet moved. Merge the partial backup
+                        # back without deleting them. From 'backup_moved'
+                        # onward all non-artifact live entries are new restore
+                        # data and must be discarded before restoring old data.
+                        if previous_state != 'moving_backup':
+                            for child in list(base.iterdir()):
+                                if child in (stage, backup):
+                                    continue
+                                if child.is_dir() and not child.is_symlink():
+                                    shutil.rmtree(child)
+                                else:
+                                    child.unlink()
+                        for child in list(backup.iterdir()):
+                            os.replace(child, base / child.name)
+                        backup.rmdir()
+                        _fsync_directory(base)
+                    else:
+                        if base.exists():
+                            shutil.rmtree(base)
+                        os.replace(backup, base)
+                        _fsync_directory(base.parent)
                 elif not state['had_original'] and base.exists():
                     state['state'] = 'removing_new'
                     _write_full_import_journal(payload)
-                    shutil.rmtree(base)
-                    _fsync_directory(base.parent)
+                    if _is_full_import_mountpoint(base):
+                        for child in list(base.iterdir()):
+                            if child == stage:
+                                continue
+                            if child.is_dir() and not child.is_symlink():
+                                shutil.rmtree(child)
+                            else:
+                                child.unlink()
+                        _fsync_directory(base)
+                    else:
+                        shutil.rmtree(base)
+                        _fsync_directory(base.parent)
                 # If the old directory existed but no backup exists, either no
                 # destructive rename happened or a previous recovery already
                 # restored it.  In both cases the live path is the safe state.
@@ -11075,13 +11143,72 @@ class _FullImportFilesystemTransaction:
             self._persist_journal()
 
     def _stage_path(self, group, base):
+        base = Path(base)
         base.parent.mkdir(parents=True, exist_ok=True)
-        stage = base.parent / f'.cir-restore-stage-{self.token}-{base.name}'
+        stage, _ = _full_import_artifact_paths(self.token, group, base)
         if stage.exists():
             shutil.rmtree(stage)
         stage.mkdir(parents=True, exist_ok=False)
         self.stages[group] = stage
         return stage
+
+    @staticmethod
+    def _mounted_children(base, *, exclude=()):
+        excluded = {Path(item) for item in exclude}
+        return [child for child in Path(base).iterdir() if child not in excluded]
+
+    def _activate_mountpoint(self, group, base, stage, backup):
+        base = Path(base)
+        if backup.exists():
+            shutil.rmtree(backup)
+        backup.mkdir(parents=False, exist_ok=False)
+
+        # Track the backup before the first child move so ordinary exceptions
+        # cannot leave a half-moved mounted volume outside rollback ownership.
+        self.backups[group] = backup
+        self.moved_to_backup.append(group)
+        self._set_journal_state(group, 'moving_backup')
+        try:
+            for child in self._mounted_children(base, exclude=(stage, backup)):
+                os.replace(child, backup / child.name)
+        except Exception:
+            # The live children that have not moved yet are still old data.
+            # Merge the already-moved children back instead of clearing live.
+            for child in list(backup.iterdir()):
+                os.replace(child, base / child.name)
+            backup.rmdir()
+            self.backups.pop(group, None)
+            if group in self.moved_to_backup:
+                self.moved_to_backup.remove(group)
+            _fsync_directory(base)
+            raise
+        _fsync_directory(base)
+        _fsync_directory(backup)
+
+        self._set_journal_state(group, 'backup_moved')
+
+        self._set_journal_state(group, 'promoting')
+        for child in list(stage.iterdir()):
+            os.replace(child, base / child.name)
+        stage.rmdir()
+        _fsync_directory(base)
+
+        self.activated.append(group)
+        self._set_journal_state(group, 'activated')
+
+    def _restore_mountpoint_backup(self, group, base, stage, backup):
+        base = Path(base)
+        for child in self._mounted_children(base, exclude=(stage, backup)):
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        for child in list(backup.iterdir()):
+            os.replace(child, base / child.name)
+        backup.rmdir()
+        if stage.exists():
+            shutil.rmtree(stage)
+        _fsync_directory(base)
 
     def stage(self):
         files = self.data.get('files', {}) or {}
@@ -11183,6 +11310,9 @@ class _FullImportFilesystemTransaction:
             for group, stage in self.stages.items():
                 base = self.paths[group]
                 _, backup = _full_import_artifact_paths(self.token, group, base)
+                if _is_full_import_mountpoint(base):
+                    self._activate_mountpoint(group, base, stage, backup)
+                    continue
                 if backup.exists():
                     shutil.rmtree(backup)
                 if base.exists():
@@ -11228,10 +11358,14 @@ class _FullImportFilesystemTransaction:
             try:
                 if backup and backup.exists():
                     self._set_journal_state(group, 'restoring')
-                    if base.exists():
-                        shutil.rmtree(base)
-                    os.replace(backup, base)
-                    _fsync_directory(base.parent)
+                    stage, _ = _full_import_artifact_paths(self.token, group, base)
+                    if _is_full_import_mountpoint(base):
+                        self._restore_mountpoint_backup(group, base, stage, backup)
+                    else:
+                        if base.exists():
+                            shutil.rmtree(base)
+                        os.replace(backup, base)
+                        _fsync_directory(base.parent)
                 elif (
                     (self.journal is not None and not self.journal['groups'][group]['had_original'])
                     or (self.journal is None and group in self.activated)

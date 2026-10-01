@@ -1,3 +1,14 @@
+0.9.0-1 RC13 import recovery fix - 2026-10-01
+- Corretto il recovery Full Import su mountpoint quando un crash avviene durante `moving_backup`: lo stato precedente viene preservato prima di passare a `restoring`, evitando la cancellazione dei vecchi file non ancora spostati nel backup parziale.
+- La correzione e intenzionalmente minima sopra RC12 e mantiene invariata la versione funzionale 0.9.0-1.
+
+0.9.0-1 RC12 import/bootstrap compatibility fix - 2026-10-01
+- Corretto il primo avvio su database PostgreSQL vuoto: il crash-recovery del Full Import verifica l'esistenza della tabella `setting` prima di leggere il commit token, evitando l'errore atteso ma rumoroso `relation "setting" does not exist` prima del bootstrap dello schema.
+- Corretto il Full Import/Bootstrap Import con Docker/Podman Compose quando `/data/uploads`, `/data/logo`, `/data/form_templates` e le altre directory persistenti sono mountpoint separati: il restore non tenta piu di rinominare il mount root (`EBUSY`), ma effettua staging, backup, promozione e rollback all'interno dello stesso volume.
+- Mantenuta la recovery fail-safe dopo crash anche durante uno swap mount-aware, inclusa la fase parziale `moving_backup`.
+- Aggiunti test di regressione per fresh schema, activate/rollback/finalize su mountpoint, failure injection e crash recovery parziale.
+- La versione funzionale resta 0.9.0-1; il codice applicativo cambia e richiede una nuova build/scansione/promotion production prima di registrare il nuovo digest OCI.
+
 0.9.0-1 final source consolidation - 2026-09-20
 - Consolidato l'export bootstrap anonimizzato del tenant `default`: conserva workflow, tassonomie/configurazioni riutilizzabili e template PDF necessari, esclude dati operativi/personali e secret, e rigenera la password dell'admin da `ADMIN_INITIAL_PASSWORD` sulla destinazione.
 - Consolidata la pipeline GitHub Actions fail-closed con `main` protetto: build/scansione/promozione production, verifica OCI multi-arch, branch/PR automatica per il digest production e rilevazione metadata-only che evita rebuild ricorsivi.
