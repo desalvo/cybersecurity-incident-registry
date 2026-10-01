@@ -144,7 +144,7 @@ Because this is application code, the historical OCI digest at the top of this d
 
 The current source package also contains Hotfix 5 (tenant-scoped Alfresco configuration, remote deletion and read-only synchronization), Hotfix 6 (incident-name-aware Alfresco folder/report naming) and Hotfix 7 (temporary Debian Trixie security disposition plus GitHub Actions CI/release automation).
 
-The original R8 acceptance of 30 CVEs through 2026-10-03 is historical evidence for the pre-hotfix image. Hotfix 7 supersedes the active policy with **44 explicitly reviewed CVEs**, including the five findings reviewed on 2026-09-20, and extends the time-bounded review deadline to **2026-10-20**. The new findings are package-scoped; util-linux findings are additionally constrained to the reviewed `2.41.5-0+deb13u1` version family. Any new HIGH/CRITICAL, Python HIGH/CRITICAL, out-of-scope package/version, available `FixedVersion`, or expired acceptance remains blocking.
+The original R8 acceptance of 30 CVEs through 2026-10-03 is historical evidence for the pre-hotfix image. Hotfix 7 supersedes the active policy with **47 explicitly reviewed CVEs**, including the five findings reviewed on 2026-09-20, and extends the time-bounded review deadline to **2026-10-20**. The new findings are package-scoped; util-linux findings are additionally constrained to the reviewed `2.41.5-0+deb13u1` version family. Any new HIGH/CRITICAL, Python HIGH/CRITICAL, out-of-scope package/version, available `FixedVersion`, or expired acceptance remains blocking.
 
 The historical digest at the top of this file does not contain Hotfix 1-7. The GitHub workflow built the cumulative candidate, scanned its exact multi-architecture digest and promoted that same digest to `latest` only after all gates passed. The resulting immutable OCI index digest is recorded in the final production record below.
 
@@ -521,7 +521,7 @@ Development RC1-RC11 hardened both this feature and the release pipeline. The cu
 
 `main` is protected: production digest bookkeeping is never pushed directly to it. After a production-impacting merge, CI builds the temporary candidate, runs the complete gates, promotes the approved OCI index, re-inspects and verifies the published manifest, writes the immutable digest into `PRODUCTION_IMAGE_DIGEST` and `k8s/kustomization.yaml` on an `automation/production-digest-*` branch, and opens the `chore: record promoted production OCI digest` pull request. CI explicitly dispatches checks for that metadata PR. When that PR is merged, metadata-only change detection skips the Docker build/scan/promotion job, preventing a digest loop. Git-tag releases remain non-mutating with respect to `main` production metadata.
 
-The active Debian risk acceptance contains **44 explicitly reviewed CVEs** and expires on **2026-10-20**. The policy remains fail-closed: new HIGH/CRITICAL findings, every Python HIGH/CRITICAL finding, accepted findings with a reported `FixedVersion`, package/version mismatches, malformed scan input or expired acceptance block promotion.
+The active Debian risk acceptance contains **47 explicitly reviewed CVEs** and expires on **2026-10-20**. The policy remains fail-closed: new HIGH/CRITICAL findings, every Python HIGH/CRITICAL finding, accepted findings with a reported `FixedVersion`, package/version mismatches, malformed scan input or expired acceptance block promotion.
 
 ### Final source-package state
 
@@ -540,3 +540,8 @@ This cumulative **0.9.0-1** maintenance candidate corrects first-install and Ful
 - Existing non-mountpoint behavior remains unchanged.
 
 Because RC12 changes application source, any previously recorded OCI digest is historical for this candidate. The production pipeline must build, test, scan and promote a new multi-architecture image, then record the resulting immutable digest through the protected-main metadata PR flow.
+
+
+## RC14 security review - 2026-10-01
+
+The production Trivy gate detected three new Debian Trixie HIGH CVEs: `CVE-2026-93990` in `libexpat1`, `CVE-2026-88806` in `libx11-6`/`libx11-data`, and `CVE-2026-88807` in `libxrender1`. The reviewed Trixie package versions currently have no reported FixedVersion in the production scan. RC14 extends the temporary acceptance only to those exact binary packages and reviewed installed-version families. Any reported `FixedVersion`, package/version mismatch, new HIGH/CRITICAL finding, Python HIGH/CRITICAL finding, malformed report, or policy expiry remains blocking. The global and per-CVE review deadline remains **2026-10-20**. Trivy itself remains pinned to `v0.74.0`.

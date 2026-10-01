@@ -18,6 +18,9 @@ def test_r8_policy_is_time_bounded_and_fail_closed():
     for cve in ("CVE-2026-76642", "CVE-2026-78408", "CVE-2026-78409", "CVE-2026-78410", "CVE-2026-16742"):
         assert cve in p["accepted_residual_vulnerabilities"]
     assert p["accepted_residual_vulnerabilities"]["CVE-2026-76642"]["packages"]
+    for cve in ("CVE-2026-93990", "CVE-2026-88806", "CVE-2026-88807"):
+        assert cve in p["accepted_residual_vulnerabilities"]
+        assert p["accepted_residual_vulnerabilities"][cve]["review_before"] == "2026-10-20"
 
 
 def _run(report, tmp_path):
@@ -73,3 +76,29 @@ def test_r8_gate_rejects_unreviewed_util_linux_version(tmp_path):
     r=_run(report,tmp_path)
     assert r.returncode == 1
     assert "unreviewed installed version" in r.stderr
+
+
+def test_r8_gate_accepts_reviewed_2026_10_01_findings(tmp_path):
+    cases=(
+        ("CVE-2026-93990","libexpat1","2.8.3-1~deb13u1"),
+        ("CVE-2026-88806","libx11-6","2:1.8.12-1"),
+        ("CVE-2026-88806","libx11-data","2:1.8.12-1"),
+        ("CVE-2026-88807","libxrender1","1:0.9.12-1"),
+    )
+    for cve,pkg,version in cases:
+        report={"Results":[{"Target":"debian","Type":"deb","Vulnerabilities":[{"VulnerabilityID":cve,"PkgName":pkg,"Severity":"HIGH","InstalledVersion":version,"FixedVersion":""}]}]}
+        r=_run(report,tmp_path)
+        assert r.returncode == 0, r.stderr
+        assert "PASS" in r.stdout
+
+
+def test_r8_gate_rejects_new_accepted_findings_when_patchable_or_out_of_scope(tmp_path):
+    bad=(
+        {"VulnerabilityID":"CVE-2026-93990","PkgName":"libexpat1","Severity":"HIGH","InstalledVersion":"2.8.4-1","FixedVersion":""},
+        {"VulnerabilityID":"CVE-2026-88806","PkgName":"libx11-dev","Severity":"HIGH","InstalledVersion":"2:1.8.12-1","FixedVersion":""},
+        {"VulnerabilityID":"CVE-2026-88807","PkgName":"libxrender1","Severity":"HIGH","InstalledVersion":"1:0.9.12-1","FixedVersion":"1:0.9.13-1"},
+    )
+    for vuln in bad:
+        report={"Results":[{"Target":"debian","Type":"deb","Vulnerabilities":[vuln]}]}
+        r=_run(report,tmp_path)
+        assert r.returncode == 1

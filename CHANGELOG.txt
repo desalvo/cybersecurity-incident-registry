@@ -1,3 +1,8 @@
+0.9.0-1 security gate RC14 - 2026-10-01
+- Riesaminati i nuovi finding Trivy Debian Trixie CVE-2026-93990 (libexpat1), CVE-2026-88806 (libx11-6/libx11-data) e CVE-2026-88807 (libxrender1).
+- Risk acceptance estesa da 44 a 47 CVE, con scope package/versione esatto, FixedVersion sempre bloccante e scadenza invariata al 2026-10-20.
+- Nessuna modifica al codice applicativo o alla versione Trivy v0.74.0.
+
 0.9.0-1 RC13 import recovery fix - 2026-10-01
 - Corretto il recovery Full Import su mountpoint quando un crash avviene durante `moving_backup`: lo stato precedente viene preservato prima di passare a `restoring`, evitando la cancellazione dei vecchi file non ancora spostati nel backup parziale.
 - La correzione e intenzionalmente minima sopra RC12 e mantiene invariata la versione funzionale 0.9.0-1.
