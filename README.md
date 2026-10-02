@@ -44,7 +44,7 @@ Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
 
 ## Requisiti e compatibilità
 
-Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; sono inoltre presenti pin espliciti aggiornati per `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.16.2`, `requests==2.33.0`, `cryptography==50.0.1` e, nei requisiti di sviluppo, `pytest==9.0.3`. Il pacchetto Python corretto per le chiamate HTTP è `requests`.
+Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; sono inoltre presenti pin espliciti aggiornati per `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.19.0`, `requests==2.33.0`, `cryptography==50.0.1` e, nei requisiti di sviluppo, `pytest==9.0.3`. Il pacchetto Python corretto per le chiamate HTTP è `requests`.
 
 ## Stato applicativo
 
@@ -1010,7 +1010,7 @@ scripts/setup_python_env.sh
 source .venv/bin/activate
 ```
 
-Lo script crea un virtual environment dedicato, installa `requirements-dev.txt` e verifica l'ambiente con `pip check`. La versione richiesta dal progetto per `pypdf` resta `pypdf==6.16.2`; eventuali conflitti con pacchetti non appartenenti al progetto vengono evitati isolando l'ambiente invece di rilassare il pin di sicurezza/funzionale.
+Lo script crea un virtual environment dedicato, installa `requirements-dev.txt` e verifica l'ambiente con `pip check`. La versione richiesta dal progetto per `pypdf` resta `pypdf==6.19.0`; eventuali conflitti con pacchetti non appartenenti al progetto vengono evitati isolando l'ambiente invece di rilassare il pin di sicurezza/funzionale.
 
 ## Test di integrazione PostgreSQL reale
 

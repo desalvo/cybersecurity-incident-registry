@@ -27,7 +27,7 @@ Flask/Gunicorn application for a cybersecurity incident registry backed by Postg
 
 ## Requirements and compatibility
 
-`requirements.txt` has been updated for Python 3.13 environments while preserving compatibility with the Python 3.11 container image. The pins fix build/install issues for `matplotlib==3.9.1` and `psycopg2-binary==2.9.9` on Python 3.13; updated explicit pins are also included for `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.16.2`, `requests==2.33.0`, `cryptography==50.0.1` and, in development requirements, `pytest==9.0.3`. The correct Python package name for HTTP calls is `requests`.
+`requirements.txt` has been updated for Python 3.13 environments while preserving compatibility with the Python 3.11 container image. The pins fix build/install issues for `matplotlib==3.9.1` and `psycopg2-binary==2.9.9` on Python 3.13; updated explicit pins are also included for `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.19.0`, `requests==2.33.0`, `cryptography==50.0.1` and, in development requirements, `pytest==9.0.3`. The correct Python package name for HTTP calls is `requests`.
 
 ## Application state
 
@@ -775,7 +775,7 @@ scripts/setup_python_env.sh
 source .venv/bin/activate
 ```
 
-The script creates a dedicated virtual environment, installs `requirements-dev.txt` and verifies it with `pip check`. The project requirement remains `pypdf==6.16.2`; conflicts with unrelated host packages are avoided by isolating the environment instead of relaxing the application pin.
+The script creates a dedicated virtual environment, installs `requirements-dev.txt` and verifies it with `pip check`. The project requirement remains `pypdf==6.19.0`; conflicts with unrelated host packages are avoided by isolating the environment instead of relaxing the application pin.
 
 ## Real PostgreSQL integration tests
 

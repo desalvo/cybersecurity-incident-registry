@@ -11,7 +11,7 @@ Pillow==12.3.0
 python-dotenv==1.2.2
 
 python-docx==1.2.0
-pypdf==6.16.2
+pypdf==6.19.0
 requests==2.33.0
 
 pyotp==2.9.0

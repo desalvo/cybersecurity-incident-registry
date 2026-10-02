@@ -16,10 +16,43 @@ EOF
   exit 2
 fi
 
+set +e
 "$PYTHON_BIN" -m pip_audit \
   -r requirements.txt \
   --format json \
   --output "$OUTPUT" \
   --progress-spinner off
+audit_rc=$?
+set -e
 
-echo "SCA report written to $OUTPUT"
+if [[ -f "$OUTPUT" ]]; then
+  echo "SCA report written to $OUTPUT"
+fi
+
+if (( audit_rc != 0 )); then
+  echo "SCA gate: FAIL" >&2
+  if [[ -f "$OUTPUT" ]]; then
+    "$PYTHON_BIN" - "$OUTPUT" >&2 <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    report = json.load(handle)
+
+found = False
+for dep in report.get("dependencies", []):
+    vulns = dep.get("vulns") or []
+    if not vulns:
+        continue
+    found = True
+    for vuln in vulns:
+        fixes = ", ".join(vuln.get("fix_versions") or []) or "<none>"
+        print(f"- {dep.get('name','?')} {dep.get('version','?')}: {vuln.get('id','?')}; fix versions: {fixes}")
+if not found:
+    print("- pip-audit returned non-zero but no vulnerability entries were found in the JSON report.")
+PY
+  fi
+  exit "$audit_rc"
+fi
+
+echo "SCA gate: PASS"

@@ -168,7 +168,7 @@ def test_runtime_image_excludes_historical_sbom_directory() -> None:
     assert re.search(r"(?m)^sbom/$", dockerignore), "sbom/ must not be copied into the runtime image"
     requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     assert "cryptography==50.0.1" in requirements
-    assert "pypdf==6.16.2" in requirements
+    assert "pypdf==6.19.0" in requirements
 
 
 def test_trivy_gate_package_specific_util_linux_versions() -> None:
