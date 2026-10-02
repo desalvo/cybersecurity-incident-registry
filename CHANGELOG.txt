@@ -1,3 +1,18 @@
+0.9.0-1 packaging regression RC16 - 2026-10-02
+- Ripristinati i bit eseguibili di docker-entrypoint.sh e degli script shell, persi durante il repackaging RC15.
+- Corretto il test SBOM: SBOM_ROUND18.cdx.json resta un artefatto storico del Round 18 con pypdf 6.16.2; il pin runtime corrente resta pypdf 6.19.0 ed e' verificato separatamente.
+- Nessuna modifica al codice applicativo, alla policy Trivy o alle dipendenze rispetto a RC15.
+
+0.9.0-1 dependency security RC15 - 2026-10-01
+- Aggiornato pypdf da 6.16.2 a 6.19.0 per risolvere otto vulnerabilita' rilevate dal gate pip-audit: CVE-2026-102993, CVE-2026-102994, CVE-2026-102995, CVE-2026-102996, CVE-2026-102997, CVE-2026-102998, CVE-2026-102999 e CVE-2026-103000.
+- Migliorato scripts/run_sca.sh: in caso di failure stampa nel log CI package, versione, CVE e fix versions dal report JSON.
+- Nessuna eccezione SCA introdotta; la policy Python resta zero known vulnerabilities.
+
+0.9.0-1 security gate RC14 - 2026-10-01
+- Riesaminati i nuovi finding Trivy Debian Trixie CVE-2026-93990 (libexpat1), CVE-2026-88806 (libx11-6/libx11-data) e CVE-2026-88807 (libxrender1).
+- Risk acceptance estesa da 44 a 47 CVE, con scope package/versione esatto, FixedVersion sempre bloccante e scadenza invariata al 2026-10-20.
+- Nessuna modifica al codice applicativo o alla versione Trivy v0.74.0.
+
 0.9.0-1 RC13 import recovery fix - 2026-10-01
 - Corretto il recovery Full Import su mountpoint quando un crash avviene durante `moving_backup`: lo stato precedente viene preservato prima di passare a `restoring`, evitando la cancellazione dei vecchi file non ancora spostati nel backup parziale.
 - La correzione e intenzionalmente minima sopra RC12 e mantiene invariata la versione funzionale 0.9.0-1.

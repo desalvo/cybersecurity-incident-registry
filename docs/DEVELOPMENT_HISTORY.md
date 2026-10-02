@@ -958,3 +958,13 @@ Docker/Podman Compose mounts the persistent CIR directories as separate volumes.
 Crash safety is preserved for the non-atomic multi-entry mountpoint backup phase. The journal state `moving_backup` is interpreted specially: if a process dies while only part of the old tree has moved, startup recovery merges the partial backup back into the still-live old entries rather than deleting them. Once the journal reaches `backup_moved`/`promoting`, rollback discards partially promoted new entries before restoring the complete old snapshot.
 
 Regression coverage includes fresh-schema startup, mountpoint activate/rollback/finalize, injected failure during partial mountpoint backup, and startup recovery from an interrupted `moving_backup` phase.
+
+
+## RC14 security review - 2026-10-01
+
+The production Trivy gate detected three new Debian Trixie HIGH CVEs: `CVE-2026-93990` in `libexpat1`, `CVE-2026-88806` in `libx11-6`/`libx11-data`, and `CVE-2026-88807` in `libxrender1`. The reviewed Trixie package versions currently have no reported FixedVersion in the production scan. RC14 extends the temporary acceptance only to those exact binary packages and reviewed installed-version families. Any reported `FixedVersion`, package/version mismatch, new HIGH/CRITICAL finding, Python HIGH/CRITICAL finding, malformed report, or policy expiry remains blocking. The global and per-CVE review deadline remains **2026-10-20**. Trivy itself remains pinned to `v0.74.0`.
+
+
+## RC15 Python dependency security update - 2026-10-01
+
+The live `pip-audit` SCA gate detected eight known vulnerabilities in `pypdf==6.16.2`: `CVE-2026-102993`, `CVE-2026-102994`, `CVE-2026-102995`, `CVE-2026-102996`, `CVE-2026-102997`, `CVE-2026-102998`, `CVE-2026-102999`, and `CVE-2026-103000`. The highest minimum fix version across the set is `6.19.0`, so RC15 pins `pypdf==6.19.0`. No Python vulnerability acceptance is added. The SCA helper now prints a concise package/CVE/fix summary when `pip-audit` returns non-zero, while retaining the JSON report.
