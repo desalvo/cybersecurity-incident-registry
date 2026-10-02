@@ -4,7 +4,7 @@
   "build": "20260902",
   "baseline_image": "desalvo/cybersecurity-incident-registry:0.9.0-1",
   "baseline_scan_date": "2026-09-20",
-  "reviewed_on": "2026-09-20",
+  "reviewed_on": "2026-10-01",
   "valid_until": "2026-10-20",
   "policy": {
     "python_high_critical_allowed": false,
@@ -22,7 +22,8 @@
     "The final production image is pinned by registry sha256 digest.",
     "The acceptance is temporary and must be re-evaluated no later than valid_until or when Debian publishes a fix.",
     "The packaged Dockerfile and Kubernetes deployment pass scripts/verify_security_gate_context.py before image publication.",
-    "The five CVEs added on 2026-09-20 are accepted only for their explicitly listed Debian binary packages and only while Trivy reports no FixedVersion."
+    "The five CVEs added on 2026-09-20 are accepted only for their explicitly listed Debian binary packages and only while Trivy reports no FixedVersion.",
+    "The three CVEs added on 2026-10-01 are accepted only for their explicitly listed Debian binary packages and reviewed Trixie versions, only while Trivy reports no FixedVersion, and only through 2026-10-20."
   ],
   "accepted_residual_vulnerabilities": {
     "CVE-2026-24882": {
@@ -332,6 +333,37 @@
       "reviewed_on": "2026-09-20",
       "review_before": "2026-10-20",
       "installed_version_regex": "^2\\.12\\.7\\+dfsg\\+really2\\.9\\.14-2\\.1\\+deb13u3(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-93990": {
+      "component_group": "expat/Trixie transitive",
+      "packages": [
+        "libexpat1"
+      ],
+      "reason": "Debian Trixie 13 remains vulnerable and currently provides no fixed Trixie package for this Expat issue. Temporary acceptance is limited to libexpat1 at the reviewed Trixie version and remains fail-closed if Trivy reports a FixedVersion.",
+      "reviewed_on": "2026-10-01",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2\\.8\\.3-1~deb13u1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-88806": {
+      "component_group": "libX11/Trixie transitive",
+      "packages": [
+        "libx11-6",
+        "libx11-data"
+      ],
+      "reason": "Debian Trixie marks this libX11 issue no-DSA/minor and currently provides no fixed Trixie package. CIR does not expose an X server; these libraries are transitive runtime dependencies. Temporary acceptance is exact-package/version scoped and remains fail-closed if Trivy reports a FixedVersion.",
+      "reviewed_on": "2026-10-01",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^2:1\\.8\\.12-1(?:\\+b[0-9]+)?$"
+    },
+    "CVE-2026-88807": {
+      "component_group": "libXrender/Trixie transitive",
+      "packages": [
+        "libxrender1"
+      ],
+      "reason": "Debian Trixie marks this libXrender issue no-DSA/minor and currently provides no fixed Trixie package. CIR does not expose an X server; libXrender is a transitive runtime dependency. Temporary acceptance is exact-package/version scoped and remains fail-closed if Trivy reports a FixedVersion.",
+      "reviewed_on": "2026-10-01",
+      "review_before": "2026-10-20",
+      "installed_version_regex": "^1:0\\.9\\.12-1(?:\\+b[0-9]+)?$"
     }
   }
 }

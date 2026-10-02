@@ -157,7 +157,7 @@ def check_source_tree() -> list[str]:
             fail(errors, f"Dockerfile missing R7 runtime-minimization requirement: {needle}")
 
     requirements_text = (ROOT / "requirements.txt").read_text(encoding="utf-8")
-    for required_pin in ("pypdf==6.16.2", "cryptography==50.0.1"):
+    for required_pin in ("pypdf==6.19.0", "cryptography==50.0.1"):
         if required_pin not in requirements_text:
             fail(errors, f"required R4 security pin missing: {required_pin}")
 

@@ -135,3 +135,13 @@ The production gate was intentionally re-evaluated against a freshly downloaded 
 Second, the refreshed Debian Trixie scan surfaced residual OS findings for Expat (`CVE-2026-76956`, `CVE-2026-76957`) and libxml2 (`CVE-2026-74860`, `CVE-2026-86138`, `CVE-2026-86139`, `CVE-2026-86140`, `CVE-2026-86142`, `CVE-2026-86143`, `CVE-2026-86144`). At review time Trixie has no fixed package for these findings. They are accepted only temporarily, only for the exact binary package and reviewed Trixie version, and only through 2026-10-20. Any Trivy `FixedVersion`, package mismatch, version mismatch, expiry, Python HIGH/CRITICAL, or new HIGH/CRITICAL remains a hard failure.
 
 The util-linux disposition was also tightened to account for Debian epochs and the special `login` binary version (`1:4.16.0-2+really2.41.5-0+deb13u1`) using package-specific version expressions, rather than broadening the global version rule.
+
+
+## RC14 security review - 2026-10-01
+
+The production Trivy gate detected three new Debian Trixie HIGH CVEs: `CVE-2026-93990` in `libexpat1`, `CVE-2026-88806` in `libx11-6`/`libx11-data`, and `CVE-2026-88807` in `libxrender1`. The reviewed Trixie package versions currently have no reported FixedVersion in the production scan. RC14 extends the temporary acceptance only to those exact binary packages and reviewed installed-version families. Any reported `FixedVersion`, package/version mismatch, new HIGH/CRITICAL finding, Python HIGH/CRITICAL finding, malformed report, or policy expiry remains blocking. The global and per-CVE review deadline remains **2026-10-20**. Trivy itself remains pinned to `v0.74.0`.
+
+
+## RC15 Python dependency security update - 2026-10-01
+
+The live `pip-audit` SCA gate detected eight known vulnerabilities in `pypdf==6.16.2`: `CVE-2026-102993`, `CVE-2026-102994`, `CVE-2026-102995`, `CVE-2026-102996`, `CVE-2026-102997`, `CVE-2026-102998`, `CVE-2026-102999`, and `CVE-2026-103000`. The highest minimum fix version across the set is `6.19.0`, so RC15 pins `pypdf==6.19.0`. No Python vulnerability acceptance is added. The SCA helper now prints a concise package/CVE/fix summary when `pip-audit` returns non-zero, while retaining the JSON report.

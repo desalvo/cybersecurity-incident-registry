@@ -1838,7 +1838,7 @@ La verifica completa con audit vulnerabilità dipendenze è integrata nella suit
 
 ### Aggiornamento dipendenze Flask
 
-Le dipendenze runtime principali sono vincolate in `requirements.txt`: `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.16.2`, `requests==2.33.0` e `cryptography==50.0.1`. Le dipendenze di sviluppo includono `pytest==9.0.3`. Le verifiche di compatibilità devono essere rieseguite dopo ogni aggiornamento delle dipendenze.
+Le dipendenze runtime principali sono vincolate in `requirements.txt`: `Flask==3.1.3`, `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.19.0`, `requests==2.33.0` e `cryptography==50.0.1`. Le dipendenze di sviluppo includono `pytest==9.0.3`. Le verifiche di compatibilità devono essere rieseguite dopo ogni aggiornamento delle dipendenze.
 
 
 ### Rendering Markdown sicuro con colori e dimensioni
@@ -1959,4 +1959,4 @@ Aggiornamento azioni automatiche Salva dati incidente: il pulsante Salva dati in
 
 ## Isolamento delle dipendenze Python
 
-Il progetto distribuisce `scripts/setup_python_env.sh` per creare un virtual environment dedicato e installare `requirements-dev.txt` senza interferire con pacchetti Python gia' presenti nell'host o nel runner CI. La suite AGID locale usa per default `.venv-agid` e accetta `AGID_PYTHON` per usare un interprete esplicito. Questo evita conflitti con pacchetti esterni che richiedono versioni incompatibili di `pypdf` o `Pillow`, mantenendo invariato il pin applicativo `pypdf==6.16.2`.
+Il progetto distribuisce `scripts/setup_python_env.sh` per creare un virtual environment dedicato e installare `requirements-dev.txt` senza interferire con pacchetti Python gia' presenti nell'host o nel runner CI. La suite AGID locale usa per default `.venv-agid` e accetta `AGID_PYTHON` per usare un interprete esplicito. Questo evita conflitti con pacchetti esterni che richiedono versioni incompatibili di `pypdf` o `Pillow`, mantenendo invariato il pin applicativo `pypdf==6.19.0`.
