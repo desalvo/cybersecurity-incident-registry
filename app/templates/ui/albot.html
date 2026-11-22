@@ -1,0 +1,57 @@
+{% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
+{% macro albot_text(it, en) -%}{{ en if current_language == 'en' else it }}{%- endmacro %}
+{% macro albot_symbol() -%}<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-7l-5 3v-3a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>{%- endmacro %}
+{% set albot_on_incident = request.endpoint == 'main.incident_detail' %}
+<div id="cir-albot" data-ask-url="{{ url_for('ai_chatbot.widget_ask') }}" data-tenant-id="{{ active_tenant.id if active_tenant else '' }}">
+  <section id="cir-albot-panel" class="cir-albot-panel" aria-labelledby="cir-albot-title" role="complementary" hidden>
+    <header class="cir-albot-header">
+      <button id="cir-albot-back" class="cir-albot-back" type="button"><span aria-hidden="true">‹</span> {{ albot_text('Torna all’incidente', 'Back to incident') if albot_on_incident else albot_text('Torna alla pagina', 'Back to page') }}</button>
+      <div class="cir-albot-header-row">
+        <div class="cir-albot-identity"><span class="cir-albot-symbol">{{ albot_symbol() }}</span><div><h2 id="cir-albot-title">AlBot</h2><p>{{ albot_text('Guida all’applicazione · anche Alex', 'Application guide · also Alex') }}</p></div></div>
+        <div class="cir-albot-tools">
+          <button id="cir-albot-expand" type="button" aria-label="{{ albot_text('Espandi conversazione', 'Expand conversation') }}" aria-pressed="false" title="{{ albot_text('Espandi conversazione', 'Expand conversation') }}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
+          <button id="cir-albot-close" type="button" aria-label="{{ albot_text('Chiudi AlBot', 'Close AlBot') }}" title="{{ albot_text('Chiudi AlBot', 'Close AlBot') }}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <div class="cir-albot-scroll" id="cir-albot-scroll">
+      <div class="cir-albot-context">
+        <div class="cir-albot-context-row"><span class="cir-albot-tenant">Tenant: {{ active_tenant.name if active_tenant else '-' }}</span><button id="cir-albot-context-toggle" type="button" aria-expanded="false" aria-controls="cir-albot-context-details">{{ albot_text('Contesto', 'Context') }} <span aria-hidden="true">ⓘ</span></button></div>
+        <p class="cir-albot-knowledge-label">{{ albot_text('Documentazione e procedure del tenant', 'Tenant documentation and procedures') }}</p>
+        <p>{{ albot_text('Questa chat non legge automaticamente l’incidente aperto.', 'This chat does not automatically read the open incident.') if albot_on_incident else albot_text('Questa chat non legge automaticamente la pagina aperta.', 'This chat does not automatically read the open page.') }}</p>
+        <div id="cir-albot-context-details" hidden>
+          <p>{{ albot_text('AlBot usa la documentazione di CIR e i documenti della knowledge base del tenant attivo. La domanda corrente viene inviata al motore AI configurato; la cronologia visibile non viene reinviata automaticamente.', 'AlBot uses CIR documentation and the active tenant’s knowledge base. The current question is sent to the configured AI engine; the visible conversation history is not automatically sent again.') }}</p>
+          <p>{% if cir_ai_database_context_enabled %}{{ albot_text('Lo snapshot database anonimizzato opzionale è attivo per questo tenant.', 'The optional anonymized database snapshot is enabled for this tenant.') }}{% else %}{{ albot_text('Lo snapshot database anonimizzato opzionale è disattivato per questo tenant.', 'The optional anonymized database snapshot is disabled for this tenant.') }}{% endif %}</p>
+          <p>{{ albot_text('Il testo della domanda e i documenti della knowledge base non vengono anonimizzati automaticamente. AlBot fornisce indicazioni: le operazioni nell’applicazione restano sotto il tuo controllo.', 'Question text and knowledge base documents are not automatically anonymized. AlBot provides guidance; application operations remain under your control.') }}</p>
+        </div>
+      </div>
+      <div id="cir-albot-messages" class="cir-albot-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="{{ albot_text('Conversazione con AlBot', 'Conversation with AlBot') }}">
+        <article class="cir-albot-message bot"><strong class="cir-albot-message-label">AlBot</strong><p>{{ albot_text('Come posso aiutarti a usare CIR? Puoi chiedermi come registrare un’azione, trovare un incidente o gestire i documenti.', 'How can I help you use CIR? Ask how to record an action, find an incident or manage documents.') }}</p></article>
+      </div>
+      <div class="cir-albot-suggestions">
+        <p>{{ albot_text('Altre domande', 'Other questions') }}</p>
+        {% if albot_on_incident %}<button type="button" data-cir-albot-question="{{ albot_text('Come registro la conservazione delle evidenze?', 'How do I record evidence preservation?') }}">{{ albot_text('Registrare un’azione', 'Record an action') }}</button>{% else %}<button type="button" data-cir-albot-question="{{ albot_text('Come trovo un incidente già registrato?', 'How do I find an existing incident?') }}">{{ albot_text('Cercare un incidente', 'Find an incident') }}</button>{% endif %}
+        <button type="button" data-cir-albot-question="{{ albot_text('Come gestisco i documenti di un incidente?', 'How do I manage incident documents?') }}">{{ albot_text('Gestire i documenti', 'Manage documents') }}</button>
+      </div>
+    </div>
+    <form id="cir-albot-form" class="cir-albot-composer" method="post" action="{{ url_for('ai_chatbot.widget_ask') }}">
+      <label for="cir-albot-question">{{ albot_text('Domanda per AlBot', 'Question for AlBot') }}</label>
+      <textarea id="cir-albot-question" name="question" rows="2" placeholder="{{ albot_text('Chiedi come usare CIR…', 'Ask how to use CIR…') }}" required></textarea>
+      <p id="cir-albot-status" role="status" aria-live="polite"></p>
+      <div class="cir-albot-composer-actions"><button id="cir-albot-new-question" type="button">{{ albot_text('Nuova domanda', 'New question') }}</button><button id="cir-albot-send" type="submit" disabled>{{ albot_text('Invia', 'Send') }}</button></div>
+      <p class="cir-albot-footnote">{{ albot_text('Verifica le indicazioni prima di applicarle.', 'Review guidance before applying it.') }}</p>
+    </form>
+  </section>
+  <script id="cir-albot-strings" type="application/json">{{ {
+    'welcome': albot_text('Come posso aiutarti a usare CIR? Puoi chiedermi come registrare un’azione, trovare un incidente o gestire i documenti.', 'How can I help you use CIR? Ask how to record an action, find an incident or manage documents.')|string,
+    'you': albot_text('Tu', 'You')|string,
+    'pending': albot_text('Sto elaborando la risposta…', 'Preparing the answer…')|string,
+    'error': albot_text('Errore di comunicazione con AlBot. Riprova o verifica la sessione.', 'Could not contact AlBot. Try again or check your session.')|string,
+    'invalid': albot_text('Il contesto del tenant o i permessi sono cambiati. Ricarica la pagina prima di usare AlBot.', 'Tenant context or permissions have changed. Reload this page before using AlBot.')|string,
+    'invalidResponse': albot_text('Risposta non valida dal server.', 'Invalid server response.')|string,
+    'timeout': albot_text('Il motore AI non ha risposto entro il tempo previsto. Puoi riprovare.', 'The AI engine did not respond in time. You can try again.')|string,
+    'expand': albot_text('Espandi conversazione', 'Expand conversation')|string,
+    'restore': albot_text('Ripristina pannello laterale', 'Restore side panel')|string
+  }|tojson }}</script>
+</div>
+{% endif %}

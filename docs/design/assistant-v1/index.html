@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CIR · Assistente AI nel nuovo design</title>
+<link rel="stylesheet" href="styles.css">
+<script src="assistant.js" defer></script>
+</head>
+<body>
+<div class="review-bar" id="review-bar"><span>Assistente AI · proposta</span><div class="page-controls" aria-label="Pagina dimostrativa"><button type="button" data-page="incident" class="active">Incidente</button><button type="button" data-page="home">Registro</button></div><span class="review-disclaimer">Dati e risposte dimostrativi</span></div>
+<div class="review-shell" id="review-shell">
+  <div class="page-host" id="page-host"><iframe id="page-frame" title="Pagina CIR approvata · esempio interattivo"></iframe><div id="auth-notice" class="auth-notice" hidden>Accedi all’applicazione per consultare le pagine e usare AlBot.</div></div>
+  <div id="assistant-backdrop" class="assistant-backdrop" hidden></div>
+  <section class="assistant-panel" id="assistant-panel" aria-labelledby="assistant-heading" hidden>
+    <header class="assistant-header"><div class="assistant-identity"><span class="assistant-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5.5 3v-3H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><path d="M7.5 9h9M7.5 13h6"/></svg></span><div><h1 id="assistant-heading" tabindex="-1">AlBot</h1><p>Guida all’applicazione</p></div></div><div class="assistant-tools"><button type="button" id="assistant-expand" title="Espandi assistente" aria-label="Espandi assistente">⤢</button><button type="button" id="assistant-close" title="Chiudi assistente" aria-label="Chiudi assistente">×</button></div></header>
+    <button type="button" id="assistant-back" class="assistant-back"><span aria-hidden="true">←</span> <span id="assistant-back-label">Torna all’incidente</span></button>
+    <div class="assistant-context"><div><span class="tenant-context" id="assistant-tenant">Tenant · default</span><button type="button" id="context-toggle" aria-expanded="false" aria-controls="context-details">Contesto <span aria-hidden="true">ⓘ</span></button></div><p id="knowledge-label" class="knowledge-label">Documentazione e procedure del tenant</p><p id="context-note">Questa chat non legge automaticamente l’incidente aperto.</p><div id="context-details" hidden><p>AlBot usa la documentazione applicativa e la knowledge base del tenant configurata dagli amministratori.</p><p>In questo esempio lo snapshot anonimizzato del database è disattivato. Ogni domanda è trattata separatamente; lo storico visibile non viene allegato alla domanda.</p></div></div>
+    <div class="assistant-scroll" id="assistant-scroll"><div class="conversation" id="conversation" role="log" aria-live="polite" aria-relevant="additions text"></div><div class="suggestion-group"><p>Altre domande</p><div id="suggestions" class="suggestions"></div></div></div>
+    <form class="assistant-composer" id="assistant-form"><label for="assistant-question">Domanda per AlBot</label><textarea id="assistant-question" name="question" rows="2" placeholder="Chiedi come usare CIR…" required></textarea><div class="composer-footer"><button type="button" id="clear-chat" class="plain">Nuova domanda</button><button type="submit" class="send-button" aria-label="Invia domanda dimostrativa">Invia <span aria-hidden="true">↑</span></button></div><p>Verifica le indicazioni prima di applicarle.</p></form>
+  </section>
+</div>
+<div class="sr-only" id="assistant-announcement" aria-live="polite"></div>
+</body>
+</html>

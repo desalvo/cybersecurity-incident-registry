@@ -1,4 +1,40 @@
+# Progetto applicativo e decisioni tecniche
+
+## Architettura corrente 0.10.0-1 / RC1
+
+La linea corrente usa VERSION e BUILD condivisi da runtime, guide, screenshot e
+immagine. `application_identity.py` centralizza i dati pubblici About; i generatori
+PDF e la documentazione online riusano logo, fotografia e piattaforme dello stesso
+manifest. La documentazione autenticata mantiene i controlli di sessione/MFA e usa
+un elenco chiuso di guide sorgenti, senza eseguire HTML nei Markdown.
+
+Le migrazioni automatiche, Tenants Default e i workflow portabili sono descritti
+nelle sezioni recenti e in MIGRATION.md. Il modello corrente comprende la UI
+approvata con switch globale default ON, la pipeline documentale con screenshot
+reali e una revisione periodica SCA/Trivy. Le sezioni seguenti conservano le
+baseline progettuali storiche: i loro vecchi metadati e l'assenza di banner delle
+vecchie guide non descrivono la copertina corrente, che mostra versione e build.
+
+
+## Identità corrente: 0.10.0-1 / RC1
+
+La versione funzionale in sviluppo è 0.10.0-1. La build automatica `YYYYMMDD`
+viene calcolata una sola volta per esecuzione CI (`Europe/Rome`) e propagata nei
+file VERSION/BUILD, nei documenti e nell'immagine. Il runtime legge i file
+distribuiti e non viene rietichettato da vecchi override del deployment.
+L'upgrade applicativo usa il ledger indipendente `cir_schema_migrations` e
+conserva la revisione esistente `20261122_01_legacy_bridge`; nessun DDL è aggiunto
+per il solo cambio di versione. Le decisioni sottostanti restano una cronologia
+tecnica e mantengono il numero della release che le ha introdotte.
+
 ## Aggiornamento 0.7.0-7 - Campi personalizzati nei Dati Generali e UI incidente
+
+## RC18 - Tenants Default e ciclo di vita (2026-11-22)
+
+Le decisioni qui indicate sostituiscono i comportamenti RC17 incompatibili: inizializzazione dalla configurazione di default solo quando il tenant speciale manca; bootstrap con entrambi i tenant; dipendenze del catalogo risolte per UUID e replica locale; personalizzazione esplicita per ottenere varianti indipendenti; stati persistenti current/obsolete e notifiche per utente.
+
+`TenantWorkflow` mantiene identità e origine anche se cambiano gli step. `WorkflowObsolescenceNotice` conserva gli avvisi senza dipendere dal tenant attivo. `configuration_usage.py` verifica i riferimenti prima delle cancellazioni; gli incidenti esistenti non perdono i collegamenti. Il bundle completo mantiene mapping e documenti tra istanze. Dettagli operativi in [MIGRATION.md](MIGRATION.md), installazione in [DEPLOYMENT.md](DEPLOYMENT.md).
+
 
 La release 0.7.0-7 build 20260608 aggiunge campi personalizzati configurabili nella sezione Dati Generali degli incidenti specifici. Gli amministratori possono definire campi testo, data/ora, nascosti con rivelazione esplicita e checkbox con descrizione da Admin -> Configurazione generale -> Campi personalizzati; la visibilità di ogni campo è disponibile in Admin -> Layout campi incidenti. La pagina incidente mostra il Riferimento sotto al nome dell'incidente e posiziona l'icona di ritorno a inizio pagina verticalmente al centro delle sezioni successive alla prima.
 

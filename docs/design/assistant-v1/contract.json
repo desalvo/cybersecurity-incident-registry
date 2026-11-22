@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "design_id": "assistant-v1",
+  "status": "proposal_pending_user_approval",
+  "functional_version": "0.9.0-1",
+  "scope": "Isolated visual and local interactive proposal only; application runtime and approved designs remain unchanged.",
+  "baseline": {
+    "cumulative": "cybersecurity-incident-registry-0.9.0-1-design-review-rc19.zip",
+    "sha256": "8cb94162dfd11e7bdb6e1577e0984b3a835ea739aaaff97d16a952c71f1cc1e5",
+    "approved_page_source_sha256": {
+      "docs/design/incident-v1/index.html": "a0b834b46c4e46010d300fb6f34b373f4c4d3c7a7a76fff5d8b1573a65478287",
+      "docs/design/incident-v1/styles.css": "46f3d236bfa31f3c2c8ed06022e3309f98841e74e7cdb153fb35ed40d5b4a3b4",
+      "docs/design/incident-v1/incident.js": "9937e55954eb3934dfd5e17fdf27ae386dac40288590fd0c37d61e81157ddba0",
+      "docs/design/home-v1/index.html": "36cb53cea8f6f73fbbcd1ebdc640f891694a4a8b569c808a6ae5704397217cb0",
+      "docs/design/home-v1/styles.css": "3577c7f44368e281fa433e37dd981c9ebb921c890a2e5a1c25ea6f7a5ec7760b",
+      "docs/design/home-v1/home.js": "339f1c46f425caafc4e313915c42d4f26091573b69a35d63cab2b86461b6dba2"
+    },
+    "preserved_designs": [
+      "login-v2",
+      "home-v1",
+      "incident-v1"
+    ]
+  },
+  "layout": {
+    "desktop": {
+      "minimum_viewport_width": 1800,
+      "dock_width": 360,
+      "example_viewport_width": 1920,
+      "example_underlying_page_width": 1560,
+      "position": "right",
+      "workflow": "All four approved two-part blocks, their arrows, labels and controls stay in the underlying approved frame."
+    },
+    "intermediate": {
+      "viewport_width": "761–1799",
+      "mode": "Focused dialog; underlying approved page is inert while open, never permanently compressed."
+    },
+    "mobile": {
+      "maximum_viewport_width": 760,
+      "mode": "Dedicated full-width assistant dialog",
+      "return_control": "Torna all’incidente / Torna al registro",
+      "safe_area_composer": true,
+      "back_above_identity": true
+    },
+    "entry": "Header AlBot · AI button; existing AI menu entry also opens the local proposal.",
+    "initial_state": "Open on wide desktop; collapsed on smaller viewports."
+  },
+  "identity": {
+    "name": "AlBot",
+    "alias": "Alex",
+    "subtitle": "Guida all’applicazione",
+    "avatar": "Native abstract chat icon; no people, original runtime avatar untouched."
+  },
+  "capabilities": {
+    "actual_widget_endpoint": "ai_chatbot.widget_ask",
+    "actual_method": "POST",
+    "actual_request_body": {
+      "question": "current question only"
+    },
+    "actual_csrf_header": "X-CSRFToken",
+    "actual_response_keys": [
+      "ok",
+      "answer",
+      "engine"
+    ],
+    "knowledge": [
+      "Project/help documentation",
+      "Active-tenant knowledge-base text",
+      "Optional sanitized database snapshot; OFF in fixture"
+    ],
+    "automatic_page_context": false,
+    "automatic_incident_context": false,
+    "conversation_history_sent": false,
+    "model_actions": false,
+    "structured_citations_contract": false,
+    "raw_question_or_knowledge_redaction_guaranteed": false,
+    "visible_scope_note": {
+      "incident": "Questa chat non legge automaticamente l’incidente aperto.",
+      "home": "Questa chat non legge automaticamente la pagina aperta."
+    }
+  },
+  "access": {
+    "runtime_chat": "Authenticated user with active-tenant AI plugin enabled.",
+    "runtime_configuration": "Active-tenant administrators and superusers.",
+    "prototype_gates": [
+      "plugin disabled: hide header/menu entry, close panel, clear transcript, reject open/send",
+      "logged out or disabled demo role: hide protected page, close panel, clear transcript, reject open/send",
+      "tenant change: sync active tenant and clear local transcript and draft"
+    ],
+    "demo_membership": "default/laboratorio/defaults are fixture tenants. Non-superuser demo roles have default membership only; this is not a new application authorization rule."
+  },
+  "state_contract": {
+    "close": "No frame reload; preserve current underlying page form values, expanded sections and scroll; restore focus to entry.",
+    "same_tenant_reopen": "Keep local displayed transcript for visual continuity; this does not imply provider conversation memory.",
+    "tenant_change": "Clear transcript and composer, then label the newly active tenant.",
+    "page_change": "Load another unchanged approved page snapshot and its illustrative question when default tenant selected.",
+    "submission": "Local deterministic fixture response only; no fetch, backend request, storage write or provider call.",
+    "unsupported_question": "Display honest local preview notice; no fabricated context-dependent answer.",
+    "keyboard": "Escape closes; focused dialog traps Tab; focus returns to entry.",
+    "review_api": "window.CIRAssistantReview is a bounded prototype inspection API, not app permissions or model tools."
+  },
+  "visual_parity": {
+    "knowledge_label_visible": true,
+    "suggestion_group": "Altre domande",
+    "suggestions": "Exclude current page answer_key, then use first two canonical suggestions.",
+    "desktop_header_control": "Expand (⤢) and close (×); close retains the underlying page state.",
+    "mobile_header_control": "Close (×), with return row above identity",
+    "composer_label": "Domanda per AlBot",
+    "composer_action": "Nuova domanda clears the local transcript and focuses the composer; Invia adds a local sample response.",
+    "context_disclosure": "Visible Contesto disclosure supplements knowledge label and page-scope note."
+  },
+  "global_interface_switch": {
+    "status": "Existing future implementation contract preserved, not implemented by this prototype.",
+    "scope": "Global for all tenants",
+    "administrator": "superadmin",
+    "default": "OFF",
+    "legacy_interface": "Must remain available when disabled."
+  },
+  "delivery": {
+    "project_entry": "index.html",
+    "standalone": "Renderer embeds CSS/JS and replaces ASSETS map only with data URIs; opening final HTML requires no server, CDN or network.",
+    "asset_sources": [
+      "../../../app/static/cir-application-logo.svg",
+      "../../visual-assets/cybersecurity-hero-v2.png"
+    ],
+    "photo_policy": "Reuse approved synthetic cybersecurity hero; no human imagery.",
+    "source_snapshots": "Exact approved HTML/CSS/JS text is stored in PAGE_SOURCES; wrapper overrides and assistant entry are applied only to the isolated frame."
+  },
+  "verification_limits": [
+    "Native review boards are not browser screenshots.",
+    "Bounded JavaScript checks are not end-to-end browser or accessibility certification.",
+    "No Flask, live AI provider, production deployment, image build or promotion is performed."
+  ]
+}

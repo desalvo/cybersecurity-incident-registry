@@ -7,6 +7,11 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+import contextlib
+from datetime import date
+import importlib.util
+import io
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 EVALUATOR = ROOT / "scripts" / "evaluate_trivy_gate.py"
@@ -14,19 +19,44 @@ POLICY = ROOT / "TRIVY_RISK_ACCEPTANCE_R8.json"
 
 
 def _run_gate(report: dict, policy: dict | None = None) -> subprocess.CompletedProcess[str]:
+    """Exercise historical policy fixtures at their review date, in tests only.
+
+    The production evaluator retains the real clock and has no override flag.
+    A separate test below invokes its actual CLI with today's date.
+    """
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         report_path = td / "report.json"
         policy_path = td / "policy.json"
         report_path.write_text(json.dumps(report), encoding="utf-8")
         policy_path.write_text(json.dumps(policy or json.loads(POLICY.read_text(encoding="utf-8"))), encoding="utf-8")
-        return subprocess.run(
-            [sys.executable, str(EVALUATOR), str(report_path), "--policy", str(policy_path), "--platform", "linux/amd64"],
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+        spec = importlib.util.spec_from_file_location('cir_policy_under_test', EVALUATOR)
+        evaluator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(evaluator)
+        class ReviewedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 10, 1)
+        args = [str(EVALUATOR), str(report_path), '--policy', str(policy_path), '--platform', 'linux/amd64']
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch.object(evaluator, 'date', ReviewedDate), patch.object(sys, 'argv', args):
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                result = evaluator.main()
+        return subprocess.CompletedProcess(args, result, stdout.getvalue(), stderr.getvalue())
+
+
+def test_production_evaluator_uses_real_clock_and_rejects_expired_repository_policy():
+    with tempfile.TemporaryDirectory() as td:
+        report = Path(td) / 'report.json'
+        report.write_text(json.dumps(_report([_vuln('CVE-2026-76642', 'util-linux')])), encoding='utf-8')
+        result = subprocess.run([sys.executable, str(EVALUATOR), str(report), '--policy', str(POLICY)],
+                                cwd=ROOT, text=True, capture_output=True)
+    policy = json.loads(POLICY.read_text(encoding='utf-8'))
+    if date.today() > date.fromisoformat(policy['valid_until']):
+        assert result.returncode != 0
+        assert 'risk acceptance expired' in result.stderr
+    else:
+        assert result.returncode == 0, result.stderr
 
 
 def _report(vulnerabilities: list[dict], *, typ: str = "debian") -> dict:
@@ -155,10 +185,52 @@ def test_release_package_has_new_layout_and_excludes_runtime_artifacts(tmp_path:
     assert out.is_file() and Path(str(out) + ".sha256").is_file()
     with zipfile.ZipFile(out) as zf:
         names = zf.namelist()
-    base = "cybersecurity-incident-registry-0.9.0-1/"
+        base = "cybersecurity-incident-registry-" + (ROOT / "VERSION").read_text().strip() + "/"
+        # A source-only cumulative must retain both UI modes and every helper
+        # needed to produce verified real screenshots in the next CI run.
+        required_ui_sources = (
+            "app/ui_settings.py", "app/ui_documentation.py",
+            "app/templates/base.html", "app/templates/login.html", "app/templates/index.html",
+            "app/templates/incident_detail.html", "app/static/app.js", "app/static/style.css",
+            "app/static/cir-application-logo.svg", "app/static/ai-chatbot/albot-avatar.png",
+            "app/templates/ui/navigation.html", "app/templates/ui/header.html",
+            "app/templates/ui/login_modern.html", "app/templates/ui/albot.html",
+            "app/templates/ui/interface_settings.html",
+            "app/static/ui/ui.css", "app/static/ui/ui.js",
+            "app/static/ui/incident.css", "app/static/ui/incident.js",
+            "app/static/ui/albot.css", "app/static/ui/albot.js",
+            "requirements-ui.txt", "scripts/seed_ui_documentation.py",
+            "scripts/capture_ui_screenshots.py", "scripts/ui_documentation_evidence.py",
+            "scripts/install_ui_documentation.py", "scripts/build_documentation_pdfs.py",
+            "tests/test_global_ui_mode.py", "tests/test_modern_ui_shell.py",
+            "tests/test_modern_ui_incident_albot.py",
+            "tests/test_ui_documentation_evidence.py", "tests/test_ui_screenshot_pipeline.py",
+            "app/migration_manager.py", "app/migrate.py", "docker-entrypoint.sh",
+            "tests/test_migration_manager_stdlib.py", "tests/test_migration_manager_sqlalchemy.py",
+            "tests/test_legacy_schema_migrations.py", "tests/test_automatic_upgrade_integration.py",
+            "tests/test_postgresql_automatic_upgrade.py",
+            "tests/fixtures/rc16_schema/models.py", "tests/fixtures/rc16_schema/PROVENANCE.json",
+        )
+        for relative in required_ui_sources:
+            assert zf.read(base + relative) == (ROOT / relative).read_bytes(), relative
+        for filename in ("cybersecurity-login-v2.png", "cybersecurity-hero-v2.png"):
+            assert zf.read(base + "app/static/ui/" + filename) == zf.read(base + "docs/visual-assets/" + filename)
+        # CI installs these after evidence validation. They are optional before
+        # capture, but packaging must never discard an installed evidence batch.
+        evidence_root = ROOT / "app/static/help/ui-runtime"
+        if evidence_root.is_dir():
+            for path in evidence_root.rglob("*"):
+                if path.is_file():
+                    relative = str(path.relative_to(ROOT))
+                    assert zf.read(base + relative) == path.read_bytes(), relative
+        for relative in ("docs/UI_SCREENSHOTS_SOURCE.json", "docs/UI_SCREENSHOTS_BUILD.json"):
+            if (ROOT / relative).is_file():
+                assert zf.read(base + relative) == (ROOT / relative).read_bytes(), relative
+    base = "cybersecurity-incident-registry-" + (ROOT / "VERSION").read_text().strip() + "/"
     assert base + "README.md" in names and base + "README_en.md" in names
     assert base + "docs/SECURITY.md" in names and base + "docs/TESTING_AND_PRODUCTION.md" in names
     assert base + "sbom/SBOM_ROUND18.cdx.json" in names
+    assert base + "sbom/SBOM_CURRENT.cdx.json" in names
     assert not any(Path(n).name.startswith("SECURITY_AUDIT_ROUND") and n.endswith(".md") for n in names)
     assert not any("/.pytest_cache/" in n or "/__pycache__/" in n or n.endswith("SCA_PIP_AUDIT.json") for n in names)
 

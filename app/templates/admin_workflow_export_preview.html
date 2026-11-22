@@ -16,7 +16,7 @@
     <summary>Struttura JSON dell’export</summary>
     <pre class="json-preview">{{ payload_json }}</pre>
   </details>
-  <form method="post" action="{{ url_for('main.admin_incident_workflow_export_download') }}" onsubmit="return confirm('Confermi il download dell’export del workflow visualizzato?');">
+  <form method="post" action="{{ url_for('main.admin_incident_workflow_export_download') }}" data-cir-confirm="Confermi il download dell’export del workflow visualizzato?">
     <input type="hidden" name="category_id" value="{{ category_id or '' }}">
     <button>Conferma e scarica export</button>
     <a class="button secondary" href="{{ url_for('main.admin_incident_workflows') }}">Annulla</a>

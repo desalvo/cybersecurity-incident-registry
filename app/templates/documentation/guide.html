@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card documentation cir-documentation-guide" aria-labelledby="doc-title">
+  {% include 'documentation/cover.html' %}
+  <article id="guide-content" class="cir-doc-source" tabindex="-1">{{ guide_body }}</article>
+</div>
+{% endblock %}

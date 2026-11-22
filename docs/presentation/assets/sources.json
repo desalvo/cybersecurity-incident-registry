@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "images": [
+    {
+      "file": "app/static/ui/cybersecurity-hero-v2.png",
+      "sha256": "60ba95fdad989a5811ea4c0aef2bd669fe9ce2c2573b8404c062cbcb3695a0fc",
+      "origin": "Synthetic cybersecurity illustration from the approved CIR UI; fictitious systems, no people.",
+      "purpose": "Illustration only; never used as evidence of the running application."
+    },
+    {
+      "file": "app/static/ui/cybersecurity-login-v2.png",
+      "sha256": "ca752b6824c151ae1fb904da7ddff49fcf391663e749288962536ccecc649789",
+      "origin": "Synthetic cybersecurity illustration from the approved CIR UI; fictitious systems, no people.",
+      "purpose": "Illustration only; never used as evidence of the running application."
+    },
+    {
+      "file": "app/static/help/cybersecurity-brochure-strip.png",
+      "sha256": "4b5011a97437dca19e23043538f3959f7837cd0b38f8d3f5506f29c59889ef01",
+      "origin": "Derived crop from approved in-app synthetic CIR security hero; no external stock photography.",
+      "purpose": "Photographic editorial band on pages 2-4 of both product brochures."
+    }
+  ],
+  "application_logo": "app/static/help/app-logo.png",
+  "technology_identifiers_manifest": "app/static/branding/platforms/manifest.json",
+  "real_ui_evidence": "Only verified same-commit/same-version/same-build browser captures are embedded in the CI edition. Source edition has explicitly pending slots."
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Mockup interattivo CIR. Dati dimostrativi, nessuna connessione a sistemi reali.">
+<title>CIR · Proposta interfaccia</title>
+<link rel="stylesheet" href="styles.css">
+<script src="mockup.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Salta al contenuto</a>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="sidebar" id="sidebar" aria-label="Navigazione principale"></aside>
+<div class="shell">
+<header class="topbar">
+<button class="icon-button mobile-menu" id="menu-toggle" aria-label="Apri menu" aria-controls="sidebar" aria-expanded="false"></button>
+<div class="tenant-control"><label for="tenant">TENANT ATTIVO</label><select id="tenant"><option value="research">Research Lab</option><option value="default">default</option><option value="defaults">Tenants Default</option></select></div>
+<button class="global-search" id="search-open"><span class="search-label">Cerca incidenti o funzioni</span><kbd>⌘ K</kbd></button>
+<div class="top-actions"><button class="icon-button" id="notices-open" aria-label="Apri avvisi"><span class="notice-dot"></span></button><button class="avatar" id="profile-open" aria-label="Profilo e impostazioni">AM</button></div>
+</header>
+<div class="preview-ribbon"><span><i></i> Mockup nuova interfaccia · da approvare</span><span class="preview-version">CIR 0.9.0-1 <span> / </span> Proposta da approvare</span></div>
+<div id="ui-mode-notice" class="ui-mode-notice" aria-live="polite"></div>
+<main id="main" tabindex="-1"></main>
+<footer class="page-footer"><span>Cybersecurity Incident Registry</span><span>Ogni azione, nel suo contesto.</span><button data-feature="main.app_info">Informazioni</button></footer>
+</div>
+<nav class="mobile-dock" aria-label="Navigazione rapida mobile" id="mobile-dock"></nav>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
+</body>
+</html>

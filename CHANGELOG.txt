@@ -1,3 +1,14 @@
+0.9.0-1 approved interface RC20 - 2026-11-22
+- Implementata la UI responsive approvata: login, lista incidenti, menu desktop/mobile, blocchi procedurali con frecce e pannello AlBot, con fotografie sintetiche cybersecurity senza persone.
+- Aggiunto switch globale persistente Moderna/Classica per superuser, default Moderna, condiviso da tutti i tenant/utenti/login e registrato nell'audit.
+- Preservate operazioni e permessi; conferme e handler eseguiti con CSP attiva, sessione/MFA/tenant verificati prima delle richieste AI.
+- Aggiunto gate CI obbligatorio per 13 screenshot reali, manuali PDF e source package, con checksum e identita' del commit, installati nella candidate prima di build/scansione.
+- Documentato upgrade per immagine da 0.9.0-1 build20260902: backup coerente, DB/PVC/Secret conservati, primo avvio seriale, migrazioni automatiche e rollback con dati coerenti. Nessun Full Import/bootstrap richiesto per aggiornare.
+- Introdotto registro indipendente cir_schema_migrations: bridge legacy, revisioni ordinate/idempotenti, preflight schemi sconosciuti o futuri, marker nella transazione finale del bootstrap e migratore prima dei worker HTTP/HTTPS.
+- Corrette migrazioni legacy auth_provider, cache delle colonne, primo backfill date e conservazione di flag/testi personalizzati; DDL e integrita' PostgreSQL obbligatorie fail-closed senza cancellare duplicati o dati orfani.
+- Aggiunte regressioni da schema storico RC16, riavvio, preservazione dati/configurazioni/file, errore e retry, schema futuro, Full Import e transazioni reali; prove locali di compatibilita' distinte dalla CI con pin esatti.
+- Versione/build invariate. Immagine production pending, disposition scaduta non prorogata; esiti locali e gate ancora richiesti nell'Handoff e nel report RC20.
+
 0.9.0-1 packaging regression RC16 - 2026-10-02
 - Ripristinati i bit eseguibili di docker-entrypoint.sh e degli script shell, persi durante il repackaging RC15.
 - Corretto il test SBOM: SBOM_ROUND18.cdx.json resta un artefatto storico del Round 18 con pypdf 6.16.2; il pin runtime corrente resta pypdf 6.19.0 ed e' verificato separatamente.
