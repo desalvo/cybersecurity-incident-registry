@@ -1,0 +1,29 @@
+{
+  "version": "0.10.0-1",
+  "candidate": "RC26",
+  "source_baseline": "RC25",
+  "run": "45224547175",
+  "scans": {
+    "amd64": {
+      "high": 81,
+      "critical": 1,
+      "distinct_cves": 33,
+      "fixed_versions": 0
+    },
+    "arm64": {
+      "high": 81,
+      "critical": 1,
+      "distinct_cves": 33,
+      "fixed_versions": 0
+    }
+  },
+  "findings_amd64_arm64_equal": true,
+  "approval": "NONE",
+  "production_promotion": "BLOCKED",
+  "notes": [
+    "Package detection is not proof of exploitability",
+    "No FixedVersion is not proof of absence of vendor patch",
+    "Individual Debian advisories and reachability are not verified by this artifact",
+    "Risk acceptance expired; not renewed"
+  ]
+}

@@ -80,8 +80,8 @@ def test_round18_release_lineage_is_documented_consistently() -> None:
     rc = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
     notes_it = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
     notes_en = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    readme_en = (ROOT / "README_en.md").read_text(encoding="utf-8")
+    readme = (ROOT / 'docs/DEVELOPMENT_HISTORY_README_IT.md').read_text(encoding='utf-8')
+    readme_en = (ROOT / 'docs/DEVELOPMENT_HISTORY_README_EN.md').read_text(encoding='utf-8')
 
     assert "0.8.0 build 20260718 - Baseline" in changelog
     assert "0.8.0-1 - Spostamento incidenti" not in changelog

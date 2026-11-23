@@ -21,8 +21,43 @@ env:
   DEFAULT_DOCKER_REPOSITORY: desalvo/cybersecurity-incident-registry
 
 jobs:
+  ci-mode:
+    name: Select full CI or temporary security-only mode
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      security_only: ${{ steps.mode.outputs.security_only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Determine mode from exact head commit
+        id: mode
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          echo 'security_only=false' >> "$GITHUB_OUTPUT"
+          # Never bypass full CI for main, tags or explicit manual releases.
+          if [[ "$EVENT_NAME" != pull_request && "$EVENT_NAME" != push ]]; then exit 0; fi
+          if [[ "$REF_NAME" == refs/heads/main || "$REF_NAME" == refs/tags/* ]]; then exit 0; fi
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+          fi
+          message="$(git show -s --format=%B "$HEAD_SHA")"
+          if [[ "$message" == *'[ci-security]'* ]]; then
+            echo 'security_only=true' >> "$GITHUB_OUTPUT"
+            echo 'Security-only request detected; full tests and documentation are skipped for this non-main ref.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   release-metadata:
     name: Resolve release metadata
+    needs: [ci-mode]
+    if: needs.ci-mode.outputs.security_only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -41,7 +76,8 @@ jobs:
 
   quality-gates:
     name: Tests, PostgreSQL, SCA and offline gates
-    needs: [release-metadata]
+    needs: [ci-mode, release-metadata]
+    if: needs.ci-mode.outputs.security_only != 'true'
     env:
       CIR_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
       CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}
@@ -127,7 +163,7 @@ jobs:
           BACKUP_DIR: ${{ runner.temp }}/cir-postgres-tests/backups
           AI_CHATBOT_DOC_DIR: ${{ runner.temp }}/cir-postgres-tests/ai-chatbot-docs
           SSL_DIR: ${{ runner.temp }}/cir-postgres-tests/ssl
-        run: ./scripts/run_postgres_tests.sh
+        run: bash ./scripts/run_postgres_tests.sh
 
       - name: Verify release candidate
         run: python scripts/verify_release_candidate.py
@@ -136,13 +172,13 @@ jobs:
         run: python scripts/verify_security_gate_context.py
 
       - name: Run software-composition analysis
-        run: ./scripts/run_sca.sh
+        run: bash ./scripts/run_sca.sh
 
       - name: Audit public documentation build dependencies
         run: python -m pip_audit -r requirements.txt -r requirements-docs.txt --strict
 
       - name: Build release package as packaging smoke test
-        run: ./scripts/package_release.sh "${RUNNER_TEMP}/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
+        run: bash ./scripts/package_release.sh "${RUNNER_TEMP}/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
 
       - name: Build verified Helm and OpenShift installation packages
         run: python scripts/package_installers.py --output "${RUNNER_TEMP}/cir-installers-${GITHUB_SHA}" --require-helm
@@ -166,7 +202,8 @@ jobs:
 
   ui-documentation:
     name: Real UI screenshots and documentation
-    needs: [release-metadata]
+    needs: [ci-mode, release-metadata]
+    if: needs.ci-mode.outputs.security_only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -250,7 +287,7 @@ jobs:
             --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
             --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
             --source-commit "${GITHUB_SHA}"
-          ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
+          bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
 
       - name: Upload real screenshots, manuals and source package
         id: ui-artifact
@@ -430,7 +467,7 @@ jobs:
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567
         with:
-          version: v0.74.0
+          version: v0.76.2
           cache: true
 
       - name: Run CIR Trivy production gate on exact candidate digest
@@ -438,7 +475,7 @@ jobs:
           TRIVY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           TRIVY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          ./scripts/run_trivy_production_gate.sh \
+          bash ./scripts/run_trivy_production_gate.sh \
             "${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
 
       - name: Upload Trivy evidence
@@ -529,7 +566,7 @@ jobs:
           python scripts/record_production_digest.py \
             --repository "${{ steps.image.outputs.repository }}" \
             --digest "${{ steps.published.outputs.digest }}"
-          ./scripts/verify_production_release.sh
+          bash ./scripts/verify_production_release.sh
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

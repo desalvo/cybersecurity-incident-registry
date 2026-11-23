@@ -1,0 +1,22 @@
+{
+  "amd64_occurrences": 79,
+  "arm64_occurrences": 79,
+  "distinct_cves": 32,
+  "critical": [
+    "CVE-2026-6653"
+  ],
+  "categories": {
+    "document_or_data_parser": 21,
+    "gnupg_transitive": 7,
+    "network_or_crypto": 7,
+    "other_runtime": 5,
+    "system_or_privileged": 39
+  },
+  "decision": "NOT_APPROVED",
+  "production_gate": "MUST_REMAIN_BLOCKING",
+  "limitations": [
+    "No runtime reachability testing",
+    "No Debian vendor fix verification",
+    "No approved risk acceptance"
+  ]
+}

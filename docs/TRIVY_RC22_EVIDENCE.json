@@ -1,0 +1,26 @@
+{
+  "release": "0.10.0-1 RC22",
+  "run": "45200319586",
+  "architecture": {
+    "amd64": {
+      "high": 81,
+      "critical": 1,
+      "unique_cves": 33,
+      "fixed_versions": 0,
+      "apt_complete": true
+    },
+    "arm64": {
+      "high": 81,
+      "critical": 1,
+      "unique_cves": 33,
+      "fixed_versions": 0,
+      "apt_complete": true
+    }
+  },
+  "new_cves_vs_rc18": [
+    "CVE-2026-107494"
+  ],
+  "old_baseline_cves_loaded": 32,
+  "risk_approval": "NOT_GRANTED",
+  "production_promotion": "BLOCKED"
+}
