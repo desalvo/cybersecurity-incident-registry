@@ -1,0 +1,15 @@
+CIR {{ .Chart.AppVersion }} deployment: {{ include "cir.fullname" . }}
+Image: {{ include "cir.image" . }}
+
+Keep the approved digest and source gate evidence together. This installation
+neither builds nor promotes an image. Never use PENDING_HOTFIX_REBUILD as an image.
+
+The existing Secret must contain a PostgreSQL URL and independent production keys.
+Mount /data on storage writable by the assigned non-root UID and fsGroup.
+On OpenShift the restricted SCC chooses UID and fsGroup; do not grant anyuid.
+
+PVCs have the keep policy. Helm uninstall leaves data in place; back up PostgreSQL
+and /data before an upgrade. Reusing a retained claim requires existingClaim.
+Use HTTPS at the Route/Ingress or your reverse proxy; secure session cookies remain on.
+
+See docs/DEPLOYMENT.md for setup, recovery, graphical console, and validation steps.

@@ -71,16 +71,17 @@ def test_summary_brochure_pdf_is_packaged():
     assert brochure.stat().st_size > 80_000
 
 
-def test_summary_brochure_is_portrait_two_pages_and_has_required_features():
+def test_summary_brochure_is_portrait_four_pages_and_has_required_features():
     from pypdf import PdfReader
 
     brochure = ROOT / "docs" / "brochure_cybersecurity_incident_registry.pdf"
     reader = PdfReader(str(brochure))
-    assert len(reader.pages) <= 2
+    assert len(reader.pages) == 4
     for page in reader.pages:
         box = page.mediabox
         assert float(box.height) > float(box.width)
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    text = " ".join(text.split())
     required_fragments = [
         "Interfacciabilità",
         "Configurabilità completa",
@@ -114,9 +115,11 @@ def test_user_pdf_callout_excludes_admin_configurations_and_chat_widget():
 
 
 def test_static_pdf_builder_brochure_mentions_accessibility_localization():
-    script = (ROOT / "scripts" / "build_documentation_pdfs.py").read_text(encoding="utf-8")
-    assert "Interfaccia desktop e mobile accessibile" in script
-    assert "Localizzazione ITA + ENG" in script
+    wrapper = (ROOT / "scripts" / "build_documentation_pdfs.py").read_text(encoding="utf-8")
+    script = (ROOT / "scripts" / "build_brochures.py").read_text(encoding="utf-8")
+    assert "from build_brochures import build" in wrapper
+    assert "Interfaccia responsive desktop e mobile, funzioni di accessibilità e localizzazione in italiano e inglese" in script
+    assert "Responsive desktop and mobile interface, accessibility features and Italian/English localization" in script
     assert "Le figure sono mantenute vicino al capitolo" not in script
 
 
@@ -203,21 +206,22 @@ def test_static_english_documentation_pdfs_are_packaged():
         assert pdf.stat().st_size > 50_000
 
 
-def test_static_english_brochure_is_portrait_two_pages():
+def test_static_english_brochure_is_portrait_four_pages():
     from pypdf import PdfReader
 
     brochure = ROOT / "docs" / "brochure_cybersecurity_incident_registry_en.pdf"
     reader = PdfReader(str(brochure))
-    assert len(reader.pages) <= 2
+    assert len(reader.pages) == 4
     for page in reader.pages:
         box = page.mediabox
         assert float(box.height) > float(box.width)
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    text = " ".join(text.split())
     for fragment in (
         "Docker Hub",
         "Docker Compose",
         "Kubernetes",
-        "Italian + English localization",
+        "Italian/English localization",
         "European Union Public Licence",
         "https://github.com/desalvo/cybersecurity-incident-registry",
     ):

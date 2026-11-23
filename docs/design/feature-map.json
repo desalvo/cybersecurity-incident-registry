@@ -1,0 +1,1024 @@
+{
+  "candidate": "RC19 visual review",
+  "status": "approval_pending",
+  "scope": "Existing navigation and contextual commands; prototype is not a full backend implementation",
+  "source_app_unchanged": true,
+  "endpoint_count": 97,
+  "missing": 0,
+  "entries": [
+    {
+      "endpoint": "ai_chatbot.admin_plugins",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/ai_chatbot.admin_plugins",
+      "control": "Tutte le funzioni / directory / admin_plugins",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "ai_chatbot.chat",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/ai_chatbot.chat",
+      "control": "Tutte le funzioni / directory / chat",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "ai_chatbot.widget_ask",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/ai_chatbot.chat",
+      "control": "AlBot in tutte le funzioni / Aiuto, mobile incluso",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "alfresco.admin_plugins",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/alfresco.admin_plugins",
+      "control": "Tutte le funzioni / directory / admin_plugins",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.add_action",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/actions",
+      "control": "Aggiungi azione",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.add_incident_reminder",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/history",
+      "control": "Promemoria / crea",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_audit",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_audit",
+      "control": "Tutte le funzioni / directory / admin_audit",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_backups",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_backups",
+      "control": "Tutte le funzioni / directory / admin_backups",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_external_recipients",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_external_recipients",
+      "control": "Tutte le funzioni / directory / admin_external_recipients",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_help_page",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_help_page",
+      "control": "Tutte le funzioni / directory / admin_help_page",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_button_actions",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_button_actions",
+      "control": "Tutte le funzioni / directory / admin_incident_button_actions",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_custom_fields",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_custom_fields",
+      "control": "Tutte le funzioni / directory / admin_incident_custom_fields",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_form_fields",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_form_fields",
+      "control": "Tutte le funzioni / directory / admin_incident_form_fields",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_templates",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_templates",
+      "control": "Tutte le funzioni / directory / admin_incident_templates",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_workflow_delete",
+      "source_templates": [
+        "admin_incident_workflows.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_workflows",
+      "control": "Gestione workflow locale / cancellazione protetta",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_workflow_export_preview",
+      "source_templates": [
+        "admin_incident_workflows.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_workflows",
+      "control": "Import / export / copia",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_workflow_import_preview",
+      "source_templates": [
+        "admin_incident_workflows.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_workflows",
+      "control": "Import / export / copia",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_incident_workflows",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html",
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#feature/main.admin_incident_workflows",
+      "control": "Tutte le funzioni / directory / admin_incident_workflows",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_labels",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_labels",
+      "control": "Tutte le funzioni / directory / admin_labels",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_logo",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_logo",
+      "control": "Tutte le funzioni / directory / admin_logo",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_other_configurations",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_other_configurations",
+      "control": "Tutte le funzioni / directory / admin_other_configurations",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_people",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_people",
+      "control": "Tutte le funzioni / directory / admin_people",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_recommendations",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_recommendations",
+      "control": "Tutte le funzioni / directory / admin_recommendations",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_security_owner",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_security_owner",
+      "control": "Tutte le funzioni / directory / admin_security_owner",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_security_responsible",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_security_responsible",
+      "control": "Tutte le funzioni / directory / admin_security_responsible",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_setup_wizard",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_setup_wizard",
+      "control": "Tutte le funzioni / directory / admin_setup_wizard",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_ssl",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_ssl",
+      "control": "Tutte le funzioni / directory / admin_ssl",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_status",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_status",
+      "control": "Tutte le funzioni / directory / admin_status",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_structure",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_structure",
+      "control": "Tutte le funzioni / directory / admin_structure",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_activate",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#admin",
+      "control": "Selettore tenant globale, bloccato sul dettaglio",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_defaults",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html",
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#feature/main.admin_tenant_defaults",
+      "control": "Tutte le funzioni / directory / admin_tenant_defaults",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_defaults_alerts",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_tenant_defaults_alerts",
+      "control": "Tutte le funzioni / directory / admin_tenant_defaults_alerts",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_defaults_export",
+      "source_templates": [
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_tenant_defaults",
+      "control": "Esporta configurazioni tenant",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_defaults_export_all",
+      "source_templates": [
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_tenant_defaults",
+      "control": "Esporta tutto Tenants Default",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_defaults_import",
+      "source_templates": [
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_tenant_defaults",
+      "control": "Importa configurazione",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenant_defaults_settings",
+      "source_templates": [
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.admin_tenant_defaults_settings",
+      "control": "Ereditarietà e override nel hub defaults e nell’indice Tutte le funzioni",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_tenants",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_tenants",
+      "control": "Tutte le funzioni / directory / admin_tenants",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_users",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.admin_users",
+      "control": "Tutte le funzioni / directory / admin_users",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html",
+        "admin_incident_workflows.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Tutte le funzioni / directory / admin_workflow_catalog",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_export",
+      "source_templates": [
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Import / export / Esporta workflow",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_export_workflow",
+      "source_templates": [
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Sorgente / Esporta workflow",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_import_file",
+      "source_templates": [
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Import / export / Importa nel catalogo",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_install",
+      "source_templates": [
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Importa nel tenant, ripetibile, nome e tenant",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_local_status",
+      "source_templates": [
+        "admin_incident_workflows.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Workflow locale / Modifica / Stato",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_notices",
+      "source_templates": [
+        "base.html",
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#feature/main.admin_workflow_catalog_notices",
+      "control": "Tutte le funzioni / directory / admin_workflow_catalog_notices",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_personalize",
+      "source_templates": [
+        "admin_incident_workflows.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Workflow locale / Modifica / Personalizza parametri",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_publish",
+      "source_templates": [
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Import / export / Importa nel catalogo",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.admin_workflow_catalog_status",
+      "source_templates": [
+        "admin_workflow_catalog.html"
+      ],
+      "mock_route": "#catalog",
+      "control": "Azioni sorgente / Rendi obsoleto",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.app_info",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.app_info",
+      "control": "Tutte le funzioni / directory / app_info",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.change_password",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.change_password",
+      "control": "Tutte le funzioni / directory / change_password",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.clone",
+      "source_templates": [
+        "index.html",
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/workflow",
+      "control": "Altro / Clona incidente",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.del_action",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/actions",
+      "control": "Altro / Elimina azione",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.del_action_attachment",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/actions",
+      "control": "Allegati / rimozione",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.del_doc",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Altro documento / elimina",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.delete_doc_from_alfresco",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Altro documento / elimina da Alfresco",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.delete_incident_reminder",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/history",
+      "control": "Promemoria / elimina",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.download_action_attachment",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/actions",
+      "control": "Allegati / download",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.download_doc",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Scarica",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.download_doc_from_alfresco",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Scarica / Solo Alfresco",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.export_csv",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.export_csv",
+      "control": "Tutte le funzioni / directory / export_csv",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.export_full",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.export_full",
+      "control": "Tutte le funzioni / directory / export_full",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.generate_incident_forms",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Genera moduli",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.help_page",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.help_page",
+      "control": "Tutte le funzioni / directory / help_page",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.import_csv",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.import_csv",
+      "control": "Tutte le funzioni / directory / import_csv",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.import_full",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.import_full",
+      "control": "Tutte le funzioni / directory / import_full",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.incident_delete",
+      "source_templates": [
+        "index.html",
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/workflow",
+      "control": "Altro / Elimina incidente",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.incident_detail",
+      "source_templates": [
+        "index.html"
+      ],
+      "mock_route": "#incidents",
+      "control": "Riga incidente / scheda",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.incident_move_tenant",
+      "source_templates": [
+        "index.html"
+      ],
+      "mock_route": "#incident/1/workflow",
+      "control": "Altro / Sposta tenant",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.incident_new",
+      "source_templates": [
+        "index.html"
+      ],
+      "mock_route": "#feature/main.incident_new",
+      "control": "Tutte le funzioni / directory / incident_new",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.incidents_bulk_delete",
+      "source_templates": [
+        "index.html"
+      ],
+      "mock_route": "#incidents",
+      "control": "Selezione / azioni selezionati",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.incidents_bulk_move_tenant",
+      "source_templates": [
+        "index.html"
+      ],
+      "mock_route": "#incidents",
+      "control": "Selezione / azioni selezionati",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.index",
+      "source_templates": [
+        "base.html",
+        "index.html"
+      ],
+      "mock_route": "#incidents",
+      "control": "Tutte le funzioni / directory / index",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.ldap_settings",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.ldap_settings",
+      "control": "Tutte le funzioni / directory / ldap_settings",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.logo_image",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#dashboard",
+      "control": "Area brand; logo tenant da conservare in integrazione",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.logout",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.logout",
+      "control": "Tutte le funzioni / directory / logout",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.mfa_settings",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.mfa_settings",
+      "control": "Tutte le funzioni / directory / mfa_settings",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.modules_configuration",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.modules_configuration",
+      "control": "Tutte le funzioni / directory / modules_configuration",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.notification_settings",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.notification_settings",
+      "control": "Tutte le funzioni / directory / notification_settings",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.notification_template",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.notification_template",
+      "control": "Tutte le funzioni / directory / notification_template",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.notification_template_new",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.notification_template_new",
+      "control": "Tutte le funzioni / directory / notification_template_new",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.notification_types",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.notification_types",
+      "control": "Tutte le funzioni / directory / notification_types",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.notify_preview",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/notifications",
+      "control": "Anteprima notifica",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.pdf",
+      "source_templates": [
+        "index.html",
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/workflow",
+      "control": "Report PDF",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.release_notes",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.release_notes",
+      "control": "Tutte le funzioni / directory / release_notes",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.settings_external_recipients",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#feature/main.settings_external_recipients",
+      "control": "Tutte le funzioni / directory / settings_external_recipients",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.sso_settings_admin",
+      "source_templates": [
+        "base.html",
+        "admin_tenant_defaults.html"
+      ],
+      "mock_route": "#feature/main.sso_settings_admin",
+      "control": "Tutte le funzioni / directory / sso_settings_admin",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.stats",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#reports",
+      "control": "Tutte le funzioni / directory / stats",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.sync_incident_alfresco_documents",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Sincronizza stato, read-only",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.update_action",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/actions",
+      "control": "Modifica azione",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.update_document_notification_tags",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Tag di notifica",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.update_incident_reminder",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/history",
+      "control": "Promemoria / modifica e reinvio",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.upload",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Carica / CIR, CIR + Alfresco, Solo Alfresco",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.upload_doc_to_alfresco",
+      "source_templates": [
+        "incident_detail.html"
+      ],
+      "mock_route": "#incident/1/documents",
+      "control": "Altro documento / Carica su Alfresco",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "static",
+      "source_templates": [
+        "base.html"
+      ],
+      "mock_route": "#dashboard",
+      "control": "Asset locali, nessuna CDN",
+      "coverage": "contextual_mapping",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.login",
+      "source_templates": [
+        "login.html"
+      ],
+      "mock_route": "#login",
+      "control": "Username/password richiesti, locale o LDAP, errori e identità visiva",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.sso_login",
+      "source_templates": [
+        "login.html"
+      ],
+      "mock_route": "#login",
+      "control": "Provider SSO dimostrativo; lista dinamica e logo opzionale conservati per integrazione",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    },
+    {
+      "endpoint": "main.mfa_verify",
+      "source_templates": [
+        "mfa_verify.html"
+      ],
+      "mock_route": "#mfa",
+      "control": "Verifica codice TOTP come passaggio distinto",
+      "coverage": "navigation_present",
+      "implementation": "approval_pending; existing application endpoint retained"
+    }
+  ],
+  "proposed_global_interface": {
+    "scope": "instance_global_all_tenants",
+    "role": "superuser",
+    "default": false,
+    "runtime_implemented": false,
+    "mock_entry": "#feature/demo.global_interface",
+    "storage": "in_memory_only",
+    "legacy_representation": "illustrative_not_browser_screenshot"
+  },
+  "image_direction": "Original incident workflow, records, evidence and notification still life; no people; no generic data centre",
+  "preview_bootstrap": {
+    "standalone_file": "CIR_Web_UI_Mock.html",
+    "injected_value": {
+      "ui": "new",
+      "view": "login"
+    },
+    "source_index_default_enabled": false,
+    "server_future_default_enabled": false,
+    "runtime_changed": false
+  }
+}

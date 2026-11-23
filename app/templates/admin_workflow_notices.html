@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Avvisi di obsolescenza workflow</h2>
+  <p>Gli avvisi sono personali e restano visibili anche cambiando tenant. La presa visione riguarda solo il tuo account.</p>
+  <p><a href="{{ url_for('main.admin_workflow_catalog') }}">Catalogo workflow</a> · <a href="{{ url_for('main.admin_incident_workflows') }}">Workflow del tenant attivo</a></p>
+</div>
+{% for notice in notices %}
+<div class="card">
+  <p><strong>{{ 'Da leggere' if not notice.read_at else 'Letto' }}</strong> · {{ notice.created_at }}</p>
+  <p>{{ notice.message }}</p>
+  {% if not notice.read_at %}
+  <form method="post" action="{{ url_for('main.admin_workflow_catalog_notice_acknowledge', notice_id=notice.id) }}">
+    {{ csrf_field()|safe }}<button>Conferma presa visione</button>
+  </form>
+  {% endif %}
+</div>
+{% else %}<div class="card"><p>Nessun avviso di obsolescenza workflow.</p></div>{% endfor %}
+{% endblock %}

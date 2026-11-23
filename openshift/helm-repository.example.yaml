@@ -1,0 +1,11 @@
+# Register only after publishing the locally generated index.yaml and .tgz files
+# at your controlled HTTPS endpoint. This example does not publish anything.
+apiVersion: helm.openshift.io/v1beta1
+kind: ProjectHelmChartRepository
+metadata:
+  name: cybersecurity-incident-registry
+spec:
+  name: Cybersecurity Incident Registry
+  description: CIR charts managed by your organization
+  connectionConfig:
+    url: https://charts.example.invalid/cir

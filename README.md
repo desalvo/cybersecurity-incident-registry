@@ -1,4 +1,92 @@
-# Cybersecurity Incident Registry 0.9.0-1
+# Cybersecurity Incident Registry 0.10.0-1
+
+## Sviluppo corrente: 0.10.0-1 / RC1
+
+La release in sviluppo è **0.10.0-1**. Il cumulativo conserva Tenants Default,
+workflow importabili e modificabili, UI moderna con switch globale, migrazioni
+all'avvio e documentazione generata dalla UI reale. Il tag storico `0.9.0-1`
+identifica la precedente linea di release e non viene spostato o riutilizzato.
+
+La **build è automatica**, nel formato `YYYYMMDD` e fuso `Europe/Rome`. La CI la
+calcola una sola volta e la condivide fra verifiche, screenshot/manuali e immagine.
+`VERSION` e `BUILD` sono l'identità del sorgente distribuito e dell'immagine;
+vecchi override `APP_VERSION`/`APP_BUILD` nel deployment non ne cambiano l'etichetta.
+Per preparare una build locale usare `python scripts/prepare_release_metadata.py --write`.
+
+**Da 0.9.0-1 a 0.10.0-1:** aggiornare l'immagine approvata e ricreare il pod
+conservando database, PVC e Secret. L'entrypoint esegue le migrazioni mancanti
+prima dei worker; il cambio di versione non aggiunge una revisione DDL.
+La revisione esistente `20261122_01_legacy_bridge` resta invariata. Servono backup
+coerente e avvio coordinato con una sola replica: [procedura completa](docs/MIGRATION.md#aggiornamento-a-0100-1-da-090-1).
+
+Questo è un **candidato sorgente**, non una nuova immagine production già approvata.
+`PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`; i gate production e la
+review della disposition Debian scaduta il 20 ottobre 2026 rimangono obbligatori.
+[Release](docs/RELEASE.md#0100-1--rc1-linea-di-sviluppo-corrente) · [Verifiche](docs/TESTING_AND_PRODUCTION.md) · [Handoff](docs/HANDOFF.md).
+
+Le sezioni RC20, RC18, RC17 e Round seguenti conservano la **cronologia della 0.9.0-1**;
+le loro vecchie versioni/build e attestazioni non certificano questo candidato.
+
+
+### Identità comune della documentazione e formazione
+
+La grafica fotografica approvata è applicata ai manuali PDF e online, nelle due
+lingue, e alle brochure. Runtime e generatori condividono i dati About, compreso
+l'URL del progetto. Le guide utente/admin conservano ricerca e indice; il menu
+Documentazione apre anche installazione, migrazione, Alfresco, sicurezza,
+formazione, test, architettura e procedure di rilascio. Ogni guida online offre
+il PDF con la stessa copertina. Le sezioni storiche restano riconoscibili.
+
+Il [PowerPoint didattico modificabile](docs/presentation/CIR_Operational_Training_IT.pptx)
+contiene 34 slide con note per il relatore, esercizi sugli incidenti, prime pagine
+reali dei manuali, piattaforme supportate, riferimenti di sviluppo/compliance e
+ciclo di revisione delle vulnerabilità. Nell'edizione sorgente i riquadri delle
+schermate indicano chiaramente l'attesa delle acquisizioni CI. Il job obbligatorio
+genera 17 screenshot reali, 8 PDF e il PowerPoint completo, verifica file,
+commit/versione/build e installa l'intero bundle nell'immagine candidata.
+
+Il workflow **CIR periodic security review** opera ogni lunedì alle 06:15 UTC o
+su avvio manuale da main. Controlla le dipendenze Python correnti ed entrambe le
+architetture del digest production immutabile registrato. Non pubblica immagini
+e non rinnova risk acceptance: digest pending o disposition scaduta sono errori
+espliciti. Vedi [formazione](docs/TRAINING.md) e [sicurezza](docs/SECURITY.md).
+
+## RC20: interfaccia approvata e documentazione dall'applicazione reale
+
+La nuova interfaccia desktop/mobile è integrata nell'applicazione ed è **attiva per default**. Il superuser può scegliere **Admin → Interfaccia globale → Moderna / Classica**: la scelta è salvata nel database e vale per tutti i tenant, gli utenti e la login anonima, al caricamento successivo della pagina. Un riavvio conserva una scelta esplicita.
+
+Login, pagina principale e incidente adottano i riferimenti approvati, con fotografie sintetiche di cybersecurity senza persone. Il registro conserva la struttura a lista; gli incidenti mantengono i blocchi procedurali con descrizione sopra, task/comando sotto e frecce. Menu, permessi, moduli e operazioni esistenti restano disponibili. AlBot si apre dalla testata: pannello affiancato su desktop ampio, vista dedicata su schermi più piccoli. Il provider riceve la domanda e il contesto previsto dal plugin; il nuovo pannello non invia automaticamente l'incidente aperto o la cronologia della chat.
+
+Il job obbligatorio **Real UI screenshots and documentation** esegue l'app reale con dati dimostrativi isolati, verifica i percorsi operativi e genera 13 screenshot desktop/mobile, i quattro manuali PDF e una galleria. Le prove sono legate al commit tramite checksum; la build candidate incorpora esattamente quei documenti prima della scansione. I mock in [docs/design](docs/design/DESIGN_SPEC.md) restano riferimenti approvati, distinti dagli screenshot effettivi. Le nuove proposte di copertina e brochure restano da valutare separatamente.
+
+**Aggiornamento Kubernetes:** si aggiorna l'immagine e si ricrea il pod mantenendo database, PVC e Secret. L'entrypoint esegue le migrazioni applicative prima dei worker HTTP/HTTPS; il registro tecnico indipendente `cir_schema_migrations` applica solo le revisioni mancanti e blocca schemi sconosciuti/più recenti. Non occorre un Full Import o un bootstrap. Prima del primo avvio usare un backup coerente, fermare le vecchie repliche e avviare una sola replica applicativa, controllare probe e timeout, quindi ripristinare lo scaling. Istruzioni complete in [Migrazione](docs/MIGRATION.md#aggiornamento-a-rc20-da-090-1-build-20260902) e [Release](docs/RELEASE.md#rc20-interfaccia-approvata-e-migrazione-2026-11-22).
+
+Versione funzionale **0.9.0-1**, build **20260902**. RC20 è un candidato sorgente: migrazioni e HTTP reali sono stati verificati in un ambiente di compatibilità SQLite, ma pytest completo con i pin esatti, PostgreSQL, browser, SCA e Trivy devono ancora essere eseguiti nella CI. Nessuna immagine è dichiarata promossa; `PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`. La disposition Debian scaduta non è stata estesa. [Stato verifiche](docs/TESTING_AND_PRODUCTION.md) · [Handoff](docs/HANDOFF.md).
+
+## RC18: catalogo, obsolescenza e installazione su cluster
+
+Tenants Default viene inizializzato dalla configurazione del tenant `default` se assente. Il catalogo consente importazioni ripetute, copie nominative e personalizzazione dei parametri; l'origine UUID garantisce riferimenti corretti anche con ID diversi nei tenant. Lo stato **corrente/obsoleto** blocca nuove assegnazioni e propaga l'obsolescenza dalla sorgente alle copie, con avvisi agli amministratori. Le configurazioni in uso negli incidenti sono protette dalla cancellazione.
+
+Full Export e bootstrap includono Tenants Default. È disponibile anche il bundle completo del solo tenant speciale per un'altra istanza. [Migrazione e procedure](docs/MIGRATION.md).
+
+Il package include [Helm e OpenShift](docs/DEPLOYMENT.md), [guida del laboratorio](docs/TRAINING.md), [slide PowerPoint](docs/presentation/CIR_Operational_Training_IT.pptx) e brochure aggiornate. La versione funzionale resta **0.9.0-1**. Le verifiche e i gate ancora necessari sono riportati in [Testing](docs/TESTING_AND_PRODUCTION.md) e [Handoff](docs/HANDOFF.md).
+
+
+## Tenants Default RC17
+
+La RC17 introduce **Tenants Default**, distinto dal tenant operativo `default`,
+per pubblicare configurazioni condivise e mantenere un catalogo di workflow.
+Ogni importazione dal catalogo crea una copia autonoma, con nome scelto, parametri,
+notifiche e documenti modificabili nel tenant destinatario. Lo stesso workflow
+può essere importato più volte. L'export completo del tenant speciale include
+configurazioni, documenti, impostazioni e catalogo, con inclusione delle credenziali
+solo su scelta esplicita del superuser.
+
+Guida operativa: [Tenants Default e migrazione](docs/MIGRATION.md#tenants-default-rc18).
+Stato di verifica: [release RC17](docs/RELEASE.md#rc17-tenants-default).
+Per riprendere lo sviluppo: [Handoff aggiornato](docs/HANDOFF.md).
+La versione funzionale rimane **0.9.0-1**; la RC richiede ancora i gate applicativi
+e production indicati nella documentazione.
 
 ## Genealogia della release
 
@@ -48,7 +136,7 @@ Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantene
 
 ## Stato applicativo
 
-La documentazione operativa descrive lo stato corrente della piattaforma 0.9.0-1, build 20260902. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+La documentazione operativa descrive la piattaforma 0.10.0-1; la build automatica del package è registrata in `BUILD`. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
 
 ## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260608
 
@@ -203,11 +291,11 @@ All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database
 
 ## Informazioni applicazione
 - Nome: Cybersecurity Incident Registry
-- Versione: 0.9.0-1
-- Build: 20260902
+- Versione: 0.10.0-1
+- Build: automatica `YYYYMMDD`, registrata nel file `BUILD`
 - Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
 
-Le informazioni sono visibili da **Info → Applicazione** e configurabili via variabili d’ambiente `APP_NAME`, `APP_VERSION`, `APP_BUILD`, `APP_AUTHOR`, `APP_AUTHOR_EMAIL`.
+Le informazioni sono visibili da **Info → Applicazione**. Versione e build provengono dai file `VERSION` e `BUILD` distribuiti; gli override legacy `APP_VERSION`/`APP_BUILD` non prevalgono su questi file. Nome e autore restano configurabili via `APP_NAME`, `APP_AUTHOR` e `APP_AUTHOR_EMAIL`.
 
 ## Notifiche CSIRT/DPO
 
@@ -1060,7 +1148,7 @@ docker login
 ./scripts/build_multiarch_image.sh
 ```
 
-Lo script usa Docker Buildx e pubblica un unico manifest multi-arch per `linux/amd64,linux/arm64`. Repository e tag possono essere cambiati separatamente con `--repository`/`--tag` oppure con `CIR_DOCKER_REPOSITORY`/`CIR_DOCKER_TAG`. Per compatibilità resta disponibile `--image`/`CIR_DOCKER_IMAGE`, che imposta il riferimento completo e ha precedenza. Esempio: `./scripts/build_multiarch_image.sh --repository miaorg/cir --tag 0.9.0-1`.
+Lo script usa Docker Buildx e pubblica un unico manifest multi-arch per `linux/amd64,linux/arm64`. Repository e tag possono essere cambiati separatamente con `--repository`/`--tag` oppure con `CIR_DOCKER_REPOSITORY`/`CIR_DOCKER_TAG`. Per compatibilità resta disponibile `--image`/`CIR_DOCKER_IMAGE`, che imposta il riferimento completo e ha precedenza. Esempio: `./scripts/build_multiarch_image.sh --repository miaorg/cir --tag 0.10.0-1`.
 
 ## Migrazione da 0.8.0 a >= 0.9.0
 

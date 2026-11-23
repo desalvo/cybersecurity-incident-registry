@@ -1,0 +1,5 @@
+*.tgz
+*.sha256
+.DS_Store
+.git/
+__pycache__/
