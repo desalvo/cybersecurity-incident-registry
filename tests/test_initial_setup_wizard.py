@@ -36,6 +36,7 @@ def test_initial_setup_wizard_is_available_and_saves_groups(monkeypatch, tmp_pat
     app = create_app()
     app.config['TESTING'] = True
     client = app.test_client()
+    client.environ_base['HTTP_ACCEPT_LANGUAGE'] = 'it-IT,it;q=0.9'
     _login_admin(client)
 
     menu = client.get('/')

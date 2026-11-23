@@ -55,7 +55,7 @@
     </div>
     <h4>Anteprima dei campi PDF</h4>
     <div class="docx-preview-wrap">{{ preview.visual_html|safe }}</div>
-    <form method="post" class="form-grid" onsubmit="return confirm('Confermi il salvataggio del template PDF?');">
+    <form method="post" class="form-grid" data-cir-confirm="Confermi il salvataggio del template PDF?">
       <input type="hidden" name="action" value="save_pdf_template">
       <input type="hidden" name="source_pdf_b64" value="{{ preview.source_pdf_b64 }}">
       <div>
@@ -80,7 +80,7 @@
       <form method="get" class="form-grid">
         <div>
           <label>Template</label>
-          <select name="template" onchange="this.form.submit()">
+          <select name="template" data-cir-auto-submit>
             {% for tmpl in templates %}
               <option value="{{ tmpl.name }}" {% if selected==tmpl.name %}selected{% endif %}>{{ tmpl.name }}</option>
             {% endfor %}
@@ -93,7 +93,7 @@
       <section class="subcard compact-card">
         <h3>Sostituisci modello PDF</h3>
         <p class="muted">Carica un nuovo PDF per il template selezionato. La sostituzione è consentita solo se il nuovo file contiene esattamente gli stessi campi compilabili; in quel caso mappature, font e dimensione configurati vengono mantenuti.</p>
-        <form method="post" enctype="multipart/form-data" class="form-grid" onsubmit="return confirm('Sostituire il PDF originario del template mantenendo le mappature esistenti?');">
+        <form method="post" enctype="multipart/form-data" class="form-grid" data-cir-confirm="Sostituire il PDF originario del template mantenendo le mappature esistenti?">
           <input type="hidden" name="action" value="replace_pdf_template">
           <input type="hidden" name="template_name" value="{{ tmpl.name }}">
           <div>
@@ -118,7 +118,7 @@
         </form>
       </section>
 
-      <form method="post" class="inline-form" onsubmit="return confirm('Cancellare definitivamente questo template modulo e le relative mappature?');">
+      <form method="post" class="inline-form" data-cir-confirm="Cancellare definitivamente questo template modulo e le relative mappature?">
         <input type="hidden" name="action" value="delete_template">
         <input type="hidden" name="template_name" value="{{ tmpl.name }}">
         <button type="submit" class="danger">Cancella template</button>

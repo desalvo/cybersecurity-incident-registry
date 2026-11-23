@@ -44,6 +44,7 @@ RUN set -eux; \
     apt-get upgrade -y; \
     apt-get install -y --no-install-recommends \
         ca-certificates \
+        tzdata \
         gosu \
         fonts-dejavu-core \
         libreoffice-writer-nogui; \
@@ -63,6 +64,12 @@ RUN set -eux; \
 
 COPY --from=python-deps /opt/cir-venv /opt/cir-venv
 COPY . .
+
+# One identity is baked into the image. CI passes its workflow-wide date;
+# direct Docker builds generate it here in Europe/Rome (tzdata above).
+ARG CIR_RELEASE_BUILD
+ARG SOURCE_DATE_EPOCH
+RUN python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write --verify-installed-documentation
 
 RUN set -eux; \
     chmod 0755 /app/docker-entrypoint.sh; \

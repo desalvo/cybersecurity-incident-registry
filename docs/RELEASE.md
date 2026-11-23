@@ -1,6 +1,320 @@
 # Release and Hotfix lifecycle
 
+<a id="0100-1--rc1-linea-di-sviluppo-corrente"></a>
+
+## 0.10.0-1 / RC1: linea di sviluppo corrente
+
+La release in sviluppo passa a **0.10.0-1** su richiesta dell'utente. È un nuovo
+identificatore funzionale: Hotfix 1–7 e RC precedenti restano nella cronologia
+della **0.9.0-1**, il cui tag esistente non viene alterato. Baseline del cumulativo:
+`cybersecurity-incident-registry-0.9.0-1-ui-rc20.zip`, SHA-256
+`163e7f80e68b01c775c3e0188d292f025f1850d75d2ce70f481d09807996b760`.
+
+### Identità coerente di sorgenti, documenti e immagine
+
+`VERSION` contiene `0.10.0-1`. `BUILD` è generato in formato `YYYYMMDD`, nel fuso
+`Europe/Rome`, da `scripts/prepare_release_metadata.py`. La CI calcola un solo
+valore per esecuzione, lo passa ai job e lo scrive prima di verifiche, screenshot,
+manuali e build Docker. Le etichette OCI e i metadati runtime/documentali usano
+lo stesso valore. I file distribuiti prevalgono sugli override d'ambiente legacy,
+così un Deployment aggiornato non continua a mostrare 0.9.0-1/20260902.
+
+La nuova versione è allineata in applicazione, help, README, Helm/OpenShift,
+validatori, documenti PDF, brochure, presentazione e metadati SBOM applicativi.
+Le attestazioni, i test di compatibilità con vecchi export, le note storiche e
+i mock approvati mantengono i dati originali dove descrivono il passato.
+
+### Aggiornamento da 0.9.0-1
+
+Non è necessario reimportare il database. Usare il percorso automatico già
+presente: backup coerente di database/storage, arresto delle vecchie repliche,
+aggiornamento a un'immagine verificata e avvio iniziale di una sola replica.
+L'entrypoint completa le migrazioni prima di aprire i worker HTTP/HTTPS.
+Il ledger `cir_schema_migrations` e la revisione `20261122_01_legacy_bridge`
+restano invariati; questo cambio di versione non introduce DDL aggiuntivo.
+Un database già migrato viene riconosciuto senza ripetere inizializzazioni o
+sovrascrivere Tenants Default e preferenze UI. Gli schemi sconosciuti/più recenti
+continuano a bloccare l'avvio. [Procedura, verifiche e rollback](MIGRATION.md#aggiornamento-a-0100-1-da-090-1).
+
+
+### Copertine approvate, formazione e revisione periodica
+
+Dal 23 novembre 2026 la copertina approvata è applicata ai manuali PDF e online,
+alle brochure e alle guide PDF scaricate dall'applicazione. Dati About, URL del
+progetto e sei piattaforme sono condivisi con il runtime. Le guide mantengono
+contenuti, ricerca e navigazione; il nuovo indice laterale documentale conserva
+anche il menu operativo dell'applicazione.
+
+Il PowerPoint didattico ha 34 slide modificabili con note, esercizi step-by-step,
+prime pagine dei manuali e riferimenti di compliance/sviluppo sicuro. Il job CI
+produce 17 screenshot reali con dati fittizi isolati, 8 PDF e PPTX completo; verifica
+hash e commit/versione/build dell'intero batch prima di includerlo nel candidato.
+L'edizione sorgente contiene segnaposti dichiarati per le acquisizioni non ancora
+eseguite. Il nuovo workflow di revisione settimanale SCA/Trivy non pubblica immagini
+né rinnova eccezioni. Non sono necessarie ulteriori migrazioni DB per queste
+modifiche; resta la procedura di upgrade descritta sopra.
+
+### Limiti e promozione
+
+RC1 è un candidato sorgente. Non trasferisce alla 0.10.0-1 una certificazione
+production della 0.9.0-1. `PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`.
+Prima del rilascio sono necessari i gate CI, PostgreSQL reale, SCA, screenshot
+reali e scan Trivy amd64/arm64 dell'esatto digest da promuovere. La risk acceptance
+Debian è scaduta il 2026-10-20 e non è estesa da questo cambio di versione.
+Il report di verifica e [HANDOFF.md](HANDOFF.md) distinguono i controlli realmente
+eseguiti dai gate ancora richiesti. Non è stata costruita o promossa un'immagine.
+
+## Cronologia della linea 0.9.0-1
+
+Le sezioni seguenti sono evidenza storica. Versioni, build, hash e risultati qui
+registrati appartengono ai rispettivi candidati e non identificano la 0.10.0-1.
+
+## RC20: interfaccia approvata e migrazione — 2026-11-22
+
+Versione funzionale **0.9.0-1**, build **20260902**, senza cambio di versione funzionale.
+Baseline esatta: `cybersecurity-incident-registry-0.9.0-1-design-review-rc19.zip`,
+SHA-256 `10badfb6b5f70b17a45b8c40f9c6020a16727bb4b1f3ea0a1609793ac45a3331`.
+La consegna RC20 comprende il cumulativo, il checksum e la patch binaria rispetto a tale RC19.
+
+### Interfaccia e funzioni
+
+Implementati i quattro riferimenti approvati: login v2, pagina principale home v1,
+dettaglio incidente v1 e assistente v1. Le fotografie originali di apparati,
+sicurezza e data breach, senza persone, vengono copiate negli asset runtime senza
+modificarne i byte. I sorgenti approvati in `design/` rimangono invariati.
+
+Il registro conserva lista, filtri, ordinamenti, paginazione e operazioni multiple.
+Gli incidenti mantengono descrizione e task in due riquadri, comandi reali e frecce;
+i vincoli dipendono dal workflow configurato, senza imporre una sequenza ulteriore.
+Menu desktop e mobile mantengono destinazioni e permessi. La modalità classica
+rimane disponibile. Gli handler inline bloccati dalla CSP sono sostituiti da
+listener esterni, incluse conferme, invio dei filtri e indicatori dinamici.
+
+**Admin → Interfaccia globale** è riservato ai superuser. La scelta unica nel
+Setting fisico `global_ui_mode` ammette `modern` e `classic`; l'assenza di valore
+seleziona `modern`, anche aggiornando un database preesistente. Le preferenze di
+tenant o browser non possono sovrascriverla. La scelta esplicita sopravvive ai
+riavvii, è registrata nell'audit e si applica alla pagina successivamente caricata.
+Il vecchio default OFF dei mock è superato dalla successiva istruzione dell'utente.
+
+AlBot è chiuso all'apertura e richiamabile dalla testata. Usa l'endpoint reale,
+CSRF, ruolo e tenant attivo. Il controllo di sessione copre inattività e MFA;
+un pannello riferito a un tenant precedente viene bloccato prima del provider.
+Ogni richiesta contiene la domanda: la pagina incidente e la cronologia visibile
+non vengono aggiunte automaticamente. Documentazione, KB e snapshot database
+opzionale seguono la configurazione del plugin. L'icona è neutra e senza persone.
+
+### Screenshot e manuali tramite CI
+
+Il job **Real UI screenshots and documentation** avvia l'app Flask reale su
+loopback con database/storage isolati, CSRF attivo e credenziali temporanee.
+Esegue login, menu mobile, workflow, permessi, cambio tenant, switch globale e
+chat tramite un provider HTTP locale dimostrativo. Produce 13 screenshot,
+quattro manuali e `CIR_UI_Screenshots.pdf`. Il manifest lega ciascun file al
+commit, viewport, modalità e checksum. Il validatore rifiuta prove mancanti,
+errate o di un altro commit, e percorsi fuori dall'artefatto.
+
+Le immagini e i PDF validati vengono installati nella build candidate prima del
+build multiarch e di Trivy. La pipeline non modifica direttamente main per
+aggiornare le figure; l'artefatto GitHub contiene anche il sorgente cumulativo
+con documentazione aggiornata. Le PR dei soli metadati digest restano verificate
+e non innescano un nuovo build Docker. Aggiungere il nuovo job ai controlli
+obbligatori delle regole di protezione di main.
+
+### Aggiornamento da 0.9.0-1 build 20260902
+
+**Sì: aggiornare l'immagine e ricreare il pod è il meccanismo ordinario.** Si
+mantengono PostgreSQL, PVC e mount, variabili operative e Secret esistenti, in
+particolare `DATABASE_URL`, `SECRET_KEY` e `SETTING_ENCRYPTION_KEY`. Non servono
+Full Export/Import, import del bootstrap, reset dell'admin o un comando Alembic.
+VERSION/BUILD non distinguono le correzioni cumulative: registrare anche il
+vecchio e il nuovo digest OCI.
+
+1. Prima dell'intervento, provare il candidato su una copia dei dati, preparare
+   un backup coerente di database e file persistenti e prevedere manutenzione.
+2. Fermare le vecchie repliche web; aggiornare al **digest approvato dalla CI**,
+   quindi avviare una sola replica con un worker applicativo per il primo avvio.
+   Il database rimane attivo. Verificare startup probe e timeout: manifest vecchi
+   senza startup probe possono riavviare il pod durante una migrazione lenta.
+3. L'entrypoint esegue `python -m app.migrate` con l'utente runtime prima di
+   avviare i worker HTTP/HTTPS. Le revisioni mancanti e il riallineamento
+   PostgreSQL sono serializzati dal lock applicativo. Se manca, crea **Tenants Default**
+   dalla configurazione di `default`; una sorgente esistente non viene ricreata.
+   Un tenant ordinario già chiamato `Tenants Default` va rinominato prima.
+   Rivedere le credenziali di integrazione copiate nella nuova sorgente condivisa.
+4. Controllare avvio, readiness, accesso, tenant, incidenti, workflow, documenti,
+   integrazioni e scelta dell'interfaccia. Ripristinare quindi repliche e worker
+   necessari, compatibilmente con lo storage usato.
+
+La sola nuova UI usa la tabella `setting` esistente; l'aggiornamento cumulativo da
+una build precedente a Tenants Default include invece le migrazioni già descritte.
+Non cambiare contestualmente major PostgreSQL, `PGDATA`, Secret o layout PVC solo
+per aggiornare CIR. I vecchi volumi separati supportati dall'app non richiedono
+una conversione al PVC unico. Il chart Helm non adotta automaticamente un'installazione
+preesistente e non deve essere applicato indiscriminatamente sopra i vecchi mount.
+Dopo modifiche di schema, un rollback può richiedere il ripristino del backup
+coerente e della vecchia immagine; il solo `rollout undo` non ripristina il database.
+La UI classica, invece, si riattiva dallo switch senza rollback del database.
+Procedura e comandi: [MIGRATION.md](MIGRATION.md#aggiornamento-a-rc20-da-090-1-build-20260902).
+
+### Migrazioni automatiche versionate
+
+RC20 introduce il registro tecnico `cir_schema_migrations`, separato da VERSION
+e BUILD. La prima revisione, `20261122_01_legacy_bridge`, adotta le installazioni
+precedenti senza registro usando le migrazioni cumulative idempotenti. Gli avvii
+successivi eseguono solo le revisioni mancanti; il normale bootstrap dei dati
+resta attivo, anche dopo Full Import. Il registro tecnico non viene esportato
+come configurazione del tenant né sostituito da un restore applicativo.
+
+Lo schema viene confrontato con tabelle e colonne richieste dai modelli. Una
+revisione sconosciuta/più recente, una cronologia incoerente o una migrazione
+fallita impediscono l'avvio. I marker vengono scritti nella stessa transazione
+finale dei dati di bootstrap: nessuna migrazione viene marcata completata prima
+del successo. Alcune DDL storiche hanno commit separati; in caso di arresto
+possono restare modifiche parziali, riprese al riavvio dalle operazioni
+idempotenti. Il meccanismo non sostituisce un backup e non esegue downgrade.
+
+Corretti l'ordine di creazione di `auth_provider`, l'ispezione delle colonne
+dopo DDL e il primo backfill delle date. Flag workflow, operazioni automatiche
+volutamente vuote e testi di notifica personalizzati non vengono riportati ai
+default a ogni avvio. I vincoli PostgreSQL obbligatori falliscono esplicitamente
+se non applicabili; duplicati e relazioni orfane richiedono una correzione dei
+dati, senza cancellazioni automatiche. Le sequenze vengono riallineate anche
+prima che il bridge inserisca un tenant `default` mancante.
+
+Per le prossime versioni, ogni modifica dello schema deve aggiungere una
+revisione ordinata e un test di upgrade dal precedente schema supportato; una
+revisione già pubblicata non va riscritta. Sono supportate le transizioni
+implementate e verificate, non modifiche arbitrarie del database o versioni
+future sconosciute. L'upgrade avviene in manutenzione, senza vecchie repliche o
+Full Import concorrenti. La serializzazione production richiede PostgreSQL;
+non è dichiarato supporto a migrazioni SQLite concorrenti.
+
+### Stato del candidato
+
+I controlli locali realmente eseguiti sono elencati nell'[Handoff](HANDOFF.md) e
+nel report RC20. Un ambiente di compatibilità Python 3.13 con wheel disponibili
+ha eseguito vere prove SQLite/SQLAlchemy/HTTP, incluse migrazione dallo schema
+RC16 e import completo. Le versioni delle dipendenze differiscono dai pin CI:
+non vengono dichiarati PASS di pytest completo con Python 3.12, PostgreSQL,
+browser, SCA o Trivy. I PDF nel sorgente locale aggiornano il testo; gli screenshot reali
+saranno aggiunti dal job CI, senza usare mock al loro posto.
+
+`PRODUCTION_IMAGE_DIGEST=PENDING_HOTFIX_REBUILD`. Nessuna immagine costruita o
+promossa in questa consegna. La disposition Debian è ancora scaduta al
+**2026-10-20** e blocca il gate reale: occorre una revisione separata con evidenze
+aggiornate. Non sono state ampliate eccezioni, disabilitati gate o alterata la
+politica HIGH/CRITICAL Python.
+
+Le sezioni che seguono sono cronologia: i riferimenti a UI non implementata,
+assistente da approvare e switch OFF descrivono lo stato RC19, superato da RC20.
+
+## Candidato RC19 - revisione grafica da approvare - 2026-11-22
+
+Login `design/login-v2/`, pagina principale `design/home-v1/` con hero
+cybersecurity e dettaglio `design/incident-v1/` sono approvati integralmente.
+Sorgenti, renderer e fotografie restano identici alla precedente consegna RC19.
+Il passo corrente propone lo **spazio per l'assistente AI** nelle pagine
+autenticate, in `design/assistant-v1/`, ancora da approvare.
+
+AlBot è richiamabile dalla testata, con pannello destro da 360 px affiancato
+su viewport da 1800 px; al di sotto usa una vista dedicata richiudibile, a
+schermo intero su mobile. Le tre tavole `CIR_Assistant_v1` mostrano dettaglio,
+registro e richiamo/conversazione mobile; accompagnate da PDF e HTML autonomo.
+Liste, blocchi procedurali e comandi restano accessibili nella pagina di lavoro.
+Il pannello rappresenta guida applicativa basata sulle capacità esistenti:
+nessuna lettura automatica dell'incidente aperto, cronologia backend o esecuzione
+di operazioni. La demo usa risposte fittizie e non chiama servizi AI.
+L'icona di conversazione sostituisce il volto soltanto nel mock; l'asset runtime
+resta invariato. Contratto e inventario dei sorgenti documentano il confine.
+
+Il dettaglio conserva il layout operativo del sorgente: blocchi procedurali
+numerati, riquadro descrittivo sopra e task con comando sotto, frecce orizzontali
+su desktop e verticali su mobile. Evidenzia fase corrente, completamento e
+scadenze senza imporre un nuovo vincolo sequenziale alle fasi successive.
+Restano accessibili dati generali, responsabili, conseguenze/misure,
+azioni, promemoria, documenti e Alfresco, moduli e notifiche. L'inventario del
+sorgente distingue permessi, vincoli configurati e percorsi applicativi reali.
+
+La consegna `CIR_Incident_v1` contiene tre tavole native (desktop, mobile,
+sezioni operative), un PDF e un HTML autonomo con dati fittizi. I comandi nel
+prototipo non eseguono operazioni su CIR, Alfresco o servizi esterni. Le tavole
+non sono screenshot browser. La precedente timeline e le fotografie
+amministrative rimangono proposte superate. Applicazione e documenti adottati
+non vengono modificati; il report registra solo le verifiche effettive.
+
+La login mantiene il testo «Gestione degli incidenti di sicurezza e tracciabilità
+delle attività.» e su mobile logo/nome completo sopra l'immagine senza slogan.
+La home conserva lista, geometria, menu e hero approvati; la scala della foto è
+132% dell'altezza del banner desktop e 100% mobile, allineata a destra.
+
+Versione funzionale **0.9.0-1**, build **20260902**. Baseline esatta: cumulativo
+RC18 aggiornato con conservazione di 20 package,
+SHA-256 `fc4ad0dad5ea918dfb7a6961d6b4288d90234ae6600f2e48e0dd64a7dfc199bc`.
+
+La prima consegna RC19 preparava tre proposte: interfaccia desktop/mobile, prima pagina
+dei manuali e brochure. Le immagini originali generate non contengono persone
+e rappresentano fascicoli d'incidente, workflow, documenti e notifiche.
+Include sorgenti e prototipi riproducibili sotto `docs/design/`, con provenienza
+in `docs/visual-assets/PROVENANCE.json`. **Quelle prime proposte non costituiscono approvazione delle
+schermate successive; copertine e brochure restano da valutare.** La prima revisione
+procedeva per step sul solo web: login, home e incidente desktop/mobile, menu
+mobile aperto e interruttore globale. Il primo PDF web conteneva otto tavole. I PDF adottati e i
+generatori documentali ordinari restano quelli della baseline.
+
+Il mock web usa dati dimostrativi senza connessioni al backend. Lo switch globale
+è dimostrativo, inizialmente disattivato e riservato ai super admin; il contratto
+per l'implementazione prevede un'impostazione unica per tutti i tenant e utenti,
+con ritorno alla UI attuale. La persistenza server è ancora da implementare.
+
+I file applicativi `app/` restano quelli della baseline RC18. Il PowerPoint
+esistente resta disponibile; la sua anteprima PDF riproduce le 21 slide e non
+include le note relatore, che si trovano nel PPTX. Il report di questa consegna
+registra i controlli sui mock e il packaging, senza estendere gli
+esiti offline RC18 a test applicativi o gate production non eseguiti.
+
+`PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`; la disposition scaduta
+il 2026-10-20 non viene prorogata. Guida alla ripresa in [HANDOFF.md](HANDOFF.md).
+
+## Candidato RC18 - 2026-11-22
+
+Versione funzionale **0.9.0-1**, build **20260902**. Baseline: RC17 verificata, SHA-256 `6ef38bd0c8bf93c4404000300e8ff21049ceb90c1d0b532e7b3ef08b4d477c37`.
+
+RC18 completa inizializzazione di Tenants Default dal default operativo, portabilità del tenant speciale, inclusione nel bootstrap, ciclo di vita e notifiche di obsolescenza, mapping degli ID delle dipendenze e protezioni dalle cancellazioni in uso. Introduce installatori Helm/OpenShift e materiale didattico aggiornato. Le revisioni precedenti restano documentate sotto.
+
+`PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`. Nessuna immagine production è stata costruita o promossa durante la preparazione. La risk acceptance Debian con scadenza 2026-10-20 è scaduta: deve essere riesaminata sulla base di evidenze attuali, senza bypass. Risultati effettivi e limiti in [TESTING_AND_PRODUCTION.md](TESTING_AND_PRODUCTION.md) e [HANDOFF.md](HANDOFF.md).
+
+
 Release-candidate, production-release and cumulative Hotfix documentation for 0.9.0-1. Hotfixes correct the same functional version and do not create new functional releases.
+
+## Evidenze storiche RC17 Tenants Default
+
+Stato della RC17 al **2026-11-22**: candidato cumulativo basato sulla RC16; versione
+funzionale **0.9.0-1**, build **20260902**. Il dettaglio operativo è in
+[MIGRATION.md](MIGRATION.md#tenants-default-rc18); lo stato riprendibile è in
+[HANDOFF.md](HANDOFF.md). Le sezioni successive conservano le evidenze storiche
+delle precedenti release.
+
+La RC introduce il tenant speciale, propagazione con provenienza e gestione delle
+collisioni, impostazioni condivise con override locali, avvisi di cancellazione,
+catalogo workflow con installazioni ripetute indipendenti ed export/import completo
+del tenant di defaults con documenti, asset e credenziali opzionali. Comprende
+isolamento dei nuovi documenti, lettori di configurazione tenant-aware anche nei
+report e migrazione delle identità dei destinatari. Le correzioni cumulative
+Alfresco, bootstrap, recupero import e pipeline della RC16 restano nella baseline.
+
+La compilazione Python e i verificatori offline della release e del contesto di
+sicurezza sono stati eseguiti. Sono inoltre presenti prove SQLite reali della
+migrazione e controlli puri dei formati portabili; i risultati conclusivi sono
+registrati nel Handoff. **La suite pytest completa, PostgreSQL reale, SCA e Trivy
+non sono certificati da questo ambiente**, che non dispone delle dipendenze web,
+di pytest o di un runtime container e non riesce a scaricarli.
+
+I test unitari della disposition storica usano una data di riferimento solo nel
+test. Il gate production mantiene l'orologio reale e la policy invariata, scaduta
+il **2026-10-20**. È aggiunto un test che invoca il valutatore reale per verificare
+il rifiuto della policy scaduta. Nessuna immagine è stata costruita o promossa;
+`PRODUCTION_IMAGE_DIGEST` rimane `PENDING_HOTFIX_REBUILD`.
 
 ## Source consolidation map
 
@@ -550,3 +864,13 @@ The production Trivy gate detected three new Debian Trixie HIGH CVEs: `CVE-2026-
 ## RC15 Python dependency security update - 2026-10-01
 
 The live `pip-audit` SCA gate detected eight known vulnerabilities in `pypdf==6.16.2`: `CVE-2026-102993`, `CVE-2026-102994`, `CVE-2026-102995`, `CVE-2026-102996`, `CVE-2026-102997`, `CVE-2026-102998`, `CVE-2026-102999`, and `CVE-2026-103000`. The highest minimum fix version across the set is `6.19.0`, so RC15 pins `pypdf==6.19.0`. No Python vulnerability acceptance is added. The SCA helper now prints a concise package/CVE/fix summary when `pip-audit` returns non-zero, while retaining the JSON report.
+
+
+### 0.10.0-1 RC2: guida didattica e installazione multiarchitettura
+
+Aggiunti il PDF di laboratorio guidato in sei fasi con cattura UI reale attestata da CI, la documentazione di installazione/bootstrap Docker, Podman, Kubernetes e OpenShift con diagramma originale e audit delle immagini incorporate nella presentazione. In sorgente il PDF dichiara esplicitamente che le catture reali sono in attesa della CI. Nessuna modifica DDL; procedura di upgrade dalla 0.9.0-1 invariata. La promozione resta soggetta ai gate production e alla revisione della risk acceptance scaduta.
+
+
+### RC2 - audit brochure e media didattici
+
+Le brochure bilingui impiegano esclusivamente la scena sintetica già distribuita con CIR, ritagliata per le pagine editoriali. Il processo di controllo verifica le immagini effettivamente incorporate nelle pagine PDF; il PowerPoint è verificato con SHA-256 degli asset locali autorizzati e delle schermate reali validate dalla CI. Non sono utilizzate immagini stock o persone. I loghi di Docker, Podman, Kubernetes, Helm, OpenShift e PostgreSQL sono marchi dei rispettivi titolari, non dichiarati privi di diritti o certificazioni.

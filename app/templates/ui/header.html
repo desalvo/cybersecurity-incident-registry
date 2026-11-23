@@ -1,0 +1,24 @@
+{% set cir_english = current_language == 'en' %}
+<header class="cir-topbar" role="banner">
+  <button id="cir-menu-open" class="cir-menu-button" type="button" data-cir-drawer-open aria-controls="cir-sidebar" aria-expanded="false"><span aria-hidden="true">☰</span> Menu</button>
+  <div class="cir-breadcrumb"><a href="{{ url_for('main.index') }}">{{ 'Incidents' if cir_english else 'Incidenti' }}</a>{% if request.endpoint == 'main.incident_detail' %}<span aria-hidden="true">/</span><strong>{{ 'Incident detail' if cir_english else 'Dettaglio incidente' }}</strong>{% elif request.endpoint != 'main.index' %}<span aria-hidden="true">/</span><strong>{{ 'Workspace' if cir_english else 'Area di lavoro' }}</strong>{% endif %}</div>
+  <div class="cir-topbar-right">
+    <img class="cir-organization-logo" src="{{ url_for('main.logo_image') }}" alt="{{ 'Organization logo' if cir_english else 'Logo organizzazione' }}" data-cir-hide-on-error>
+    {% if current_user.is_authenticated %}
+    {% set tenant_switch_hidden_endpoints = ['main.incident_new', 'main.incident_detail'] %}
+    {% if available_tenants|length > 1 and request.endpoint not in tenant_switch_hidden_endpoints %}
+    <form method="post" action="{{ url_for('main.admin_tenant_activate') }}" class="cir-tenant-picker" data-tenant-switcher-form>
+      {{ csrf_field()|safe }}
+      <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}" data-tenant-switch-next>
+      <label for="active-tenant-select">{{ 'Active tenant' if cir_english else 'Tenant attivo' }}</label>
+      <select id="active-tenant-select" name="active_tenant_id" data-tenant-switch-select>{% for tenant in available_tenants %}<option value="{{ tenant.id }}"{% if active_tenant and tenant.id == active_tenant.id %} selected{% endif %}>{{ tenant.name }}</option>{% endfor %}</select>
+      <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">{{ 'Activate tenant' if cir_english else 'Attiva tenant' }}</button>
+    </form>
+    {% elif active_tenant %}<div class="cir-tenant-picker cir-tenant-readonly"><span>{{ 'Active tenant' if cir_english else 'Tenant attivo' }}</span><strong>{{ active_tenant.name }}</strong></div>{% endif %}
+    {% if ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
+    <button id="cir-albot-open" class="cir-albot-open" type="button" data-cir-albot-open aria-controls="cir-albot-panel" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-5 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg><span>AlBot · AI</span></button>
+    {% endif %}
+    <details class="cir-account-menu"><summary aria-label="{{ 'Account menu' if cir_english else 'Menu account' }}"><span class="cir-account-avatar" aria-hidden="true">{{ (current_user.name or current_user.username or '?')[:2]|upper }}</span><span class="cir-account-details"><strong>{{ current_user.name or current_user.username }}</strong><small>{{ 'Super admin' if current_user_is_superuser else current_tenant_role }}</small></span><span class="cir-account-chevron" aria-hidden="true">⌄</span></summary><div class="cir-account-options"><span>{{ active_tenant.name if active_tenant else '' }}</span><a href="{{ url_for('main.mfa_settings') }}">Multi-factor authentication</a>{% if current_user.auth_provider == 'local' and not current_user.is_ldap %}<a href="{{ url_for('main.change_password') }}">{{ 'Change password' if cir_english else 'Cambio password' }}</a>{% endif %}{% if current_user_is_superuser %}<a href="{{ url_for('ui.interface_settings') }}">{{ 'Global interface' if cir_english else 'Interfaccia globale' }}</a>{% endif %}<a href="{{ url_for('main.logout') }}">Logout</a></div></details>
+    {% endif %}
+  </div>
+</header>

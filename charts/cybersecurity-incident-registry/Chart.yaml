@@ -1,0 +1,14 @@
+apiVersion: v2
+name: cybersecurity-incident-registry
+description: Cybersecurity Incident Registry with hardened Kubernetes and OpenShift deployment
+type: application
+version: 0.2.0-rc1
+appVersion: "0.10.0-1"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/desalvo/cybersecurity-incident-registry
+sources:
+  - https://github.com/desalvo/cybersecurity-incident-registry
+keywords: [cybersecurity, incident, registry]
+annotations:
+  charts.openshift.io/name: Cybersecurity Incident Registry
+  charts.openshift.io/provider: CIR project

@@ -2,13 +2,22 @@ from pathlib import Path
 import json
 import subprocess
 import sys
+import contextlib
+from datetime import date
+import importlib.util
+import io
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_r8_policy_is_time_bounded_and_fail_closed():
     p = json.loads((ROOT / "TRIVY_RISK_ACCEPTANCE_R8.json").read_text())
-    assert p["release"] == "0.9.0-1"
+    assert p["release"] == (ROOT / "VERSION").read_text().strip()
+    assert p["release_status"] == "review_required"
+    assert p["reviewed_baseline"]["release"] == "0.9.0-1"
+    assert p["reviewed_baseline"]["build"] == p["build"] == "20260902"
+    assert p["reviewed_baseline"]["image"] == p["baseline_image"]
     assert p["valid_until"] == "2026-10-20"
     assert p["policy"]["python_high_critical_allowed"] is False
     assert p["policy"]["new_os_high_critical_allowed"] is False
@@ -24,9 +33,29 @@ def test_r8_policy_is_time_bounded_and_fail_closed():
 
 
 def _run(report, tmp_path):
+    """Historical acceptance fixtures use the review date, never the CI clock.
+
+    This replaces only the imported test module's clock. The production CLI
+    retains the real date and is tested separately for expiration.
+    """
     f = tmp_path / "report.json"
     f.write_text(json.dumps(report))
-    return subprocess.run([sys.executable, str(ROOT / "scripts/evaluate_trivy_gate.py"), str(f), "--platform", "linux/amd64"], text=True, capture_output=True)
+    evaluator_path = ROOT / 'scripts' / 'evaluate_trivy_gate.py'
+    spec = importlib.util.spec_from_file_location('cir_r8_policy_under_test', evaluator_path)
+    evaluator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(evaluator)
+
+    class ReviewedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 10, 1)
+
+    args = [str(evaluator_path), str(f), '--platform', 'linux/amd64']
+    stdout, stderr = io.StringIO(), io.StringIO()
+    with patch.object(evaluator, 'date', ReviewedDate), patch.object(sys, 'argv', args):
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            result = evaluator.main()
+    return subprocess.CompletedProcess(args, result, stdout.getvalue(), stderr.getvalue())
 
 
 def test_r8_gate_rejects_python_high(tmp_path):

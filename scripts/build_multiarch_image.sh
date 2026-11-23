@@ -29,8 +29,8 @@ image reference and take precedence over repository/tag.
 
 Examples:
   $(basename "$0")
-  $(basename "$0") --tag 0.9.0-1
-  $(basename "$0") --repository myregistry.example/cir --tag 0.9.0-1
+  $(basename "$0") --tag 0.10.0-1
+  $(basename "$0") --repository myregistry.example/cir --tag 0.10.0-1
   CIR_DOCKER_REPOSITORY=myorg/cir CIR_DOCKER_TAG=stable $(basename "$0")
 
 By default the build also uses --pull and --no-cache so security validation does not accidentally reuse a stale base image or requirements layer. Use --no-pull and/or --cache only for development.
@@ -120,7 +120,14 @@ echo "Building multi-arch image: $IMAGE"
 echo "Platforms: $PLATFORMS"
 echo "Builder: $BUILDER"
 
+# Resolve once outside the multi-platform build so architectures cannot acquire
+# different dates when the build crosses midnight. Reproducible SOURCE_DATE_EPOCH
+# and a previously resolved CIR_RELEASE_BUILD are supported by the shared helper.
+CIR_RESOLVED_BUILD="$(python3 "$ROOT_DIR/scripts/prepare_release_metadata.py" --field build)"
+echo "Build: $CIR_RESOLVED_BUILD (Europe/Rome)"
+
 BUILD_ARGS=(
+  --build-arg "CIR_RELEASE_BUILD=$CIR_RESOLVED_BUILD"
   --platform "$PLATFORMS"
   --tag "$IMAGE"
   --push

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
@@ -25,7 +26,7 @@ def test_round18_release_candidate_offline_gate_passes() -> None:
 def test_round18_digest_gate_rejects_mutable_tag_and_accepts_digest() -> None:
     script = str(ROOT / "scripts" / "verify_release_candidate.py")
     mutable = subprocess.run(
-        [sys.executable, script, "--require-production-digest", "registry.example/cir:0.9.0-1"],
+        [sys.executable, script, "--require-production-digest", "registry.example/cir:" + (ROOT / "VERSION").read_text().strip()],
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -45,11 +46,11 @@ def test_round18_digest_gate_rejects_mutable_tag_and_accepts_digest() -> None:
     assert immutable.returncode == 0, immutable.stderr
 
 
-def test_round18_sbom_is_transitive_and_matches_release() -> None:
+def test_historical_round18_sbom_remains_transitive_and_preserves_its_release() -> None:
     sbom = json.loads((ROOT / "sbom/SBOM_ROUND18.cdx.json").read_text(encoding="utf-8"))
     assert sbom["bomFormat"] == "CycloneDX"
     assert sbom["specVersion"] == "1.6"
-    assert sbom["metadata"]["component"]["version"] == (ROOT / "VERSION").read_text().strip()
+    assert sbom["metadata"]["component"]["version"] == "0.9.0-1"
     assert len(sbom["components"]) == 47
     levels = {
         prop["value"]
@@ -61,11 +62,17 @@ def test_round18_sbom_is_transitive_and_matches_release() -> None:
 
 
 def test_round18_build_metadata_is_current_rc_build() -> None:
-    assert (ROOT / "BUILD").read_text(encoding="utf-8").strip() == "20260902"
+    build = (ROOT / "BUILD").read_text(encoding="utf-8").strip()
+    assert datetime.strptime(build, "%Y%m%d").strftime("%Y%m%d") == build
     deployment = (ROOT / "k8s" / "deployment.yaml").read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    assert 'APP_BUILD, value: "20260902"' in deployment
-    assert "APP_BUILD: 20260902" in compose
+    assert 'name: APP_BUILD' not in deployment
+    assert 'name: APP_VERSION' not in deployment
+    assert "APP_BUILD:" not in compose
+    assert "APP_VERSION:" not in compose
+    environment_example = (ROOT / ".env.example").read_text()
+    assert "\nAPP_BUILD=" not in environment_example
+    assert "\nAPP_VERSION=" not in environment_example
 
 
 def test_round18_release_lineage_is_documented_consistently() -> None:
