@@ -62,7 +62,7 @@
         <div class="tenant-move-list" role="listbox" aria-label="Tenant destinazione">
           {%- for tenant in incident_move_tenants -%}
             {%- if tenant.id != i.tenant_id -%}
-              <form method="post" action="{{ url_for('main.incident_move_tenant', iid=i.id) }}" class="tenant-move-option" data-tenant-name="{{ tenant.name|lower }}" onsubmit="return confirm('Spostare questo incidente nel tenant {{ tenant.name }}?')">
+              <form method="post" action="{{ url_for('main.incident_move_tenant', iid=i.id) }}" class="tenant-move-option" data-tenant-name="{{ tenant.name|lower }}" data-cir-confirm="Spostare questo incidente nel tenant {{ tenant.name }}?">
                 <input type="hidden" name="target_tenant_id" value="{{ tenant.id }}">
                 <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
                 <button type="submit" class="tenant-move-choice">{{ tenant.name }}</button>
@@ -75,6 +75,28 @@
   {%- endif -%}
 {%- endmacro %}
 
+{% macro per_page_control() -%}
+  <form class="per-page-toolbar" method="get" action="{{ url_for('main.index') }}">
+    <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+    <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
+    <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
+    <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="dir" value="{{ direction }}">
+    <input type="hidden" name="page" value="1">
+    <label for="incident-per-page">Incidenti per pagina</label>
+    <select id="incident-per-page" name="per_page" data-cir-auto-submit>
+      {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+    </select>
+  </form>
+{%- endmacro %}
+
+{% if cir_new_ui_enabled %}
+<section class="cir-brand-banner" aria-labelledby="cir-registry-title">
+  <img src="{{ url_for('static', filename='ui/cybersecurity-hero-v2.png') }}" alt="" fetchpriority="high">
+  <div><p class="cir-eyebrow">{{ 'SECURITY INCIDENT REGISTRY' if current_language == 'en' else 'REGISTRO DEGLI INCIDENTI DI SICUREZZA' }}</p><h1 id="cir-registry-title">Cybersecurity Incident Registry</h1><p>{{ 'Security incident management and activity traceability.' if current_language == 'en' else 'Gestione degli incidenti di sicurezza e tracciabilità delle attività.' }}</p></div>
+</section>
+{% endif %}
 <div class="card incident-list-header-card">
   <div class="page-header">
     <div>
@@ -85,21 +107,23 @@
       <a class="button" href="{{ url_for('main.incident_new') }}">Nuovo incidente</a>
     {% endif %}
   </div>
-  <form class="per-page-toolbar" method="get" action="{{ url_for('main.index') }}">
-    <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-    <input type="hidden" name="label" value="{{ request.args.get('label','') }}">
-    <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
-    <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
-    <input type="hidden" name="sort" value="{{ sort }}">
-    <input type="hidden" name="dir" value="{{ direction }}">
-    <input type="hidden" name="page" value="1">
-    <label for="incident-per-page">Incidenti per pagina</label>
-    <select id="incident-per-page" name="per_page" onchange="this.form.submit()">
-      {% for option in per_page_options %}<option value="{{ option }}" {% if per_page==option %}selected{% endif %}>{{ option }}</option>{% endfor %}
-    </select>
-  </form>
+  {% if not cir_new_ui_enabled %}{{ per_page_control() }}{% endif %}
 </div>
 
+{% if cir_new_ui_enabled %}
+<section class="card cir-registry-search" aria-label="{{ 'Search incidents' if current_language == 'en' else 'Cerca incidenti' }}">
+  <form method="get" action="{{ url_for('main.index') }}">
+    <input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ direction }}"><input type="hidden" name="per_page" value="{{ per_page }}"><input type="hidden" name="page" value="1">
+    <div class="cir-search-line"><label class="cir-search-keyword"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><span class="sr-only">{{ 'Keyword' if current_language == 'en' else 'Parola chiave' }}</span><input name="q" type="search" value="{{ request.args.get('q','') }}" placeholder="{{ 'Search by keyword…' if current_language == 'en' else 'Cerca per parola chiave…' }}"></label><button type="button" class="secondary cir-filter-toggle" data-cir-filter-toggle aria-expanded="true" aria-controls="cir-registry-filters">{{ 'Filters' if current_language == 'en' else 'Filtri' }} <span aria-hidden="true">⌄</span></button></div>
+    <div class="cir-registry-filters" id="cir-registry-filters">
+      <label>{{ 'Action label' if current_language == 'en' else 'Label azione' }}<input name="label" value="{{ request.args.get('label','') }}" placeholder="{{ 'All labels' if current_language == 'en' else 'Tutte le label' }}"></label>
+      <label>{{ 'From' if current_language == 'en' else 'Da' }}<input name="start" type="datetime-local" value="{{ request.args.get('start','') }}"></label>
+      <label>{{ 'To' if current_language == 'en' else 'A' }}<input name="end" type="datetime-local" value="{{ request.args.get('end','') }}"></label>
+    </div>
+    <div class="cir-search-submit"><button type="submit">{{ 'Search' if current_language == 'en' else 'Cerca' }}</button><a class="button secondary" href="{{ url_for('main.index') }}">Reset</a></div>
+  </form>
+</section>
+{% else %}
 <details class="card collapsible-section incident-search-section">
   <summary>Cerca incidenti</summary>
   <form class="toolbar" method="get" action="{{ url_for('main.index') }}">
@@ -115,6 +139,7 @@
     <a class="button secondary" href="{{ url_for('main.index') }}">Reset</a>
   </form>
 </details>
+{% endif %}
 
 <details class="card collapsible-section mobile-sort">
   <summary>Ordinamento</summary>
@@ -141,12 +166,13 @@
   </form>
 </details>
 
+{% if cir_new_ui_enabled %}<div class="cir-list-toolbar"><label class="cir-select-page"><input type="checkbox" data-incident-select-all> {{ 'Select page' if current_language == 'en' else 'Seleziona pagina' }}</label>{% endif %}
 {% if incidents and (current_user_is_superuser or current_tenant_role in ['superuser','admin','writer']) %}
 <details class="card collapsible-section bulk-incident-card">
-  <summary>Azioni sugli incidenti selezionati</summary>
+  <summary>{% if cir_new_ui_enabled %}{{ 'Selected actions' if current_language == 'en' else 'Azioni sugli incidenti selezionati' }}{% else %}Azioni sugli incidenti selezionati{% endif %}</summary>
   <div class="bulk-incident-header">
     <p class="muted">Seleziona uno o più incidenti nella lista oppure usa “seleziona tutto” per la pagina corrente.</p>
-    <label class="select-all-inline"><input type="checkbox" data-incident-select-all> Seleziona tutto</label>
+    {% if not cir_new_ui_enabled %}<label class="select-all-inline"><input type="checkbox" data-incident-select-all> Seleziona tutto</label>{% endif %}
   </div>
   <div class="bulk-incident-actions">
     {% if current_user_is_superuser and incident_move_tenants|length > 1 %}
@@ -180,7 +206,8 @@
 </details>
 {% endif %}
 
-<div class="card table-card">
+{% if cir_new_ui_enabled %}{{ per_page_control() }}</div>{% endif %}
+<div class="card table-card cir-registry-table">
   <div class="incident-mobile-list" aria-label="Lista incidenti mobile">
     {% for i in incidents %}
     <article class="incident-card-mobile {% if i.workflow_list_state == 'warning' %}incident-warning-row{% endif %}">
@@ -202,7 +229,7 @@
           {{ tenant_move_control(i, compact=True) }}
           {% if current_tenant_role in ['superuser','admin','writer'] %}<form method="post" action="{{ url_for('main.clone', iid=i.id) }}" class="inline-form"><button class="secondary" type="submit">Clona incidente</button></form>{% endif %}
           {% if current_tenant_role in ['superuser','admin','writer'] %}
-            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
+            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="wide" data-confirm-delete="Cancellare definitivamente questo incidente?">
               <button class="danger" type="submit">Elimina</button>
             </form>
           {% endif %}
@@ -234,18 +261,38 @@
         <td><span class="incident-datetime-compact">{{ i.start_at.strftime('%d/%m/%Y %H:%M') if i.start_at else '—' }}{% if i.end_at %}<br>{{ i.end_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span></td>
         <td>{{ i.reference or '—' }}</td>
         <td>{{ i.people|map(attribute='name')|sort|join(', ') }}</td>
-        <td>{{ i.status }}</td>
+        <td>{% if cir_new_ui_enabled %}<span class="cir-state {{ 'closed' if i.status|lower in ['closed','chiuso'] else 'open' }}">{{ i.status }}</span>{% else %}{{ i.status }}{% endif %}</td>
         <td>{% if i.effective_duration %}{{ i.effective_duration }}{% endif %}</td>
         <td class="actions">
+          {% if cir_new_ui_enabled %}
+          <a class="button secondary cir-row-pdf" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
+          {% if current_user_is_superuser or current_tenant_role in ['superuser','admin','writer'] %}
+          <details class="cir-row-more"><summary aria-label="{{ ('Actions for incident ' if current_language == 'en' else 'Azioni per incidente ') ~ i.name }}">⋯</summary><div class="cir-row-actions-menu">
+          {% if current_tenant_role in ['superuser','admin','writer'] %}
+            <form method="post" action="{{ url_for('main.clone', iid=i.id) }}" class="inline-form"><button class="secondary" type="submit">Clona incidente</button></form>
+          {% endif %}
+
+          {{ tenant_move_control(i) }}
+          {% if current_tenant_role in ['superuser','admin','writer'] %}
+            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="inline-form" data-confirm-delete="Cancellare definitivamente questo incidente?">
+              <button class="danger" type="submit">Elimina</button>
+            </form>
+          {% endif %}
+
+          </div></details>
+          {% endif %}
+          {% else %}
           {% if current_tenant_role in ['superuser','admin','writer'] %}
             <form method="post" action="{{ url_for('main.clone', iid=i.id) }}" class="inline-form"><button class="secondary" type="submit">Clona incidente</button></form>
           {% endif %}
           <a class="button secondary" href="{{ url_for('main.pdf', iid=i.id) }}">PDF</a>
           {{ tenant_move_control(i) }}
           {% if current_tenant_role in ['superuser','admin','writer'] %}
-            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="inline-form" onsubmit="return confirm('Cancellare definitivamente questo incidente?')">
+            <form method="post" action="{{ url_for('main.incident_delete', iid=i.id) }}" class="inline-form" data-confirm-delete="Cancellare definitivamente questo incidente?">
               <button class="danger" type="submit">Elimina</button>
             </form>
+          {% endif %}
+
           {% endif %}
         </td>
       </tr>
@@ -270,5 +317,5 @@
   </div>
 </nav>
 {% endif %}
-<style>.incident-warning-row{background:rgba(245,158,11,.14)}.incident-warning-row td{border-top-color:rgba(245,158,11,.45)}.procedure-danger-icon{margin-right:.35rem}</style>
+{% if not cir_new_ui_enabled %}<style>.incident-warning-row{background:rgba(245,158,11,.14)}.incident-warning-row td{border-top-color:rgba(245,158,11,.45)}.procedure-danger-icon{margin-right:.35rem}</style>{% endif %}
 {% endblock %}

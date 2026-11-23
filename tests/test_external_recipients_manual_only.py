@@ -44,7 +44,7 @@ def test_external_recipient_management_exposes_confirmed_remove_all_button():
     template = Path('app/templates/admin_external_recipients.html').read_text()
     assert 'Rimuovi tutto' in template
     assert 'delete_all' in template
-    assert "confirm('Rimuovere tutti i destinatari esterni registrati" in template
+    assert 'data-cir-confirm="Rimuovere tutti i destinatari esterni registrati' in template
     assert 'aggiunte automaticamente' not in template
 
 

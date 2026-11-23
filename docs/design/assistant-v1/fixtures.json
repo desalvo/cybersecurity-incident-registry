@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "mock": true,
+  "functional_version": "0.9.0-1",
+  "snapshot_at": "2026-11-22T12:00:00+01:00",
+  "layout": {
+    "wide_breakpoint": 1800,
+    "dock_width": 360,
+    "mobile_breakpoint": 760,
+    "desktop_width": 1920,
+    "approved_frame_width": 1560
+  },
+  "assistant": {
+    "name": "AlBot",
+    "alias": "Alex",
+    "subtitle": "Guida all’applicazione",
+    "entry_label": "AlBot · AI",
+    "tenant": "default",
+    "context_note": "Questa chat non legge automaticamente l’incidente aperto.",
+    "home_context_note": "Questa chat non legge automaticamente la pagina aperta.",
+    "knowledge_label": "Documentazione e procedure del tenant",
+    "composer_placeholder": "Chiedi come usare CIR…",
+    "footer_note": "Verifica le indicazioni prima di applicarle.",
+    "mobile_back_incident": "Torna all’incidente",
+    "mobile_back_home": "Torna al registro",
+    "icon": "native_chat_ai_no_people",
+    "plugin_enabled": true,
+    "authenticated": true,
+    "database_snapshot_enabled": false
+  },
+  "conversations": {
+    "incident": {
+      "question": "Come registro la conservazione delle evidenze?",
+      "intro": "Per registrare le operazioni svolte in CIR:",
+      "steps": [
+        "Apri Azioni oppure usa Registra azione nel blocco del workflow.",
+        "Seleziona la label prevista e verifica data e operatore.",
+        "Descrivi le operazioni effettuate e aggiungi gli eventuali allegati.",
+        "Salva l’azione. Il completamento della fase dipende dalle condizioni configurate nel workflow."
+      ],
+      "outro": "La registrazione resta sotto il tuo controllo."
+    },
+    "home": {
+      "question": "Come trovo un incidente già registrato?",
+      "intro": "Puoi usare la ricerca del registro:",
+      "steps": [
+        "Inserisci una parola chiave, per esempio il nome o il riferimento dell’incidente.",
+        "Se necessario, filtra per label azione e intervallo di data e ora.",
+        "Premi Cerca e usa l’ordinamento per leggere i risultati.",
+        "Apri il nome dell’incidente per consultarne il dettaglio."
+      ],
+      "outro": "Con Reset puoi rimuovere i filtri e tornare all’elenco."
+    }
+  },
+  "suggestions": [
+    {
+      "label": "Registrare un’azione",
+      "question": "Come registro la conservazione delle evidenze?",
+      "answer_key": "incident"
+    },
+    {
+      "label": "Cercare un incidente",
+      "question": "Come trovo un incidente già registrato?",
+      "answer_key": "home"
+    },
+    {
+      "label": "Gestire i documenti",
+      "question": "Come carico un documento in CIR?",
+      "answer_key": "documents"
+    },
+    {
+      "label": "Preparare una notifica",
+      "question": "Come preparo una notifica?",
+      "answer_key": "notification"
+    }
+  ],
+  "extra_answers": {
+    "documents": {
+      "intro": "Per aggiungere un documento a un incidente:",
+      "steps": [
+        "Apri la sezione Documenti dell’incidente.",
+        "Seleziona il file e la modalità di archiviazione disponibile.",
+        "Verifica gli eventuali tag di notifica e conferma il caricamento."
+      ],
+      "outro": "Le opzioni Alfresco dipendono dalla configurazione del tenant."
+    },
+    "notification": {
+      "intro": "Il percorso di notifica prevede una verifica prima dell’invio:",
+      "steps": [
+        "Apri Notifiche oppure il task corrispondente nel workflow.",
+        "Se richiesto, genera o carica prima il documento necessario.",
+        "Controlla destinatari, testo e allegati nell’anteprima."
+      ],
+      "outro": "L’invio richiede una tua conferma e i permessi previsti."
+    }
+  },
+  "boundaries": {
+    "request_fields": [
+      "question"
+    ],
+    "automatic_page_context": false,
+    "conversation_history_sent": false,
+    "remote_actions": false,
+    "structured_citations": false,
+    "question_redaction_guaranteed": false
+  },
+  "preview_modes": [
+    "incident",
+    "home"
+  ],
+  "default_page": "incident",
+  "default_assistant_open": true
+}

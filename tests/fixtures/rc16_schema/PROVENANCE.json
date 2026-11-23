@@ -1,0 +1,11 @@
+{
+  "purpose": "Historical ORM schema fixture for real SQLite/PostgreSQL automatic upgrade regression tests; not a production database dump.",
+  "source_package": "cybersecurity-incident-registry-0.9.0-1-import-fix-rc16.zip",
+  "source_package_sha256": "ce26e59072375475932596b8c6e76acee2b936b23a5c155d766c63251a794d41",
+  "source_member": "cybersecurity-incident-registry-0.9.0-1/app/models.py",
+  "source_member_sha256": "c788104a80cadbdbaf9c85107de2434754a625f00be2e14a523c668450eba1c7",
+  "functional_version": "0.9.0-1",
+  "build": "20260902",
+  "modifications": "none",
+  "loading": "Loaded under an isolated app.* module name for the original relative utcnow import; separate SQLAlchemy metadata, no historical create_app execution."
+}

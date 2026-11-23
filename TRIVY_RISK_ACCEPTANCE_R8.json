@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "release": "0.9.0-1",
+  "release": "0.10.0-1",
   "build": "20260902",
   "baseline_image": "desalvo/cybersecurity-incident-registry:0.9.0-1",
   "baseline_scan_date": "2026-09-20",
@@ -365,5 +365,11 @@
       "review_before": "2026-10-20",
       "installed_version_regex": "^1:0\\.9\\.12-1(?:\\+b[0-9]+)?$"
     }
-  }
+  },
+  "reviewed_baseline": {
+    "release": "0.9.0-1",
+    "build": "20260902",
+    "image": "desalvo/cybersecurity-incident-registry:0.9.0-1"
+  },
+  "release_status": "review_required"
 }

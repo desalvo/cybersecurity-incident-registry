@@ -1,6 +1,6 @@
 import json, os, uuid
 from pathlib import Path
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from ...models import db, Setting, AIChatbotDocument
@@ -11,6 +11,25 @@ from .engines import get_engine, AIEngineError, ENGINE_CLASSES
 from .security import validate_ai_endpoint
 
 bp = Blueprint('ai_chatbot', __name__, url_prefix='/ai-chatbot', template_folder='templates')
+
+
+@bp.before_request
+def enforce_session_policy():
+    """Apply the same session and active-tenant policy as core application views."""
+    from ...routes import block_disabled, user_role_for_tenant
+    response = block_disabled()
+    widget = request.endpoint == 'ai_chatbot.widget_ask'
+    if response is not None:
+        if widget:
+            return jsonify({'ok': False, 'error': 'Sessione non valida. Accedere nuovamente prima di usare l’assistente.'}), 401
+        return response
+    if widget and not current_user.is_authenticated:
+        return jsonify({'ok': False, 'error': 'Autenticazione richiesta.'}), 401
+    if current_user.is_authenticated and user_role_for_tenant() == 'disabled':
+        if widget:
+            return jsonify({'ok': False, 'error': 'Accesso al tenant non consentito.'}), 403
+        abort(403)
+
 
 PLUGIN_CODE = 'ai_chatbot'
 ENGINE_NAMES = ['chatgpt', 'claude', 'gemini', 'ollama', 'perplexity']
@@ -177,10 +196,25 @@ def chat():
 @login_required
 def widget_ask():
     """AJAX endpoint used by the global floating chatbot widget."""
+    # A second browser tab may have changed the active tenant in the shared
+    # session cookie. Bind modern-widget requests to their rendered tenant
+    # without sending incident data or chat history to the provider.
+    expected_tenant = request.headers.get('X-CIR-Tenant-ID')
+    if expected_tenant is not None:
+        if not expected_tenant.isascii() or not expected_tenant.isdigit() or expected_tenant != str(current_tenant_id()):
+            return jsonify({'ok': False, 'error': 'Il tenant attivo è cambiato. Ricaricare la pagina prima di inviare una nuova domanda.'}), 409
     if not is_enabled():
         return jsonify({'ok': False, 'error': 'Plugin AI Chatbot non attivo.'}), 403
-    payload = request.get_json(silent=True) or {}
-    question = (payload.get('question') or request.form.get('question') or '').strip()
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify({'ok': False, 'error': 'Richiesta non valida.'}), 400
+        question = payload.get('question', '')
+    else:
+        question = request.form.get('question', '')
+    if not isinstance(question, str):
+        return jsonify({'ok': False, 'error': 'La domanda deve essere un testo.'}), 400
+    question = question.strip()
     if not question:
         return jsonify({'ok': False, 'error': 'Inserire una domanda per il chatbot.'}), 400
     cfg = plugin_config()

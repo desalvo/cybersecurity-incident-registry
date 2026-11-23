@@ -34,7 +34,7 @@ spec:
         - {name: data, mountPath: /data}
       containers:
       - name: web
-        image: desalvo/cybersecurity-incident-registry:0.9.0-1
+        image: desalvo/cybersecurity-incident-registry:0.10.0-1
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 10001
@@ -52,8 +52,7 @@ spec:
         - {name: SECRET_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: secret-key}}}
         - {name: ADMIN_INITIAL_PASSWORD, valueFrom: {secretKeyRef: {name: cir-secrets, key: admin-initial-password}}}
         - {name: SETTING_ENCRYPTION_KEY, valueFrom: {secretKeyRef: {name: cir-secrets, key: setting-encryption-key}}}
-        - {name: APP_VERSION, value: "0.9.0-1"}
-        - {name: APP_BUILD, value: "20260902"}
+        # VERSION and the automatic BUILD are authoritative image metadata.
         - {name: CIR_PRODUCTION, value: "1"}
         - {name: SESSION_COOKIE_SECURE, value: "1"}
         - {name: CIR_DISABLE_CSRF, value: "0"}

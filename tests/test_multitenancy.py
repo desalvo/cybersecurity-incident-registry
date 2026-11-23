@@ -806,7 +806,7 @@ def test_index_main_page_uses_collapsible_search_sort_bulk_and_mobile_cards():
     template = open('app/templates/index.html', encoding='utf-8').read()
     assert '<summary>Cerca incidenti</summary>' in template
     assert '<summary>Ordinamento</summary>' in template
-    assert '<summary>Azioni sugli incidenti selezionati</summary>' in template
+    assert "'Azioni sugli incidenti selezionati'" in template
     assert '<label>Parola chiave</label>' in template
     assert '<label>Incidenti per pagina</label><select name="per_page"' not in template
     assert '<form class="per-page-toolbar"' in template

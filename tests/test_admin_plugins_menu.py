@@ -1,13 +1,22 @@
 from pathlib import Path
 
 
-def test_admin_menu_groups_plugin_configurations_under_plugins():
+def test_classic_admin_menu_groups_plugin_configurations_under_plugins():
     template = Path('app/templates/base.html').read_text(encoding='utf-8')
     assert '<summary>Plugins</summary>' in template
     assert '>Chatbot AI</a>' in template
     assert '>Alfresco</a>' in template
     assert '>Plugin Alfresco</a>' not in template
     assert '<a role="menuitem" href="{{ url_for(\'ai_chatbot.admin_plugins\') }}">Plugins</a>' not in template
+
+
+def test_modern_tenant_configuration_keeps_both_plugin_pages_named():
+    template = Path('app/templates/ui/navigation.html').read_text(encoding='utf-8')
+    assert '<span class="cir-nav-subheading">Plugins</span>' in template
+    assert "item('ai_chatbot.admin_plugins','Chatbot AI','AI chatbot')" in template
+    assert "item('alfresco.admin_plugins','Alfresco','Alfresco')" in template
+    assert "current_tenant_role in ['admin','superuser']" in template
+    assert 'Plugin Alfresco' not in template
 
 
 def test_chatbot_configuration_page_is_not_generic_plugins_page():
