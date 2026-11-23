@@ -1,0 +1,382 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "pkg:pypi/boto3@1.42.95",
+      "name": "boto3",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "boto3==1.42.95"
+        }
+      ],
+      "purl": "pkg:pypi/boto3@1.42.95",
+      "type": "library",
+      "version": "1.42.95"
+    },
+    {
+      "bom-ref": "pkg:pypi/cryptography@50.0.1",
+      "name": "cryptography",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "cryptography==50.0.1"
+        }
+      ],
+      "purl": "pkg:pypi/cryptography@50.0.1",
+      "type": "library",
+      "version": "50.0.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/defusedxml",
+      "name": "defusedxml",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "defusedxml<0.8,>=0.7.1"
+        }
+      ],
+      "purl": "pkg:pypi/defusedxml",
+      "type": "library"
+    },
+    {
+      "bom-ref": "pkg:pypi/flask@3.1.3",
+      "name": "Flask",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "Flask==3.1.3"
+        }
+      ],
+      "purl": "pkg:pypi/flask@3.1.3",
+      "type": "library",
+      "version": "3.1.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/flask-login@0.6.3",
+      "name": "Flask-Login",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "Flask-Login==0.6.3"
+        }
+      ],
+      "purl": "pkg:pypi/flask-login@0.6.3",
+      "type": "library",
+      "version": "0.6.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/flask-sqlalchemy@3.1.1",
+      "name": "Flask-SQLAlchemy",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "Flask-SQLAlchemy==3.1.1"
+        }
+      ],
+      "purl": "pkg:pypi/flask-sqlalchemy@3.1.1",
+      "type": "library",
+      "version": "3.1.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/gunicorn@26.2.0",
+      "name": "gunicorn",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "gunicorn==26.2.0"
+        }
+      ],
+      "purl": "pkg:pypi/gunicorn@26.2.0",
+      "type": "library",
+      "version": "26.2.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/ldap3@2.9.1",
+      "name": "ldap3",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "ldap3==2.9.1"
+        }
+      ],
+      "purl": "pkg:pypi/ldap3@2.9.1",
+      "type": "library",
+      "version": "2.9.1"
+    },
+    {
+      "bom-ref": "pkg:pypi/matplotlib@3.10.3",
+      "name": "matplotlib",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "matplotlib==3.10.3"
+        }
+      ],
+      "purl": "pkg:pypi/matplotlib@3.10.3",
+      "type": "library",
+      "version": "3.10.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@13.0.0",
+      "name": "Pillow",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "Pillow==13.0.0"
+        }
+      ],
+      "purl": "pkg:pypi/pillow@13.0.0",
+      "type": "library",
+      "version": "13.0.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/psycopg2-binary@2.9.10",
+      "name": "psycopg2-binary",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "psycopg2-binary==2.9.10"
+        }
+      ],
+      "purl": "pkg:pypi/psycopg2-binary@2.9.10",
+      "type": "library",
+      "version": "2.9.10"
+    },
+    {
+      "bom-ref": "pkg:pypi/pyotp@2.9.0",
+      "name": "pyotp",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "pyotp==2.9.0"
+        }
+      ],
+      "purl": "pkg:pypi/pyotp@2.9.0",
+      "type": "library",
+      "version": "2.9.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/pypdf@6.21.4",
+      "name": "pypdf",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "pypdf==6.21.4"
+        }
+      ],
+      "purl": "pkg:pypi/pypdf@6.21.4",
+      "type": "library",
+      "version": "6.21.4"
+    },
+    {
+      "bom-ref": "pkg:pypi/python-docx@1.2.0",
+      "name": "python-docx",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "python-docx==1.2.0"
+        }
+      ],
+      "purl": "pkg:pypi/python-docx@1.2.0",
+      "type": "library",
+      "version": "1.2.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/python-dotenv@1.2.2",
+      "name": "python-dotenv",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "python-dotenv==1.2.2"
+        }
+      ],
+      "purl": "pkg:pypi/python-dotenv@1.2.2",
+      "type": "library",
+      "version": "1.2.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/qrcode@8.2",
+      "name": "qrcode",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "qrcode[pil]==8.2"
+        }
+      ],
+      "purl": "pkg:pypi/qrcode@8.2",
+      "type": "library",
+      "version": "8.2"
+    },
+    {
+      "bom-ref": "pkg:pypi/reportlab@4.4.3",
+      "name": "reportlab",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "reportlab==4.4.3"
+        }
+      ],
+      "purl": "pkg:pypi/reportlab@4.4.3",
+      "type": "library",
+      "version": "4.4.3"
+    },
+    {
+      "bom-ref": "pkg:pypi/requests@2.33.0",
+      "name": "requests",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "requests==2.33.0"
+        }
+      ],
+      "purl": "pkg:pypi/requests@2.33.0",
+      "type": "library",
+      "version": "2.33.0"
+    },
+    {
+      "bom-ref": "pkg:pypi/werkzeug@3.1.8",
+      "name": "Werkzeug",
+      "properties": [
+        {
+          "name": "cir:dependency-level",
+          "value": "direct"
+        },
+        {
+          "name": "cir:declared-requirement",
+          "value": "Werkzeug==3.1.8"
+        }
+      ],
+      "purl": "pkg:pypi/werkzeug@3.1.8",
+      "type": "library",
+      "version": "3.1.8"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "pkg:pypi/boto3@1.42.95",
+        "pkg:pypi/cryptography@50.0.1",
+        "pkg:pypi/defusedxml",
+        "pkg:pypi/flask@3.1.3",
+        "pkg:pypi/flask-login@0.6.3",
+        "pkg:pypi/flask-sqlalchemy@3.1.1",
+        "pkg:pypi/gunicorn@26.2.0",
+        "pkg:pypi/ldap3@2.9.1",
+        "pkg:pypi/matplotlib@3.10.3",
+        "pkg:pypi/pillow@13.0.0",
+        "pkg:pypi/psycopg2-binary@2.9.10",
+        "pkg:pypi/pyotp@2.9.0",
+        "pkg:pypi/pypdf@6.21.4",
+        "pkg:pypi/python-docx@1.2.0",
+        "pkg:pypi/python-dotenv@1.2.2",
+        "pkg:pypi/qrcode@8.2",
+        "pkg:pypi/reportlab@4.4.3",
+        "pkg:pypi/requests@2.33.0",
+        "pkg:pypi/werkzeug@3.1.8"
+      ],
+      "ref": "pkg:generic/cybersecurity-incident-registry@0.10.0-1"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "pkg:generic/cybersecurity-incident-registry@0.10.0-1",
+      "name": "cybersecurity-incident-registry",
+      "purl": "pkg:generic/cybersecurity-incident-registry@0.10.0-1",
+      "type": "application",
+      "version": "0.10.0-1"
+    },
+    "properties": [
+      {
+        "name": "cir:inventory-source",
+        "value": "declared-requirements"
+      },
+      {
+        "name": "cir:resolution-status",
+        "value": "not-resolved"
+      },
+      {
+        "name": "cir:source-requirements",
+        "value": "requirements.txt"
+      },
+      {
+        "name": "cir:source-requirements-sha256",
+        "value": "96d9eabe41d10615880586abfab157cd9ac1fee5dc6e2917414597657e18250f"
+      }
+    ]
+  },
+  "specVersion": "1.6",
+  "version": 1
+}

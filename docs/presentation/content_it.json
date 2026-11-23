@@ -1,0 +1,543 @@
+{
+  "title": "Cybersecurity Incident Registry",
+  "version": "0.10.0-1",
+  "candidate": "RC2",
+  "date": "Data della build automatica in BUILD",
+  "build_source": "../../BUILD",
+  "slides": [
+    {
+      "type": "cover",
+      "kicker": "DALLA SEGNALAZIONE ALLA CHIUSURA",
+      "title": "Gestione operativa\ndegli incidenti",
+      "subtitle": "Funzionalità, configurazione e laboratorio passo per passo",
+      "caption": "{{version}} / {{candidate}} · Edizione operativa e didattica",
+      "image": "app/static/ui/cybersecurity-hero-v2.png",
+      "notes": "Presentazione in italiano, circa 45–60 minuti inclusa esercitazione. La 0.10.0-1 RC2 è un candidato di sviluppo: le funzionalità sono implementate nel sorgente; i gate runtime e di produzione vanno completati prima dell'uso operativo. Le fotografie sintetiche illustrano infrastrutture e sicurezza informatica e non contengono persone. Non sono acquisizioni dell'interfaccia. Le schermate effettive arrivano soltanto dalla CI verificata della stessa build. Nessuna promessa di certificazione normativa o automazione della risposta tecnica. Fonti: README.md, docs/HANDOFF.md, docs/TRAINING.md."
+    },
+    {
+      "type": "columns",
+      "kicker": "IL VALORE OPERATIVO",
+      "title": "Un registro per attività,\nresponsabilità ed evidenze",
+      "items": [
+        [
+          "REGISTRARE",
+          "Incidenti, classificazione, persone coinvolte e cronologia delle azioni."
+        ],
+        [
+          "GUIDARE",
+          "Workflow configurabili, operazioni previste e avvisi procedurali."
+        ],
+        [
+          "DOCUMENTARE",
+          "Notifiche, moduli, allegati, report e integrazione Alfresco."
+        ]
+      ],
+      "bottom": "CIR accompagna il lavoro degli operatori e ne conserva le evidenze.",
+      "notes": "Mostrare il menu dell'istanza dimostrativa. CIR non è un EDR e non isola automaticamente le macchine: gli operatori eseguono il contenimento con gli strumenti aziendali e registrano attività, tempi ed evidenze nell'applicazione. Fonti: app/routes.py, app/templates/help.html, docs/ADMIN_ALFRESCO.md."
+    },
+    {
+      "type": "tenants",
+      "kicker": "CONFIGURAZIONE CONDIVISA",
+      "title": "Una configurazione comune,\ncon identità locali preservate",
+      "items": [
+        [
+          "SORGENTE",
+          "Label, parametri, notifiche, documenti e catalogo dei workflow."
+        ],
+        [
+          "PROPAGAZIONE",
+          "Nuovi ID locali in caso di collisione; riferimenti tracciati per origine."
+        ],
+        [
+          "TENANT",
+          "Configurazione propria e copie dei workflow modificabili."
+        ]
+      ],
+      "bottom": "Il tenant operativo “default” resta distinto da “Tenants Default”.",
+      "notes": "Al primo avvio il tenant speciale, se assente, è inizializzato dalla configurazione del tenant default. Non vengono copiati utenti, incidenti o conoscenze private. Un Tenants Default già presente non viene sovrascritto. Le copie propagate hanno una mappa persistente di provenienza: non si presuppone che gli ID siano uguali tra tenant. Fonti: app/tenant_defaults_seed.py, app/tenant_defaults.py, docs/MIGRATION.md."
+    },
+    {
+      "type": "split",
+      "kicker": "WORKFLOW RIUSABILI",
+      "title": "Workflow riusabili\ne varianti indipendenti",
+      "left": "Lo stesso workflow può essere importato più volte nello stesso tenant.",
+      "right": [
+        "Phishing • laboratorio",
+        "Phishing • produzione",
+        "Parametri locali tramite personalizzazione esplicita"
+      ],
+      "bottom": "Admin di tenant: il proprio tenant. Superuser: il tenant scelto.",
+      "notes": "Nel catalogo selezionare una voce corrente, scegliere il tenant se si è superuser e assegnare nomi diversi. La struttura degli step è indipendente per ogni importazione; inizialmente i riferimenti Defaults usano le repliche corrette. La personalizzazione dei parametri crea copie delle dipendenze per quel workflow. Se già usato da incidenti, creare una nuova copia anziché rimappare le dipendenze storiche. Fonti: app/workflow_catalog.py, app/workflow_lifecycle.py."
+    },
+    {
+      "type": "status",
+      "kicker": "CICLO DI VITA",
+      "title": "Workflow correnti e obsoleti,\nconservando lo storico",
+      "items": [
+        [
+          "CORRENTE",
+          "Importabile e selezionabile per nuovi incidenti."
+        ],
+        [
+          "OBSOLETO",
+          "Non importabile e non assegnabile a nuovi incidenti."
+        ]
+      ],
+      "bottom": "Obsolescenza nella sorgente → avvisi agli admin → tutte le copie obsolete.",
+      "notes": "Dimostrare l'obsolescenza su un workflow creato per l'esercitazione. La decisione nella sorgente raggiunge tutte le copie, anche personalizzate. Gli avvisi sono persistenti nell'applicazione per admin e superuser. Gli incidenti esistenti mantengono il flusso; non eliminare lo storico. La riattivazione della sorgente non riattiva automaticamente le copie che un amministratore ha dismesso. Fonte: app/workflow_lifecycle.py."
+    },
+    {
+      "type": "columns",
+      "kicker": "DOCUMENTI E NOTIFICHE",
+      "title": "Documenti e notifiche\ncollegati al caso",
+      "items": [
+        [
+          "PREPARA",
+          "Tipi di notifica, template, destinatari e moduli PDF."
+        ],
+        [
+          "GENERA E VERIFICA",
+          "Compila il documento, controlla il contenuto e la notifica prevista."
+        ],
+        [
+          "CONSERVA",
+          "CIR, CIR + Alfresco o Solo Alfresco, secondo la configurazione del tenant."
+        ]
+      ],
+      "bottom": "Il report automatico e la sincronizzazione Alfresco seguono le impostazioni del tenant.",
+      "notes": "La notifica esterna richiede configurazione e autorizzazione operative; per la demo usare solo destinatari di prova. Alfresco può creare cartelle e report con ID e nome incidente, eliminare documenti remoti e sincronizzarne lo stato in sola lettura. Non confondere sync dello stato con replica bidirezionale dei contenuti. Fonti: docs/ADMIN_ALFRESCO.md, app/templates/help.html."
+    },
+    {
+      "type": "split",
+      "kicker": "ACCESSO E GOVERNANCE",
+      "title": "Ruoli e accesso\nnel contesto del tenant",
+      "left": "Tenant separati, accesso locale o SSO e configurazioni amministrative dedicate.",
+      "right": [
+        "Ruoli e appartenenze per tenant",
+        "Audit e controlli sui riferimenti",
+        "Supporto AlBot con configurazione dedicata"
+      ],
+      "bottom": "Verificare il tenant attivo prima di configurare, importare o modificare dati.",
+      "notes": "Il superuser gestisce il contesto trasversale; l'admin di tenant opera nel proprio perimetro. AlBot è supporto informativo opzionale: le decisioni operative restano agli operatori. La cancellazione di parametri usati dagli incidenti è bloccata. Le impostazioni locali hanno precedenza sui defaults ereditati. Fonti: app/models.py, app/tenant_default_settings.py, docs/AI_CHATBOT_KNOWLEDGE.md."
+    },
+    {
+      "type": "platforms",
+      "kicker": "INSTALLAZIONE",
+      "title": "Installazione e\ntecnologie supportate",
+      "subtitle": "Container, orchestrazione e database PostgreSQL",
+      "items": [
+        "Compose con Docker o Podman",
+        "Kubernetes con Helm; console OpenShift con Template o Helm",
+        "PostgreSQL, volumi persistenti e Secret dedicati"
+      ],
+      "notes": "Il package comprende Compose, chart Helm e Template OpenShift. Scegliere una modalità coerente con il cluster e verificare i valori prima dell'installazione. Per la console OpenShift, importare il Template oppure configurare il repository Helm: CIR non compare automaticamente nel catalogo pubblico. In produzione usare un digest OCI immutabile passato dai gate, PostgreSQL e hardening non-root/read-only. Le immagini coprono linux/amd64 e linux/arm64; la compatibilità operativa dell'infrastruttura resta da verificare sul proprio cluster. Gli identificativi grafici delle tecnologie provengono dal manifest locale condiviso con About e manuali; non attestano un endorsement dei relativi progetti. Fonti: docs/DEPLOYMENT.md, charts/cybersecurity-incident-registry, openshift, application_identity.py."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "ACCESSO",
+      "title": "Login desktop e mobile",
+      "screenshots": [
+        "login-desktop",
+        "login-mobile"
+      ],
+      "notes": "Mostrare l'accesso desktop e mobile. La testata mobile mantiene il nome esteso e il logo dell'applicazione; l'immagine è illustrativa e non rappresenta un incidente reale. Eventuali pulsanti SSO dipendono dalla configurazione dell'istanza. La sessione dimostrativa usa account di prova. Fonti: app/templates/login.html, README.md."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "REGISTRO E NAVIGAZIONE",
+      "title": "Registro e menu,\nanche su mobile",
+      "screenshots": [
+        "registry-desktop",
+        "registry-mobile",
+        "registry-mobile-menu"
+      ],
+      "notes": "Orientare il partecipante tra registro, ricerca e menu di navigazione. Mostrare la variante mobile e l'apertura del menu. La nuova interfaccia conserva le funzionalità e il tenant attivo; il registro usa dati sintetici preparati per le acquisizioni. Non interpretare i numeri della schermata come statistiche di un'organizzazione reale. Fonti: app/templates, scripts/seed_ui_documentation.py."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "SCHEDA DELL’INCIDENTE",
+      "title": "Una scheda operativa\ncon il workflow in evidenza",
+      "screenshots": [
+        "incident-desktop",
+        "incident-mobile"
+      ],
+      "notes": "Mostrare le liste delle Operazioni previste e la struttura a blocchi con frecce e controlli del workflow, mantenuta nel nuovo stile. Sul mobile scorrere la scheda senza perdere il contesto del caso. La schermata di riferimento rappresenta il caso sintetico di esfiltrazione preparato dalla CI; il laboratorio successivo usa invece DEMO-PHISH-001. Fonti: app/templates/incident_detail.html, scripts/seed_ui_documentation.py."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "ASSISTENZA CONTESTUALE",
+      "title": "AlBot nella pagina\ndell’incidente",
+      "screenshots": [
+        "assistant-desktop",
+        "assistant-mobile"
+      ],
+      "notes": "Indicare lo spazio dell'assistente senza coprire stabilmente il lavoro sul caso. AlBot richiede la configurazione prevista per l'istanza e il tenant. È supporto informativo: l'operatore verifica i contenuti e conserva la responsabilità delle decisioni. La demo mostra l'interfaccia, non una valutazione di accuratezza o una risposta generata attestata. Fonti: docs/AI_CHATBOT_KNOWLEDGE.md, app/templates/incident_detail.html."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "SCELTA DELL’INTERFACCIA",
+      "title": "Uno switch globale\nper il nuovo stile o quello classico",
+      "screenshots": [
+        "interface-settings-desktop",
+        "classic-registry-desktop"
+      ],
+      "notes": "Mostrare la configurazione amministrativa dello switch globale. La nuova UI è la scelta iniziale; l'amministratore può tornare allo stile classico mantenendo le funzionalità. La presenza delle due viste nella ricevuta CI controlla che entrambi i percorsi rimangano disponibili. Verificare l'effettiva autorizzazione del proprio ruolo prima di cambiare la configurazione. Fonti: README.md, scripts/capture_ui_screenshots.py."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "SETUP DEL TENANT",
+      "title": "Template documentali\ne integrazione SSO",
+      "screenshots": [
+        "admin-modules-desktop",
+        "admin-sso-desktop"
+      ],
+      "notes": "Mostrare dove si configurano moduli e SSO. Usare endpoint, client e destinatari di laboratorio; non mostrare password o segreti reali durante il corso. I template vanno verificati prima dell'invio o della generazione di documenti. I dati dello screenshot sono preparati dal seed dimostrativo e non provengono dalla produzione. Fonti: scripts/seed_ui_documentation.py, app/routes.py, docs/MIGRATION.md."
+    },
+    {
+      "type": "scenario",
+      "kicker": "LABORATORIO • CASO FITTIZIO",
+      "title": "Phishing e compromissione\ndi un account di laboratorio",
+      "left": "Alle 09:10 viene segnalato un accesso anomalo a un servizio di ricerca.",
+      "right": [
+        "Riferimento: DEMO-PHISH-001",
+        "Tenant: Laboratorio didattico",
+        "Obiettivo: registrare, gestire e chiudere il caso"
+      ],
+      "bottom": "Usare identità, recapiti, documenti e sistemi di prova.",
+      "notes": "Il facilitatore prepara un tenant di laboratorio, un workflow corrente denominato Phishing - laboratorio, label di gravità e una casella SMTP di test o invio disabilitato. Il caso è interamente inventato. Non immettere dati reali in una sessione condivisa. Le scadenze del laboratorio sono didattiche, non indicazioni normative. Fonte: docs/TRAINING.md."
+    },
+    {
+      "type": "journey",
+      "kicker": "IL WORKFLOW DEL LABORATORIO",
+      "title": "Sei passaggi operativi,\nognuno con un risultato verificabile",
+      "items": [
+        [
+          "01",
+          "Aprire"
+        ],
+        [
+          "02",
+          "Classificare"
+        ],
+        [
+          "03",
+          "Contenere"
+        ],
+        [
+          "04",
+          "Notificare"
+        ],
+        [
+          "05",
+          "Documentare"
+        ],
+        [
+          "06",
+          "Chiudere"
+        ]
+      ],
+      "bottom": "Ogni azione registrata rende visibile l’avanzamento nelle Operazioni previste.",
+      "notes": "Questo workflow è un esempio da configurare per l'esercitazione, non una procedura obbligatoria preinstallata. Preparare le label azione e gli step con gli stessi nomi usati nelle slide. La verifica di completamento si basa sui dati registrati in CIR. Fonte: docs/TRAINING.md, app/routes.py:incident_workflow_status."
+    },
+    {
+      "type": "step",
+      "number": "01",
+      "title": "Aprire l’incidente",
+      "location": "Incidenti → Nuovo incidente",
+      "actions": [
+        "Inserisci nome, riferimento e data/ora di inizio.",
+        "Descrivi segnalazione, sistema interessato e contatto operativo.",
+        "Salva e verifica ID e tenant dell’incidente."
+      ],
+      "result": "Una scheda unica per il caso DEMO-PHISH-001.",
+      "notes": "Eseguire la navigazione dal menu Incidenti. Inserire nome Phishing - account laboratorio e riferimento DEMO-PHISH-001; il riferimento è obbligatorio. Usare timestamp coerente col fuso applicativo. Il modello incidente, se presente, precompila i dati ma non costituisce prova di un'attività svolta. Fonte: app/routes.py:incident_new, app/templates/incident_form.html."
+    },
+    {
+      "type": "step",
+      "number": "02",
+      "title": "Classificare e assegnare il flusso",
+      "location": "Incidente → Dati generali",
+      "actions": [
+        "Seleziona gravità e tipo di incidente.",
+        "Scegli la categoria del workflow Phishing - laboratorio.",
+        "Controlla le Operazioni previste prima di proseguire."
+      ],
+      "result": "Il caso usa un workflow corrente del tenant corretto.",
+      "notes": "La prima categoria ordinata determina il workflow dedicato quando presente; altrimenti si applica il flusso di default. Non sommare flussi per categorie diverse. Un workflow obsoleto è rifiutato per un nuovo incidente o una nuova assegnazione. Gli incidenti esistenti che lo usano possono essere aggiornati senza riassegnarlo. Fonte: app/routes.py:workflow_steps_for_incident, app/workflow_lifecycle.py."
+    },
+    {
+      "type": "step",
+      "number": "03",
+      "title": "Registrare analisi e contenimento",
+      "location": "Incidente → Operazioni previste / Azioni",
+      "actions": [
+        "Registra l’analisi iniziale e i relativi orari.",
+        "Esegui il contenimento con gli strumenti operativi autorizzati.",
+        "Aggiungi l’azione e le evidenze del lavoro eseguito."
+      ],
+      "result": "Una cronologia leggibile di attività e decisioni.",
+      "notes": "Esempio: l'operatore revoca sessioni e credenziali mediante il sistema IAM di laboratorio, non tramite CIR. Registra in CIR l'azione Contenimento eseguito, con descrizione e timestamp; allega una prova fittizia. Evidenziare differenza tra step previsto e azione già compiuta. Non inserire password, token o credenziali nei campi descrittivi. Fonte: app/templates/incident_detail.html, docs/TRAINING.md."
+    },
+    {
+      "type": "step",
+      "number": "04",
+      "title": "Preparare la notifica prevista",
+      "location": "Step di notifica → Template e destinatari",
+      "actions": [
+        "Apri il percorso guidato dello step richiesto.",
+        "Seleziona il template e verifica contenuto e destinatari.",
+        "Registra l’esito usando il canale di prova configurato."
+      ],
+      "result": "La notifica e il documento risultano collegati al caso.",
+      "notes": "La necessità di coinvolgere CSIRT, DPO o altre funzioni dipende dalla procedura locale e dal caso; la slide non assegna obblighi legali. Per il laboratorio usare un tipo Notifica laboratorio e una casella di test. I template e i moduli possono provenire dal catalogo con le dipendenze rimappate. Fonte: app/routes.py:workflow_notification_blocking_message, docs/TRAINING.md."
+    },
+    {
+      "type": "step",
+      "number": "05",
+      "title": "Raccogliere documenti e report",
+      "location": "Incidente → Documenti / Report",
+      "actions": [
+        "Carica solo le evidenze pertinenti al caso.",
+        "Scegli lo storage previsto: CIR e/o Alfresco.",
+        "Controlla report, nome dei documenti e stato remoto."
+      ],
+      "result": "Evidenze reperibili e una rappresentazione aggiornata dell’incidente.",
+      "notes": "Dimostrare upload di un documento fittizio. Se Alfresco è configurato, mostrare cartella incident-<id> - <nome> e report coerente; l'auto-report è governato dalle impostazioni del tenant. Sync Alfresco legge lo stato e non ricrea automaticamente file rimossi. Nei test dimostrativi è sufficiente CIR locale se il repository remoto non è disponibile. Fonte: docs/ADMIN_ALFRESCO.md."
+    },
+    {
+      "type": "step",
+      "number": "06",
+      "title": "Verificare e chiudere",
+      "location": "Operazioni previste → Dati generali → Stato",
+      "actions": [
+        "Controlla step obbligatori e avvisi ancora aperti.",
+        "Registra conclusione, esito e indicazioni di miglioramento.",
+        "Imposta chiuso e verifica report e cronologia."
+      ],
+      "result": "Un incidente concluso con una traccia operativa verificabile.",
+      "notes": "Il sistema può bloccare la chiusura in presenza di avvisi procedurali attivi. Non cancellare label o workflow per far sparire un avviso: completare o correggere la registrazione in modo coerente. Conservare le evidenze secondo le procedure organizzative. Fonte: app/routes.py:incident_detail, incident_procedural_status."
+    },
+    {
+      "type": "split",
+      "kicker": "ESERCIZIO AMMINISTRATIVO",
+      "title": "Due copie del workflow,\ndue varianti nello stesso tenant",
+      "left": "Importa lo stesso workflow come “Phishing A” e “Phishing B”.",
+      "right": [
+        "Personalizza i parametri di B prima dell’uso",
+        "Verifica che A conservi i propri riferimenti",
+        "Marca la sorgente obsoleta e osserva entrambe le copie"
+      ],
+      "bottom": "Risultato atteso: import bloccato, avvisi presenti, vecchi incidenti conservati.",
+      "notes": "Eseguire con account di laboratorio. La collisione ID viene verificata dalla suite di regressione: non modificare a mano le chiavi del database durante il corso. Per mostrare l'indipendenza usare la funzione di personalizzazione esplicita del workflow B non ancora usato. Per riattivazione seguire prima sorgente, poi scelta esplicita locale. Fonte: tests/test_workflow_lifecycle.py o suite di regressione equivalente, docs/MIGRATION.md."
+    },
+    {
+      "type": "columns",
+      "kicker": "PORTABILITÀ E RIPRISTINO",
+      "title": "Tre export per esigenze\ndi trasferimento diverse",
+      "items": [
+        [
+          "TENANTS DEFAULT",
+          "Configurazioni, catalogo e documenti per un’altra istanza."
+        ],
+        [
+          "BOOTSTRAP",
+          "Setup anonimizzato: tenant default e Tenants Default, senza incidenti."
+        ],
+        [
+          "FULL EXPORT",
+          "Database e file per il ripristino completo dell’istanza."
+        ]
+      ],
+      "bottom": "Il Full Import sostituisce i dati: usarlo con backup e procedura di ripristino.",
+      "notes": "Tenants Default completo usa il bundle dedicato, importabile nella pagina amministrativa del catalogo. Il bootstrap usa il flusso Full Import e conserva la configurazione riusabile, rimuovendo credenziali e dati personali. Per i documenti binari riusabili serve una revisione del contenuto: non si può garantire anonimizzazione di testo incorporato in ogni PDF. La password admin segue il bootstrap sicuro dell'istanza, mai le credenziali originali. Fonti: docs/MIGRATION.md, app/tenant_defaults_bundle.py, app/routes.py."
+    },
+    {
+      "type": "split",
+      "kicker": "PRIMA DI ANDARE IN PRODUZIONE",
+      "title": "Verifiche di rilascio\nprima della promozione del digest",
+      "left": "Test, PostgreSQL reale, SCA e scan Trivy su amd64 e arm64.",
+      "right": [
+        "Gate bloccante sul candidato immutabile",
+        "Promozione del digest dopo PASS",
+        "Metadata aggiornati tramite pull request"
+      ],
+      "bottom": "La 0.10.0-1 RC2 non include una nuova immagine production approvata.",
+      "notes": "Al 22 novembre 2026 la risk acceptance Debian presente nel package è scaduta il 20 ottobre: il gate production deve fermarsi. Non usare --ignore-unfixed, non accettare HIGH Python e non impostare manualmente un digest non verificato. I test runtime non sono stati eseguiti nell'ambiente di produzione di questa presentazione; verificare il report della build e HANDOFF. Fonti: docs/SECURITY.md, docs/TESTING_AND_PRODUCTION.md, PRODUCTION_IMAGE_DIGEST."
+    },
+    {
+      "type": "references",
+      "kicker": "RIFERIMENTI PER LO SVILUPPO",
+      "title": "Gestione degli incidenti\ne protezione dei dati",
+      "items": [
+        [
+          "NIS2",
+          "Ruoli, gestione del caso, evidenze e notifiche configurabili supportano una procedura organizzata."
+        ],
+        [
+          "GDPR",
+          "Segregazione dei tenant, audit ed export mirati aiutano a controllare accessi e trattamento dei dati."
+        ],
+        [
+          "PROCEDURA",
+          "Applicabilità, destinatari, tempi e contenuti delle notifiche devono essere definiti dall’organizzazione."
+        ]
+      ],
+      "bottom": "Riferimenti di sviluppo e verifica: l’uso del software non costituisce una certificazione di conformità.",
+      "source_line": "Fonti: eur-lex.europa.eu/eli/dir/2022/2555/oj · eur-lex.europa.eu/eli/reg/2016/679/oj",
+      "notes": "I collegamenti tra funzioni CIR e riferimenti normativi sono una lettura progettuale, non una dichiarazione di conformità o un parere sull'applicabilità a un ente. NIS2 disciplina anche misure di gestione del rischio e segnalazione degli incidenti; il GDPR richiede misure adeguate alla protezione dei dati e disciplina la gestione delle violazioni dei dati personali. CIR offre un registro, workflow e documenti configurabili; non determina automaticamente se un evento sia soggetto a un obbligo né assolve da solo un invio ufficiale. Prima della produzione l'organizzazione deve verificare ambito, procedura e responsabilità con le proprie funzioni competenti. Fonti primarie: Direttiva (UE) 2022/2555, articoli 21 e 23, https://eur-lex.europa.eu/eli/dir/2022/2555/oj ; Regolamento (UE) 2016/679, articoli 32 e 33, https://eur-lex.europa.eu/eli/reg/2016/679/oj ."
+    },
+    {
+      "type": "references",
+      "kicker": "RIFERIMENTI PER LO SVILUPPO",
+      "title": "Usabilità e accessibilità\ncome requisiti da verificare",
+      "items": [
+        [
+          "AGID",
+          "Chiarezza dei servizi digitali, navigazione coerente e documentazione delle scelte progettuali."
+        ],
+        [
+          "WCAG",
+          "Contrasto, tastiera, focus, etichette e adattamento mobile sono criteri per la verifica dell’interfaccia."
+        ],
+        [
+          "VALIDAZIONE",
+          "Screenshot e test automatici si affiancano alle verifiche manuali con tecnologie assistive."
+        ]
+      ],
+      "bottom": "L’allineamento progettuale va verificato sull’istanza: gli screenshot non dimostrano la conformità completa.",
+      "source_line": "Fonti: agid.gov.it · docs.italia.it/italia/design/lg-design-servizi-web · w3.org/TR/WCAG22/",
+      "notes": "AgID fornisce riferimenti per il design dei siti e servizi digitali della PA e per l'accessibilità degli strumenti informatici. WCAG 2.2 contiene criteri verificabili, da valutare combinando controlli automatici e valutazione umana. CIR usa questi riferimenti per le scelte progettuali e le regressioni; non dichiara qui un livello di conformità, una certificazione o il superamento di un audit completo. La versione WCAG applicabile a un obbligo specifico va verificata separatamente; citare WCAG 2.2 come riferimento di sviluppo non modifica automaticamente i requisiti legali. Fonti primarie: https://www.agid.gov.it/it/design-servizi/linee-guida-design-servizi-digitali-pa.html ; https://docs.italia.it/italia/design/lg-design-servizi-web/it/versione-corrente/requisiti.html ; https://www.agid.gov.it/sites/agid/files/2024-06/Linee%20Guida%20sull%27accessibilit%C3%A0%20degli%20strumenti%20informatici%20-%20PA.pdf ; https://www.w3.org/TR/WCAG22/ ."
+    },
+    {
+      "type": "journey",
+      "kicker": "MANUTENZIONE DELLA SICUREZZA",
+      "title": "Un ciclo periodico\nper vulnerabilità e aggiornamenti",
+      "items": [
+        [
+          "01",
+          "Rilevare"
+        ],
+        [
+          "02",
+          "Valutare"
+        ],
+        [
+          "03",
+          "Correggere"
+        ],
+        [
+          "04",
+          "Verificare"
+        ],
+        [
+          "05",
+          "Promuovere"
+        ],
+        [
+          "06",
+          "Riesaminare"
+        ]
+      ],
+      "bottom": "SCA e Trivy periodici · policy con scadenza · nuove prove sul digest candidato prima della promozione",
+      "notes": "Il workflow di revisione periodica programmata e avviabile manualmente riesegue i controlli di composizione e le scansioni dell'immagine registrata; controllare l'esito, non presumere che una schedulazione sia una revisione completata. Nuovi advisory o una FixedVersion richiedono valutazione e correzione. Preparare una PR, eseguire test e scansioni amd64/arm64 sul candidato immutabile, quindi promuovere solo dopo PASS. HIGH/CRITICAL Python non vengono accettati e l'expiry della risk acceptance blocca il rilascio; il package sorgente non rinnova la review. Questo ciclo è coerente come indirizzo progettuale con il gruppo Respond to Vulnerabilities del NIST SSDF, che comprende identificazione, risposta e analisi delle cause. Non è una certificazione SSDF. Fonti: .github/workflows/security-review.yml, docs/SECURITY.md, scripts/run_trivy_production_gate.sh ; https://csrc.nist.gov/pubs/sp/800/218/final ; https://csrc.nist.gov/projects/ssdf ."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "DOCUMENTAZIONE ONLINE",
+      "title": "Manuale utente integrato,\naccessibile anche da mobile",
+      "screenshots": [
+        "documentation-user-desktop",
+        "documentation-user-mobile"
+      ],
+      "notes": "Aprire la guida utente dal menu dell'applicazione. La copertina e i riferimenti di versione derivano dagli stessi metadati condivisi con About e PDF. Verificare indice e navigazione mobile, quindi mostrare un capitolo operativo. Queste viste documentano la guida online realmente servita dalla build CI, non una simulazione grafica della pagina. Fonti: app/templates/help.html, app/templates/help_en.html, application_identity.py."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "DOCUMENTAZIONE AMMINISTRATIVA",
+      "title": "Guida amministrativa\nnella stessa interfaccia",
+      "screenshots": [
+        "documentation-admin-desktop",
+        "documentation-admin-mobile"
+      ],
+      "notes": "Aprire la guida amministrativa con un account autorizzato. Presentare configurazione tenant, storage, esportazioni e installazione senza esporre segreti. La copertina online condivide identità, versione e piattaforme con i PDF; l'acquisizione CI verifica la stessa build e gli stessi percorsi desktop/mobile. Fonti: app/templates/admin_help.html, app/templates/admin_help_en.html, application_identity.py."
+    },
+    {
+      "type": "manuals",
+      "kicker": "MANUALI DA MOSTRARE DURANTE LA DEMO",
+      "title": "Prime pagine dei manuali\noperativi e amministrativi",
+      "manuals": [
+        "documentazione_utente.pdf",
+        "documentazione_amministrativa.pdf",
+        "user_documentation_en.pdf"
+      ],
+      "notes": "Sono riproduzioni della prima pagina dei PDF realmente generati per questa versione e build: manuale utente italiano, manuale amministrativo italiano e manuale utente inglese. Il builder renderizza la pagina 1 con Poppler e registra hash del PDF, del PNG e dell'immagine incorporata nel PowerPoint. Per la demo aprire anche il PDF completo; la figura non sostituisce il documento. Fonti: scripts/build_documentation_pdfs.py, scripts/documentation_cover.py, scripts/build_training_presentation.py."
+    },
+    {
+      "type": "manuals",
+      "kicker": "MANUALI DA MOSTRARE DURANTE LA DEMO",
+      "title": "Amministrazione in inglese\ne integrazione Alfresco",
+      "manuals": [
+        "administrator_documentation_en.pdf",
+        "ADMIN_ALFRESCO.pdf"
+      ],
+      "notes": "Mostrare il manuale amministrativo inglese e la guida Alfresco. Le figure sono le pagine 1 dei file PDF di questa build e non copertine simulate. Per Alfresco approfondire configurazione per tenant, scelta del parent, storage, cancellazione, sincronizzazione in sola lettura e report automatico. I marchi identificativi e i metadati derivano dalle risorse condivise con About e le guide. Fonti: docs/ADMIN_ALFRESCO.md, scripts/build_alfresco_pdf.py, scripts/documentation_cover.py."
+    },
+    {
+      "type": "columns",
+      "kicker": "CHECK FINALE DEL LABORATORIO",
+      "title": "Verificare i risultati\ndel laboratorio",
+      "items": [
+        [
+          "OPERATORE",
+          "Apre, classifica, registra azioni e documenti, verifica e chiude."
+        ],
+        [
+          "AMMINISTRATORE",
+          "Importa varianti, gestisce dipendenze e osserva l’obsolescenza."
+        ],
+        [
+          "FACILITATORE",
+          "Controlla risultati attesi e annota miglioramenti della procedura."
+        ]
+      ],
+      "bottom": "Materiale completo: note relatore, guida del laboratorio e documentazione nel package.",
+      "notes": "Chiedere ai partecipanti di spiegare dove ritrovano una decisione e quale prova la sostiene. Verificare che nessuno abbia usato una categoria obsoleta per un nuovo caso. Discutere differenza tra chiudere un incidente e eliminare una configurazione storica. Pulizia dell'ambiente di laboratorio secondo la procedura concordata. Fonte: docs/TRAINING.md."
+    },
+    {
+      "type": "end",
+      "kicker": "CYBERSECURITY INCIDENT REGISTRY",
+      "title": "Un processo documentato,\nriusabile e migliorabile",
+      "subtitle": "Configurare · Registrare · Verificare · Migliorare",
+      "caption": "{{version}} / {{candidate}} · Manuali, esercizi e note del relatore nel package",
+      "image": "app/static/ui/cybersecurity-hero-v2.png",
+      "notes": "Aprire la discussione: quale workflow del vostro setup può essere pubblicato in Tenants Default e quale variante deve restare locale? Chiedere come verificare l'origine di uno screenshot e il digest dell'immagine installata. Per continuare: README.md, docs/MIGRATION.md, docs/DEPLOYMENT.md, docs/TRAINING.md, docs/HANDOFF.md. La fotografia è un'illustrazione sintetica di cybersecurity senza persone, non documentazione di un sito o di un incidente reale."
+    }
+  ],
+  "screenshot_captions": {
+    "login-desktop": "Accesso · desktop",
+    "login-mobile": "Accesso · mobile",
+    "registry-desktop": "Registro degli incidenti · desktop",
+    "registry-mobile": "Registro · mobile",
+    "registry-mobile-menu": "Menu · mobile",
+    "incident-desktop": "Scheda incidente e operazioni previste",
+    "incident-mobile": "Incidente · mobile",
+    "assistant-desktop": "Assistente AlBot · desktop",
+    "assistant-mobile": "Assistente · mobile",
+    "interface-settings-desktop": "Impostazione globale dell’interfaccia",
+    "classic-registry-desktop": "Registro con interfaccia classica",
+    "admin-modules-desktop": "Moduli e documenti di notifica",
+    "admin-sso-desktop": "Configurazione SSO per tenant",
+    "documentation-user-desktop": "Manuale utente online · desktop",
+    "documentation-user-mobile": "Manuale utente · mobile",
+    "documentation-admin-desktop": "Manuale amministratore online · desktop",
+    "documentation-admin-mobile": "Manuale admin · mobile"
+  },
+  "references": {
+    "nis2": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",
+    "gdpr": "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+    "agid_design": "https://www.agid.gov.it/it/design-servizi/linee-guida-design-servizi-digitali-pa.html",
+    "agid_accessibility": "https://www.agid.gov.it/sites/agid/files/2024-06/Linee%20Guida%20sull%27accessibilit%C3%A0%20degli%20strumenti%20informatici%20-%20PA.pdf",
+    "wcag": "https://www.w3.org/TR/WCAG22/",
+    "nist_ssdf": "https://csrc.nist.gov/pubs/sp/800/218/final"
+  }
+}

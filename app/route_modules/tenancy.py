@@ -14,6 +14,7 @@ TENANT_SHARED_CONFIGURATION_KEYS = {
     'max_upload_size_mb',
     'setup_wizard_progress_json',
     'setup_wizard_completed',
+    'global_ui_mode',
 }
 
 TENANT_SCOPED_ADMIN_AREAS = (
@@ -32,4 +33,5 @@ TENANT_SHARED_ADMIN_AREAS = (
     'URL applicazione',
     'Time zone applicazione',
     'Dimensione massima upload',
+    'Interfaccia globale',
 )

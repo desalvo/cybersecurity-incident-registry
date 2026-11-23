@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "project": "Cybersecurity Incident Registry",
+  "functional_version": "0.9.0-1",
+  "revision": "RC20: approved login, main page, incident and assistant integrated; modern UI default ON",
+  "created_date": "2026-11-22",
+  "timezone": "Europe/Rome",
+  "generation_method": "OpenAI ImageGen, original synthetic photographs without reference-image inputs",
+  "input_stock_images": [],
+  "direction": "No people, hands, portraits, silhouettes or human reflections. Images illustrate incident case files, reusable workflows, documents and notifications. No actual organization, incident data or facility is depicted.",
+  "use": "Decorative editorial imagery for reviewable web, manual-cover and brochure mockups. Accurate interface text and workflow explanations are typeset natively, never derived from generated image lettering.",
+  "rights_note": "No stock photograph was used as input. Original synthetic output is supplied with provenance; no absolute public-domain or third-party-rights guarantee is asserted.",
+  "assets": [
+    {
+      "filename": "cover-master.png",
+      "sha256": "50599d0713ff9694cde4bee2c92a951434aae4aa0e7c63e10624bc6066d533f2",
+      "subject": "Incident dossier and documented response",
+      "contains_people": false,
+      "visual_review": "Inspected 2026-11-22: no people, hands, faces or recognizable persons visible",
+      "prompt": "Create a premium photographic editorial still life for the front cover of Cybersecurity Incident Registry, an application for recording security incidents, following response workflows, managing evidence documents and sending notifications. Portrait composition 2:3, photorealistic, refined advertising art direction. ABSOLUTELY NO PEOPLE, no hands, no faces, no human silhouettes, no person reflected in any screen. A beautifully arranged incident-response case dossier on a midnight navy desk: matte deep teal case folder with neatly stacked report pages and a subtle tab, three small ivory workflow checklist cards arranged in an orderly progression, a slim unbranded laptop edge with an out-of-focus abstract case-management interface, an understated sealed document envelope. Papers may show unobtrusive tiny horizontal rule marks and checkboxes only, absolutely no legible text or numbers. Concept is an organized incident record and documented response, NOT a server room, hacking, surveillance, military or a security appliance. Restrained amber tab highlights, natural directional window light, convincing paper fibers and matte materials, elegant real-world depth, editorial lens quality, no excessive bloom, no neon or holograms. Arrange objects mainly in lower 60 percent and right, upper 40 percent is quiet dark navy negative space for a title that will be typeset later. No logos, no watermarks, no title, no lettering. Original synthetic photograph, no reference to any actual organization, building or real case."
+    },
+    {
+      "filename": "operations-editorial.png",
+      "sha256": "69cebaaa4f713cbe0675c30c3aebfcb5224fd5b74ac2dd6fd3d1a20ebc413734",
+      "subject": "Empty incident response documentation workspace",
+      "contains_people": false,
+      "visual_review": "Inspected 2026-11-22: no people, hands, faces or recognizable persons visible",
+      "prompt": "Create a premium wide 3:2 photographic editorial still life illustrating the day-to-day use of Cybersecurity Incident Registry: an organized cybersecurity incident dossier, an editable workflow, evidence documents, and a notification ready to send. ABSOLUTELY NO PEOPLE, no hands, faces, portraits, silhouettes or human reflections. Empty sophisticated analyst desk, photographed at a low oblique angle. An unbranded open laptop on the left with an out-of-focus abstract case-management screen (simple list rows and soft teal status panels, no legible text); in the foreground a slim teal folder and a crisp incident report with a few geometric checkbox lines; to the right four orderly paper workflow cards and an ivory document envelope with a small amber marker. The objects communicate documentation, progression and coordination, not cyberwar. Midnight navy and teal palette, warm off-white paper, one amber accent, side daylight, precise but inviting product advertising photography, realistic physical materials, sophisticated composition, generous uncluttered dark area at top right for native layout overlays. No server racks, locks, shields, padlocks, neon hacker code, weapons, cables everywhere, logos, watermarks or readable writing. Original synthetic photograph for this project, not an actual facility or confidential incident."
+    },
+    {
+      "filename": "infrastructure-editorial.png",
+      "sha256": "78877d44c9f97ea79647740f89d64b45ebb2976dcc0cdc36ea5241017e9705e4",
+      "subject": "Reusable workflow catalogue and tenant document sets",
+      "contains_people": false,
+      "visual_review": "Inspected 2026-11-22: no people, hands, faces or recognizable persons visible",
+      "prompt": "Produce a horizontal 16:9 premium photorealistic editorial still life for a software brochure about incident workflow management and reusable tenant configuration. ABSOLUTELY NO PEOPLE, no hands, faces, silhouettes, portraits or human reflections. Overhead arrangement on a textured midnight-navy desk: two separate elegant teal document folders representing separate tenant case files, each containing its own tidy stack of warm-white checklist pages, with one master catalogue binder between them and a row of three neutral workflow cards along the bottom. An understated unbranded tablet at the right edge displays a defocused simple document library grid, and a clean ivory envelope suggests a notification template. Only abstract fine rule marks on paper, no readable words, numbers or invented UI diagrams. Photography should convey reusable organized workflows and controlled documents rather than infrastructure: no server racks, security shields, padlocks, hackers or generic circuit graphics. Rich restrained teal, navy, warm paper and a few amber index tabs, soft daylight, realistic matte paper and binder texture, tasteful premium B2B advertising style, composition with breathing space. No logos or watermarks. Original synthetic photograph."
+    },
+    {
+      "filename": "cybersecurity-login-v2.png",
+      "sha256": "ca752b6824c151ae1fb904da7ddff49fcf391663e749288962536ccecc649789",
+      "subject": "Cybersecurity network operations and anomalous traffic, without people",
+      "contains_people": false,
+      "visual_review": "No people, hands, portraits or paperwork visible; technical content is illustrative, not measured application telemetry.",
+      "prompt": "Use case: photorealistic-natural. Asset type: technological photographic hero for the login page of Cybersecurity Incident Registry. Create an original synthetic portrait photograph, 2:3 composition, of an EMPTY cybersecurity operations workstation, close to the equipment: a precision black network switch with fibre-optic links and subtle teal port lights in the lower foreground; behind it, a sharply framed unbranded monitor showing abstract network traffic telemetry and a small cluster of amber/red anomalous data connections suggesting a data breach. The monitor content is nonlegible, decorative technical traces and sparse node patterns, NOT an exact diagram or real data. Subtle server hardware and cabling in the dark depth of the scene. ABSOLUTELY NO PEOPLE, no hands, faces, silhouettes, portraits or human reflections. NO papers, folders, binders, checklists, envelopes, administrative desk accessories or plants. Premium contemporary technology advertising photograph: realistic metal, glass and black equipment, cyan/teal and deep navy lighting with a restrained red incident highlight, physically plausible light, crisp detail, sophisticated cinematic photographic realism. Top quarter and upper-left are calm dark negative space for a native title that will be added later. Clearly cybersecurity and abnormal network activity rather than office administration. No hooded hackers, no large padlocks or shield symbols, no giant warning triangles, no logos, watermarks, or readable text. Original scene, no actual company/facility/incident or sensitive information."
+    },
+    {
+      "filename": "cybersecurity-hero-v2.png",
+      "sha256": "60ba95fdad989a5811ea4c0aef2bd669fe9ce2c2573b8404c062cbcb3695a0fc",
+      "subject": "Physical server fronts, network switch with connected ports, and a fictional security console showing unauthorised-access and outbound-data-transfer alerts.",
+      "contains_people": false,
+      "dimensions": [
+        2172,
+        724
+      ],
+      "usage": "Decorative main-page hero; it does not depict CIR detection functionality or real incident data. Approved login image is preserved separately.",
+      "prompt": "Use case: photorealistic-natural. Asset type: original synthetic photographic banner for the authenticated main page of Cybersecurity Incident Registry. Create an ultra-wide 3:1 landscape composition, designed for a very shallow web header. Show CONCRETE CYBERSECURITY EQUIPMENT at close range: the recognisable front panels of enterprise servers and a network switch, realistic RJ45/fibre ports with short neatly connected cyan cables, metal ventilation grids, and a physical flat security-console monitor on the RIGHT. On the monitor show a believable compact security-event interface: horizontal rows of authentication events, one red highlighted unauthorised-access event, and a rectangular red outbound-data-transfer alert beside a small database/table icon. The screen is a fictional decorative prop, not an exact chart or real sensitive data. Optional tiny labels only 'ACCESS ALERT' and 'DATA TRANSFER'; no other readable identifiers. The physical equipment and console must dominate; this must instantly read as a cybersecurity incident in a server environment, not a starfield or abstract network. Composition: very tight eye-level product/editorial photography. Keep the main switch ports, central server bays, monitor bezel and red alert within the central horizontal third of the canvas so these physical elements survive a 10:1 center banner crop. Concentrate useful visual action in the RIGHT two-thirds, leave the LEFT third calm matte midnight navy for separately typeset application title. The server geometry is rectilinear and close; the alert is restrained and professional. Palette deep navy, black brushed metal, natural cool cyan equipment light, one small red warning area. Crisp realistic textures, convincing reflected light, photographic optical depth, restrained enterprise aesthetic, no excessive glow. ABSOLUTELY NO PEOPLE, hands, faces, silhouettes or reflections. NO star-like points, constellations, connected nodes, network graphs, globe, dots-and-lines, abstract floating particles, waveforms in empty space, holograms, hooded hackers, padlocks, shield icons, giant warning triangles, administrative papers, folders, logos or watermark. Do not create the website interface or title, only the photographic hero asset. Original fictional facility and event. Preserve a wide low horizontal composition rather than a tall monitor portrait."
+    }
+  ],
+  "current_approval_scope": "login-v2, home-v1, incident-v1 and assistant-v1 approved and integrated into runtime. Approved design sources and photographs preserved byte-for-byte. Manual-cover and brochure proposals remain separate pending review. Runtime screenshots require actual browser CI evidence.",
+  "runtime_copies": [
+    {
+      "source": "cybersecurity-login-v2.png",
+      "destination": "app/static/ui/cybersecurity-login-v2.png",
+      "transform": "none; identical bytes"
+    },
+    {
+      "source": "cybersecurity-hero-v2.png",
+      "destination": "app/static/ui/cybersecurity-hero-v2.png",
+      "transform": "none; identical bytes"
+    }
+  ]
+}

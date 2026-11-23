@@ -130,7 +130,7 @@ def restore_missing_template_files_from_db() -> int:
     return restored
 
 
-def list_templates() -> List[TemplateInfo]:
+def list_templates(*, all_tenants=False) -> List[TemplateInfo]:
     restore_missing_template_files_from_db()
     templates: List[TemplateInfo] = []
     seen = set()
@@ -145,11 +145,16 @@ def list_templates() -> List[TemplateInfo]:
         if path and path.exists():
             templates.append(TemplateInfo(safe, path, _fields_from_pdf(path), None, path))
             seen.add(safe)
+    if not all_tenants:
+        from .form_template_access import can_read_template
+        templates = [template for template in templates if can_read_template(template.name)]
     return templates
 
 
-def get_template(name: str) -> TemplateInfo:
+def get_template(name: str, *, tenant_id=None) -> TemplateInfo:
     safe = _sanitize_field_name(Path(name).stem, 'template')
+    from .form_template_access import require_readable_template
+    require_readable_template(name, tenant_id)
     path = template_dir() / f"{safe}.pdf"
     if not path.exists():
         _restore_template_pdf_from_db(safe)
@@ -270,9 +275,9 @@ def first_initial_information_action(inc: Incident):
             candidates.append(action)
     return sorted(candidates, key=lambda x: x.when_at or datetime.min)[0] if candidates else None
 
-def _setting_value(key: str, default: str = '') -> str:
-    s = db.session.get(Setting, key)
-    return s.value if s and s.value is not None else default
+def _setting_value(key: str, default: str = '', tenant_id=None) -> str:
+    from .routes import _setting_value_without_request_user, current_tenant_id
+    return _setting_value_without_request_user(key, default, tenant_id or current_tenant_id())
 
 def incident_value(inc: Incident, field_name: str) -> str:
     fmt = lambda d: d.strftime('%Y-%m-%d %H:%M') if d else ''
@@ -314,18 +319,18 @@ def incident_value(inc: Incident, field_name: str) -> str:
         return action.when_at.strftime('%H:%M') if action and action.when_at else ''
     if field_name == 'documents': return ', '.join([d.filename for d in inc.documents])
     if field_name == 'created_at': return fmt(inc.created_at)
-    if field_name == 'security_owner': return (db.session.get(Setting, 'security_owner_name').value if db.session.get(Setting, 'security_owner_name') else '')
-    if field_name == 'security_owner_role': return (db.session.get(Setting, 'security_owner_role').value if db.session.get(Setting, 'security_owner_role') else '')
-    if field_name == 'security_owner_email': return (db.session.get(Setting, 'security_owner_email').value if db.session.get(Setting, 'security_owner_email') else '')
-    if field_name == 'structure': return (db.session.get(Setting, 'structure_name').value if db.session.get(Setting, 'structure_name') else '')
-    if field_name == 'security_responsible': return (db.session.get(Setting, 'security_responsible_name').value if db.session.get(Setting, 'security_responsible_name') else '')
-    if field_name == 'security_responsible_email': return (db.session.get(Setting, 'security_responsible_email').value if db.session.get(Setting, 'security_responsible_email') else '')
-    if field_name == 'security_responsible_phone': return (db.session.get(Setting, 'security_responsible_phone').value if db.session.get(Setting, 'security_responsible_phone') else '-')
-    if field_name == 'security_responsible_function': return (db.session.get(Setting, 'security_responsible_function').value if db.session.get(Setting, 'security_responsible_function') else '')
+    if field_name == 'security_owner': return _setting_value('security_owner_name', '', getattr(inc, 'tenant_id', None))
+    if field_name == 'security_owner_role': return _setting_value('security_owner_role', '', getattr(inc, 'tenant_id', None))
+    if field_name == 'security_owner_email': return _setting_value('security_owner_email', '', getattr(inc, 'tenant_id', None))
+    if field_name == 'structure': return _setting_value('structure_name', '', getattr(inc, 'tenant_id', None))
+    if field_name == 'security_responsible': return _setting_value('security_responsible_name', '', getattr(inc, 'tenant_id', None))
+    if field_name == 'security_responsible_email': return _setting_value('security_responsible_email', '', getattr(inc, 'tenant_id', None))
+    if field_name == 'security_responsible_phone': return _setting_value('security_responsible_phone', '-', getattr(inc, 'tenant_id', None))
+    if field_name == 'security_responsible_function': return _setting_value('security_responsible_function', '', getattr(inc, 'tenant_id', None))
     if field_name == 'consequences': return incident_consequences(inc)
     if field_name == 'measures_adopted': return incident_measures(inc)
-    if field_name == 'privacy_authority_non_notification_reason': return _setting_value('privacy_authority_non_notification_reason')
-    if field_name == 'documentation_location': return _setting_value('documentation_location')
+    if field_name == 'privacy_authority_non_notification_reason': return _setting_value('privacy_authority_non_notification_reason', tenant_id=getattr(inc, 'tenant_id', None))
+    if field_name == 'documentation_location': return _setting_value('documentation_location', tenant_id=getattr(inc, 'tenant_id', None))
     if field_name == 'recommendations': return '\n'.join([r.text for r in inc.recommendations])
     return ''
 
@@ -516,7 +521,7 @@ def _generate_docx_from_source_docx(tmpl: TemplateInfo, values: Dict[str, str], 
     return out
 
 def generate_docx_from_xml(inc: Incident, template_name: str, output_dir: Path) -> Path:
-    tmpl = get_template(template_name)
+    tmpl = get_template(template_name, tenant_id=getattr(inc, 'tenant_id', None))
     values = values_for_template(inc, template_name)
     if tmpl.source_docx and tmpl.source_docx.exists():
         return _generate_docx_from_source_docx(tmpl, values, output_dir, inc)
@@ -1159,7 +1164,7 @@ def generate_pdf_from_template(inc: Incident, template_name: str, output_dir: Pa
     content and AcroForm widget annotations are removed, so the generated file
     no longer contains fillable fields.
     """
-    tmpl = get_template(template_name)
+    tmpl = get_template(template_name, tenant_id=getattr(inc, 'tenant_id', None))
     if not tmpl.source_pdf or not tmpl.source_pdf.exists():
         raise FileNotFoundError('Il template selezionato non contiene un PDF sorgente compilabile')
     values = values_for_template(inc, template_name)

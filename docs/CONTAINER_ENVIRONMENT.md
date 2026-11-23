@@ -85,8 +85,8 @@ Queste tre variabili sono lette dal container `db`. L'applicazione `web` usa inv
 | Variabile | Default | Uso |
 |---|---:|---|
 | `APP_NAME` | `Cybersecurity Incident Registry` | Nome visualizzato in **Info → Applicazione**. |
-| `APP_VERSION` | `0.7.0-7` | Versione applicativa visualizzata e propagata nei deploy. |
-| `APP_BUILD` | `20260608` | Numero build visualizzato. |
+| `APP_VERSION` | File `VERSION`: `0.10.0-1` | Compatibilità legacy: un valore di ambiente non sovrascrive il file `VERSION` distribuito nell’immagine. Non impostarlo nei nuovi deployment. |
+| `APP_BUILD` | File `BUILD`: `YYYYMMDD` automatico | Compatibilità legacy: un valore di ambiente non sovrascrive il file `BUILD`. La CI genera una sola build in `Europe/Rome` per sorgenti, documenti e immagine. |
 | `APP_AUTHOR` | `Alessandro De Salvo` | Autore visualizzato. |
 | `APP_AUTHOR_EMAIL` | `Alessandro.DeSalvo@roma1.infn.it` | E-mail autore visualizzata. |
 | `ADMIN_EMAIL` | `admin@example.local` | E-mail assegnata all'admin bootstrap se l'utente viene creato al primo avvio. |

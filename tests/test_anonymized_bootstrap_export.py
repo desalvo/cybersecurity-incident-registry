@@ -76,12 +76,14 @@ def test_bootstrap_export_is_default_tenant_only_and_anonymized(monkeypatch, tmp
     assert payload['bootstrap']['profile'] == BOOTSTRAP_EXPORT_PROFILE
     assert payload['bootstrap']['anonymized'] is True
     assert payload['scope'] == 'global'
-    assert [row['name'] for row in payload['tables']['tenants']] == ['default']
+    assert [row['name'] for row in payload['tables']['tenants']] == ['default', 'Tenants Default']
+    assert payload['bootstrap']['includes_tenants_default'] is True
     assert payload['tables']['incidents'] == []
     assert payload['tables']['actions'] == []
     assert payload['tables']['documents'] == []
     assert payload['tables']['people'] == []
-    assert payload['tables']['external_recipients'] == []
+    assert all(row['email'] == f"recipient-{row['id']}@example.local" and row['notes'] == ''
+               for row in payload['tables']['external_recipients'])
     assert payload['tables']['audit_logs'] == []
     assert payload['tables']['ai_chatbot_documents'] == []
     assert len(payload['tables']['users']) == 1

@@ -2,6 +2,7 @@
 {% block content %}
 <div class="card">
   <h2>Tenant</h2>
+  <p><a href="{{ url_for('main.admin_tenant_defaults') }}">Tenants Default</a> gestisce i parametri comuni. Selezionalo come sorgente per creare un tenant con i soli parametri condivisi. La scelta di un tenant operativo clona anche la sua configurazione, poi aggiunge i defaults senza sostituirla.</p>
   <p class="muted">I tenant separano utenti, incidenti e configurazioni operative. Le configurazioni dei moduli documento, HTTPS/SSL, URL applicazione e fuso orario applicazione restano condivise.</p>
   <p><strong>Tenant attivo:</strong> {{ active_tenant.name if active_tenant else 'default' }}. Il tenant attivo determina quali configurazioni tenant-specifiche vengono visualizzate e modificate dai superuser.</p>
   <details><summary>Ambito delle configurazioni</summary>
@@ -12,7 +13,7 @@
     <input type="hidden" name="action" value="create">
     <div><label>Nome nuovo tenant</label><input name="name" required></div>
     <div><label>Clona configurazioni da</label><select name="clone_from_tenant_id">
-      {% for t in tenants %}<option value="{{ t.id }}" {% if t.name=='default' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      {% for t in tenants %}<option value="{{ t.id }}" {% if t.is_system_defaults %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
     </select></div>
     <div class="wide"><label>Descrizione</label><textarea name="description"></textarea></div>
     <button>Aggiungi tenant</button>
@@ -28,7 +29,7 @@
         <form method="post" id="tenant-update-{{ t.id }}">
           <input type="hidden" name="action" value="update">
           <input type="hidden" name="tenant_id" value="{{ t.id }}">
-          <input name="name" value="{{ t.name }}" {% if t.name=='default' %}readonly{% endif %}>
+          <input name="name" value="{{ t.name }}" {% if t.name=='default' or t.is_system_defaults %}readonly{% endif %}>
         </form>
       </td>
       <td><textarea name="description" form="tenant-update-{{ t.id }}">{{ t.description or '' }}</textarea></td>
@@ -49,8 +50,8 @@
       </td>
       <td><button form="tenant-update-{{ t.id }}">Salva</button></td>
       <td>
-        {% if t.name != 'default' %}
-        <form method="post" onsubmit="return confirm('Eliminare il tenant {{ t.name }}? L\'operazione è possibile solo se non ha utenti o incidenti associati.')">
+        {% if t.name != 'default' and not t.is_system_defaults %}
+        <form method="post" data-cir-confirm="Eliminare il tenant {{ t.name }}? L'operazione è possibile solo se non ha utenti o incidenti associati.">
           <input type="hidden" name="action" value="delete">
           <input type="hidden" name="tenant_id" value="{{ t.id }}">
           <button class="danger" type="submit">Elimina</button>

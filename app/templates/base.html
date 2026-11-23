@@ -2,20 +2,41 @@
 <html lang="{{ current_language or 'it' }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>cybersecurity-incident-registry</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Cybersecurity Incident Registry</title>
   <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <script>window.CIR_LANG={{ (current_language or 'it')|tojson }};</script>
   <script src="{{ url_for('static',filename='i18n.js') }}" defer></script>
   <script src="{{ url_for('static',filename='app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='ui/ui.js') }}" defer></script>
+  {% if cir_new_ui_enabled %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui/ui.css') }}">
+  {% if request.endpoint == 'main.incident_detail' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui/incident.css') }}">
+  <script src="{{ url_for('static', filename='ui/incident.js') }}" defer></script>
+  {% endif %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui/albot.css') }}">
+  <script src="{{ url_for('static', filename='ui/albot.js') }}" defer></script>
+  {% endif %}
+  {% endif %}
+  {% if cir_documentation_view %}<link rel="stylesheet" href="{{ url_for('static', filename='ui/documentation.css') }}">{% endif %}
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='cir-application-logo.svg') }}">
 </head>
-<body>
+<body class="{{ 'cir-modern' if cir_new_ui_enabled else 'cir-classic' }}" data-cir-ui="{{ cir_ui_mode|default('classic') }}">
+{% if cir_new_ui_enabled %}
+<div id="cir-page-shell" class="cir-app-shell">
+<a class="skip-link" href="#main-content">Salta al contenuto principale</a>
+  {% include 'ui/navigation.html' %}
+  <div id="cir-workspace" class="cir-workspace">
+    {% include 'ui/header.html' %}
+{% else %}
 <a class="skip-link" href="#main-content">Salta al contenuto principale</a>
 <header class="topbar" role="banner">
-  <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" onerror="this.style.display='none'"><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
+  <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" data-cir-hide-on-error><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
   <button class="mobile-menu-toggle" type="button" aria-label="Apri o chiudi menu" aria-controls="main-nav" aria-expanded="false">☰ Menu</button>
-  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AlBot"> <img class="ai-chatbot-mobile-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"> Alex</button>{% endif %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AlBot"> <img class="ai-chatbot-mobile-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"> Alex</button>{% endif %}
   {# compat-test: current_user.role=='superuser' #}
   <nav id="main-nav" class="nav" aria-label="Menu principale">
     <a href="{{ url_for('main.index') }}">Incidenti</a>
@@ -78,6 +99,7 @@
       <div id="menu-admin" class="dropdown-content admin-menu" role="menu" aria-label="Admin">
         <details class="admin-menu-group">
           <summary>Configurazione generale</summary>
+          {% if current_user_is_superuser %}<a role="menuitem" href="{{ url_for('ui.interface_settings') }}">{{ 'Global interface' if current_language == 'en' else 'Interfaccia globale' }}</a>{% endif %}
           <a role="menuitem" href="{{ url_for('main.admin_setup_wizard') }}">Wizard setup iniziale</a>
           <a role="menuitem" href="{{ url_for('main.admin_other_configurations') }}">Altre configurazioni</a>
           <a role="menuitem" href="{{ url_for('main.admin_incident_custom_fields') }}">Campi personalizzati</a>
@@ -90,6 +112,10 @@
         </details>
         <details class="admin-menu-group">
           <summary>Anagrafiche e workflow</summary>
+          <a role="menuitem" href="{{ url_for('main.admin_tenant_defaults') }}">Tenants Default</a>
+          <a role="menuitem" href="{{ url_for('main.admin_workflow_catalog') }}">Catalogo workflow</a>
+          <a role="menuitem" href="{{ url_for('main.admin_tenant_defaults_alerts') }}">Avvisi defaults{% if tenant_defaults_alert_count %} ({{ tenant_defaults_alert_count }}){% endif %}</a>
+          <a role="menuitem" href="{{ url_for('main.admin_workflow_catalog_notices') }}">Avvisi workflow{% if workflow_notice_count %} ({{ workflow_notice_count }}){% endif %}</a>
           <a role="menuitem" href="{{ url_for('main.admin_labels') }}">Liste configurabili</a>
           <a role="menuitem" href="{{ url_for('main.admin_incident_workflows') }}">Flussi operativi incidenti</a>
           <a role="menuitem" href="{{ url_for('main.admin_incident_templates') }}">Modelli incidente</a>
@@ -126,7 +152,7 @@
         <a role="menuitem" href="{{ url_for('main.help_page') }}">Documentazione utente</a>
         <a role="menuitem" href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>
         <a role="menuitem" href="{{ url_for('main.release_notes') }}">Note di rilascio</a>
-        {% if ai_chatbot_plugin_enabled() %}<a role="menuitem" href="{{ url_for('ai_chatbot.chat') }}">AlBot</a>{% endif %}
+        {% if ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}<a role="menuitem" href="{{ url_for('ai_chatbot.chat') }}">AlBot</a>{% endif %}
       </div>
     </div>
 
@@ -153,12 +179,25 @@
     {{ current_user.name or current_user.username }} · <a href="{{ url_for('main.logout') }}">Logout</a>
   </div>
 </header>
+{% endif %}
 <main id="main-content" class="container" tabindex="-1">
   {% if request.endpoint != 'main.incident_detail' %}{% for category,m in get_flashed_messages(with_categories=true) %}{% if not category.startswith('section:') %}<div class="flash {{ category }}" role="alert">{{m}}</div>{% endif %}{% endfor %}{% endif %}
+  {% if current_user.is_authenticated and active_tenant and active_tenant.is_system_defaults %}
+  <div class="flash info" role="status"><strong>Tenants Default</strong> — Stai amministrando configurazioni condivise. I salvataggi di label, tipi di notifica e raccomandazioni vengono propagati a tutti i tenant.</div>
+  {% endif %}
+  {% if tenant_defaults_alert_count %}<div class="flash warning" role="status"><a href="{{ url_for('main.admin_tenant_defaults_alerts') }}">{{ tenant_defaults_alert_count }} avvisi sui defaults richiedono presa visione.</a></div>{% endif %}
+  {% if workflow_notice_count %}<div class="flash warning" role="status"><a href="{{ url_for('main.admin_workflow_catalog_notices') }}">{{ workflow_notice_count }} avvisi di obsolescenza workflow richiedono presa visione.</a></div>{% endif %}
   {% block content %}{% endblock %}
 </main>
+{% if cir_new_ui_enabled %}
+    <footer class="cir-page-footer"><span>Cybersecurity Incident Registry · {{ app_info.version if app_info is defined else '0.10.0-1' }}</span><a href="{{ url_for('main.help_page') }}">{{ 'Documentation and support' if current_language == 'en' else 'Documentazione e supporto' }}</a></footer>
+  </div>
+</div>
+{% endif %}
 
-{% if current_user.is_authenticated and ai_chatbot_plugin_enabled() %}
+{% if cir_new_ui_enabled %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}{% include 'ui/albot.html' %}{% endif %}
+{% elif current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
 <div id="ai-chatbot-widget" class="ai-chatbot-widget" data-ask-url="{{ url_for('ai_chatbot.widget_ask') }}" aria-live="polite">
   <button id="ai-chatbot-fab" class="ai-chatbot-fab" type="button" aria-controls="ai-chatbot-panel" aria-expanded="false" title="Apri AlBot" aria-label="Apri AlBot"><img src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"></button>
   <section id="ai-chatbot-panel" class="ai-chatbot-panel" role="dialog" aria-label="AlBot" hidden>
@@ -178,6 +217,6 @@
 </div>
 {% endif %}
 
-<img class="app-corner-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry" loading="lazy">
+{% if not cir_new_ui_enabled %}<img class="app-corner-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry" loading="lazy">{% endif %}
 </body>
 </html>

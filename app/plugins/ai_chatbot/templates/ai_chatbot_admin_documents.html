@@ -24,7 +24,7 @@
         <td>{{ doc.size_bytes }} byte</td>
         <td>{{ doc.uploaded_at }}</td>
         <td>{% if doc.extracted_text %}sì{% else %}no{% endif %}</td>
-        <td><form method="post" action="{{ url_for('ai_chatbot.admin_document_delete', doc_id=doc.id) }}" onsubmit="return confirm('Rimuovere il documento dal chatbot?')"><button class="btn danger" type="submit">Elimina</button></form></td>
+        <td><form method="post" action="{{ url_for('ai_chatbot.admin_document_delete', doc_id=doc.id) }}" data-cir-confirm="Rimuovere il documento dal chatbot?"><button class="btn danger" type="submit">Elimina</button></form></td>
       </tr>
       {% endfor %}
     </tbody>

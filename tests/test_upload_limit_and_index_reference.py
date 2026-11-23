@@ -138,8 +138,10 @@ def test_large_workflow_import_uses_server_side_preview_token(monkeypatch, tmp_p
     assert applied.status_code == 200
     assert 'Workflow importato' in applied.get_data(as_text=True)
     with app.app_context():
-        label = ConfigLabel.query.filter_by(kind='action_label', value='Azione import grande').one()
-        step = IncidentWorkflowStep.query.filter_by(position=12345, action_label_id=label.id).one()
+        from app.models import Tenant
+        tenant_id = Tenant.query.filter_by(name='default', is_system_defaults=False).one().id
+        label = ConfigLabel.query.filter_by(tenant_id=tenant_id, kind='action_label', value='Azione import grande').one()
+        step = IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id, position=12345, action_label_id=label.id).one()
         assert step.description.startswith('Descrizione workflow grande.')
 
 def test_index_uses_incident_reference_instead_of_compiler_column(monkeypatch, tmp_path):

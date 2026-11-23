@@ -75,7 +75,7 @@ def test_existing_postgres_schema_gets_safe_ownership_hardening():
 
 def test_runtime_server_and_werkzeug_pins_are_supported_round6_versions():
     assert 'gunicorn==26.2.0' in REQS
-    assert 'Werkzeug==3.1.8' in REQS
+    assert 'Werkzeug==3.1.9' in REQS
 
 
 if __name__ == '__main__':

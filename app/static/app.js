@@ -214,6 +214,9 @@ document.addEventListener('DOMContentLoaded',makeMobileMenu);
 function makeDeleteConfirmations(){
   const defaultMessage='Confermi la cancellazione? L’operazione non potrà essere annullata.';
   document.querySelectorAll('form').forEach(form=>{
+    // Explicit confirmation handlers and bulk selection own their prompt.
+    // Do not ask twice when the same form also looks like a delete operation.
+    if(form.hasAttribute('data-cir-confirm') || form.hasAttribute('data-bulk-incidents-form'))return;
     const action=(form.getAttribute('action')||'').toLowerCase();
     const formLooksDelete=action.includes('/delete') || form.hasAttribute('data-confirm-delete');
     const hasDeleteControl=!!form.querySelector('button.danger, input[type="submit"].danger, input[name="action"][value="delete"], button[name="action"][value*="delete"]');
@@ -223,6 +226,7 @@ function makeDeleteConfirmations(){
     form.addEventListener('submit',ev=>{
       if(form.dataset.confirmed==='true')return;
       const submitter=ev.submitter;
+      if(submitter && submitter.hasAttribute('data-cir-confirm'))return;
       const submitterAction=(submitter && submitter.getAttribute('value') || '').toLowerCase();
       const submitterIsDelete=!!(submitter && (submitter.classList.contains('danger') || submitterAction.includes('delete') || submitterAction.includes('del_')));
       const mustConfirm=formLooksDelete || submitterIsDelete;

@@ -42,3 +42,25 @@ requirements-dev.txt
 
 SECURITY_DISPOSITION_*.md
 TRIVY_RISK_ACCEPTANCE_*.json
+
+# Editable training sources and visual working files belong to the source release.
+# Keep the validated generated deck with the complete installed CI evidence batch.
+docs/presentation/*
+!docs/presentation/CIR_Operational_Training_IT.pptx
+!docs/presentation/presentation-receipt.json
+!docs/presentation/manual-first-page-*.png
+charts/
+openshift/
+
+# Approved design references remain in the source package. Runtime photography
+# and UI assets are the separately packaged files in app/static/ui/.
+docs/design/
+docs/visual-assets/
+
+# CI-only browser capture and fixture seeding never enter the runtime image.
+# Keep validated manuals and app/static/help/ui-runtime evidence installed by CI.
+requirements-ui.txt
+requirements-docs.txt
+scripts/seed_ui_documentation.py
+scripts/capture_ui_screenshots.py
+scripts/build_training_presentation.py
