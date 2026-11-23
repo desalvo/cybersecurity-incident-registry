@@ -95,8 +95,20 @@ def check_reviewed_policy(policy: dict, version: str) -> None:
             or not isinstance(baseline.get('image'), str)
             or not baseline['image'].endswith(':' + baseline['release'])):
         raise ValueError('R8 reviewed baseline metadata is inconsistent')
-    if policy.get('release_status') != 'review_required':
-        raise ValueError('Development release must keep security review_required status')
+    status = policy.get('release_status')
+    if status == 'temporary_residual_risk_approved_pending_ci_verification':
+        decision = policy.get('risk_decision') or {}
+        effective = date.fromisoformat(decision['effective_on'])
+        expires = date.fromisoformat(decision['expires_on'])
+        if (expires - effective).days != 14 or policy.get('valid_until') != expires.isoformat():
+            raise ValueError('Temporary risk decision must have an exact 14-day interval')
+        allowed = policy.get('accepted_residual_vulnerabilities') or {}
+        if not allowed or any(not item.get('packages') or not item.get('package_version_regex')
+                              or item.get('review_before') != expires.isoformat()
+                              for item in allowed.values()):
+            raise ValueError('Temporary risk decision requires exact package/version scopes and expiry')
+    elif status != 'review_required':
+        raise ValueError('Unknown or unapproved risk review status')
     reviewed = date.fromisoformat(policy['reviewed_on'])
     expires = date.fromisoformat(policy['valid_until'])
     if reviewed > expires:

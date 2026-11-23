@@ -1685,3 +1685,5 @@ RC30: Restore executable mode for PostgreSQL CI test runner and invoke through b
 RC31: Restore SCA and production verification executable modes and make CI invocations robust via bash. No application behavior or security policy change.
 
 RC32: Prepare non-operative 14-day Debian residual-risk approval draft and exact-version CVE review matrix; production gate unchanged.
+
+0.10.0-1 RC33: Conditional 14-day Debian 13 residual-risk acceptance for exact reviewed CVE/package/version scope; gate remains strict for new/patchable findings. Expires 2026-12-07.

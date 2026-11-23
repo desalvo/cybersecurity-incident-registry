@@ -97,8 +97,8 @@ class ReviewedPolicyTests(unittest.TestCase):
         verifier.check_reviewed_policy(self.policy, VERSION)
         self.assertEqual(self.policy['reviewed_baseline']['release'], '0.9.0-1')
         self.assertEqual(self.policy['reviewed_baseline']['build'], '20260902')
-        self.assertEqual(self.policy['valid_until'], '2026-10-20')
-        self.assertEqual(self.policy['release_status'], 'review_required')
+        self.assertEqual(self.policy['valid_until'], '2026-12-07')
+        self.assertEqual(self.policy['release_status'], 'temporary_residual_risk_approved_pending_ci_verification')
 
     def test_policy_scope_cannot_silently_apply_to_another_release(self):
         self.policy['release'] = '0.9.0-1'

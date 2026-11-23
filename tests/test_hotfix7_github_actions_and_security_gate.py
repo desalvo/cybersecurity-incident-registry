@@ -71,7 +71,7 @@ def test_github_workflow_runs_required_gates_and_release_rules():
 
 
 def test_new_risk_acceptance_is_scoped_and_time_bounded():
-    p = json.loads((ROOT / 'TRIVY_RISK_ACCEPTANCE_R8.json').read_text(encoding='utf-8'))
+    p = json.loads((ROOT / 'tests/fixtures/historical_r8_risk_policy.json').read_text(encoding='utf-8'))
     assert p['valid_until'] == '2026-10-20'
     accepted = p['accepted_residual_vulnerabilities']
     util = {'CVE-2026-76642','CVE-2026-78408','CVE-2026-78409','CVE-2026-78410'}

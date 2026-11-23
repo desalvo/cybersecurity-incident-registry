@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_r8_policy_is_time_bounded_and_fail_closed():
-    p = json.loads((ROOT / "TRIVY_RISK_ACCEPTANCE_R8.json").read_text())
+    p = json.loads((ROOT / "tests/fixtures/historical_r8_risk_policy.json").read_text())
     assert p["release"] == (ROOT / "VERSION").read_text().strip()
     assert p["release_status"] == "review_required"
     assert p["reviewed_baseline"]["release"] == "0.9.0-1"
@@ -50,7 +50,7 @@ def _run(report, tmp_path):
         def today(cls):
             return cls(2026, 10, 1)
 
-    args = [str(evaluator_path), str(f), '--platform', 'linux/amd64']
+    args = [str(evaluator_path), str(f), '--policy', str(ROOT / 'tests/fixtures/historical_r8_risk_policy.json'), '--platform', 'linux/amd64']
     stdout, stderr = io.StringIO(), io.StringIO()
     with patch.object(evaluator, 'date', ReviewedDate), patch.object(sys, 'argv', args):
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
