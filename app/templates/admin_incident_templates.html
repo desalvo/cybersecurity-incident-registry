@@ -39,7 +39,7 @@
 </div>
 <div class="card">
   <h3>Modelli configurati</h3>
-  <table class="table"><tr><th>Nome</th><th>Descrizione</th><th>Rischio per diritti e libertà</th><th>Azioni</th></tr>{% for model in templates %}<tr><td>{{model.name}}</td><td>{{model.description}}</td><td>{{'sì' if model.personal_data else 'no'}}</td><td><a class="button secondary" href="{{ url_for('main.admin_incident_templates', edit=model.id) }}">Modifica</a> <a class="button" href="{{ url_for('main.incident_new', template_id=model.id) }}">Usa</a><form method="post" class="inline-form" onsubmit="return confirm('Cancellare il modello?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{model.id}}"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="4" class="muted">Nessun modello configurato.</td></tr>{% endfor %}</table>
+  <table class="table"><tr><th>Nome</th><th>Descrizione</th><th>Rischio per diritti e libertà</th><th>Azioni</th></tr>{% for model in templates %}<tr><td>{{model.name}}</td><td>{{model.description}}</td><td>{{'sì' if model.personal_data else 'no'}}</td><td><a class="button secondary" href="{{ url_for('main.admin_incident_templates', edit=model.id) }}">Modifica</a> <a class="button" href="{{ url_for('main.incident_new', template_id=model.id) }}">Usa</a><form method="post" class="inline-form" data-cir-confirm="Cancellare il modello?"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{model.id}}"><button class="danger">Cancella</button></form></td></tr>{% else %}<tr><td colspan="4" class="muted">Nessun modello configurato.</td></tr>{% endfor %}</table>
 </div>
 
 <script>

@@ -1,0 +1,458 @@
+{
+  "kind": "source-to-mock map; no runtime route changes",
+  "source_files": {
+    "app/templates/incident_detail.html": "6755e6dfd63f583b9302b08bb90b87c0f5eadb9603af352d1b2aad8c8b7ab5e7",
+    "app/templates/base.html": "d4b831cc80a443b9fd8385e838c379c7070fa29dbf9f5631b02fc83c8e0eb4d7",
+    "app/routes.py": "56249c85207c92d7dcafd166dc8e9e924372022bbf444c857a5bba61cd3e2f99",
+    "app/static/app.js": "d43dbc399e1be0012f162b0544e9aabc85860f58366611f7070f707bba1f6960",
+    "app/static/style.css": "593245ea76e736ad60f7531f5e311a9c77cb806636bb1dcaecadd5dfba7fb777",
+    "app/workflow_lifecycle.py": "4942a6f73c78071cd90f909a941ce81085d5bc890bb607295867c42c9ad2831c"
+  },
+  "preserved_approved_designs": [
+    "docs/design/login-v2/",
+    "docs/design/home-v1/",
+    "docs/visual-assets/cybersecurity-hero-v2.png"
+  ],
+  "sections": [
+    {
+      "title": "Fasi procedurali",
+      "id": "incident-workflow",
+      "default_open": true,
+      "source_existing_id": true
+    },
+    {
+      "title": "Avvisi procedurali",
+      "id": "incident-procedural-alerts",
+      "default_open": false,
+      "source_existing_id": true
+    },
+    {
+      "title": "Dati generali",
+      "id": "incident-main",
+      "default_open": true,
+      "source_existing_id": true
+    },
+    {
+      "title": "Dati titolare e responsabile",
+      "id": "incident-owner",
+      "default_open": false,
+      "source_existing_id": false
+    },
+    {
+      "title": "Conseguenze, misure e raccomandazioni",
+      "id": "incident-consequences",
+      "default_open": false,
+      "source_existing_id": false
+    },
+    {
+      "title": "Azioni",
+      "id": "incident-actions",
+      "default_open": false,
+      "source_existing_id": true
+    },
+    {
+      "title": "Promemoria specifici",
+      "id": "incident-reminders",
+      "default_open": false,
+      "source_existing_id": true
+    },
+    {
+      "title": "Documenti",
+      "id": "incident-documents",
+      "default_open": false,
+      "source_existing_id": true
+    },
+    {
+      "title": "Generazione moduli",
+      "id": "incident-forms",
+      "default_open": false,
+      "source_existing_id": true
+    },
+    {
+      "title": "Notifiche",
+      "id": "incident-notifications",
+      "default_open": false,
+      "source_existing_id": true
+    }
+  ],
+  "incident_endpoints": {
+    "main.add_action": {
+      "route": "/incident/<int:iid>/action",
+      "methods": [
+        "POST"
+      ],
+      "line": 4631,
+      "mock_location": "Azioni → Registra azione; procedural action task preselects label",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.add_incident_reminder": {
+      "route": "/incident/<int:iid>/reminder/add",
+      "methods": [
+        "POST"
+      ],
+      "line": 4414,
+      "mock_location": "Promemoria specifici → Aggiungi promemoria",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.clone": {
+      "route": "/incident/<int:iid>/clone",
+      "methods": [
+        "POST"
+      ],
+      "line": 4505,
+      "mock_location": "Incident toolbar → other actions → Clona incidente",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.confirm_generated_forms": {
+      "route": "/incident/<int:iid>/forms/confirm",
+      "methods": [
+        "POST"
+      ],
+      "line": 14190,
+      "mock_location": "Generazione moduli → preview → Conferma allegato · demo",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.del_action": {
+      "route": "/action/<int:aid>/delete",
+      "methods": [
+        "POST"
+      ],
+      "line": 4693,
+      "mock_location": "Azioni → existing action → Elimina azione",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.del_action_attachment": {
+      "route": "/action-attachment/<int:att_id>/delete",
+      "methods": [
+        "POST"
+      ],
+      "line": 4721,
+      "mock_location": "Azioni → existing action attachment → Elimina allegato",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.del_doc": {
+      "route": "/document/<int:did>/delete",
+      "methods": [
+        "POST"
+      ],
+      "line": 4933,
+      "mock_location": "Documenti → document menu → Elimina documento da CIR",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.delete_doc_from_alfresco": {
+      "route": "/document/<int:did>/alfresco/delete",
+      "methods": [
+        "POST"
+      ],
+      "line": 4870,
+      "mock_location": "Documenti → document menu → Elimina da Alfresco",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.delete_incident_reminder": {
+      "route": "/incident/reminder/<int:rid>/delete",
+      "methods": [
+        "POST"
+      ],
+      "line": 4467,
+      "mock_location": "Promemoria → existing reminder → Elimina",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.download_action_attachment": {
+      "route": "/action-attachment/<int:att_id>/download",
+      "methods": [
+        "GET"
+      ],
+      "line": 4713,
+      "mock_location": "Azioni → attachment download",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.download_doc": {
+      "route": "/document/<int:did>/download",
+      "methods": [
+        "GET"
+      ],
+      "line": 4811,
+      "mock_location": "Documenti → Scarica (conditional workflow/template eligibility)",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.download_doc_from_alfresco": {
+      "route": "/document/<int:did>/alfresco/download",
+      "methods": [
+        "GET"
+      ],
+      "line": 4852,
+      "mock_location": "Documenti → Da Alfresco (when remote link exists)",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.generate_incident_forms": {
+      "route": "/incident/<int:iid>/forms/generate",
+      "methods": [
+        "POST"
+      ],
+      "line": 14145,
+      "mock_location": "Generazione moduli → select templates → Genera documenti",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.incident_delete": {
+      "route": "/incident/<int:iid>/delete",
+      "methods": [
+        "POST"
+      ],
+      "line": 4496,
+      "mock_location": "Incident toolbar → other actions → Elimina incidente",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.incident_detail": {
+      "route": "/incident/<int:iid>",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "line": 4194,
+      "mock_location": "Dati generali → main form, all extra fields behind additional-data disclosure",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.notify_preview": {
+      "route": "/incident/<int:iid>/notify/<kind>/preview",
+      "methods": [
+        "GET"
+      ],
+      "line": 10462,
+      "mock_location": "Notifiche or procedural notification step → prerequisite check → preview",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.notify_send": {
+      "route": "/incident/<int:iid>/notify/<kind>/send",
+      "methods": [
+        "POST"
+      ],
+      "line": 10501,
+      "mock_location": "Notification preview → separate explicit confirmation · demo",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.pdf": {
+      "route": "/incident/<int:iid>/pdf",
+      "methods": [
+        "GET"
+      ],
+      "line": 12303,
+      "mock_location": "Incident toolbar → Report PDF",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.preview_generated_form_file": {
+      "route": "/incident/<int:iid>/forms/preview-file/<path:stored_name>",
+      "methods": [
+        "GET"
+      ],
+      "line": 14178,
+      "mock_location": "Generated-form preview → Visualizza documento",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.sync_incident_alfresco_documents": {
+      "route": "/incident/<int:iid>/alfresco/sync-documents",
+      "methods": [
+        "POST"
+      ],
+      "line": 4897,
+      "mock_location": "Documenti → Sync Alfresco; status-only no remote modification",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.update_action": {
+      "route": "/action/<int:aid>/update",
+      "methods": [
+        "POST"
+      ],
+      "line": 4658,
+      "mock_location": "Azioni → existing action → Modifica azione including exportable flag",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.update_document_notification_tags": {
+      "route": "/document/<int:did>/notification-tags",
+      "methods": [
+        "POST"
+      ],
+      "line": 4947,
+      "mock_location": "Documenti → menu → Tag di notifica",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.update_incident_reminder": {
+      "route": "/incident/reminder/<int:rid>/update",
+      "methods": [
+        "POST"
+      ],
+      "line": 4440,
+      "mock_location": "Promemoria → Modifica including resend checkbox",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.upload": {
+      "route": "/incident/<int:iid>/upload",
+      "methods": [
+        "POST"
+      ],
+      "line": 4734,
+      "mock_location": "Documenti → upload with storage_mode local/both/alfresco",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.upload_doc_to_alfresco": {
+      "route": "/document/<int:did>/alfresco/upload",
+      "methods": [
+        "POST"
+      ],
+      "line": 4836,
+      "mock_location": "Documenti → document menu → Invia ad Alfresco",
+      "behavior": "local explanatory preview only; no request to the route"
+    },
+    "main.workflow_step_generate_document": {
+      "route": "/incident/<int:iid>/workflow-step/<int:sid>/document",
+      "methods": [
+        "GET"
+      ],
+      "line": 14111,
+      "mock_location": "Procedural document task → template-constrained guided generation",
+      "behavior": "local explanatory preview only; no request to the route"
+    }
+  },
+  "shared_menu_endpoints": [
+    "ai_chatbot.admin_plugins",
+    "ai_chatbot.chat",
+    "ai_chatbot.widget_ask",
+    "alfresco.admin_plugins",
+    "main.admin_audit",
+    "main.admin_backups",
+    "main.admin_external_recipients",
+    "main.admin_help_page",
+    "main.admin_incident_button_actions",
+    "main.admin_incident_custom_fields",
+    "main.admin_incident_form_fields",
+    "main.admin_incident_templates",
+    "main.admin_incident_workflows",
+    "main.admin_labels",
+    "main.admin_logo",
+    "main.admin_other_configurations",
+    "main.admin_people",
+    "main.admin_recommendations",
+    "main.admin_security_owner",
+    "main.admin_security_responsible",
+    "main.admin_setup_wizard",
+    "main.admin_ssl",
+    "main.admin_status",
+    "main.admin_structure",
+    "main.admin_tenant_activate",
+    "main.admin_tenant_defaults",
+    "main.admin_tenant_defaults_alerts",
+    "main.admin_tenants",
+    "main.admin_users",
+    "main.admin_workflow_catalog",
+    "main.admin_workflow_catalog_notices",
+    "main.app_info",
+    "main.change_password",
+    "main.export_csv",
+    "main.export_full",
+    "main.help_page",
+    "main.import_csv",
+    "main.import_full",
+    "main.index",
+    "main.ldap_settings",
+    "main.logo_image",
+    "main.logout",
+    "main.mfa_settings",
+    "main.modules_configuration",
+    "main.notification_settings",
+    "main.notification_template",
+    "main.notification_template_new",
+    "main.notification_types",
+    "main.release_notes",
+    "main.settings_external_recipients",
+    "main.sso_settings_admin",
+    "main.stats",
+    "static"
+  ],
+  "shared_menu_notes": {
+    "navigation": "same complete grouped menu entries as home-v1; dialogs are access points, not full configuration pages",
+    "main.admin_tenant_activate": "tenant selector demo clears incident content for unavailable tenant; no network",
+    "main.logo_image": "existing static CIR logo used in mock; runtime organization-logo capability unchanged",
+    "static": "logo/photo/css/js assets local; standalone deliverable embeds these",
+    "ai_chatbot.widget_ask": "AlBot optional plugin entry retained, widget conversation not reproduced",
+    "admin_scope": "configuration/users/workflow/audit groups limited to tenant admin or superuser; Tenants Default/global-ui/bootstrap only superuser"
+  },
+  "general_fields": {
+    "overview": [
+      "reference",
+      "severity_id",
+      "status",
+      "description"
+    ],
+    "extra_fields": [
+      "name",
+      "recipient",
+      "recipient_email",
+      "start_date",
+      "start_time",
+      "end_date",
+      "end_time",
+      "personal_data",
+      "deadline_notifications_muted",
+      "alfresco_auto_report_enabled",
+      "data_subjects_count",
+      "data_volume",
+      "custom text/datetime/secret/checkbox"
+    ],
+    "recipient_lookup": "external and LDAP configured access points; no directory search in mock",
+    "classification": [
+      "ordered categories",
+      "data_types",
+      "people",
+      "recommendations (configured max)"
+    ],
+    "date_now": "deterministic fixture timestamp used by mock Adesso buttons; runtime must use application timezone"
+  },
+  "roles": {
+    "tenant_scope": "Active tenant always scopes incident detail, including superuser; legacy null tenant available via existing compatibility rules",
+    "write_roles": [
+      "writer",
+      "admin",
+      "superuser"
+    ],
+    "view_roles": [
+      "writer",
+      "admin",
+      "superuser",
+      "reader"
+    ],
+    "operator": "Own incidents only, no write through can_write",
+    "disabled": "No incident access",
+    "defaults": "Tenants Default is configuration/catalogue-only, no operational incidents"
+  },
+  "workflow": {
+    "upper": "Flow description (markdown), completion badge",
+    "lower": "Clickable task type description, action label description/name, configured condition/deadline/document hints",
+    "arrows": "Only ordered workflows; desktop horizontal, mobile vertical visual preservation",
+    "states": [
+      "done",
+      "missing",
+      "first_incomplete",
+      "expired critical"
+    ],
+    "activation_priority": [
+      "section_target: open section with redirect/action label/template context",
+      "document_generation_url: mapped PDF preview route",
+      "requires_notification and not notification_done: missing documents redirects to forms/documents or ready opens notification preview",
+      "else: open action form and preselect action label"
+    ],
+    "no_blanket_sequential_lock": true,
+    "specific_blocking": [
+      "global_check action cannot be recorded until prior steps complete",
+      "required notification task cannot be manually recorded before notification action",
+      "closure blocked if missing required steps produce procedural warnings",
+      "generation blocked if mapped required incident fields missing",
+      "notification sender validates recipients, incident-owned selected documents, required document selection",
+      "builtin username admin cannot send notifications; can explicitly confirm without send via separate confirmed mode"
+    ],
+    "completion": "Action counts match logical label kind/value with ID fallback; repeated tasks consume distinct action counts",
+    "deadlines": "Hours from first initial-information action; not a universally assumed legal deadline",
+    "obsolete": "No new assignment/clone; existing incident with unchanged workflow remains operable"
+  },
+  "prototype_api": "window.CIRIncidentReview: role/tenant/capability switching and destination inspection for isolated validation only",
+  "no_runtime_mutations": true,
+  "field_preservation_note": "Visible strings are fictional examples. Runtime selects/hidden inputs must continue to submit true tenant-scoped IDs, including collision-remapped catalogue IDs."
+}

@@ -29,14 +29,14 @@
       {% endif %}
       <input id="{{ engine }}_api_key" name="{{ engine }}_api_key" value="" type="password" autocomplete="new-password" placeholder="Nuova API key; lascia vuoto per mantenere quella esistente">
       <div class="button-row compact-row">
-        <button type="submit" name="action" value="reset_backend_defaults:{{ engine }}" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare endpoint, modello e API key del backend {{ engine_labels.get(engine, engine|capitalize) }} ai valori di default? L\'API key salvata per questo backend verrà cancellata.');">Reset {{ engine_labels.get(engine, engine|capitalize) }}</button>
+        <button type="submit" name="action" value="reset_backend_defaults:{{ engine }}" class="btn secondary" formnovalidate data-cir-confirm="Ripristinare endpoint, modello e API key del backend {{ engine_labels.get(engine, engine|capitalize) }} ai valori di default? L'API key salvata per questo backend verrà cancellata.">Reset {{ engine_labels.get(engine, engine|capitalize) }}</button>
       </div>
       <p class="muted">Il reset di questo singolo motore ripristina endpoint, modello e API key del backend {{ engine_labels.get(engine, engine|capitalize) }}. Il motore attivo, gli altri backend, l’abilitazione del plugin e l’opzione sul contesto database non vengono modificati.</p>
     </details>
     {% endfor %}
     <div class="button-row">
       <button type="submit" name="action" value="save" class="btn primary">Salva configurazione Chatbot AI</button>
-      <button type="submit" name="action" value="reset_backend_defaults" class="btn secondary" formnovalidate onclick="return confirm('Ripristinare endpoint, modelli, motore attivo e API key dei backend AI ai valori di default? Le API key salvate verranno cancellate.');">Reset configurazioni backend</button>
+      <button type="submit" name="action" value="reset_backend_defaults" class="btn secondary" formnovalidate data-cir-confirm="Ripristinare endpoint, modelli, motore attivo e API key dei backend AI ai valori di default? Le API key salvate verranno cancellate.">Reset configurazioni backend</button>
     </div>
     <p class="muted">Il reset globale dei backend ripristina motore attivo, endpoint, modelli e API key ai valori iniziali dell’applicazione. I pulsanti nei singoli motori ripristinano solo il backend corrispondente. L’abilitazione del plugin e l’opzione sul contesto database non vengono modificate.</p>
   </form>

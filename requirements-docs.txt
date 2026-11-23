@@ -1,0 +1,3 @@
+# Public, reproducible documentation toolchain; CI/development only.
+# https://pypi.org/project/python-pptx/1.0.2/
+python-pptx==1.0.2

@@ -79,10 +79,10 @@
       <td>{{ 'sì' if t.is_default else 'no' }}</td>
       <td class="button-row">
         <a class="button secondary" href="{{ url_for('main.notification_template', kind=kind, edit=t.id) }}">Modifica</a>
-        <form method="post" onsubmit="return confirm('Clonare questo template di notifica?')">
+        <form method="post" data-cir-confirm="Clonare questo template di notifica?">
           <input type="hidden" name="template_id" value="{{ t.id }}"><input type="hidden" name="action" value="clone"><button type="submit">Clona</button>
         </form>
-        <form method="post" onsubmit="return confirm('Cancellare il template?')">
+        <form method="post" data-cir-confirm="Cancellare il template?">
           <input type="hidden" name="template_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button>
         </form>
         {% if not t.is_default %}

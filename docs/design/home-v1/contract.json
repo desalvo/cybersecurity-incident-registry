@@ -1,0 +1,97 @@
+{
+  "scope": "main page only; common shell style proposal for all non-incident-detail pages",
+  "approval": "overall graphics accepted in general; hero-v2 image under review; login-v2 fully approved and unchanged",
+  "functional_version": "0.9.0-1",
+  "native_boards_not_browser_screenshots": true,
+  "photo": "docs/visual-assets/cybersecurity-hero-v2.png",
+  "style": {
+    "palette": "same as approved login-v2",
+    "desktop_sidebar": 246,
+    "desktop_content": "light, list centered; compact technological banner",
+    "mobile": "form/search first, vertically separated incident rows with expandable metadata; drawer navigation",
+    "menu": "grouped complete access points; mock routes open explanatory dialogs",
+    "other_pages": "same navigation, header, typography, buttons, forms and list treatment; future incident detail keeps existing blocks/arrows"
+  },
+  "demo": {
+    "user": "Admin demo",
+    "role": "superuser",
+    "tenant": "default",
+    "data": "fictional, in memory",
+    "network_requests": false,
+    "backend_actions": "not executed; explained as preview only",
+    "global_switch": "superuser-only reversible demonstration, current preview explicitly ON; future server global setting defaults OFF for all tenants",
+    "tenant_membership": "Selector follows membership. Superuser demo has default, laboratorio and defaults; other demo roles have only default (not a product role restriction).",
+    "conditional_capabilities": {
+      "modules": true,
+      "chatbot": true,
+      "auth_provider": "local",
+      "note": "Shown enabled in fixture; preserve runtime conditional capability and provider rules."
+    }
+  },
+  "actual_list_contract": {
+    "filters": [
+      "q: keyword",
+      "label: action label",
+      "start: datetime",
+      "end: datetime"
+    ],
+    "sort": [
+      "name",
+      "start_at",
+      "reference",
+      "people",
+      "status",
+      "duration"
+    ],
+    "directions": [
+      "asc",
+      "desc"
+    ],
+    "default_sort": "start_at desc",
+    "per_page": [
+      20,
+      50,
+      100
+    ],
+    "columns": [
+      "selection",
+      "incident name and procedural state",
+      "start/end",
+      "reference",
+      "people",
+      "status",
+      "duration",
+      "actions"
+    ],
+    "row_actions": [
+      "detail",
+      "clone for writer/admin/superuser",
+      "PDF",
+      "move for superuser",
+      "delete for writer/admin/superuser"
+    ],
+    "bulk_actions": [
+      "select current page",
+      "move for superuser",
+      "delete for writer/admin/superuser"
+    ],
+    "keyword_fields": [
+      "name",
+      "description",
+      "reference",
+      "creator_name"
+    ]
+  },
+  "limitations": [
+    "Native compositions are not browser screenshots.",
+    "No runtime application, browser or backend gate testing.",
+    "Menu destinations retained as access points, not a full reproduction of destination-page forms.",
+    "The global toggle does not persist an application setting."
+  ],
+  "hero_revision": {
+    "subject": "physical server/network equipment and security console with access/transfer alert; no constellation or node graph",
+    "desktop": "right aligned image at132% banner height with centered vertical crop",
+    "mobile": "right aligned image at100% banner height, preserving full monitor and hardware",
+    "constraints": "overall geometry, typography, controls, demo JavaScript, fixtures and approved login unchanged"
+  }
+}

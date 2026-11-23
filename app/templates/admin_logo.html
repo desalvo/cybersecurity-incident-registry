@@ -4,7 +4,7 @@
   <h1>Logo</h1>
   <p class="muted">Carica l’immagine visualizzata nella barra superiore e nella pagina di login. Altezza massima mostrata: 2 cm.</p>
   <div class="logo-preview">
-    <img class="preview-logo" src="{{ url_for('main.logo_image') }}" alt="Logo corrente" onerror="this.style.display='none'">
+    <img class="preview-logo" src="{{ url_for('main.logo_image') }}" alt="Logo corrente" data-cir-hide-on-error>
   </div>
   <form method="post" enctype="multipart/form-data" class="toolbar">
     <div>

@@ -39,7 +39,7 @@
           </form>
         </td>
         <td>
-          <form method="post" action="{{ url_for('main.admin_recommendation_delete', rid=r.id) }}" onsubmit="return confirm('Cancellare questa raccomandazione e rimuoverla dagli incidenti?')">
+          <form method="post" action="{{ url_for('main.admin_recommendation_delete', rid=r.id) }}" data-cir-confirm="Cancellare questa raccomandazione e rimuoverla dagli incidenti?">
             <button class="danger">Cancella</button>
           </form>
         </td>

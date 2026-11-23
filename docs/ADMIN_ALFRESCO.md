@@ -17,7 +17,7 @@ The historical source files listed below were consolidated into this document fo
 
 ## Historical source: `docs/ADMIN_ALFRESCO.md`
 
-Versione applicativa: **0.9.0-1 Hotfix 6**
+Versione applicativa corrente: **0.10.0-1**. La build automatica è registrata in `BUILD`; le sezioni storiche conservano le versioni delle rispettive Hotfix.
 
 ## 1. Ambito
 

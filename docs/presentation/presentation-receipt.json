@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "source_commit": null,
+  "functional_version": "0.10.0-1",
+  "build": "20261122",
+  "real_screenshots": false,
+  "screenshot_manifest_sha256": null,
+  "file": "CIR_Operational_Training_IT.pptx",
+  "sha256": "60506509b7f6d2c41ab247806fd8ee26f2a30a6f16389e8721512365029f4434",
+  "editable_text": true,
+  "speaker_notes": true,
+  "screenshots": [],
+  "manual_first_pages": [
+    {
+      "pdf": "documentazione_utente.pdf",
+      "pdf_sha256": "ab78be958237d41e6189c75deea66366996f7082ed9069b223c0bb21a8cc707c",
+      "png": "manual-first-page-documentazione_utente.png",
+      "png_sha256": "4a1cfafbc6f3444d48bce9e43a08810e0194aa09f11db30214e54db4ac6c1f69",
+      "media_file": "ppt/media/image9.png",
+      "page": 1
+    },
+    {
+      "pdf": "documentazione_amministrativa.pdf",
+      "pdf_sha256": "c1bc9344bacf47b399d86961714388dd7b32164b10186498d22ea3234afb5e71",
+      "png": "manual-first-page-documentazione_amministrativa.png",
+      "png_sha256": "741cc91523ae3418edcaf8d1590ad2df0413a39c9da77d409b5f7ce0f31a050c",
+      "media_file": "ppt/media/image10.png",
+      "page": 1
+    },
+    {
+      "pdf": "user_documentation_en.pdf",
+      "pdf_sha256": "801269f1425736c1ccb5c53b6cef7c4042e7541c3e5c6b0d7a03511c511238d0",
+      "png": "manual-first-page-user_documentation_en.png",
+      "png_sha256": "93b8bb489c6724cbe89e9881da5fad3d3be1aa6cf2d3cf0bfa866ac7fc7f004e",
+      "media_file": "ppt/media/image11.png",
+      "page": 1
+    },
+    {
+      "pdf": "administrator_documentation_en.pdf",
+      "pdf_sha256": "b0d4851dbe3f5bc73586c1a7d7368e1ac414cb87350cebac7a163a255ac76125",
+      "png": "manual-first-page-administrator_documentation_en.png",
+      "png_sha256": "a3fa7364c26cec7ac04facbea854048cd328f46bcd35b165aeda6cfb1dc4e40d",
+      "media_file": "ppt/media/image12.png",
+      "page": 1
+    },
+    {
+      "pdf": "ADMIN_ALFRESCO.pdf",
+      "pdf_sha256": "9c165132131c72271dc6882bcfe11349a33d218d15e7cfce4ea8d0883f80b0d7",
+      "png": "manual-first-page-ADMIN_ALFRESCO.png",
+      "png_sha256": "63261edceacf13668fa3a9a1cdc4ad67fbe95abef1b9253e95e6edbf247f2c8e",
+      "media_file": "ppt/media/image13.png",
+      "page": 1
+    }
+  ],
+  "slides": 34,
+  "status": "source-edition-awaiting-verified-ci-screenshots"
+}

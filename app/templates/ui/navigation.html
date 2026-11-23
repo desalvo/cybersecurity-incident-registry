@@ -1,0 +1,114 @@
+{% macro icon(kind) -%}
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+{% if kind == 'incidents' %}<path d="M5 5h14M5 12h14M5 19h14"/>
+{% elif kind == 'stats' %}<path d="M5 19V10M12 19V4M19 19v-7"/>
+{% elif kind == 'bell' %}<path d="M6 17h12l-2-3V9a4 4 0 0 0-8 0v5l-2 3Z"/><path d="M10 20h4"/>
+{% elif kind == 'files' %}<path d="M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6"/>
+{% elif kind == 'transfer' %}<path d="M4 7h15l-4-4M20 17H5l4 4"/>
+{% elif kind == 'workflow' %}<rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M6 9v9h9M9 6h9v9"/>
+{% elif kind == 'layers' %}<path d="m3 7 9-5 9 5-9 5-9-5Zm0 5 9 5 9-5M3 17l9 5 9-5"/>
+{% elif kind == 'users' %}<circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/>
+{% elif kind == 'shield' %}<path d="m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4Z"/><path d="m8 11 3 3 5-6"/>
+{% elif kind == 'help' %}<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 0 1 6 0c0 3-3 2-3 5m0 4v.1"/>
+{% else %}<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>{% endif %}
+</svg>
+{%- endmacro %}
+{% macro label(it,en) -%}{{ en if current_language == 'en' else it }}{%- endmacro %}
+{% macro item(endpoint,it,en) -%}<a href="{{ url_for(endpoint) }}" data-cir-nav-link>{{ label(it,en) }}</a>{%- endmacro %}
+<div class="cir-drawer-backdrop" data-cir-drawer-close hidden></div>
+<aside id="cir-sidebar" class="cir-sidebar" aria-label="{{ label('Navigazione principale','Main navigation') }}">
+  <a class="cir-sidebar-brand" href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt=""><strong>Cybersecurity<br>Incident Registry</strong></a>
+  <button id="cir-menu-close" class="cir-drawer-close" type="button" data-cir-drawer-close aria-label="{{ label('Chiudi menu','Close menu') }}">×</button>
+  <nav class="cir-navigation">
+    {% if cir_documentation_view %}
+    <p class="cir-nav-caption">{{ label('DOCUMENTAZIONE','DOCUMENTATION') }}</p>
+    {% for guide in cir_documentation_navigation %}
+    <a class="cir-nav-item" href="{{ guide.url }}" data-cir-nav-link{% if guide.id == cir_doc.id %} aria-current="page"{% endif %}>{{ icon('files') }}<span>{{ guide.title }}</span></a>
+    {% endfor %}
+    <details class="cir-doc-app-navigation"><summary>{{ label('Applicazione e impostazioni','Application and settings') }}</summary>
+    {% endif %}
+
+    <p class="cir-nav-caption">{{ label('AREA OPERATIVA','OPERATIONS') }}</p>
+    <a class="cir-nav-item{% if request.endpoint in ['main.index','main.incident_detail','main.incident_new'] %} active{% endif %}" href="{{ url_for('main.index') }}"{% if request.endpoint == 'main.index' %} aria-current="page"{% endif %}>{{ icon('incidents') }}<span>{{ label('Incidenti','Incidents') }}</span></a>
+    <a class="cir-nav-item{% if request.endpoint == 'main.stats' %} active{% endif %}" href="{{ url_for('main.stats') }}">{{ icon('stats') }}<span>{{ label('Statistiche','Statistics') }}</span></a>
+    {% if current_tenant_role in ['admin','superuser'] %}
+    <details class="cir-nav-group"><summary>{{ icon('bell') }}<span>{{ label('Notifiche','Notifications') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.notification_types','Tipi di notifica','Notification types') }}
+      {{ item('main.notification_template_new','Aggiungi template','Add template') }}
+      {% for nt in notification_menu_types %}<a href="{{ url_for('main.notification_template', kind=nt.code) }}" data-cir-nav-link>Template {{ nt.label }}</a>{% endfor %}
+    </div></details>
+    {% endif %}
+    {% if modules_menu_visible %}
+    <details class="cir-nav-group"><summary>{{ icon('files') }}<span>{{ label('Moduli','Forms') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {% if current_tenant_role in ['admin','superuser'] %}{{ item('main.modules_configuration','Configurazione','Configuration') }}{% endif %}
+    </div></details>
+    {% endif %}
+    <details class="cir-nav-group"><summary>{{ icon('transfer') }}<span>Import / Export</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.export_csv','Export incidenti in CSV','Export incidents to CSV') }}
+      {{ item('main.export_full','Export completo','Full export') }}
+      {% if current_user_is_superuser %}<a href="{{ url_for('main.export_full', mode='bootstrap') }}" data-cir-nav-link>{{ label('Export bootstrap anonimizzato','Anonymized bootstrap export') }}</a>{% endif %}
+      {{ item('main.import_csv','CSV import','CSV import') }}
+      {{ item('main.import_full','Full import','Full import') }}
+    </div></details>
+    {% if current_tenant_role in ['admin','superuser'] %}
+    <p class="cir-nav-caption cir-nav-caption-section">{{ label('AMMINISTRAZIONE','ADMINISTRATION') }}</p>
+    <details class="cir-nav-group"><summary>{{ icon('workflow') }}<span>{{ label('Workflow e catalogo','Workflows and catalog') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.admin_workflow_catalog','Catalogo workflow','Workflow catalog') }}
+      {{ item('main.admin_incident_workflows','Flussi operativi incidenti','Incident workflows') }}
+      {{ item('main.admin_incident_templates','Modelli incidente','Incident templates') }}
+      {{ item('main.admin_incident_form_fields','Layout campi incidenti','Incident field layout') }}
+      {{ item('main.admin_incident_button_actions','Azioni automatiche pulsanti','Automatic button actions') }}
+      <a href="{{ url_for('main.admin_workflow_catalog_notices') }}" data-cir-nav-link>{{ label('Avvisi workflow','Workflow notices') }}{% if workflow_notice_count %} ({{ workflow_notice_count }}){% endif %}</a>
+    </div></details>
+    <details class="cir-nav-group"><summary>{{ icon('settings') }}<span>{{ label('Configurazione tenant','Tenant configuration') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.admin_setup_wizard','Wizard setup iniziale','Initial setup wizard') }}
+      {{ item('main.admin_other_configurations','Altre configurazioni','Other settings') }}
+      {{ item('main.admin_incident_custom_fields','Campi personalizzati','Custom fields') }}
+      {{ item('main.admin_labels','Liste configurabili','Configurable lists') }}
+      {{ item('main.admin_logo','Logo','Logo') }}
+      {{ item('main.admin_ssl','HTTPS/SSL','HTTPS/SSL') }}
+      {{ item('main.admin_backups','Backup','Backups') }}
+      {{ item('main.admin_structure','Struttura','Organization') }}
+      {{ item('main.admin_security_owner','Dati titolare','Data controller') }}
+      {{ item('main.admin_security_responsible','Dati responsabile','Data processor') }}
+      {{ item('main.admin_people','Personale','People') }}
+      {{ item('main.admin_external_recipients','Destinatari esterni','External recipients') }}
+      {{ item('main.admin_recommendations','Raccomandazioni','Recommendations') }}
+      <span class="cir-nav-subheading">Plugins</span>
+      {{ item('ai_chatbot.admin_plugins','Chatbot AI','AI chatbot') }}
+      {{ item('alfresco.admin_plugins','Alfresco','Alfresco') }}
+    </div></details>
+    <details class="cir-nav-group"><summary>{{ icon('layers') }}<span>Tenants Default</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.admin_tenant_defaults','Tenants Default','Tenants Default') }}
+      <a href="{{ url_for('main.admin_tenant_defaults_alerts') }}" data-cir-nav-link>{{ label('Avvisi defaults','Defaults notices') }}{% if tenant_defaults_alert_count %} ({{ tenant_defaults_alert_count }}){% endif %}</a>
+    </div></details>
+    <details class="cir-nav-group"><summary>{{ icon('users') }}<span>{{ label('Utenti e accessi','Users and access') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {% if current_user_is_superuser %}{{ item('main.admin_tenants','Tenant','Tenants') }}{% endif %}
+      {{ item('main.admin_users','Utenti','Users') }}
+      {{ item('main.ldap_settings','LDAP','LDAP') }}
+      {{ item('main.sso_settings_admin','SSO','SSO') }}
+    </div></details>
+    <details class="cir-nav-group"><summary>{{ icon('shield') }}<span>{{ label('Stato e audit','Status and audit') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.admin_status','Stato','Status') }}
+      {{ item('main.admin_audit','Audit','Audit') }}
+    </div></details>
+    {% endif %}
+    <p class="cir-nav-caption cir-nav-caption-section">{{ label('SUPPORTO','SUPPORT') }}</p>
+    <details class="cir-nav-group"><summary>{{ icon('help') }}<span>{{ label('Aiuto','Help') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {{ item('main.help_page','Documentazione utente','User documentation') }}
+      {{ item('main.admin_help_page','Documentazione amministrativa','Administrator documentation') }}
+      {{ item('main.release_notes','Note di rilascio','Release notes') }}
+      {% if ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}{{ item('ai_chatbot.chat','AlBot','AlBot') }}{% endif %}
+    </div></details>
+    <details class="cir-nav-group"><summary>{{ icon('settings') }}<span>{{ label('Impostazioni','Settings') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
+      {% if current_user.auth_provider == 'local' and not current_user.is_ldap %}{{ item('main.change_password','Cambio password','Change password') }}{% endif %}
+      {{ item('main.mfa_settings','Multi-factor authentication','Multi-factor authentication') }}
+      {% if current_tenant_role in ['admin','superuser'] %}{{ item('main.notification_settings','Notifiche','Notifications') }}{% endif %}
+      {% if current_tenant_role == 'writer' %}{{ item('main.settings_external_recipients','Destinatari esterni','External recipients') }}{% endif %}
+      {% if current_user_is_superuser %}{{ item('ui.interface_settings','Interfaccia globale','Global interface') }}{% endif %}
+      {{ item('main.logout','Logout','Logout') }}
+    </div></details>
+    {% if cir_documentation_view %}</details>{% endif %}
+  </nav>
+  <div class="cir-sidebar-foot"><span class="cir-tiny-dot" aria-hidden="true"></span><span>CIR {{ config.get('APP_INFO', {}).get('version', '') }}</span><a href="{{ url_for('main.app_info') }}">Info</a></div>
+</aside>
