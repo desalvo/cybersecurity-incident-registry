@@ -776,3 +776,8 @@ The PR after RC30 passed the application suite, PostgreSQL and browser documenta
 ## RC32 — formal 14-day risk proposal
 
 Added a non-operative, exact-package/version-scoped draft for 33 CVEs across both architectures from CI run 45227508842, with a per-finding approval matrix. The expired active policy is unchanged. Authorized risk-owner approval, exposure evidence, full production gates and digest promotion remain pending. RC31 is the latest user-confirmed merged baseline.
+
+
+## RC33 conditional risk acceptance (2026-11-23)
+
+RC32 was committed and merged per user confirmation. RC33 activates an explicitly scoped 14-day Debian residual-risk decision expiring 2026-12-07, limited to 33 CVEs and exact reviewed package versions. Both historical Trivy JSON reports are used as regression inputs; production remains gated by new CI, SCA, both architecture scans, and immutable digest. No application functionality removed.

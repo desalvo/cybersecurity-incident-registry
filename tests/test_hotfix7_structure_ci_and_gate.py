@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 EVALUATOR = ROOT / "scripts" / "evaluate_trivy_gate.py"
-POLICY = ROOT / "TRIVY_RISK_ACCEPTANCE_R8.json"
+POLICY = ROOT / "tests/fixtures/historical_r8_risk_policy.json"
 
 
 def _run_gate(report: dict, policy: dict | None = None) -> subprocess.CompletedProcess[str]:
@@ -79,7 +79,7 @@ def test_hotfix7_document_layout_and_sbom_location() -> None:
     assert required <= {p.name for p in (ROOT / "docs").glob("*.md")}
     assert not list(ROOT.glob("SBOM*.json"))
     assert {"SBOM_ROUND6.cdx.json", "SBOM_ROUND17.cdx.json", "SBOM_ROUND18.cdx.json"} <= {p.name for p in (ROOT / "sbom").glob("*.json")}
-    assert (ROOT / "TRIVY_RISK_ACCEPTANCE_R8.json").is_file()
+    assert (ROOT / "tests/fixtures/historical_r8_risk_policy.json").is_file()
 
 
 def test_markdown_relative_links_resolve() -> None:
