@@ -29,12 +29,11 @@ def create_app():
     except (TypeError, ValueError):
         app.config['MAX_CONTENT_LENGTH']=26214400
     app.config['MAX_FORM_MEMORY_SIZE']=app.config['MAX_CONTENT_LENGTH']
+    from application_identity import read_application_identity
     app.config['APP_INFO']={
-        'name': os.getenv('APP_NAME','Cybersecurity Incident Registry'),
+        **read_application_identity(),
         'version': APP_RELEASE_VERSION,
         'build': APP_RELEASE_BUILD,
-        'author': os.getenv('APP_AUTHOR','Alessandro De Salvo'),
-        'author_email': os.getenv('APP_AUTHOR_EMAIL','Alessandro.DeSalvo@roma1.infn.it'),
     }
     for _persistent_dir in (app.config['UPLOAD_DIR'], app.config['LOGO_DIR'], app.config['SSO_LOGO_DIR'], app.config['FORM_TEMPLATE_DIR'], app.config['BACKUP_DIR'], app.config['AI_CHATBOT_DOC_DIR']):
         os.makedirs(_persistent_dir, exist_ok=True)
@@ -124,12 +123,26 @@ def create_app():
             pass
     from .plugins.ai_chatbot import register_plugin as register_ai_chatbot_plugin; register_ai_chatbot_plugin(app)
     from .plugins.alfresco import register_plugin as register_alfresco_plugin; register_alfresco_plugin(app)
+    from .ui_settings import bp as ui_bp
+    app.register_blueprint(ui_bp)
+    from .documentation import bp as documentation_bp, documentation_context
+    app.register_blueprint(documentation_bp)
+    app.context_processor(documentation_context)
     with app.app_context():
-        wait_db(db)
-        # Recover a process/host crash that interrupted Full Import before any
-        # bootstrap writes can mutate the database further.
-        recover_interrupted_full_import_serialized()
-        bootstrap(app)
+        db.session.info['cir_defaults_suspended'] = True
+        try:
+            wait_db(db)
+            from .migration_manager import assert_schema_supported
+            # An unsupported newer/foreign ledger must stop this binary before
+            # restore recovery or any application database bootstrap writes.
+            assert_schema_supported(db.engine)
+            # Resolve restore journals before any bootstrap write.
+            recover_interrupted_full_import_serialized()
+            bootstrap(app)
+        finally:
+            db.session.info.pop('cir_defaults_suspended', None)
+    from .tenant_defaults import register_defaults_events
+    register_defaults_events()
     start_deadline_notification_scheduler(app)
     start_incident_reminder_scheduler(app)
     start_backup_scheduler(app)
@@ -207,11 +220,14 @@ def default_label_metadata(kind, value):
             automatic_operations = 'close_without_warnings,end_breach'
     return default_exportable, automatic_operations
 
-def ensure_label(kind, value, group='default'):
-    label = ConfigLabel.query.filter_by(kind=kind,value=value).first()
+def ensure_label(kind, value, group='default', tenant_id=None):
+    query = ConfigLabel.query.filter_by(kind=kind,value=value)
+    if tenant_id is not None:
+        query = query.filter_by(tenant_id=tenant_id)
+    label = query.first()
     default_exportable, automatic_operations = default_label_metadata(kind, value)
     if not label:
-        db.session.add(ConfigLabel(kind=kind,value=value,group=group,default_exportable=default_exportable,automatic_operations=automatic_operations))
+        db.session.add(ConfigLabel(tenant_id=tenant_id,kind=kind,value=value,group=group,default_exportable=default_exportable,automatic_operations=automatic_operations))
         return True
     if kind == 'action_label':
         if getattr(label, 'default_exportable', None) is None:
@@ -220,12 +236,12 @@ def ensure_label(kind, value, group='default'):
             label.automatic_operations = automatic_operations
     return False
 
-def restore_missing_default_config_labels():
+def restore_missing_default_config_labels(tenant_id=None):
     added = []
     for kind, spec in DEFAULT_CONFIG_LABELS.items():
         group = spec.get('group') or kind
         for value in spec.get('values') or []:
-            if ensure_label(kind, value, group):
+            if ensure_label(kind, value, group, tenant_id=tenant_id):
                 added.append((kind, value))
     return added
 
@@ -294,16 +310,25 @@ def run_schema_migrations(app):
         tables = set(inspector.get_table_names())
 
         if 'tenant' not in tables:
-            with db.engine.begin() as conn:
-                conn.execute(text('CREATE TABLE tenant (id INTEGER PRIMARY KEY, name VARCHAR(80) NOT NULL UNIQUE, description TEXT, created_at TIMESTAMP)'))
+            # Let the dialect create its real auto-generated primary key. A
+            # plain INTEGER PRIMARY KEY is not SERIAL/IDENTITY on PostgreSQL.
+            Tenant.__table__.create(db.engine, checkfirst=True)
             app.logger.info('Schema migration applied: tenant table created')
             inspector = inspect(db.engine); tables = set(inspector.get_table_names())
+        if 'is_system_defaults' not in {c['name'] for c in inspect(db.engine).get_columns('tenant')}:
+            with db.engine.begin() as conn:
+                conn.execute(text('ALTER TABLE tenant ADD COLUMN is_system_defaults BOOLEAN NOT NULL DEFAULT FALSE'))
+            inspector = inspect(db.engine)
+            app.logger.info('Schema migration applied: tenant.is_system_defaults added')
         # Ensure the default tenant exists before backfilling tenant_id columns.
         with db.engine.begin() as conn:
             if str(db.engine.url).startswith('postgresql'):
-                conn.execute(text("INSERT INTO tenant (name, description, created_at) VALUES ('default', 'Tenant predefinito', CURRENT_TIMESTAMP) ON CONFLICT (name) DO NOTHING"))
+                conn.execute(text("INSERT INTO tenant (name, description, created_at) SELECT 'default', 'Tenant predefinito', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM tenant WHERE name = 'default') ON CONFLICT (name) DO NOTHING"))
             else:
-                conn.execute(text("INSERT OR IGNORE INTO tenant (id, name, description, created_at) VALUES (1, 'default', 'Tenant predefinito', CURRENT_TIMESTAMP)"))
+                # ID 1 can already belong to an ordinary tenant after an
+                # import. Allocate a new ID instead of silently skipping the
+                # required default tenant on that unrelated PK collision.
+                conn.execute(text("INSERT OR IGNORE INTO tenant (name, description, created_at) VALUES ('default', 'Tenant predefinito', CURRENT_TIMESTAMP)"))
         tenant_scoped_tables = ['user','incident','config_label','incident_workflow_step','person','recommendation','incident_template','notification_type','notification_template','external_recipient','backup_job','ai_chatbot_document','audit_log']
         # Prima di popolare user_tenant_role aggiungiamo/backfilliamo tenant_id
         # sulle tabelle legacy, inclusa "user". Su PostgreSQL un SELECT non può
@@ -311,7 +336,7 @@ def run_schema_migrations(app):
         # precedente causava un crash in migrazione su database pre-multitenant.
         for table_name in tenant_scoped_tables:
             if table_name in tables:
-                cols_for_table = {c['name'] for c in inspector.get_columns(table_name)}
+                cols_for_table = {c['name'] for c in inspect(db.engine).get_columns(table_name)}
                 if 'tenant_id' not in cols_for_table:
                     with db.engine.begin() as conn:
                         conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN tenant_id INTEGER'))  # nosec: B608
@@ -321,7 +346,14 @@ def run_schema_migrations(app):
                     with db.engine.begin() as conn:
                         conn.execute(text(f"UPDATE \"{table_name}\" SET tenant_id = (SELECT id FROM tenant WHERE name = 'default') WHERE tenant_id IS NULL"))  # nosec: B608
         if 'user' in tables:
-            user_cols = {c['name'] for c in inspector.get_columns('user')}
+            user_cols = {c['name'] for c in inspect(db.engine).get_columns('user')}
+            # Identity must be upgraded before the admin normalization below
+            # first references auth_provider. Pre-SSO databases do not have it.
+            if 'auth_provider' not in user_cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE "user" ADD COLUMN auth_provider VARCHAR(80)'))
+                    conn.execute(text("UPDATE \"user\" SET auth_provider = CASE WHEN is_ldap THEN 'ldap' ELSE 'local' END WHERE auth_provider IS NULL"))
+                app.logger.info('Schema migration applied: user.auth_provider added before identity backfill')
             if 'default_tenant_id' not in user_cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE "user" ADD COLUMN default_tenant_id INTEGER'))
@@ -373,11 +405,11 @@ def run_schema_migrations(app):
                 conn.execute(text("UPDATE \"user\" SET role = 'superuser', default_tenant_id = NULL WHERE username = 'admin' AND auth_provider = 'local'"))
 
         if str(db.engine.url).startswith('postgresql'):
+            quote_identifier = db.engine.dialect.identifier_preparer.quote
             tenant_unique_specs = {
                 'config_label': (['kind','value'], 'uq_label_tenant_kind_value', ['tenant_id','kind','value']),
                 'notification_type': (['code'], 'uq_notification_type_tenant_code', ['tenant_id','code']),
                 'notification_template': (['kind','name'], 'uq_notification_template_tenant_kind_name', ['tenant_id','kind','name']),
-                'external_recipient': (['email'], 'uq_external_recipient_tenant_email', ['tenant_id','email']),
                 'incident_template': (['name'], 'uq_incident_template_tenant_name', ['tenant_id','name']),
                 'person': (['name'], 'uq_person_tenant_name', ['tenant_id','name']),
                 'recommendation': (['text'], 'uq_recommendation_tenant_text', ['tenant_id','text']),
@@ -396,8 +428,7 @@ def run_schema_migrations(app):
                             if cols_for_constraint == new_cols:
                                 has_new = True
                             if name and cols_for_constraint == legacy_cols:
-                                safe_name = name.replace('"', '')
-                                conn.execute(text(f'ALTER TABLE "{table_name}" DROP CONSTRAINT IF EXISTS "{safe_name}"'))
+                                conn.execute(text(f'ALTER TABLE "{table_name}" DROP CONSTRAINT IF EXISTS {quote_identifier(name)}'))
                         # Alcune versioni pre-multitenant avevano indici UNIQUE
                         # generati da SQLAlchemy (es. ix_notification_type_code)
                         # invece di vincoli espliciti. Vanno rimossi, altrimenti
@@ -406,23 +437,33 @@ def run_schema_migrations(app):
                         # (ad esempio notification_type.code = 'user').
                         for index in indexes:
                             cols_for_index = index.get('column_names') or []
-                            index_name = (index.get('name') or '').replace('"', '')
+                            index_name = index.get('name') or ''
+                            if index.get('unique') and cols_for_index == new_cols:
+                                has_new = True
                             if index.get('unique') and index_name and cols_for_index == legacy_cols:
-                                conn.execute(text(f'DROP INDEX IF EXISTS "{index_name}"'))
-                        if table_name == 'notification_type':
-                            conn.execute(text('''DELETE FROM notification_type nt
-                                USING notification_type keep
-                                WHERE nt.tenant_id = keep.tenant_id
-                                  AND nt.code = keep.code
-                                  AND nt.id > keep.id'''))
+                                conn.execute(text(f'DROP INDEX IF EXISTS {quote_identifier(index_name)}'))
                         if not has_new:
                             quoted_cols = ', '.join(f'"{col}"' for col in new_cols)
+                            # Never delete conflicting configuration rows to
+                            # make a UNIQUE constraint pass. Keep the data and
+                            # fail this transaction for explicit repair.
+                            duplicates = conn.execute(text(
+                                f'SELECT 1 FROM "{table_name}" GROUP BY {quoted_cols} '
+                                'HAVING COUNT(*) > 1 LIMIT 1'
+                            )).first()
+                            if duplicates is not None:
+                                raise RuntimeError(f'Duplicate tenant configuration in {table_name}; repair it before retrying migration')
                             conn.execute(text(f'ALTER TABLE "{table_name}" ADD CONSTRAINT "{new_name}" UNIQUE ({quoted_cols})'))
                     app.logger.info('Schema migration applied: %s unique constraints tenantized', table_name)
                 except Exception:
                     app.logger.exception('Unable to tenantize unique constraints for %s', table_name)
+                    raise
+        if 'external_recipient' in tables:
+            from .tenant_defaults_migrations import migrate_recipient_configuration_identity
+            if migrate_recipient_configuration_identity(db.engine):
+                app.logger.info('Schema migration applied: recipient addresses allow independent configuration copies')
         if 'incident' in tables:
-            cols = {c['name'] for c in inspector.get_columns('incident')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident')}
             for col_name, col_type in {'data_subjects_count':'VARCHAR(255)', 'data_volume':'TEXT'}.items():
                 if col_name not in cols:
                     with db.engine.begin() as conn:
@@ -440,7 +481,7 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident ADD COLUMN recipient_email VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident.recipient_email added')
-            cols = {c['name'] for c in inspector.get_columns('incident')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident')}
             if 'category_order' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE incident ADD COLUMN category_order TEXT"))
@@ -450,22 +491,21 @@ def run_schema_migrations(app):
                         else:
                             conn.execute(text('''UPDATE incident SET category_order = (SELECT group_concat(label_id, ',') FROM incident_categories WHERE incident_categories.incident_id = incident.id) WHERE category_order IS NULL OR category_order = '' '''))
                 app.logger.info('Schema migration applied: incident.category_order added')
-            if 'reference' in cols or 'reference' not in cols:
-                with db.engine.begin() as conn:
-                    conn.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
-                app.logger.info('Schema migration applied: incident.reference mandatory values normalized')
+            with db.engine.begin() as conn:
+                conn.execute(text("UPDATE incident SET reference = 'Incidente #' || CAST(id AS VARCHAR) WHERE reference IS NULL OR TRIM(reference) = ''"))
+            app.logger.info('Schema migration applied: incident.reference mandatory values normalized')
             if 'deadline_notifications_muted' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident ADD COLUMN deadline_notifications_muted BOOLEAN'))
                     conn.execute(text('UPDATE incident SET deadline_notifications_muted = FALSE WHERE deadline_notifications_muted IS NULL'))
                 app.logger.info('Schema migration applied: incident.deadline_notifications_muted added')
-            cols = {c['name'] for c in inspector.get_columns('incident')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident')}
             if 'custom_fields_json' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE incident ADD COLUMN custom_fields_json TEXT"))
                     conn.execute(text("UPDATE incident SET custom_fields_json = '' WHERE custom_fields_json IS NULL"))
                 app.logger.info('Schema migration applied: incident.custom_fields_json added')
-            cols = {c['name'] for c in inspector.get_columns('incident')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident')}
             alfresco_report_columns = {
                 'alfresco_auto_report_enabled': 'BOOLEAN DEFAULT FALSE NOT NULL',
                 'alfresco_report_node_id': 'VARCHAR(255)',
@@ -491,7 +531,7 @@ def run_schema_migrations(app):
                         conn.execute(text(f'ALTER TABLE incident ADD COLUMN {col_name} {col_type}'))
                     added_split_columns = True
                     app.logger.info('Schema migration applied: incident.%s added', col_name)
-            refreshed_cols = {c['name'] for c in inspector.get_columns('incident')}
+            refreshed_cols = {c['name'] for c in inspect(db.engine).get_columns('incident')}
             if {'start_date','start_time','end_date','end_time','start_at','end_at'}.issubset(refreshed_cols):
                 with db.engine.begin() as conn:
                     if str(db.engine.url).startswith('postgresql'):
@@ -503,7 +543,7 @@ def run_schema_migrations(app):
                 if added_split_columns:
                     app.logger.info('Schema migration applied: incident split date/time fields populated from legacy datetime columns')
         if 'action' in tables:
-            cols = {c['name'] for c in inspector.get_columns('action')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('action')}
             if 'consequence_text' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE "action" ADD COLUMN consequence_text TEXT'))
@@ -514,13 +554,13 @@ def run_schema_migrations(app):
                     conn.execute(text('UPDATE "action" SET exportable = TRUE WHERE exportable IS NULL'))
                 app.logger.info('Schema migration applied: action.exportable added')
         if 'user' in tables:
-            cols = {c['name'] for c in inspector.get_columns('user')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('user')}
             if 'default_tenant_id' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE "user" ADD COLUMN default_tenant_id INTEGER'))
                     conn.execute(text("UPDATE \"user\" SET default_tenant_id = tenant_id WHERE default_tenant_id IS NULL AND tenant_id IS NOT NULL AND username <> 'admin'"))
                 app.logger.info('Schema migration applied: user.default_tenant_id added')
-                cols = {c['name'] for c in inspector.get_columns('user')}
+                cols = {c['name'] for c in inspect(db.engine).get_columns('user')}
             if 'auth_provider' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE \"user\" ADD COLUMN auth_provider VARCHAR(40)"))
@@ -539,12 +579,22 @@ def run_schema_migrations(app):
                 conn.execute(text("UPDATE \"user\" SET auth_provider = CASE WHEN is_ldap THEN 'ldap' ELSE 'local' END WHERE auth_provider IS NULL OR auth_provider = ''"))
             if str(db.engine.url).startswith('postgresql'):
                 try:
-                    with db.engine.begin() as conn:
-                        conn.execute(text('ALTER TABLE "user" ALTER COLUMN auth_provider TYPE VARCHAR(80)'))
+                    provider_column = next(column for column in inspect(db.engine).get_columns('user')
+                                           if column['name'] == 'auth_provider')
+                    provider_length = getattr(provider_column['type'], 'length', None)
+                    # Widen old bounded columns, but never shrink an existing
+                    # larger or unbounded TEXT identity column.
+                    if provider_length is not None and provider_length < 80:
+                        with db.engine.begin() as conn:
+                            conn.execute(text('ALTER TABLE "user" ALTER COLUMN auth_provider TYPE VARCHAR(80)'))
                 except Exception:
                     app.logger.exception('Unable to widen user.auth_provider to VARCHAR(80)')
+                    raise
                 try:
-                    unique_constraints = inspector.get_unique_constraints('user')
+                    identity_inspector = inspect(db.engine)
+                    unique_constraints = identity_inspector.get_unique_constraints('user')
+                    identity_indexes = identity_inspector.get_indexes('user')
+                    quote_identifier = db.engine.dialect.identifier_preparer.quote
                     with db.engine.begin() as conn:
                         has_composite = False
                         for constraint in unique_constraints:
@@ -553,15 +603,25 @@ def run_schema_migrations(app):
                             if cols_for_constraint == ['username', 'auth_provider']:
                                 has_composite = True
                             if name and cols_for_constraint == ['username']:
-                                safe_name = name.replace('\"', '')
-                                conn.execute(text(f'ALTER TABLE "user" DROP CONSTRAINT IF EXISTS "{safe_name}"'))
+                                conn.execute(text(f'ALTER TABLE "user" DROP CONSTRAINT IF EXISTS {quote_identifier(name)}'))
+                        # Legacy unique=True,index=True produced a standalone
+                        # username index, not a UNIQUE table constraint.
+                        for index in identity_indexes:
+                            if not index.get('unique'):
+                                continue
+                            columns_for_index = index.get('column_names') or []
+                            if columns_for_index == ['username', 'auth_provider']:
+                                has_composite = True
+                            if columns_for_index == ['username'] and index.get('name'):
+                                conn.execute(text(f'DROP INDEX IF EXISTS {quote_identifier(index["name"])}'))
                         if not has_composite:
                             conn.execute(text('ALTER TABLE "user" ADD CONSTRAINT uq_user_username_auth_provider UNIQUE (username, auth_provider)'))
                     app.logger.info('Schema migration applied: user identity changed to username + auth_provider')
                 except Exception:
                     app.logger.exception('Unable to migrate user unique constraint to username + auth_provider')
+                    raise
         if 'config_label' in tables:
-            cols = {c['name'] for c in inspector.get_columns('config_label')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('config_label')}
             if 'description_required' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE config_label ADD COLUMN description_required BOOLEAN DEFAULT FALSE NOT NULL'))
@@ -576,7 +636,7 @@ def run_schema_migrations(app):
                     conn.execute(text('ALTER TABLE config_label ADD COLUMN max_completion_hours INTEGER'))
                     conn.execute(text('UPDATE config_label SET max_completion_hours = 0 WHERE max_completion_hours IS NULL'))
                 app.logger.info('Schema migration applied: config_label.max_completion_hours added')
-            if 'max_completion_hours' in {c['name'] for c in inspector.get_columns('config_label')}:
+            if 'max_completion_hours' in {c['name'] for c in inspect(db.engine).get_columns('config_label')}:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE config_label SET max_completion_hours = 0 WHERE max_completion_hours IS NULL'))
 
@@ -586,34 +646,35 @@ def run_schema_migrations(app):
                     conn.execute(text('UPDATE config_label SET default_exportable = TRUE WHERE default_exportable IS NULL'))
                     conn.execute(text("UPDATE config_label SET default_exportable = FALSE WHERE kind = 'action_label' AND (lower(value) LIKE '%notifica%' OR lower(value) LIKE '%comunicazione%' OR lower(value) LIKE '%informazione iniziale%' OR lower(value) LIKE '%analisi%' OR lower(value) LIKE '%conclusione%')"))
                 app.logger.info('Schema migration applied: config_label.default_exportable added')
-            if 'default_exportable' in {c['name'] for c in inspector.get_columns('config_label')}:
+            if 'default_exportable' in {c['name'] for c in inspect(db.engine).get_columns('config_label')}:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE config_label SET default_exportable = TRUE WHERE default_exportable IS NULL'))
-            refreshed_config_label_cols = {c['name'] for c in inspector.get_columns('config_label')}
+            refreshed_config_label_cols = {c['name'] for c in inspect(db.engine).get_columns('config_label')}
             if 'automatic_operations' not in refreshed_config_label_cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE config_label ADD COLUMN automatic_operations TEXT'))
                     conn.execute(text("UPDATE config_label SET automatic_operations = '' WHERE automatic_operations IS NULL"))
                     conn.execute(text("UPDATE config_label SET automatic_operations = 'close_without_warnings,end_breach' WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%' AND (automatic_operations IS NULL OR TRIM(automatic_operations) = '')"))
                 app.logger.info('Schema migration applied: config_label.automatic_operations added')
-            if 'automatic_operations' in {c['name'] for c in inspector.get_columns('config_label')}:
+            if 'automatic_operations' in {c['name'] for c in inspect(db.engine).get_columns('config_label')}:
                 with db.engine.begin() as conn:
                     conn.execute(text("UPDATE config_label SET automatic_operations = '' WHERE automatic_operations IS NULL"))
-                    conn.execute(text("UPDATE config_label SET automatic_operations = 'close_without_warnings,end_breach' WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%' AND (automatic_operations IS NULL OR TRIM(automatic_operations) = '')"))
+                    # An existing empty value is an intentional administrator
+                    # choice. Only introduction of the column seeds defaults.
 
         if 'audit_log' in tables:
-            cols = {c['name'] for c in inspector.get_columns('audit_log')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('audit_log')}
             if 'repeat_count' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE audit_log ADD COLUMN repeat_count INTEGER'))
                     conn.execute(text('UPDATE audit_log SET repeat_count = 1 WHERE repeat_count IS NULL'))
                 app.logger.info('Schema migration applied: audit_log.repeat_count added')
-            if 'repeat_count' in {c['name'] for c in inspector.get_columns('audit_log')}:
+            if 'repeat_count' in {c['name'] for c in inspect(db.engine).get_columns('audit_log')}:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE audit_log SET repeat_count = 1 WHERE repeat_count IS NULL OR repeat_count < 1'))
 
         if 'deadline_notification_state' in tables:
-            cols = {c['name'] for c in inspector.get_columns('deadline_notification_state')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('deadline_notification_state')}
             expected_cols = {
                 'notification_key': 'VARCHAR(255)',
                 'notification_type': 'VARCHAR(80)',
@@ -635,7 +696,7 @@ def run_schema_migrations(app):
                 conn.execute(text('UPDATE deadline_notification_state SET send_count = 1 WHERE send_count IS NULL OR send_count < 1'))
 
         if 'incident_workflow_step' in tables:
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'personal_data_only' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN personal_data_only BOOLEAN'))
@@ -644,7 +705,7 @@ def run_schema_migrations(app):
             elif 'personal_data_only' in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE incident_workflow_step SET personal_data_only = FALSE WHERE personal_data_only IS NULL'))
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'requires_notification' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN requires_notification BOOLEAN'))
@@ -653,13 +714,14 @@ def run_schema_migrations(app):
             else:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE incident_workflow_step SET requires_notification = FALSE WHERE requires_notification IS NULL'))
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'required_notification_type' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN required_notification_type VARCHAR(40)'))
                 app.logger.info('Schema migration applied: incident_workflow_step.required_notification_type added')
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
-            if 'required' not in cols:
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
+            added_required = 'required' not in cols
+            if added_required:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN required BOOLEAN'))
                     conn.execute(text('UPDATE incident_workflow_step SET required = TRUE WHERE required IS NULL'))
@@ -667,7 +729,7 @@ def run_schema_migrations(app):
             else:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE incident_workflow_step SET required = TRUE WHERE required IS NULL'))
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'conditions' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN conditions TEXT"))
@@ -677,7 +739,7 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text("UPDATE incident_workflow_step SET conditions = 'personal_data' WHERE personal_data_only = TRUE AND (conditions IS NULL OR conditions = '')"))
                     conn.execute(text("UPDATE incident_workflow_step SET conditions = '' WHERE conditions IS NULL"))
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'step_type' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE incident_workflow_step ADD COLUMN step_type VARCHAR(20) DEFAULT 'registration' NOT NULL"))
@@ -691,7 +753,7 @@ def run_schema_migrations(app):
                     text("UPDATE incident_workflow_step SET step_type = :new_code WHERE step_type = :legacy_code"),
                     {'new_code': 'update_section', 'legacy_code': _decode_legacy_refresh_token('73686f775f73656374696f6e')},
                 )
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'document_generation_enabled' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN document_generation_enabled BOOLEAN'))
@@ -700,12 +762,12 @@ def run_schema_migrations(app):
             else:
                 with db.engine.begin() as conn:
                     conn.execute(text('UPDATE incident_workflow_step SET document_generation_enabled = FALSE WHERE document_generation_enabled IS NULL'))
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'document_template_name' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN document_template_name VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident_workflow_step.document_template_name added')
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'document_auto_tags' in cols:
                 try:
                     with db.engine.begin() as conn:
@@ -713,12 +775,12 @@ def run_schema_migrations(app):
                     app.logger.info('Schema migration applied: incident_workflow_step.document_auto_tags removed')
                 except Exception:
                     app.logger.info('Schema migration skipped: incident_workflow_step.document_auto_tags could not be dropped by this database backend')
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'section_target' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_workflow_step ADD COLUMN section_target VARCHAR(80)'))
                 app.logger.info('Schema migration applied: incident_workflow_step.section_target added')
-            cols = {c['name'] for c in inspector.get_columns('incident_workflow_step')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_workflow_step')}
             if 'control_action_label_ids' in cols:
                 try:
                     with db.engine.begin() as conn:
@@ -726,25 +788,31 @@ def run_schema_migrations(app):
                     app.logger.info('Schema migration applied: incident_workflow_step.control_action_label_ids removed')
                 except Exception as exc:
                     app.logger.warning('Schema migration skipped: unable to drop obsolete incident_workflow_step.control_action_label_ids: %s', exc)
-            with db.engine.begin() as conn:
-                conn.execute(text("UPDATE incident_workflow_step SET required = FALSE WHERE category_id IS NULL AND action_label_id IN (SELECT id FROM config_label WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%')"))
+            if added_required:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE incident_workflow_step SET required = FALSE WHERE category_id IS NULL AND action_label_id IN (SELECT id FROM config_label WHERE kind = 'action_label' AND lower(value) LIKE '%conclusione%')"))
 
         if 'incident_template' in tables:
-            cols = {c['name'] for c in inspector.get_columns('incident_template')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('incident_template')}
             if 'recipient_email' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE incident_template ADD COLUMN recipient_email VARCHAR(255)'))
                 app.logger.info('Schema migration applied: incident_template.recipient_email added')
 
         if 'form_template_config' in tables:
-            cols = {c['name'] for c in inspector.get_columns('form_template_config')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('form_template_config')}
+            if 'owner_tenant_id' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE form_template_config ADD COLUMN owner_tenant_id INTEGER REFERENCES tenant(id)'))
+                    conn.execute(text('CREATE INDEX IF NOT EXISTS ix_form_template_config_owner_tenant_id ON form_template_config(owner_tenant_id)'))
+                app.logger.info('Schema migration applied: form template ownership added')
             if 'notification_tags' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE form_template_config ADD COLUMN notification_tags TEXT NOT NULL DEFAULT ''"))
                 app.logger.info('Schema migration applied: form_template_config.notification_tags added')
 
         if 'notification_template' in tables:
-            cols = {c['name'] for c in inspector.get_columns('notification_template')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('notification_template')}
             if 'action_label_id' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE notification_template ADD COLUMN action_label_id INTEGER'))
@@ -753,7 +821,7 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE notification_template ADD COLUMN linked_form_template_name VARCHAR(255)'))
                 app.logger.info('Schema migration applied: notification_template.linked_form_template_name added')
-            template_cols = {c['name'] for c in inspector.get_columns('notification_template')}
+            template_cols = {c['name'] for c in inspect(db.engine).get_columns('notification_template')}
             notification_template_new_cols = {
                 'recipient_source': "VARCHAR(40) DEFAULT 'type_default' NOT NULL",
                 'recipient_value': "VARCHAR(255) DEFAULT ''",
@@ -779,7 +847,7 @@ def run_schema_migrations(app):
                 conn.execute(text("UPDATE notification_template SET subject = replace(subject, '%RECOMMENDATION%', '%RECOMMENDATIONS%'), body = replace(body, '%RECOMMENDATION%', '%RECOMMENDATIONS%') WHERE subject LIKE '%RECOMMENDATION%' OR body LIKE '%RECOMMENDATION%'"))
                 conn.execute(text("UPDATE notification_template SET subject = replace(subject, 'Dati personali:', 'Rischi per diritti e libertà:'), body = replace(body, 'Dati personali:', 'Rischi per diritti e libertà:') WHERE subject LIKE '%Dati personali:%' OR body LIKE '%Dati personali:%'"))
         if 'document' in tables:
-            cols = {c['name'] for c in inspector.get_columns('document')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('document')}
             if 'generated_template_name' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE document ADD COLUMN generated_template_name VARCHAR(255)'))
@@ -788,7 +856,7 @@ def run_schema_migrations(app):
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE document ADD COLUMN notification_tags TEXT NOT NULL DEFAULT ''"))
                 app.logger.info('Schema migration applied: document.notification_tags added')
-            cols = {c['name'] for c in inspector.get_columns('document')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('document')}
             document_extra_columns = {
                 'alfresco_node_id': 'VARCHAR(255)',
                 'alfresco_path': 'TEXT',
@@ -804,14 +872,14 @@ def run_schema_migrations(app):
             with db.engine.begin() as conn:
                 conn.execute(text("UPDATE document SET alfresco_status = CASE WHEN alfresco_node_id IS NOT NULL AND alfresco_node_id <> '' THEN 'present' ELSE 'not_linked' END WHERE alfresco_status IS NULL OR alfresco_status = ''"))
         if 'user' in tables:
-            cols = {c['name'] for c in inspector.get_columns('user')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('user')}
             if 'mfa_enabled' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE "user" ADD COLUMN mfa_enabled BOOLEAN DEFAULT FALSE NOT NULL'))
                 app.logger.info('Schema migration applied: user.mfa_enabled added')
 
         if 'mfa_totp_token' in tables:
-            cols = {c['name'] for c in inspector.get_columns('mfa_totp_token')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('mfa_totp_token')}
             if 'verified_at' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE mfa_totp_token ADD COLUMN verified_at TIMESTAMP'))
@@ -824,7 +892,7 @@ def run_schema_migrations(app):
             app.logger.info('Schema migration applied: auxiliary tables ensured')
 
         if 'notification_type' in tables:
-            cols = {c['name'] for c in inspector.get_columns('notification_type')}
+            cols = {c['name'] for c in inspect(db.engine).get_columns('notification_type')}
             if 'description' not in cols:
                 with db.engine.begin() as conn:
                     conn.execute(text('ALTER TABLE notification_type ADD COLUMN description TEXT'))
@@ -835,7 +903,7 @@ def run_schema_migrations(app):
 
         # Round 6: strengthen parent/child ownership at the PostgreSQL layer.
         # Existing databases are upgraded only when no NULL/orphan rows exist;
-        # otherwise startup remains non-destructive and reports the condition.
+        # otherwise fail without removing the affected operational records.
         if str(db.engine.url).startswith('postgresql'):
             ownership_fks = [
                 ('action', 'incident_id', 'incident', 'fk_action_incident_owner'),
@@ -854,11 +922,10 @@ def run_schema_migrations(app):
                         f'WHERE c."{child_col}" IS NULL OR p.id IS NULL'
                     )).scalar() or 0  # nosec B608: identifiers are static literals above
                     if invalid_count:
-                        app.logger.warning(
-                            'Schema hardening skipped for %s.%s: %s NULL/orphan rows require manual repair',
-                            child, child_col, invalid_count,
+                        raise RuntimeError(
+                            f'Schema hardening blocked for {child}.{child_col}: '
+                            f'{invalid_count} NULL/orphan rows require manual repair'
                         )
-                        continue
                     conn.execute(text(f'ALTER TABLE "{child}" ALTER COLUMN "{child_col}" SET NOT NULL'))  # nosec B608
                     current_fks = inspect(conn).get_foreign_keys(child)
                     has_cascade = False
@@ -919,7 +986,16 @@ def ensure_notification_type(code, label, description='', recipient_mode='manual
     if not t:
         db.session.add(NotificationType(tenant_id=default_tenant_id, code=code,label=label,description=description,recipient_mode='manual',recipient_setting_key='',cc_setting_key='',enabled=True))
     else:
-        t.label=label or t.label; t.description=description or t.description; t.recipient_mode='manual'; t.recipient_setting_key=''; t.cc_setting_key=''
+        from .tenant_defaults import inherited_configuration_record
+        if inherited_configuration_record(t):
+            return
+        # Explicit administrator labels/descriptions survive every upgrade and
+        # restart. Fill missing baseline values only; routing remains manual.
+        if not (t.label or '').strip():
+            t.label = label
+        if not (t.description or '').strip():
+            t.description = description
+        t.recipient_mode='manual'; t.recipient_setting_key=''; t.cc_setting_key=''
 
 
 
@@ -978,12 +1054,9 @@ def ensure_default_workflow_required_steps():
         ('Comunicazione al Garante', 'garante', True),
         ('Comunicazione all’utente', 'utente', False),
     ]
-    for step in default_steps:
-        if step.action_label and 'garante' in (step.action_label.value or '').lower():
-            step.personal_data_only = True
     conclusion = next((s for s in default_steps if s.action_label and 'conclusione' in s.action_label.value.lower()), None)
-    if conclusion:
-        conclusion.required = False
+    # Existing flags are editable configuration, not an unrecorded migration.
+    # The initial values are assigned only while creating new baseline steps.
     base_pos = (conclusion.position if conclusion else max((s.position for s in default_steps), default=40) + 30)
     inserted = 0
     for caption, needle, personal_data_only in additions:
@@ -1026,6 +1099,14 @@ def repair_postgres_sequences(app):
         # espliciti: se una sola sequence resta indietro, il successivo INSERT
         # può fallire con "duplicate key value violates unique constraint".
         ('user', 'id'),
+        ('tenant', 'id'),
+        ('user_tenant_role', 'id'),
+        ('tenant_default_replica', 'id'),
+        ('tenant_default_alert', 'id'),
+        ('workflow_catalog_entry', 'id'),
+        ('workflow_catalog_installation', 'id'),
+        ('tenant_workflow', 'id'),
+        ('workflow_obsolescence_notice', 'id'),
         ('audit_log', 'id'),
         ('mfa_totp_token', 'id'),
         ('config_label', 'id'),
@@ -1070,6 +1151,24 @@ def repair_postgres_sequences(app):
         app.logger.exception('Unable to align PostgreSQL sequences')
         raise
 
+def _schema_upgrade_callbacks(app):
+    """Register immutable, ordered schema transitions independently of VERSION.
+
+    The first revision adopts pre-ledger CIR databases using the cumulative
+    idempotent migrations. Future schema changes add a revision and callback;
+    they must not depend on replaying an already recorded historical callback.
+    """
+    def legacy_bridge():
+        db.create_all()
+        # Legacy restores may contain explicit IDs with sequences still at 1.
+        # Repair them before migrations insert a missing default tenant.
+        repair_postgres_sequences(app)
+        run_schema_migrations(app)
+        from .workflow_lifecycle import migrate_workflow_lifecycle_schema
+        migrate_workflow_lifecycle_schema(db.engine)
+    return {'20261122_01_legacy_bridge': legacy_bridge}
+
+
 def bootstrap(app):
     # Bootstrap protetto da advisory lock PostgreSQL non bloccante.
     # Con più worker Gunicorn, un pg_advisory_lock bloccante può lasciare il
@@ -1098,9 +1197,17 @@ def bootstrap(app):
             bootstrap_lock_conn.close()
             bootstrap_lock_conn = None
             raise RuntimeError('Timeout waiting for PostgreSQL bootstrap advisory lock')
+    previous_defaults_suspended = db.session.info.get('cir_defaults_suspended', False)
+    db.session.info['cir_defaults_suspended'] = True
     try:
-        db.create_all()
-        run_schema_migrations(app)
+        from .migration_manager import (
+            SCHEMA_REVISIONS, prepare_schema_upgrade, validate_model_schema,
+            stage_schema_upgrade,
+        )
+        # Recheck under the PostgreSQL bootstrap lock, then apply only missing
+        # transitions. A failed/partial schema step is never recorded as done.
+        schema_upgrade = prepare_schema_upgrade(db.engine, _schema_upgrade_callbacks(app))
+        validate_model_schema(db.engine, db.metadata)
         repair_postgres_sequences(app)
         default_tenant = ensure_default_tenant()
         database_already_populated = database_has_existing_operational_data()
@@ -1133,7 +1240,10 @@ def bootstrap(app):
         ensure_notification_type('user','Notifica utente','Notifiche formali ad utenti a seguito di gravi violazioni su diritti e libertà','manual','','')
         ensure_notification_type('csirt','Notifica CSIRT','Notifiche destinate allo CSIRT.','manual','','')
         ensure_notification_type('dpo','Notifica DPO','Notifiche destinate al DPO.','manual','','')
+        from .tenant_defaults import inherited_configuration_record
         for _nt in NotificationType.query.all():
+            if (_nt.tenant and _nt.tenant.is_system_defaults) or inherited_configuration_record(_nt):
+                continue
             if not (_nt.description or '').strip():
                 _nt.description = default_notification_type_description(_nt.label, _nt.code)
 
@@ -1161,11 +1271,22 @@ def bootstrap(app):
             db.session.add(BackupJob(tenant_id=default_tenant.id, name='Backup schedulato principale', enabled=False, cron_expression='0 2 * * *', categories='incidents,database,templates,logos,uploads', destination='local', local_path=os.getenv('BACKUP_DIR','/data/backups')))
         db.session.flush()
         assign_default_tenant_to_unscoped(default_tenant)
+        from .tenant_defaults import ensure_defaults_tenant, sync_defaults_configuration
+        ensure_defaults_tenant(seed_from_default=True)
+        sync_defaults_configuration()
+        from .workflow_lifecycle import backfill_workflow_states
+        backfill_workflow_states()
+        # Destination-local migration metadata is committed with the bootstrap
+        # data. Full Import recreates model tables but does not import this ledger.
+        stage_schema_upgrade(db.session, schema_upgrade)
         db.session.commit()
+        app.config['CIR_SCHEMA_REVISION'] = SCHEMA_REVISIONS[-1]
+        app.logger.info('Automatic schema upgrade complete: %s', SCHEMA_REVISIONS[-1])
 
     except Exception:
         db.session.rollback(); app.logger.exception('Bootstrap failed'); raise
     finally:
+        db.session.info['cir_defaults_suspended'] = previous_defaults_suspended
         if bootstrap_lock_conn is not None:
             try:
                 bootstrap_lock_conn.execute(text('SELECT pg_advisory_unlock_all()'))

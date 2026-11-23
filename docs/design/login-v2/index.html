@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Proposta della sola pagina login CIR. Anteprima senza autenticazione reale.">
+  <title>CIR · Proposta login</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="login.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#username">Vai al modulo di accesso</a>
+  <div class="preview-label"><span>Mockup login · da approvare</span><span>CIR 0.9.0-1</span></div>
+  <main class="login-layout">
+    <section class="cyber-hero" aria-labelledby="hero-title">
+      <div class="mobile-photo-brand"><img src="../../../app/static/cir-application-logo.svg" alt="Logo Cybersecurity Incident Registry"><span>Cybersecurity<br>Incident Registry</span></div>
+      <img class="cyber-image" src="../../visual-assets/cybersecurity-login-v2.png" alt="Composizione tecnologica cybersecurity e data breach, senza persone">
+      <div class="hero-copy">
+        <div class="hero-mark"><span class="mark-line"></span><span>CIR / INCIDENT REGISTRY</span></div>
+        <h1 id="hero-title">Cybersecurity<br>Incident Registry</h1>
+        <p class="hero-tagline">Gestione degli incidenti di sicurezza<br><em>e tracciabilità delle attività.</em></p>
+        <p class="hero-description">Coordina la risposta agli incidenti.<br>Collega ogni attività alle sue evidenze.</p>
+      </div>
+      <div class="hero-foot"><span class="status-light"></span><span>Incidenti · workflow · evidenze · notifiche</span></div>
+    </section>
+    <section class="access-panel" aria-labelledby="access-title">
+      <div class="access-inner">
+        <!-- Proposal shows the CIR brand only. Future integration must preserve the configured organization logo, optional provider logos, CSRF, login throttling and the existing MFA continuation. -->
+        <div class="app-brand"><img src="../../../app/static/cir-application-logo.svg" alt="Logo Cybersecurity Incident Registry"><div><strong>CIR</strong><span>Cybersecurity Incident Registry</span></div></div>
+        <p class="eyebrow">ACCESSO ALL’APPLICAZIONE</p>
+        <h2 id="access-title">Accedi a CIR.</h2>
+        <p class="access-intro">Il tuo spazio per la gestione<br class="desktop-break"> degli incidenti di sicurezza.</p>
+        <div id="login-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+        <form id="login-form">
+          <div class="field"><label for="username">Username</label><input id="username" name="username" autocomplete="off" value="demo" required autofocus></div>
+          <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="off" value="cir-demo" required></div>
+          <button class="access-button" type="submit"><span>Accedi</span><span aria-hidden="true">→</span></button>
+        </form>
+        <p class="auth-note">Account locale o LDAP, secondo configurazione.</p>
+        <div class="separator"><span>oppure</span></div>
+        <!-- In the application this list remains conditional and dynamically populated by active SSO profiles. -->
+        <div class="sso-profiles"><button id="sso-button" class="sso-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><span>Accedi con SSO</span></button></div>
+        <p class="sso-note">Profilo configurato · esempio dimostrativo</p>
+        <div class="demo-note"><span>Demo: <strong>demo / cir-demo</strong></span><span>Usa solo credenziali dimostrative.</span></div>
+        <footer class="access-footer"><span>Cybersecurity Incident Registry</span><span>0.9.0-1</span></footer>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Avvisi Tenants Default</h2>
+  <p>Le configurazioni conservate restano disponibili nel tenant. La presa visione registra la lettura dell’avviso per il tenant; non cancella dati.</p>
+  <a href="{{ url_for('main.admin_tenant_defaults') }}">Torna a Tenants Default</a>
+</div>
+{% for notice in notices %}
+<div class="card">
+  <h3>{{ tenant_names.get(notice.tenant_id, notice.tenant_id) }}</h3>
+  <p>{{ notice.message }}</p>
+  <p class="muted">{{ notice.local_type }} #{{ notice.local_id }} · {{ notice.created_at }}</p>
+  {% if notice.acknowledged_at %}<p>Presa visione: {{ notice.acknowledged_at }}</p>{% else %}
+  <form method="post" action="{{ url_for('main.admin_tenant_defaults_ack', alert_id=notice.id) }}">
+    {{ csrf_field()|safe }}<button>Segna come letto</button>
+  </form>
+  {% endif %}
+</div>
+{% else %}<div class="card"><p>Nessun avviso.</p></div>{% endfor %}
+{% endblock %}

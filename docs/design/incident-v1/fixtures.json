@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "mock": true,
+  "snapshot_at": "2026-11-22T12:00:00+01:00",
+  "user": {"username": "admin.operativo", "name": "Admin operativo", "initials": "AO", "role": "superuser", "role_label": "Super admin", "auth_provider": "local"},
+  "capabilities": {"modules_enabled": true, "alfresco_enabled": true, "chatbot_enabled": true, "alfresco_auto_report_visible": true},
+  "incident": {
+    "id": 48,
+    "tenant": "default",
+    "creator": "admin.operativo",
+    "creator_name": "Operatore A",
+    "creator_email": "operatore-a@example.invalid",
+    "name": "Esfiltrazione sospetta da server applicativo",
+    "reference": "INC-2026-0048",
+    "status": "aperto",
+    "status_label": "Aperto",
+    "severity": "Alta",
+    "severity_id": 3,
+    "start_at": "2026-11-22T09:42",
+    "end_at": "",
+    "duration": "2h 18m",
+    "people": "Operatore A, Analista B",
+    "description": "Rilevato un trasferimento di dati non atteso dal server applicativo di test. Sono in corso la conservazione delle evidenze e la valutazione dei dati coinvolti.",
+    "recipient": "Responsabile del servizio · demo",
+    "recipient_email": "responsabile@example.invalid",
+    "personal_data": true,
+    "data_subjects_count": "In corso di valutazione",
+    "data_volume": "Quantità e tipologia dei dati in corso di valutazione.",
+    "deadline_notifications_muted": false,
+    "alfresco_auto_report_enabled": true,
+    "categories": ["Accesso non autorizzato", "Esfiltrazione sospetta"],
+    "data_types": ["Dati applicativi"],
+    "recommendations": ["Verificare e limitare le autorizzazioni di accesso."]
+  },
+  "workflow": {
+    "name": "Gestione data breach · esempio",
+    "lifecycle": "current",
+    "ordered": true,
+    "completed": 1,
+    "total": 4,
+    "steps": [
+      {"id": 101, "number": 1, "flow_title": "Presa in carico", "flow_description": "Registrare la conoscenza iniziale della violazione e le prime informazioni disponibili.", "task_description": "Registrazione azione", "task_name": "Informazione iniziale", "action_label_id": 101, "status": "completed", "status_label": "Completata", "detail": "Registrata il 22/11/2026 alle 09:42", "required": true, "done": true, "first_incomplete": false, "expired": false, "deadline": null, "action": {"kind": "action", "target": "incident-actions", "label": "Apri azioni", "route": "main.add_action"}},
+      {"id": 102, "number": 2, "flow_title": "Conservazione delle evidenze", "flow_description": "Raccogliere log e riscontri tecnici e descrivere le operazioni effettuate per conservarli.", "task_description": "Registrazione azione", "task_name": "Conservazione delle evidenze", "action_label_id": 102, "status": "current", "status_label": "Prima fase da completare", "detail": "Descrizione operazioni richiesta", "required": true, "done": false, "first_incomplete": true, "expired": false, "deadline": {"hours": 4, "due_at": "22/11/2026 13:42", "due_short": "13:42", "remaining": "1h 42m", "label": "Scadenza configurata"}, "action": {"kind": "action", "target": "incident-actions", "label": "Registra azione", "route": "main.add_action"}},
+      {"id": 103, "number": 3, "flow_title": "Valutazione e documentazione", "flow_description": "Riepilogare la valutazione dei dati coinvolti e predisporre il documento per la notifica.", "task_description": "Generazione documento", "task_name": "Scheda di valutazione", "action_label_id": 103, "status": "pending", "status_label": "Da completare", "detail": "Template: scheda-valutazione", "required": true, "done": false, "first_incomplete": false, "expired": false, "document_template_name": "scheda-valutazione", "deadline": null, "action": {"kind": "generation", "target": "incident-forms", "label": "Genera documento", "route": "main.workflow_step_generate_document"}},
+      {"id": 104, "number": 4, "flow_title": "Comunicazione al responsabile", "flow_description": "Verificare destinatari e allegati prima di procedere con la notifica prevista dal workflow.", "task_description": "Notifica richiesta", "task_name": "Notifica al responsabile", "action_label_id": 104, "status": "pending", "status_label": "Documento richiesto", "detail": "Manca la scheda di valutazione", "required": true, "done": false, "first_incomplete": false, "expired": false, "notification_done": false, "notification_kind": "responsabile", "notification_docs_ready": false, "notification_docs_section": "incident-forms", "document_template_name": "scheda-valutazione", "deadline": null, "action": {"kind": "notification", "target": "incident-notifications", "label": "Apri percorso guidato", "route": "main.notify_preview"}}
+    ],
+    "warnings": ["Conservazione delle evidenze: azione richiesta non ancora registrata.", "Scheda di valutazione: documento da generare.", "Notifica al responsabile: documento richiesto non ancora disponibile."],
+    "deadline_note": "Tempi configurati per questo esempio; il conteggio parte dall’azione di informazione iniziale."
+  },
+  "actions": [
+    {"id": 301, "label": "Informazione iniziale", "when_at": "2026-11-22T09:42", "person": "Operatore A", "description": "Segnalato un trasferimento di dati non atteso dal server applicativo di test. Avviata la presa in carico.", "consequence": "Possibile accesso non autorizzato a dati applicativi; valutazione in corso.", "exportable": true, "attachments": []},
+    {"id": 302, "label": "Isolamento preventivo", "when_at": "2026-11-22T10:10", "person": "Analista B", "description": "Limitate le connessioni in uscita del servizio di test e annotate le modifiche effettuate.", "consequence": "Servizio di test temporaneamente limitato.", "exportable": true, "attachments": [{"id": 411, "name": "nota-intervento-demo.txt"}]}
+  ],
+  "documents": [
+    {"id": 501, "name": "estratto-log-demo.zip", "uploaded_at": "22/11/2026 10:24", "size": "2,4 MB", "storage": "CIR + Alfresco", "local": true, "alfresco": true, "alfresco_status": "Presente", "tags": [], "generated_template": null, "download_allowed": true},
+    {"id": 502, "name": "nota-tecnica-demo.pdf", "uploaded_at": "22/11/2026 10:36", "size": "184 KB", "storage": "Solo CIR", "local": true, "alfresco": false, "alfresco_status": "Non inviato", "tags": [], "generated_template": null, "download_allowed": true}
+  ],
+  "reminders": [
+    {"id": 601, "scheduled_at": "2026-11-22T13:15", "message": "Verificare la conservazione delle evidenze e aggiornare la valutazione.", "cc_emails": "", "status": "Da inviare"}
+  ],
+  "forms": [
+    {"name": "scheda-valutazione", "title": "Scheda di valutazione", "description": "Valutazione dei dati coinvolti e delle conseguenze.", "required_for_notification": true, "selected": true},
+    {"name": "verbale-intervento", "title": "Verbale di intervento", "description": "Riepilogo delle operazioni svolte e delle misure adottate.", "required_for_notification": false, "selected": false}
+  ],
+  "notifications": [
+    {"kind": "responsabile", "title": "Notifica al responsabile", "description": "Documento richiesto: scheda di valutazione.", "ready": false, "button": "Apri percorso guidato"},
+    {"kind": "aggiornamento", "title": "Aggiornamento operativo", "description": "Verifica destinatari, testo e allegati nell’anteprima.", "ready": true, "button": "Anteprima notifica"}
+  ],
+  "owner": {"name": "Organizzazione dimostrativa", "email": "titolare@example.invalid", "contact": "Segreteria · demo"},
+  "responsible": {"name": "Responsabile operativo · demo", "email": "responsabile@example.invalid", "contact": "Servizio sistemi · demo"},
+  "sections": [
+    {"id": "incident-workflow", "title": "Fasi procedurali", "short": "Fasi", "open": true},
+    {"id": "incident-procedural-alerts", "title": "Avvisi procedurali", "short": "Avvisi", "count": 3, "open": false},
+    {"id": "incident-main", "title": "Dati generali", "short": "Dati generali", "open": true},
+    {"id": "incident-owner", "title": "Dati titolare e responsabile", "short": "Titolare e responsabile", "open": false},
+    {"id": "incident-consequences", "title": "Conseguenze, misure e raccomandazioni", "short": "Conseguenze e misure", "open": false},
+    {"id": "incident-actions", "title": "Azioni", "short": "Azioni", "count": 2, "open": false},
+    {"id": "incident-reminders", "title": "Promemoria specifici", "short": "Promemoria", "count": 1, "open": false},
+    {"id": "incident-documents", "title": "Documenti", "short": "Documenti", "count": 2, "open": false},
+    {"id": "incident-forms", "title": "Generazione moduli", "short": "Moduli", "open": false},
+    {"id": "incident-notifications", "title": "Notifiche", "short": "Notifiche", "open": false}
+  ]
+}

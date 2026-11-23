@@ -1,0 +1,76 @@
+/* AlBot has its own identifiers; classic widget styles and handlers are preserved. */
+body.cir-modern .cir-albot-panel{position:fixed;inset:0 0 0 auto;width:360px;height:100vh;height:100dvh;height:var(--cir-albot-height,100dvh);display:grid;grid-template-rows:auto minmax(0,1fr) auto;z-index:1200;background:#f6f9fc;border-left:1px solid #d8e3ed;color:#183149;font-size:14px;box-shadow:-5px 0 24px #142b4008}
+body.cir-modern .cir-albot-panel[hidden]{display:none!important}
+body.cir-modern .cir-albot-header{background:#fff;border-bottom:1px solid #dce5ed}
+body.cir-modern .cir-albot-header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:21px 18px;min-height:86px}
+body.cir-modern .cir-albot-identity{display:flex;align-items:center;gap:11px;min-width:0}
+body.cir-modern .cir-albot-symbol{display:flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:9px;background:#e1f3f8;color:#37748a}
+body.cir-modern .cir-albot-symbol svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+body.cir-modern .cir-albot-identity h2{font-size:1.28rem;line-height:1.2;margin:0 0 5px;color:#182e41}
+body.cir-modern .cir-albot-identity p{font-size:.69rem;line-height:1.4;color:#637d91;margin:0}
+body.cir-modern .cir-albot-tools{display:flex;gap:2px}
+body.cir-modern .cir-albot-tools button{display:grid;place-items:center;background:transparent;color:#607b91;min-width:32px;min-height:36px;border:0;border-radius:5px;padding:6px}
+body.cir-modern .cir-albot-tools button:hover{background:#edf4fa}
+body.cir-modern .cir-albot-tools svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+body.cir-modern .cir-albot-back{display:none;border:0;border-bottom:1px solid #e4ecf3;border-radius:0;width:100%;background:#fff;color:#2559a6;text-align:left;font-size:.86rem;font-weight:700;padding:13px 19px;min-height:45px}
+body.cir-modern .cir-albot-back span{font-size:22px;margin-right:8px;line-height:1}
+body.cir-modern .cir-albot-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px}
+body.cir-modern .cir-albot-context{font-size:.75rem;line-height:1.6;color:#627a8f;margin-bottom:25px}
+body.cir-modern .cir-albot-context-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+body.cir-modern .cir-albot-tenant{display:inline-block;background:#e8f1f7;color:#3f6e8f;padding:6px 8px;font-size:.72rem;font-weight:700;border-radius:5px;overflow-wrap:anywhere}
+body.cir-modern #cir-albot-context-toggle{background:none;border:0;padding:6px 0 6px 7px;font-size:.72rem;color:#597b96;min-height:32px;font-weight:400}
+body.cir-modern .cir-albot-context p{font-size:inherit;line-height:inherit;margin:8px 0 0}
+body.cir-modern .cir-albot-knowledge-label{font-weight:700;color:#4b6b86}
+body.cir-modern #cir-albot-context-details{padding:10px 11px;margin-top:10px;border:1px solid #d7e4ee;border-radius:7px;background:#fff}
+body.cir-modern .cir-albot-messages{display:flex;flex-direction:column;gap:17px;min-width:0}
+body.cir-modern .cir-albot-message{border:1px solid #dce6ef;border-radius:10px;background:#fff;padding:15px 14px;color:#213b50;font-size:.85rem;line-height:1.7;overflow-wrap:anywhere;min-width:0}
+body.cir-modern .cir-albot-message.user{align-self:flex-end;max-width:92%;background:#e6f1fd;border-color:#e6f1fd;color:#285d91}
+body.cir-modern .cir-albot-message.user>.cir-albot-message-label{color:#44739d}
+body.cir-modern .cir-albot-message-label{display:block;font-size:.77rem;margin-bottom:9px;font-weight:700;color:#1b344a}
+body.cir-modern .cir-albot-message p{line-height:inherit;margin:0 0 10px;white-space:normal}
+body.cir-modern .cir-albot-message p:last-child{margin-bottom:0}
+body.cir-modern .cir-albot-message h3,body.cir-modern .cir-albot-message h4,body.cir-modern .cir-albot-message h5,body.cir-modern .cir-albot-message h6{font-size:.9rem;line-height:1.45;margin:15px 0 8px;color:#1d3b55}
+body.cir-modern .cir-albot-message ul,body.cir-modern .cir-albot-message ol{padding-left:22px;margin:12px 0}
+body.cir-modern .cir-albot-message li{padding-left:4px;margin:10px 0}
+body.cir-modern .cir-albot-message li::marker{color:#2559a6;font-weight:700}
+body.cir-modern .cir-albot-message pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:10px;border-radius:6px;border:1px solid #dce5ee;font-size:.78rem}
+body.cir-modern .cir-albot-message code{font-size:.8rem;background:#edf3f8;padding:1px 4px;border-radius:3px}
+body.cir-modern .cir-albot-message pre code{padding:0;background:none}
+body.cir-modern .cir-albot-message a{color:#2559a6;overflow-wrap:anywhere;text-underline-offset:2px}
+body.cir-modern .cir-albot-message a.cir-albot-markdown-button{display:inline-flex;align-items:center;min-height:36px;padding:7px 10px;border:1px solid #c7dbe9;border-radius:5px;background:#edf6fa;margin:4px 3px 4px 0;font-weight:600;text-decoration:none}
+body.cir-modern .cir-albot-message.error{background:#fff3f1;border-color:#e7bab4;color:#8a3329}
+body.cir-modern .cir-albot-suggestions{display:grid;gap:7px;margin-top:17px}
+body.cir-modern .cir-albot-suggestions>p{font-size:.74rem;font-weight:700;color:#60788d;margin:0}
+body.cir-modern .cir-albot-suggestions button{width:100%;min-height:35px;padding:8px;border:1px solid #ceddea;border-radius:5px;background:#fff;color:#203d56;font-size:.77rem;font-weight:700}
+body.cir-modern .cir-albot-composer{border-top:1px solid #dce6ef;background:#fff;margin:0;display:flex;flex-direction:column;gap:8px;padding:15px 18px max(12px,env(safe-area-inset-bottom));min-width:0}
+body.cir-modern .cir-albot-composer>label{font-size:.75rem;line-height:1.4;color:#647e92;margin:0}
+body.cir-modern #cir-albot-question{display:block;width:100%;min-height:65px;max-height:25dvh;margin:0;resize:vertical;border:1px solid #cbdbe8;border-radius:7px;background:#fbfcfe;color:#203b53;font-size:.85rem;line-height:1.6;padding:10px 12px;box-sizing:border-box}
+body.cir-modern #cir-albot-question::placeholder{color:#7891a6}
+body.cir-modern #cir-albot-status{font-size:.73rem;line-height:1.45;color:#647e92;margin:0}
+body.cir-modern #cir-albot-status:empty{display:none}
+body.cir-modern .cir-albot-composer-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+body.cir-modern #cir-albot-new-question{background:transparent;color:#2559a6;font-size:.72rem;min-height:35px;border:0;padding:6px 0;font-weight:400}
+body.cir-modern #cir-albot-send{background:#2559a6;color:#fff;min-height:36px;min-width:80px;border:1px solid #2559a6;border-radius:6px;font-size:.8rem;font-weight:700;padding:8px 17px}
+body.cir-modern .cir-albot-panel button:disabled{opacity:.5;cursor:not-allowed}
+body.cir-modern .cir-albot-footnote{font-size:.64rem;color:#70889b;line-height:1.45;margin:0}
+body.cir-modern.cir-albot-focused{overflow:hidden}
+body.cir-modern.cir-albot-focused .cir-albot-panel{inset:var(--cir-albot-top,0) 0 auto;width:100%;max-width:none;border-left:0;box-shadow:none;z-index:1400}
+body.cir-modern.cir-albot-focused .cir-albot-back{display:block}
+body.cir-modern.cir-albot-focused .cir-albot-scroll{padding-left:max(18px,calc((100vw - 790px)/2));padding-right:max(18px,calc((100vw - 790px)/2))}
+body.cir-modern.cir-albot-focused .cir-albot-composer{padding-left:max(18px,calc((100vw - 790px)/2));padding-right:max(18px,calc((100vw - 790px)/2))}
+body.cir-modern.cir-albot-focused .cir-albot-header-row{max-width:826px;width:100%;box-sizing:border-box;margin:0 auto}
+body.cir-modern .ai-chatbot-page-avatar{display:none}
+@media(max-width:760px){
+  body.cir-modern .cir-albot-panel{width:100%;border-left:0}
+  body.cir-modern .cir-albot-header-row{padding:15px 18px;min-height:78px}
+  body.cir-modern .cir-albot-scroll{padding:17px 18px}
+  body.cir-modern .cir-albot-context{font-size:.77rem;margin-bottom:26px}
+  body.cir-modern .cir-albot-message{font-size:.9rem;padding:16px 14px}
+  body.cir-modern .cir-albot-message-label{font-size:.84rem}
+  body.cir-modern .cir-albot-tools button{min-width:36px;min-height:40px}
+  body.cir-modern #cir-albot-expand{display:none}
+  body.cir-modern #cir-albot-question{font-size:16px;min-height:65px}
+  body.cir-modern #cir-albot-send{min-height:40px}
+  body.cir-modern .cir-albot-composer{padding-top:13px}
+}
+@media(prefers-reduced-motion:reduce){body.cir-modern .cir-albot-panel *{scroll-behavior:auto!important;transition:none!important}}

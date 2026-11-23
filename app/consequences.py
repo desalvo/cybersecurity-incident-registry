@@ -2,19 +2,20 @@ from datetime import datetime
 import json
 import re
 
-from .models import Setting
+from flask import has_app_context
 
 
-def _setting_value(key, default=''):
-    try:
-        obj = db.session.get(Setting, key)
-        return obj.value if obj and obj.value is not None else default
-    except Exception:
+def _setting_value(key, default='', tenant_id=None):
+    if not has_app_context():
         return default
+    from .routes import setting_value, _setting_value_without_request_user
+    if tenant_id is not None:
+        return _setting_value_without_request_user(key, default, tenant_id)
+    return setting_value(key, default)
 
 
-def _setting_enabled(key, default=True):
-    raw = _setting_value(key, '1' if default else '0')
+def _setting_enabled(key, default=True, tenant_id=None):
+    raw = _setting_value(key, '1' if default else '0', tenant_id)
     return str(raw).strip().lower() not in {'0', 'false', 'no', 'off', 'disabled'}
 
 
@@ -54,12 +55,12 @@ LEGACY_CONSEQUENCE_RULES = [
 ]
 
 
-def _default_rules():
+def _default_rules(tenant_id=None):
     rules = []
     for idx, rule in enumerate(LEGACY_CONSEQUENCE_RULES, start=1):
         code = rule['code']
-        text = _setting_value(rule.get('text_key', ''), rule['default_text']) or rule['default_text']
-        enabled = _setting_enabled(rule.get('enabled_key', ''), True)
+        text = _setting_value(rule.get('text_key', ''), rule['default_text'], tenant_id) or rule['default_text']
+        enabled = _setting_enabled(rule.get('enabled_key', ''), True, tenant_id)
         rules.append({
             'id': code,
             'code': code,
@@ -116,20 +117,20 @@ def _normalise_rule(raw, index=0):
     }
 
 
-def parse_consequence_rules_json(raw):
+def parse_consequence_rules_json(raw, tenant_id=None):
     try:
         loaded = json.loads(raw or '')
     except Exception:
         loaded = None
     if not isinstance(loaded, list):
-        return _default_rules()
+        return _default_rules(tenant_id)
     rules = [_normalise_rule(item, idx) for idx, item in enumerate(loaded)]
     rules = [r for r in rules if r.get('text')]
-    return sorted(rules, key=lambda r: (r.get('order') or 0, r.get('code') or '')) or _default_rules()
+    return sorted(rules, key=lambda r: (r.get('order') or 0, r.get('code') or '')) or _default_rules(tenant_id)
 
 
-def configured_consequence_rules():
-    return parse_consequence_rules_json(_setting_value('consequence_rules_json', ''))
+def configured_consequence_rules(tenant_id=None):
+    return parse_consequence_rules_json(_setting_value('consequence_rules_json', '', tenant_id), tenant_id)
 
 
 def serialize_consequence_rules_from_form(form):
@@ -238,7 +239,8 @@ def _rule_matches(inc, rule):
 
 def incident_consequence_list(inc):
     out = []
-    for rule in configured_consequence_rules():
+    tenant_id = getattr(inc, 'tenant_id', None)
+    for rule in configured_consequence_rules(tenant_id):
         if not rule.get('enabled', True):
             continue
         if _rule_matches(inc, rule):
@@ -255,7 +257,7 @@ def incident_consequence_list(inc):
     out.extend([text for text in explicit if text not in out])
 
     if not out:
-        fallback = (_setting_value('consequence_fallback_text', 'Conseguenze da valutare sulla base dell’analisi dell’incidente.') or '').strip()
+        fallback = (_setting_value('consequence_fallback_text', 'Conseguenze da valutare sulla base dell’analisi dell’incidente.', tenant_id) or '').strip()
         if fallback:
             out.append(fallback)
     return out

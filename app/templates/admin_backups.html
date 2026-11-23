@@ -1,9 +1,17 @@
 {% extends 'base.html' %}{% block content %}
 <div class="card">
   <h2>Backup</h2>
+  {% if jobs %}
+  <form method="get"><label>Configurazione del tenant
+    <select name="job_id">{% for item in jobs %}<option value="{{ item.id }}" {% if item.id==job.id %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select>
+    </label><button class="secondary">Apri configurazione</button>
+  </form>
+  {% endif %}
+  {% if active_tenant and active_tenant.is_system_defaults %}<p>Le definizioni salvate qui vengono propagate ai tenant. Il tenant speciale non esegue backup; l’abilitazione pubblicata si applica ai job dei tenant destinatari.</p>{% endif %}
   <p class="muted">Configura backup periodici o on-demand dei dati applicativi. Per default sono incluse tutte le categorie; con tutte le categorie selezionate il backup corrisponde al full backup applicativo.</p>
   <form method="post" enctype="multipart/form-data" class="form-grid">
     <input type="hidden" name="action" value="save">
+    <input type="hidden" name="job_id" value="{{ job.id }}">
     <div class="wide"><label>Nome configurazione</label><input name="name" value="{{ job.name }}"></div>
     <div><label><input type="checkbox" name="enabled" {% if job.enabled %}checked{% endif %}> Backup schedulato abilitato</label></div>
     <div><label><input type="checkbox" name="notify_admin" {% if job.notify_admin %}checked{% endif %}> Invia notifica e-mail all’admin</label></div>
@@ -17,14 +25,14 @@
     <div><label>Prefix</label><input name="s3_prefix" value="{{ job.s3_prefix or '' }}"></div>
     <div><label>Access key</label><input name="s3_access_key" value="{{ job.s3_access_key or '' }}"></div>
     <div><label>Secret key</label><input name="s3_secret_key" type="password" placeholder="Lasciare vuoto per non modificare"></div>
-    <div class="wide button-row"><button type="submit">Salva configurazione</button><button type="submit" name="action" value="run">Esegui backup ora</button></div>
+    <div class="wide button-row"><button type="submit">Salva configurazione</button>{% if not active_tenant or not active_tenant.is_system_defaults %}<button type="submit" name="action" value="run">Esegui backup ora</button>{% endif %}</div>
   </form>
   <hr>
   <h3>Ultimo esito</h3>
   <p><strong>Stato:</strong> {{ job.last_status or 'never' }}{% if job.last_run_at %} · <strong>Data:</strong> {{ job.last_run_at }}{% endif %}</p>
   <p class="muted">{{ job.last_message or 'Nessun backup eseguito.' }}</p>
 </div>
-<div class="card">
+{% if not active_tenant or not active_tenant.is_system_defaults %}<div class="card">
   <h2>Restore da backup</h2>
   <p class="muted">Il restore completo deve essere effettuato con un archivio full backup/full export. I backup parziali sono verificati e possono essere usati per recuperi selettivi sulle directory persistenti.</p>
   <form method="post" enctype="multipart/form-data">
@@ -33,4 +41,5 @@
     <button>Verifica / avvia restore</button>
   </form>
 </div>
+{% endif %}
 {% endblock %}

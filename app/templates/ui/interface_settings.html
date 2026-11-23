@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set en = current_language == 'en' %}
+<section class="card cir-interface-settings" aria-labelledby="interface-title">
+  <h1 id="interface-title">{{ 'Global interface' if en else 'Interfaccia globale' }}</h1>
+  <p>{{ 'This choice applies to the entire installation: every tenant, every user and the login page. Only a super administrator can change it.' if en else 'Questa scelta vale per l’intera installazione: tutti i tenant, tutti gli utenti e la pagina di login. Può modificarla soltanto un super admin.' }}</p>
+  <form method="post" action="{{ url_for('ui.interface_settings') }}" data-cir-ui-settings>
+    <fieldset>
+      <legend>{{ 'Choose the application interface' if en else 'Scegli l’interfaccia dell’applicazione' }}</legend>
+      <label class="cir-interface-option">
+        <input type="radio" name="mode" value="modern" {% if selected_ui_mode == 'modern' %}checked{% endif %} required>
+        <strong>{{ 'New interface (default)' if en else 'Nuova interfaccia (predefinita)' }}</strong>
+        <span>{{ 'Sidebar navigation, responsive pages and the AlBot panel.' if en else 'Menu laterale, pagine responsive e pannello AlBot.' }}</span>
+      </label>
+      <label class="cir-interface-option">
+        <input type="radio" name="mode" value="classic" {% if selected_ui_mode == 'classic' %}checked{% endif %} required>
+        <strong>{{ 'Classic interface' if en else 'Interfaccia classica' }}</strong>
+        <span>{{ 'The previous interface, with the same application data and permissions.' if en else 'L’interfaccia precedente, con gli stessi dati applicativi e permessi.' }}</span>
+      </label>
+    </fieldset>
+    <p>{{ 'The change is applied when pages are opened or reloaded. You can return here from either interface. Your choice is retained after a restart.' if en else 'Il cambio si applica all’apertura o al ricaricamento delle pagine. Puoi tornare qui da entrambe le interfacce. La scelta rimane salvata dopo un riavvio.' }}</p>
+    <button class="btn primary" type="submit">{{ 'Save for all tenants' if en else 'Salva per tutti i tenant' }}</button>
+  </form>
+</section>
+{% endblock %}

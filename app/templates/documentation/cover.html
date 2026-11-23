@@ -1,0 +1,17 @@
+{% set en = current_language == 'en' %}
+<header class="cir-doc-cover" data-documentation-cover>
+  <p class="cir-doc-breadcrumb"><a href="{{ url_for('main.help_page') }}">{{ 'Documentation' if en else 'Documentazione' }}</a><span aria-hidden="true"> / </span>{{ cir_doc.title }}</p>
+  <div class="cir-doc-brand"><img src="{{ url_for('static', filename='help/app-logo.png') }}" alt=""><span>{{ app_info.name }}</span></div>
+  <h1 id="{{ cir_doc.title_id }}">{{ cir_doc.title }}</h1>
+  <p class="cir-doc-subtitle">{{ cir_doc.subtitle }}</p>
+  <div class="cir-doc-badges"><span>{{ 'Version' if en else 'Versione' }} {{ app_info.version }}</span><span>Build {{ app_info.build }}</span></div>
+  <img class="cir-doc-hero-image" src="{{ url_for('static', filename='ui/cybersecurity-hero-v2.png') }}" alt="{{ 'Server infrastructure and a cybersecurity alert; synthetic illustration' if en else 'Infrastruttura server e allerta di sicurezza; illustrazione sintetica' }}" width="2172" height="724">
+  <dl class="cir-doc-about"><div><dt>{{ 'Creator' if en else 'Creatore' }}</dt><dd>{{ app_info.author }}<br><a href="mailto:{{ app_info.author_email }}">{{ app_info.author_email }}</a></dd></div><div><dt>{{ 'Project' if en else 'Progetto' }}</dt><dd><a href="{{ app_info.project_url }}" rel="noopener noreferrer">{{ app_info.project_url }}</a></dd></div></dl>
+  <div class="cir-doc-platforms" aria-label="{{ 'Supported platforms and technologies' if en else 'Piattaforme e tecnologie supportate' }}">
+    <h2>{{ 'Supported platforms and technologies' if en else 'Piattaforme e tecnologie supportate' }}</h2>
+    <ul>{% for platform in app_info.platforms %}<li><a href="{{ platform.url }}" rel="noopener noreferrer"><img src="{{ url_for('static', filename=platform.logo) }}" alt="" width="64" height="64"><span>{{ platform.name }}</span></a></li>{% endfor %}</ul>
+    <p class="cir-doc-architectures">{{ app_info.architectures|join(' · ') }}</p>
+  </div>
+  <div class="cir-doc-actions"><a class="button" href="{{ cir_doc.index }}">{{ 'Read the guide' if en else 'Leggi il manuale' }}</a><a class="button secondary" href="{{ cir_doc.pdf_url }}">{{ 'Download PDF' if en else 'Scarica PDF' }}</a></div>
+  {% if not cir_new_ui_enabled %}<nav class="cir-doc-inline-nav" aria-label="{{ 'Documentation' if en else 'Documentazione' }}">{% for guide in cir_documentation_navigation %}<a href="{{ guide.url }}"{% if guide.id == cir_doc.id %} aria-current="page"{% endif %}>{{ guide.title }}</a>{% endfor %}</nav>{% endif %}
+</header>

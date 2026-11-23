@@ -16,6 +16,16 @@ BACKUP_DIR="${BACKUP_DIR:-/data/backups}"
 AI_CHATBOT_DOC_DIR="${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}"
 DATA_DIRS="$UPLOAD_DIR $LOGO_DIR $FORM_TEMPLATE_DIR $SSO_LOGO_DIR $SSL_DIR $BACKUP_DIR $AI_CHATBOT_DOC_DIR"
 RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE="${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-0}"
+GUNICORN_GRACEFUL_TIMEOUT="${GUNICORN_GRACEFUL_TIMEOUT:-1800}"
+case "$GUNICORN_GRACEFUL_TIMEOUT" in
+  ''|*[!0-9]*)
+    echo '[entrypoint] ERROR: GUNICORN_GRACEFUL_TIMEOUT must be an integer between 1 and 36000 seconds.' >&2
+    exit 1 ;;
+esac
+if ! [ "$GUNICORN_GRACEFUL_TIMEOUT" -ge 1 ] 2>/dev/null || ! [ "$GUNICORN_GRACEFUL_TIMEOUT" -le 36000 ] 2>/dev/null; then
+  echo '[entrypoint] ERROR: GUNICORN_GRACEFUL_TIMEOUT must be between 1 and 36000 seconds.' >&2
+  exit 1
+fi
 
 warn() {
   echo "[entrypoint] WARNING: $*" >&2
@@ -146,6 +156,7 @@ start_http() {
     --workers "${WEB_CONCURRENCY:-1}" \
     --threads "${GUNICORN_THREADS:-4}" \
     --timeout "${GUNICORN_TIMEOUT:-180}" \
+    --graceful-timeout "$GUNICORN_GRACEFUL_TIMEOUT" \
     --access-logfile - --error-logfile - wsgi:app &
   HTTP_PID=$!
 }
@@ -178,6 +189,7 @@ start_https() {
     --workers "${WEB_CONCURRENCY_SSL:-${WEB_CONCURRENCY:-1}}" \
     --threads "${GUNICORN_THREADS:-4}" \
     --timeout "${GUNICORN_TIMEOUT:-180}" \
+    --graceful-timeout "$GUNICORN_GRACEFUL_TIMEOUT" \
     --access-logfile - --error-logfile - wsgi:app &
   HTTPS_PID=$!
   echo "HTTPS listener started on port ${HTTPS_PORT} with certificate ${CERT_FILE}"
@@ -192,6 +204,10 @@ stop_https() {
 }
 
 shutdown() {
+  if [ -n "${MIGRATION_PID:-}" ] && kill -0 "$MIGRATION_PID" 2>/dev/null; then
+    kill "$MIGRATION_PID" 2>/dev/null || true
+    wait "$MIGRATION_PID" 2>/dev/null || true
+  fi
   stop_https
   if [ -n "${HTTP_PID:-}" ] && kill -0 "$HTTP_PID" 2>/dev/null; then
     kill "$HTTP_PID" 2>/dev/null || true
@@ -200,6 +216,20 @@ shutdown() {
   exit 0
 }
 trap shutdown INT TERM
+
+# Apply upgrades once before either HTTP/HTTPS worker group starts. This phase
+# has no Gunicorn worker timeout and still runs after the privilege drop. Each
+# create_app() also validates the ledger, including non-container launches.
+info "checking and applying automatic database migrations"
+python -m app.migrate &
+MIGRATION_PID=$!
+if wait "$MIGRATION_PID"; then
+  MIGRATION_PID=""
+else
+  MIGRATION_PID=""
+  echo '[entrypoint] ERROR: automatic database migration failed; web listeners were not started.' >&2
+  exit 1
+fi
 
 start_http
 HTTPS_PID=""

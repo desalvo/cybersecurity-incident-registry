@@ -1,0 +1,64 @@
+{
+  "proposal_id": "cir-documentation-v2",
+  "status": "approved-implemented",
+  "applied_to_manuals": true,
+  "scope": "All PDF and online documentation/manuals; titles and language adapt per guide",
+  "version": "0.10.0-1",
+  "build": "20261122",
+  "created_for": "0.10.0-1 RC1",
+  "kind": "synthetic-design-mockups",
+  "not_runtime_screenshot_evidence": true,
+  "application_name": "Cybersecurity Incident Registry",
+  "creator": "Alessandro De Salvo",
+  "creator_email": "Alessandro.DeSalvo@roma1.infn.it",
+  "project_url": "https://github.com/desalvo/cybersecurity-incident-registry",
+  "metadata_provenance": {
+    "identity": "VERSION and BUILD, frozen by scripts/prepare_release_metadata.py",
+    "author": "application_identity.py, shared with runtime About",
+    "url": "application_identity.py APP_PROJECT_URL, shown in About"
+  },
+  "references": [
+    "app/static/help/app-logo.png",
+    "app/static/ui/cybersecurity-hero-v2.png"
+  ],
+  "platforms": [
+    "Docker",
+    "Podman",
+    "Kubernetes",
+    "Helm",
+    "OpenShift",
+    "PostgreSQL"
+  ],
+  "architectures": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "implementation_on_approval": [
+    "Use native selectable text and shared metadata, not raster text, in production PDF and HTML",
+    "Original app logo and existing synthetic hero; separate local platform marks with provenance in app/static/branding/platforms/manifest.json",
+    "Keep navigation and complete manual body, links, and existing functionality",
+    "Adapt the common cover/header to every manual in both languages",
+    "Do not treat these proposals as real CI screenshots"
+  ],
+  "files": [
+    {
+      "file": "proposal-pdf.png",
+      "role": "A4 user manual cover; shared identity for every PDF manual",
+      "sha256": "bb8f6ec501bc0c6f8e6dafafecbd0a793e2d1ccbb110cd3e234f35bf8a24f7fe"
+    },
+    {
+      "file": "proposal-online.png",
+      "role": "Administrator manual online opening; shared identity for every online guide",
+      "sha256": "2fe68022339473a8ea78c6aa0d2afc9cfe7dfa443815f9f52331243db30158cc"
+    }
+  ],
+  "approved_on": "2026-11-23",
+  "implementation": [
+    "scripts/documentation_cover.py",
+    "scripts/documentation_markdown_pdf.py",
+    "app/templates/documentation/cover.html",
+    "app/static/ui/documentation.css",
+    "app/documentation.py",
+    "scripts/build_training_presentation.py"
+  ]
+}

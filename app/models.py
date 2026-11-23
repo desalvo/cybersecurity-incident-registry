@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 from .timeutils import utcnow
+from sqlalchemy import false
 
 db=SQLAlchemy()
 incident_people=db.Table('incident_people', db.Column('incident_id',db.Integer,db.ForeignKey('incident.id'),primary_key=True), db.Column('person_id',db.Integer,db.ForeignKey('person.id'),primary_key=True))
@@ -14,6 +15,11 @@ class Tenant(db.Model):
     name=db.Column(db.String(80), nullable=False, unique=True, index=True)
     description=db.Column(db.Text, default='')
     created_at=db.Column(db.DateTime, default=utcnow, nullable=False)
+    is_system_defaults=db.Column(db.Boolean, default=False, server_default=false(), nullable=False)
+
+    @property
+    def is_tenants_default(self):
+        return bool(self.is_system_defaults)
 
     @property
     def is_default(self):
@@ -102,6 +108,9 @@ class User(UserMixin,db.Model):
             tenant_id = int(tenant_id) if tenant_id is not None else None
         except (TypeError, ValueError):
             tenant_id = None
+        tenant = db.session.get(Tenant, tenant_id) if tenant_id else None
+        if tenant is not None and tenant.is_system_defaults:
+            return 'disabled'
         for membership in self.tenant_roles or []:
             if membership.tenant_id == tenant_id:
                 return membership.normalized_role()
@@ -129,7 +138,7 @@ class User(UserMixin,db.Model):
             role = (self.role or 'disabled').strip().lower()
             if role != 'disabled' and (allowed is None or role in allowed) and legacy_tid not in ids:
                 ids.append(legacy_tid)
-        return ids
+        return [tid for tid in ids if (tenant := db.session.get(Tenant, tid)) is not None and not tenant.is_system_defaults]
 
 class UserTenantRole(db.Model):
     """Ruolo dell'utente in uno specifico tenant.
@@ -479,12 +488,14 @@ class ExternalRecipient(db.Model):
     notes=db.Column(db.Text,default='')
     created_at=db.Column(db.DateTime,default=utcnow)
     updated_at=db.Column(db.DateTime,default=utcnow,onupdate=utcnow)
-    __table_args__=(db.UniqueConstraint('tenant_id','email',name='uq_external_recipient_tenant_email'),)
+    # Separate configuration identities may deliberately share a delivery
+    # address (local contact and an independently managed shared default).
 
 
 class FormTemplateConfig(db.Model):
     id=db.Column(db.Integer, primary_key=True)
     template_name=db.Column(db.String(255), nullable=False, unique=True, index=True)
+    owner_tenant_id=db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=True, index=True)
     font_family=db.Column(db.String(40), nullable=False, default='Helvetica')
     font_size=db.Column(db.Integer, nullable=False, default=10)
     notification_tags=db.Column(db.Text, default='', nullable=False)
@@ -540,3 +551,9 @@ class FormFieldMapping(db.Model):
     db_field=db.Column(db.String(255), nullable=False)
     created_at=db.Column(db.DateTime, default=utcnow)
     __table_args__=(db.UniqueConstraint('template_name','template_field',name='uq_form_template_field'),)
+
+
+# Register defaults/catalog tables with the same metadata for migrations and restore.
+from .tenant_defaults_models import TenantDefaultSource, TenantDefaultReplica, TenantDefaultAlert
+from .workflow_catalog_models import (WorkflowCatalogEntry, WorkflowCatalogInstallation,
+                                      TenantWorkflow, WorkflowObsolescenceNotice)
