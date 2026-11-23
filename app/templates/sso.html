@@ -15,7 +15,7 @@
       <tr>
         <td><code>{{ p.id }}</code></td>
         <td>{{ p.sso_provider_name }}</td>
-        <td>{% if p.sso_logo_path %}<img class="sso-provider-logo" src="{{ sso_logo_url(p.sso_logo_path) }}" alt="Logo {{ p.sso_provider_name }}" onerror="this.style.display='none'">{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{% if p.sso_logo_path %}<img class="sso-provider-logo" src="{{ sso_logo_url(p.sso_logo_path) }}" alt="Logo {{ p.sso_provider_name }}" data-cir-hide-on-error>{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{% if p.sso_enabled == '1' %}Attivo{% else %}Disattivo{% endif %}</td>
         <td>{{ p.sso_client_id }}</td>
         <td><a class="button secondary" href="{{ url_for('main.sso_settings_admin', profile=p.id) }}">Modifica</a></td>
@@ -26,7 +26,7 @@
   {% else %}
     <p class="muted">Nessun profilo SSO configurato.</p>
   {% endif %}
-  <form method="post" style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+  <form method="post" class="cir-margin-top cir-layout-row">
     <button name="action" value="add_google_example" class="secondary" type="submit">Aggiungi esempio Google</button>
     <button name="action" value="add_generic_profile" class="secondary" type="submit">Aggiungi profilo generico</button>
   </form>
@@ -45,7 +45,7 @@
   <div class="sso-logo-gallery">
     {% for logo in sso_logos %}
       <div class="sso-logo-tile">
-        <img src="{{ sso_logo_url(logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'">
+        <img src="{{ sso_logo_url(logo.relative_path) }}" alt="{{ logo.name }}" data-cir-hide-on-error>
         <code>{{ logo.name }}</code>
         <form method="post" data-confirm-delete="Rimuovere questo logo dallo storage SSO? Il logo sarà rimosso anche dai profili associati.">
           <input type="hidden" name="profile" value="{{ settings.id }}">
@@ -60,7 +60,7 @@
 
 <div class="card">
   <h3>Profilo SSO</h3>
-  <form method="post" class="form-grid" style="margin-top:1rem" enctype="multipart/form-data">
+  <form method="post" class="cir-margin-top form-grid" enctype="multipart/form-data">
     <input type="hidden" name="original_profile_id" value="{{ settings.id }}">
     <input type="hidden" name="existing_sso_logo_path" value="{{ settings.sso_logo_path or '' }}">
     <div><label>ID profilo</label><input name="profile_id" value="{{ settings.id or 'sso' }}" pattern="[A-Za-z0-9_-]+" required><small class="muted">Usare lettere, numeri, trattino o underscore.</small></div>
@@ -81,7 +81,7 @@
     <div class="wide">
       <label>Logo profilo SSO (opzionale)</label>
       {% if settings.sso_logo_path %}
-        <div class="sso-logo-preview"><img src="{{ sso_logo_url(settings.sso_logo_path) }}" alt="Logo {{ settings.sso_provider_name or 'SSO' }}" onerror="this.style.display='none'"><span class="muted">Logo corrente: <code>{{ settings.sso_logo_path }}</code></span></div>
+        <div class="sso-logo-preview"><img src="{{ sso_logo_url(settings.sso_logo_path) }}" alt="Logo {{ settings.sso_provider_name or 'SSO' }}" data-cir-hide-on-error><span class="muted">Logo corrente: <code>{{ settings.sso_logo_path }}</code></span></div>
         <label class="inline-check"><input type="checkbox" name="remove_sso_logo" value="1"> Rimuovi logo corrente</label>
       {% else %}
         <p class="muted">Nessun logo associato. Il pulsante di login mostrerà solo il nome del provider.</p>
@@ -96,12 +96,12 @@
       {% if sso_logos %}
       <div class="sso-logo-gallery">
         {% for logo in sso_logos %}
-          <div class="sso-logo-tile"><img src="{{ sso_logo_url(logo.relative_path) }}" alt="{{ logo.name }}" onerror="this.style.display='none'"><code>{{ logo.name }}</code></div>
+          <div class="sso-logo-tile"><img src="{{ sso_logo_url(logo.relative_path) }}" alt="{{ logo.name }}" data-cir-hide-on-error><code>{{ logo.name }}</code></div>
         {% endfor %}
       </div>
       {% endif %}
     </div>
-    <div class="wide" style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <div class="cir-layout-row wide">
       <button name="action" value="save" type="submit">Salva profilo SSO</button>
       <button name="action" value="test_connection" class="secondary" type="submit">Controlla configurazione</button>
       {% if settings.sso_enabled == '1' and settings.sso_authorization_url and settings.sso_token_url and settings.sso_client_id %}
@@ -111,7 +111,7 @@
     </div>
   </form>
   {% if profiles %}
-  <form method="post" class="inline-form" data-confirm-delete="Eliminare il profilo SSO selezionato?" style="margin-top:.75rem">
+  <form method="post" class="cir-margin-top-small inline-form" data-confirm-delete="Eliminare il profilo SSO selezionato?">
     <input type="hidden" name="original_profile_id" value="{{ settings.id }}">
     <input type="hidden" name="existing_sso_logo_path" value="{{ settings.sso_logo_path or '' }}">
     <input type="hidden" name="profile_id" value="{{ settings.id }}">
@@ -127,7 +127,7 @@
     <thead><tr><th>Controllo</th><th>Esito</th><th>Dettaglio</th></tr></thead>
     <tbody>{% for item in test_result.checks %}<tr><td>{{ item.name }}</td><td>{% if item.ok %}✅ OK{% else %}⚠ Errore{% endif %}</td><td>{{ item.message }}{% if item.detail %}<br><small class="muted">{{ item.detail }}</small>{% endif %}</td></tr>{% endfor %}</tbody>
   </table>
-  {% if test_result.authorization_preview %}<p><strong>URL autorizzazione generata:</strong></p><textarea readonly rows="4" style="width:100%">{{ test_result.authorization_preview }}</textarea>{% endif %}
+  {% if test_result.authorization_preview %}<p><strong>URL autorizzazione generata:</strong></p><textarea readonly rows="4" class="cir-width-full">{{ test_result.authorization_preview }}</textarea>{% endif %}
 </div>
 {% endif %}
 <div class="card">

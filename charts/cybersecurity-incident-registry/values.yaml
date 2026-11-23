@@ -1,0 +1,83 @@
+# Application version is 0.10.0-1. Chart version is packaging metadata.
+platform: kubernetes
+nameOverride: ""
+image:
+  repository: desalvo/cybersecurity-incident-registry
+  # REQUIRED: OCI index digest after the amd64 AND arm64 production gates pass.
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+# Pre-create this Secret; never put credentials in Helm values or release history.
+existingSecret: ""
+secretKeys:
+  databaseUrl: database-url
+  secretKey: secret-key
+  adminPassword: admin-initial-password
+  settingEncryptionKey: setting-encryption-key
+replicaCount: 1
+kubernetesSecurity:
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+# Ignored on OpenShift: the SCC allocates the UID/GID/fsGroup. No anyuid required.
+persistence:
+  existingClaim: ""
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 20Gi
+service:
+  port: 80
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  tlsSecret: ""
+route:
+  enabled: false
+  host: ""
+  timeout: 1800s
+trustedProxyCidrs: []
+runtime:
+  workers: 1
+  threads: 4
+  requestTimeout: 1800
+  terminationGracePeriod: 1800
+  startupFailureThreshold: 120
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+database:
+  # Production default: managed/external PostgreSQL from existingSecret database-url.
+  mode: external
+  internal:
+    image:
+      repository: postgres
+      # REQUIRED only in internal mode. Pin a verified PostgreSQL 18 Debian image.
+      digest: ""
+    existingSecret: ""
+    secretKeys:
+      username: POSTGRES_USER
+      password: POSTGRES_PASSWORD
+      database: POSTGRES_DB
+    persistence:
+      existingClaim: ""
+      storageClass: ""
+      size: 10Gi
+    kubernetesSecurity:
+      runAsUser: 999
+      runAsGroup: 999
+      fsGroup: 999
+    startupFailureThreshold: 360
+    pgCtlTimeout: 1800
+    terminationGracePeriod: 300
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "2"
+        memory: 2Gi

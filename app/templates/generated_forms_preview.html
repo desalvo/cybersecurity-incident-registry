@@ -26,7 +26,7 @@
   {% endfor %}
   <div class="card sticky-decision-bar">
     <button type="submit" name="decision" value="accept">Accetta e salva come documento allegato</button>
-    <button type="submit" name="decision" value="reject" class="danger" onclick="return confirm('Rifiutare i PDF generati ed eliminare i file temporanei?')">Rifiuta ed elimina</button>
+    <button type="submit" name="decision" value="reject" class="danger" data-cir-confirm="Rifiutare i PDF generati ed eliminare i file temporanei?">Rifiuta ed elimina</button>
   </div>
 </form>
 {% endblock %}

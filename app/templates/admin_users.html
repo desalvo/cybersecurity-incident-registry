@@ -130,7 +130,7 @@
                   </select>
                   <button type="submit">Modifica ruolo</button>
                 </form>
-                <form method="post" action="{{ url_for('main.admin_user_tenant_role_delete', uid=u.id, q=search_query) if search_query else url_for('main.admin_user_tenant_role_delete', uid=u.id) }}" class="membership-delete" onsubmit="return confirm('Rimuovere la membership del tenant {{ membership.tenant_name }} per l\'utente {{ u.username }}?')">
+                <form method="post" action="{{ url_for('main.admin_user_tenant_role_delete', uid=u.id, q=search_query) if search_query else url_for('main.admin_user_tenant_role_delete', uid=u.id) }}" class="membership-delete" data-cir-confirm="Rimuovere la membership del tenant {{ membership.tenant_name }} per l'utente {{ u.username }}?">
                   <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
                   <input type="hidden" name="membership_tenant_id" value="{{ membership.tenant_id }}">
                   <button class="secondary" type="submit">Rimuovi tenant</button>
@@ -161,7 +161,7 @@
         <section class="user-record-section">
           <h4>Password locale</h4>
           {% if provider_code == 'local' and not u.is_ldap %}
-          <form method="post" action="{{ url_for('main.admin_user_password', uid=u.id) }}" class="user-password-form" onsubmit="return confirm('Aggiornare la password locale dell\'utente {{ u.username }}?')">
+          <form method="post" action="{{ url_for('main.admin_user_password', uid=u.id) }}" class="user-password-form" data-cir-confirm="Aggiornare la password locale dell'utente {{ u.username }}?">
             <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
             <div><label>Nuova password</label><input name="new_password" type="password" autocomplete="new-password" required minlength="12"></div>
             <div><label>Conferma password</label><input name="new_password2" type="password" autocomplete="new-password" required minlength="12"></div>
@@ -177,7 +177,7 @@
         <section class="user-record-section user-danger-zone">
           <h4>Rimozione account</h4>
           {% if current_user.id != u.id and not u.is_builtin_admin %}
-          <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id, q=search_query) if search_query else url_for('main.admin_user_delete',uid=u.id)}}" onsubmit="return confirm('Rimuovere definitivamente l\'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l\'account non potrà più accedere.')">
+          <form method="post" action="{{url_for('main.admin_user_delete',uid=u.id, q=search_query) if search_query else url_for('main.admin_user_delete',uid=u.id)}}" data-cir-confirm="Rimuovere definitivamente l'utente {{u.username}} ({{ auth_provider_display(provider_code) }})? Incidenti e audit saranno conservati, ma l'account non potrà più accedere.">
             <input type="hidden" name="return_query" value="{{ request.query_string.decode('utf-8') }}">
             <button class="danger" type="submit">Rimuovi utente</button>
           </form>

@@ -32,7 +32,7 @@ def test_admin_child_queries_are_tenant_scoped():
 
 
 def test_pillow_contains_eps_dos_fix():
-    assert 'Pillow==12.3.0' in REQS
+    assert 'Pillow==13.0.0' in REQS
 
 
 if __name__ == '__main__':

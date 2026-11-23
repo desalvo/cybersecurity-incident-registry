@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Tenants Default</h2>
+  <p>Catalogo condiviso delle configurazioni. È distinto dal tenant operativo <strong>default</strong>.</p>
+  <p>Qui puoi pubblicare tutti i parametri del tenant: gravità, tipi di incidente, azioni, raccomandazioni, modelli incidente, destinatari, tipi e template di notifica con i relativi documenti, impostazioni SSO/LDAP, notifiche, plugin e backup.</p>
+  <p>Le impostazioni singole vengono ereditate quando il tenant non ha un valore locale. Un valore locale, anche vuoto, ha precedenza. Le liste ricevono copie con ID distinti. I workflow vengono scelti e importati dal catalogo.</p>
+  <p>Quando un nome è già presente, la copia condivisa riceve un nome distinto. Una modifica locale a una copia condivisa la rende autonoma e viene creata una nuova copia aggiornata dai defaults.</p>
+  <p>Una cancellazione conserva i valori già utilizzati da incidenti o configurazioni operative e produce un avviso amministrativo.</p>
+  <p><a class="btn" href="{{ url_for('main.admin_workflow_catalog') }}">Catalogo workflow</a>
+     <a class="btn secondary" href="{{ url_for('main.admin_tenant_defaults_settings') }}">Parametri ereditati e locali</a>
+     <a class="btn secondary" href="{{ url_for('main.admin_tenant_defaults_alerts') }}">Avvisi del tenant</a>
+     {% if can_publish %}<a class="btn secondary" href="{{ url_for('main.admin_tenant_defaults_alerts', all='1') }}">Avvisi di tutti i tenant</a>{% endif %}</p>
+</div>
+{% if can_publish %}
+<div class="card">
+  <h3>Configura i valori condivisi</h3>
+  {% if active_tenant and active_tenant.is_system_defaults %}
+  <p>Stai modificando Tenants Default: i salvataggi nelle liste condivise si applicano a tutti i tenant.</p>
+  <p><a class="btn" href="{{ url_for('main.admin_labels') }}">Label e parametri delle azioni</a>
+     <a class="btn" href="{{ url_for('main.notification_types') }}">Tipi di notifica</a>
+     <a class="btn" href="{{ url_for('main.admin_recommendations') }}">Raccomandazioni</a>
+     <a class="btn" href="{{ url_for('main.notification_template_new') }}">Template di notifica</a>
+     <a class="btn" href="{{ url_for('main.modules_configuration') }}">Documenti e modelli PDF</a>
+     <a class="btn" href="{{ url_for('main.notification_settings') }}">SMTP e notifiche</a>
+     <a class="btn" href="{{ url_for('main.sso_settings_admin') }}">SSO</a>
+     <a class="btn" href="{{ url_for('main.ldap_settings') }}">LDAP</a>
+     <a class="btn" href="{{ url_for('main.admin_incident_templates') }}">Modelli incidente</a>
+     <a class="btn" href="{{ url_for('main.admin_external_recipients') }}">Destinatari</a>
+     <a class="btn" href="{{ url_for('main.admin_other_configurations') }}">Altri parametri</a>
+     <a class="btn secondary" href="{{ url_for('main.admin_incident_workflows') }}">Prepara workflow per il catalogo</a></p>
+  {% else %}
+  <form method="post" action="{{ url_for('main.admin_tenant_activate') }}">
+    {{ csrf_field()|safe }}
+    <input type="hidden" name="active_tenant_id" value="{{ defaults_tenant.id }}">
+    <input type="hidden" name="next" value="{{ url_for('main.admin_tenant_defaults') }}">
+    <button>Attiva Tenants Default</button>
+  </form>
+  {% endif %}
+  <p class="muted">Il catalogo nasce vuoto. Puoi importare la configurazione di un tenant, aggiungere singoli valori oppure reinserire i valori standard dalla schermata Liste configurabili.</p>
+</div>
+{% endif %}
+<div class="card">
+  <h3>Esporta la configurazione del tenant attivo</h3>
+  <p>Tenant selezionato: <strong>{{ active_tenant.name if active_tenant else tenant.name }}</strong>. Il file contiene configurazioni, impostazioni, workflow e documenti necessari per reimportarli in Tenants Default, anche in un’altra istanza. Puoi anche esportare un solo workflow dalla pagina del catalogo.</p>
+  <p class="muted">Account, incidenti e documenti operativi sono esclusi. Le credenziali vengono omesse e indicate nel file; gli altri testi, gli indirizzi di configurazione e il contenuto dei PDF restano invariati. Questo export non è un export anonimizzato.</p>
+  <a class="btn" href="{{ url_for('main.admin_tenant_defaults_export') }}">Scarica configurazione JSON</a>
+</div>
+{% if can_publish %}
+<div class="card">
+  <h3>Importa configurazione in Tenants Default</h3>
+  <form method="post" action="{{ url_for('main.admin_tenant_defaults_import') }}" enctype="multipart/form-data">
+    {{ csrf_field()|safe }}
+    <label>File configurazione JSON <input type="file" name="file" accept=".json,application/json" required></label>
+    <p class="muted">La prima importazione aggiunge i parametri; un nuovo export dalla stessa origine aggiorna gli elementi corrispondenti, preservando le personalizzazioni rilevate. Gli elementi omessi dal file non vengono cancellati. I documenti ricevono nomi indipendenti.</p>
+    <label class="checkbox-row"><input type="checkbox" name="confirm" value="1" required> Confermo la pubblicazione dei parametri in tutti i tenant.</label>
+    <button>Importa e propaga</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Esporta tutto Tenants Default</h3>
+  <p>Scarica in un unico file il tenant speciale: parametri, impostazioni, documenti e template di notifica, loghi, workflow in preparazione e intero catalogo. Il file può essere reimportato con la funzione qui sopra.</p>
+  <form method="post" action="{{ url_for('main.admin_tenant_defaults_export_all') }}">
+    {{ csrf_field()|safe }}
+    <label class="checkbox-row"><input type="checkbox" name="include_secrets" value="1"> Includi anche credenziali SSO, SMTP, LDAP, plugin e backup.</label>
+    <p class="muted">Con questa opzione il file contiene credenziali leggibili necessarie al trasferimento fra istanze. Senza questa opzione l’importazione conserva i segreti già presenti e ricorda di verificare le credenziali omesse prima di attivare le integrazioni.</p>
+    <button>Scarica Tenants Default completo</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

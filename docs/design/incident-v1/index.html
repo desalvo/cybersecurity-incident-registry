@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CIR · Proposta dettaglio incidente</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="incident.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#content">Vai al contenuto</a>
+  <div class="preview-label"><span>Mockup dettaglio incidente · da approvare</span><span>Dati dimostrativi</span></div>
+  <div class="app-shell">
+    <div class="drawer-backdrop" id="backdrop" hidden></div>
+    <aside class="sidebar" id="navigation" aria-label="Menu principale">
+      <div class="sidebar-brand">
+        <img src="../../../app/static/cir-application-logo.svg" alt="Logo CIR">
+        <strong>Cybersecurity<br>Incident Registry</strong>
+        <button type="button" class="drawer-close icon-button" aria-label="Chiudi menu" id="close-menu">×</button>
+      </div>
+      <div class="nav-caption">AREA OPERATIVA</div>
+      <nav id="nav-items" aria-label="Navigazione applicazione"></nav>
+      <div class="sidebar-foot"><span class="tiny-dot"></span><span>CIR <b>0.9.0-1</b></span><button type="button" data-action="info">Info</button></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <button type="button" class="menu-button" id="open-menu" aria-controls="navigation" aria-expanded="false"><span aria-hidden="true">☰</span> Menu</button>
+        <div class="desktop-breadcrumb"><button type="button" data-action="registry">Incidenti</button><span>/</span><b>Dettaglio incidente</b></div>
+        <div class="topbar-right">
+          <label class="tenant-picker"><span>Tenant attivo</span><select id="tenant-select" aria-label="Tenant attivo"></select></label>
+          <button type="button" class="user-button" data-action="account"><span class="avatar">AO</span><span>Admin operativo<small id="role-label">Super admin</small></span><span aria-hidden="true">⌄</span></button>
+        </div>
+      </header>
+      <main id="content">
+        <div id="scope-message" class="notice" hidden></div>
+        <div id="incident-content"></div>
+        <footer class="page-footer"><span>Cybersecurity Incident Registry · 0.9.0-1</span><button type="button" data-action="help">Documentazione e supporto</button></footer>
+      </main>
+    </div>
+  </div>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+  <dialog id="action-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" id="close-dialog" class="icon-button" aria-label="Chiudi finestra">×</button></div>
+    <div id="dialog-body"></div>
+  </dialog>
+</body>
+</html>

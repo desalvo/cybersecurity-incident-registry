@@ -300,7 +300,7 @@ def test_admin_labels_has_restore_missing_defaults_button():
     assert 'Reinserisci valori predefiniti mancanti' in html
     assert "admin_labels_restore_defaults" in html
     assert "@bp.route('/admin/labels/restore-defaults'" in routes
-    assert 'restore_missing_default_config_labels()' in routes
+    assert 'restore_missing_default_config_labels(tenant_id=current_tenant_id())' in routes
 
 
 def test_incident_detail_shows_incident_name_at_top_before_workflow():
@@ -310,7 +310,7 @@ def test_incident_detail_shows_incident_name_at_top_before_workflow():
     assert html.index('incident-page-title-heading') < html.index('id="incident-workflow"')
 
 
-def test_desktop_workflow_layout_limits_steps_to_three_per_row():
+def test_classic_workflow_layout_retains_three_columns_and_mobile_stack():
     css = Path('app/static/style.css').read_text()
     assert '.workflow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));' in css
     assert 'gap: .75rem 1.65rem;' in css
@@ -321,6 +321,23 @@ def test_desktop_workflow_layout_limits_steps_to_three_per_row():
     assert 'content: "→";' in css
     assert '@media (max-width: 720px) { .workflow-steps, .workflow-steps-ordered { grid-template-columns: 1fr;' in css
     assert 'content: "↓";' in css
+
+
+def test_modern_workflow_layout_keeps_two_task_regions_and_directional_arrows():
+    # Static contract only: real rendered state/prerequisites and interactions
+    # are tested by the HTTP and CI browser suites respectively.
+    css = Path('app/static/ui/incident.css').read_text()
+    template = Path('app/templates/incident_detail.html').read_text()
+    assert 'body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{display:flex;' in css
+    assert 'grid-template-rows:minmax(145px,1fr) minmax(190px,auto)' in css
+    assert 'body.cir-modern .workflow-step-arrow{display:flex;' in css
+    assert 'body.cir-modern .workflow-step-task:focus-visible{' in css
+    mobile = css.split('@media(max-width:760px){', 1)[1]
+    assert 'flex-direction:column' in mobile
+    assert 'transform:rotate(90deg)' in mobile
+    assert 'class="workflow-step-flow"' in template
+    assert 'class="workflow-step-task workflow-step-action" role="button" tabindex="0"' in template
+    assert 'class="cir-workflow-command" aria-hidden="true"' in template
 
 
 def test_incident_workflow_steps_show_sequence_and_emphasized_clickable_task_box():

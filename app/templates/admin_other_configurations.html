@@ -147,7 +147,7 @@
 <div class="card">
   <h3>Cleanup documenti orfani</h3>
   <p class="muted">Rimuove da <code>uploads</code> solo i file generati dall’applicazione che non risultano più collegati ad alcun incidente, documento o allegato azione. Gli allegati caricati manualmente non referenziati non vengono eliminati automaticamente.</p>
-  <form method="post" onsubmit="return confirm('Eseguire il cleanup dei documenti orfani generati dall'applicazione?')">
+  <form method="post" data-cir-confirm="Eseguire il cleanup dei documenti orfani generati dall'applicazione?">
     <input type="hidden" name="action" value="cleanup_orphan_generated_documents">
     <button class="danger">Cleanup documenti orfani</button>
   </form>
