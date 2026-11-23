@@ -1683,3 +1683,5 @@ RC24: security CI hotfix: invoke Trivy gate with bash in fast, release and sched
 RC30: Restore executable mode for PostgreSQL CI test runner and invoke through bash; no application or security policy changes.
 
 RC31: Restore SCA and production verification executable modes and make CI invocations robust via bash. No application behavior or security policy change.
+
+RC32: Prepare non-operative 14-day Debian residual-risk approval draft and exact-version CVE review matrix; production gate unchanged.
