@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "design_id": "assistant-v1",
+  "runtime_implementation": false,
+  "source_inventory": {
+    "files": {
+      "app/plugins/ai_chatbot/routes.py": "4d7594cca8753774b38e8ef05bb37abafdb66f4f26c6a26122c64e5f09a626da",
+      "app/plugins/ai_chatbot/knowledge.py": "319de68fc05b7243c27fd8a280d11ed1f5789515c33cbfdffac839a1792ed894",
+      "app/plugins/ai_chatbot/database_context.py": "233fa13534d77abb9d1ff8d449cb59828e65b813e1d683108c9cf75c9c2a5974",
+      "app/plugins/ai_chatbot/security.py": "5a3e51d472026873e5f503167ae7cf525aee77f79f75679252fe4888f7f8a920",
+      "app/plugins/ai_chatbot/templates/ai_chatbot_chat.html": "40ea63c2995c281359dc4f509e191717363afe39fd981497dc215f714a39c76d",
+      "app/templates/base.html": "d4b831cc80a443b9fd8385e838c379c7070fa29dbf9f5631b02fc83c8e0eb4d7",
+      "app/static/app.js": "d43dbc399e1be0012f162b0544e9aabc85860f58366611f7070f707bba1f6960",
+      "app/static/style.css": "593245ea76e736ad60f7531f5e311a9c77cb806636bb1dcaecadd5dfba7fb777",
+      "docs/AI_CHATBOT_KNOWLEDGE.md": "6f1bfbcbfb31986281f376b7b7e1aa6c697d78a5561149a96c4299466025e413"
+    },
+    "actual_routes": [
+      {
+        "endpoint": "ai_chatbot.chat",
+        "decorator": "'', methods=['GET','POST']",
+        "line": 148
+      },
+      {
+        "endpoint": "ai_chatbot.widget_ask",
+        "decorator": "'/widget/ask', methods=['POST']",
+        "line": 176
+      },
+      {
+        "endpoint": "ai_chatbot.admin_plugins",
+        "decorator": "'/admin/plugins', methods=['GET','POST']",
+        "line": 201
+      },
+      {
+        "endpoint": "ai_chatbot.admin_documents",
+        "decorator": "'/admin/documents', methods=['GET','POST']",
+        "line": 271
+      },
+      {
+        "endpoint": "ai_chatbot.admin_document_delete",
+        "decorator": "'/admin/documents/<int:doc_id>/delete', methods=['POST']",
+        "line": 315
+      }
+    ]
+  },
+  "features": [
+    {
+      "id": "assistant-entry",
+      "mock": "Injected header AlBot · AI plus inherited menu entry",
+      "source": "app/templates/base.html",
+      "endpoint": "ai_chatbot.chat",
+      "guard": "authenticated and enabled plugin",
+      "proposal": "Open/minimize local right dock or focused dialog; current endpoint contract is preserved."
+    },
+    {
+      "id": "assistant-question",
+      "mock": "Textarea, Invia, deterministic demonstration answers",
+      "source": "app/plugins/ai_chatbot/routes.py",
+      "endpoint": "ai_chatbot.widget_ask",
+      "actual_request_fields": [
+        "question"
+      ],
+      "proposal": "Presentation only; no request sent."
+    },
+    {
+      "id": "assistant-guidance",
+      "mock": "Application/process how-to question with ordered steps",
+      "source": "app/plugins/ai_chatbot/knowledge.py",
+      "scope": "Project documentation and active-tenant KB; optional sanitized DB snapshot OFF",
+      "excluded": [
+        "automatic incident analysis",
+        "page attachment",
+        "prior-conversation context",
+        "tool actions",
+        "structured citations"
+      ]
+    },
+    {
+      "id": "assistant-context",
+      "mock": "Tenant label, knowledge label, explicit page-context note and expanded Contesto",
+      "source": "app/plugins/ai_chatbot/database_context.py",
+      "proposal": "Do not infer broad privacy guarantees from optional snapshot sanitization."
+    },
+    {
+      "id": "assistant-tenant",
+      "mock": "Parent/frame synchronization clears transcript and draft when tenant changes",
+      "source": "app/route_modules/tenancy.py",
+      "proposal": "Local fixture flow only; production must use active-tenant permissions and settings."
+    },
+    {
+      "id": "assistant-admin-settings",
+      "mock": "Preserved inherited administration navigation",
+      "source": "app/plugins/ai_chatbot/routes.py",
+      "endpoint": "ai_chatbot.admin_plugins",
+      "guard": "active-tenant admin or superuser",
+      "proposal": "No settings editor or provider selector is added to chat."
+    },
+    {
+      "id": "assistant-admin-knowledge",
+      "mock": "Preserved inherited administration navigation",
+      "source": "app/plugins/ai_chatbot/routes.py",
+      "endpoints": [
+        "ai_chatbot.admin_documents",
+        "ai_chatbot.admin_document_delete"
+      ],
+      "guard": "active-tenant admin or superuser",
+      "proposal": "No chat file-upload button or model-driven document deletion is introduced."
+    },
+    {
+      "id": "approved-incident",
+      "mock": "Exact source snapshot in unchanged frame; four full workflow blocks retained",
+      "source": "../incident-v1/index.html",
+      "proposal": "Assistant layout sits alongside or over the page without changing approved source files."
+    },
+    {
+      "id": "approved-registry",
+      "mock": "Exact source snapshot in unchanged frame; approved list-based registry retained",
+      "source": "../home-v1/index.html",
+      "proposal": "Same assistant shell used across regular application pages."
+    },
+    {
+      "id": "return-state",
+      "mock": "Close/back/Escape keep frame mounted and restore focus",
+      "source": "assistant.js",
+      "proposal": "Preserve forms, section toggles and page scroll."
+    },
+    {
+      "id": "mobile-assistant",
+      "mock": "Dedicated full-width dialog with safe-area composer",
+      "source": "styles.css",
+      "proposal": "Back control above identity; underlying page remains available on close."
+    },
+    {
+      "id": "global-ui-toggle",
+      "mock": "No implementation control added",
+      "source": "../incident-v1/contract.json",
+      "proposal": "Future global superadmin switch defaults OFF and preserves legacy interface."
+    }
+  ],
+  "no_people": {
+    "existing_avatar_preserved": "app/static/ai-chatbot/albot-avatar.png",
+    "mock_icon": "native SVG speech icon",
+    "hero": "../../visual-assets/cybersecurity-hero-v2.png"
+  },
+  "approved_snapshot_sha256": {
+    "docs/design/incident-v1/index.html": "a0b834b46c4e46010d300fb6f34b373f4c4d3c7a7a76fff5d8b1573a65478287",
+    "docs/design/incident-v1/styles.css": "46f3d236bfa31f3c2c8ed06022e3309f98841e74e7cdb153fb35ed40d5b4a3b4",
+    "docs/design/incident-v1/incident.js": "9937e55954eb3934dfd5e17fdf27ae386dac40288590fd0c37d61e81157ddba0",
+    "docs/design/home-v1/index.html": "36cb53cea8f6f73fbbcd1ebdc640f891694a4a8b569c808a6ae5704397217cb0",
+    "docs/design/home-v1/styles.css": "3577c7f44368e281fa433e37dd981c9ebb921c890a2e5a1c25ea6f7a5ec7760b",
+    "docs/design/home-v1/home.js": "339f1c46f425caafc4e313915c42d4f26091573b69a35d63cab2b86461b6dba2"
+  }
+}

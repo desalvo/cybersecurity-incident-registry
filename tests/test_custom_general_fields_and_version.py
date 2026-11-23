@@ -36,6 +36,7 @@ def test_release_version_uses_central_metadata_files():
     version_module = Path('app/version.py').read_text(encoding='utf-8')
     compose = Path('docker-compose.yml').read_text(encoding='utf-8')
     readme = Path('README.md').read_text(encoding='utf-8')
-    assert 'DEFAULT_RELEASE_VERSION = _read_metadata_file("VERSION"' in version_module
-    assert f'APP_VERSION: {version}' in compose
+    assert 'read_runtime_metadata(_PROJECT_ROOT)' in version_module
+    assert 'DEFAULT_RELEASE_VERSION = _metadata.version' in version_module
+    assert 'APP_VERSION:' not in compose  # VERSION file is authoritative; no stale Compose override
     assert f'Versione: {version}' in readme

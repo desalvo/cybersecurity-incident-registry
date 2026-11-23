@@ -1,0 +1,118 @@
+{
+  "scope": "Incident detail visual proposal only; no application runtime implementation",
+  "approval": "pending user review; approved login-v2 and home-v1/hero-v2 preserved",
+  "functional_version": "0.9.0-1",
+  "build": "20260902",
+  "production_image_digest": "PENDING_HOTFIX_REBUILD",
+  "native_boards_not_browser_screenshots": true,
+  "photo": "docs/visual-assets/cybersecurity-hero-v2.png",
+  "style": {
+    "desktop_sidebar": 246,
+    "desktop_content": "light background, compact104px technological incident banner, same typography and controls as approved home",
+    "workflow": "four ordered numbered two-part blocks with horizontal arrows; vertical arrows on mobile; flow description above and task with button below",
+    "mobile": "full-width vertical workflow cards, collapsible sections and navigation drawer; no timeline redesign",
+    "sections": "all source sections kept; added anchors only for previously unnamed owner and consequences panels"
+  },
+  "demo": {
+    "user": {
+      "username": "admin.operativo",
+      "name": "Admin operativo",
+      "initials": "AO",
+      "role": "superuser",
+      "role_label": "Super admin",
+      "auth_provider": "local"
+    },
+    "tenant": "default",
+    "data": "fictional and embedded in incident.js; fixtures.json is the canonical renderer data",
+    "snapshot_at": "2026-11-22T12:00:00+01:00",
+    "network_requests": false,
+    "persistence": false,
+    "backend_actions": "never executed; no false success or automatic completion",
+    "global_switch": "reversible superuser-only demo, preview explicitly ON; future server global setting starts OFF for every tenant",
+    "tenant_membership": "Superuser demo can select default, laboratorio, defaults; other demo roles only default; membership fixture, not a product rule",
+    "capabilities": {
+      "modules_enabled": true,
+      "alfresco_enabled": true,
+      "chatbot_enabled": true,
+      "alfresco_auto_report_visible": true
+    }
+  },
+  "workflow_contract": {
+    "upper": "Flow description (markdown), completion badge",
+    "lower": "Clickable task type description, action label description/name, configured condition/deadline/document hints",
+    "arrows": "Only ordered workflows; desktop horizontal, mobile vertical visual preservation",
+    "states": [
+      "done",
+      "missing",
+      "first_incomplete",
+      "expired critical"
+    ],
+    "activation_priority": [
+      "section_target: open section with redirect/action label/template context",
+      "document_generation_url: mapped PDF preview route",
+      "requires_notification and not notification_done: missing documents redirects to forms/documents or ready opens notification preview",
+      "else: open action form and preselect action label"
+    ],
+    "no_blanket_sequential_lock": true,
+    "specific_blocking": [
+      "global_check action cannot be recorded until prior steps complete",
+      "required notification task cannot be manually recorded before notification action",
+      "closure blocked if missing required steps produce procedural warnings",
+      "generation blocked if mapped required incident fields missing",
+      "notification sender validates recipients, incident-owned selected documents, required document selection",
+      "builtin username admin cannot send notifications; can explicitly confirm without send via separate confirmed mode"
+    ],
+    "completion": "Action counts match logical label kind/value with ID fallback; repeated tasks consume distinct action counts",
+    "deadlines": "Hours from first initial-information action; not a universally assumed legal deadline",
+    "obsolete": "No new assignment/clone; existing incident with unchanged workflow remains operable"
+  },
+  "access_contract": {
+    "tenant_scope": "Active tenant always scopes incident detail, including superuser; legacy null tenant available via existing compatibility rules",
+    "write_roles": [
+      "writer",
+      "admin",
+      "superuser"
+    ],
+    "view_roles": [
+      "writer",
+      "admin",
+      "superuser",
+      "reader"
+    ],
+    "operator": "Own incidents only, no write through can_write",
+    "disabled": "No incident access",
+    "defaults": "Tenants Default is configuration/catalogue-only, no operational incidents"
+  },
+  "behavior_demonstrated": [
+    "open/collapse and anchor each section",
+    "open and close complete role-aware navigation including mobile drawer with focus management",
+    "activate real workflow task destinations with source priority",
+    "first incomplete marker; configured-only deadline, deterministic sample time",
+    "open action form with preselected logical action label",
+    "route incomplete notification to required template; ready notification to separate preview and confirmation",
+    "show document-generation preview and confirmation; missing mapped fields keep generation blocked",
+    "block closure and conclusion while sample required warnings remain",
+    "document modes local/both/alfresco, tag editing, local/remote download and separate delete access points",
+    "Alfresco sync described as remote read-only status check",
+    "general and action/reminder forms with local-only commands",
+    "role/tenant/capability checks also inside command handlers, not solely presentation"
+  ],
+  "integration_constraints": [
+    "all runtime endpoint names and field names mapped in feature-map.json; endpoint access placeholders do not substitute backend permission checks",
+    "retain CSRF validation, tenant scoping, validation, safe file handling, storage transactions and configured data semantics",
+    "category order participates in workflow selection; IDs must remain tenant-specific; do not replace IDs with visible strings in production",
+    "do not automatically label task complete after click, PDF preview, upload or notification preview",
+    "only configured global_check blocks a later action; no generic sequential lock",
+    "an obsolete workflow cannot be newly assigned/imported/cloned; existing incident remains operable",
+    "source runtime remains unchanged until separate approval"
+  ],
+  "limitations": [
+    "native design boards are not browser screenshots",
+    "no browser or runtime/backend test is claimed",
+    "representative field/modal examples retain access points; they are not full implementations of destination pages",
+    "classification editing is keyboard/touch mock with order controls; drag-and-drop integration is mapped but not implemented here",
+    "PDF/content generation, upload, notification delivery and persistent setting changes are not performed",
+    "multi-template generation and configuration-dependent form schemas remain actual application behavior; mock displays one representative preview",
+    "review API is not authentication or an application privilege switch"
+  ]
+}

@@ -6,7 +6,7 @@ ROOT = Path(__file__).parents[1]
 
 def test_r4_security_dependency_pins():
     req = (ROOT / 'requirements.txt').read_text(encoding='utf-8')
-    assert 'pypdf==6.19.0' in req
+    assert 'pypdf==6.21.4' in req
     assert 'cryptography==50.0.1' in req
     assert 'pypdf==6.10.2' not in req
     assert 'pypdf==6.16.2' not in req

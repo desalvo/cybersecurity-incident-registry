@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Generate a reproducible CycloneDX SBOM from the active Python environment.
+"""Generate CycloneDX inventories without inventing installed dependencies.
 
 The generator intentionally uses only Python package metadata already installed in
 this environment.  It does not contact package indexes.  Direct dependencies are
 read from requirements.txt, then their active transitive dependencies are walked
 through ``Requires-Dist`` metadata.  When ``--wheel-dir`` is provided, SHA-256
 hashes of matching wheels are attached to components as supply-chain evidence.
+``--declared-only`` creates an explicitly unresolved source inventory from the
+requirements. It does not assert transitive versions or installed wheel hashes.
 """
 from __future__ import annotations
 
@@ -135,6 +137,55 @@ def _purl(name: str, version: str) -> str:
     return f"pkg:pypi/{quote(canonicalize_name(name), safe='-._~')}@{quote(version, safe='-._~')}"
 
 
+def build_declared_sbom(requirements_path: Path) -> dict:
+    """Inventory source declarations; retain version ranges as ranges.
+
+    This is useful for source candidates prepared without an environment that
+    satisfies the exact project requirements. CI generates the installed graph
+    separately after dependency installation; historical SBOMs are not relabeled.
+    """
+    direct = _read_requirements(requirements_path)
+    app_version = (PROJECT_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    root_ref = f"pkg:generic/cybersecurity-incident-registry@{quote(app_version, safe='-._~')}"
+    components = []
+    identities = set()
+    for req in sorted(direct, key=lambda item: canonicalize_name(item.name)):
+        name = canonicalize_name(req.name)
+        if name in identities:
+            raise ValueError(f"Duplicate direct dependency declaration: {name}")
+        identities.add(name)
+        specs = list(req.specifier)
+        pinned = specs[0].version if len(specs) == 1 and specs[0].operator == "==" and "*" not in specs[0].version else None
+        ref = _purl(name, pinned) if pinned else f"pkg:pypi/{quote(name, safe='-._~')}"
+        component = {
+            "type": "library", "name": req.name, "bom-ref": ref, "purl": ref,
+            "properties": [
+                {"name": "cir:dependency-level", "value": "direct"},
+                {"name": "cir:declared-requirement", "value": str(req)},
+            ],
+        }
+        if pinned:
+            component["version"] = pinned
+        components.append(component)
+    return {
+        "bomFormat": "CycloneDX", "specVersion": "1.6", "version": 1,
+        "metadata": {
+            "component": {
+                "type": "application", "name": "cybersecurity-incident-registry",
+                "version": app_version, "bom-ref": root_ref, "purl": root_ref,
+            },
+            "properties": [
+                {"name": "cir:inventory-source", "value": "declared-requirements"},
+                {"name": "cir:resolution-status", "value": "not-resolved"},
+                {"name": "cir:source-requirements", "value": requirements_path.name},
+                {"name": "cir:source-requirements-sha256", "value": hashlib.sha256(requirements_path.read_bytes()).hexdigest()},
+            ],
+        },
+        "components": components,
+        "dependencies": [{"ref": root_ref, "dependsOn": [component["bom-ref"] for component in components]}],
+    }
+
+
 def build_sbom(requirements_path: Path, wheel_dir: Path | None = None) -> dict:
     direct = _read_requirements(requirements_path)
     installed = _installed_distributions()
@@ -202,6 +253,9 @@ def build_sbom(requirements_path: Path, wheel_dir: Path | None = None) -> dict:
                 "purl": root_ref,
             },
             "properties": [
+                {"name": "cir:inventory-source", "value": "installed-environment"},
+                {"name": "cir:resolution-status", "value": "resolved"},
+                {"name": "cir:source-requirements-sha256", "value": hashlib.sha256(requirements_path.read_bytes()).hexdigest()},
                 {"name": "cir:python-version", "value": sys.version.split()[0]},
                 {"name": "cir:source-requirements", "value": requirements_path.name},
             ],
@@ -215,13 +269,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--requirements", default=str(PROJECT_ROOT / "requirements.txt"))
     parser.add_argument("--wheel-dir", default=None)
-    parser.add_argument("--output", default=str(PROJECT_ROOT / "sbom/SBOM_ROUND18.cdx.json"))
+    parser.add_argument("--declared-only", action="store_true", help="inventory direct source declarations, explicitly unresolved; do not inspect installed packages")
+    parser.add_argument("--output", default=str(PROJECT_ROOT / "sbom/SBOM_CURRENT.cdx.json"))
     args = parser.parse_args()
+    if args.declared_only and args.wheel_dir:
+        parser.error("--declared-only cannot attach installed wheel evidence")
 
     requirements_path = Path(args.requirements).resolve()
     wheel_dir = Path(args.wheel_dir).resolve() if args.wheel_dir else None
     output = Path(args.output).resolve()
-    sbom = build_sbom(requirements_path, wheel_dir)
+    sbom = build_declared_sbom(requirements_path) if args.declared_only else build_sbom(requirements_path, wheel_dir)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote {output} with {len(sbom['components'])} Python components")

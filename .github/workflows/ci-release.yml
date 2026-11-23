@@ -21,8 +21,30 @@ env:
   DEFAULT_DOCKER_REPOSITORY: desalvo/cybersecurity-incident-registry
 
 jobs:
+  release-metadata:
+    name: Resolve release metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      build: ${{ steps.metadata.outputs.build }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v7
+      - name: Set up Python for release identity
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Resolve one automatic build for this workflow
+        id: metadata
+        run: python scripts/prepare_release_metadata.py --github-output "$GITHUB_OUTPUT"
+
   quality-gates:
     name: Tests, PostgreSQL, SCA and offline gates
+    needs: [release-metadata]
+    env:
+      CIR_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
+      CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -37,6 +59,10 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+            requirements-docs.txt
+
+      - name: Stamp the workflow release identity
+        run: python scripts/prepare_release_metadata.py --build "$CIR_RELEASE_BUILD" --expected-version "$CIR_RELEASE_VERSION" --write
 
       - name: Install application and test dependencies
         run: |
@@ -45,6 +71,39 @@ jobs:
 
       - name: Check Python dependency consistency
         run: python -m pip check
+
+      - name: Install PDF first-page renderer for documentation regression tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          pdftoppm -v
+
+      - name: Generate resolved current-release SBOM
+        run: |
+          mkdir -p "${RUNNER_TEMP}/cir-sbom"
+          python scripts/generate_sbom.py --output "${RUNNER_TEMP}/cir-sbom/SBOM_CURRENT.cdx.json"
+
+      - name: Upload resolved current-release SBOM
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom-${{ github.sha }}
+          path: ${{ runner.temp }}/cir-sbom/SBOM_CURRENT.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+
+      # GitHub's ubuntu-24.04 image includes Helm. Absence is a hard failure,
+      # including on self-hosted replacement runners: never substitute source-only checks.
+      - name: Verify Helm and OpenShift installation renders
+        run: |
+          helm version --short
+          python scripts/check_installation_package.py --require-helm
+
+      # BUILD is stamped at workflow runtime; regenerate brochures against that
+      # exact identity before tests inspect their embedded metadata.
+      - name: Regenerate release-stamped brochures
+        run: |
+          python scripts/build_brochures.py
+          python scripts/audit_documentation_media.py
 
       - name: Run complete pytest suite
         env:
@@ -79,8 +138,22 @@ jobs:
       - name: Run software-composition analysis
         run: ./scripts/run_sca.sh
 
+      - name: Audit public documentation build dependencies
+        run: python -m pip_audit -r requirements.txt -r requirements-docs.txt --strict
+
       - name: Build release package as packaging smoke test
         run: ./scripts/package_release.sh "${RUNNER_TEMP}/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
+
+      - name: Build verified Helm and OpenShift installation packages
+        run: python scripts/package_installers.py --output "${RUNNER_TEMP}/cir-installers-${GITHUB_SHA}" --require-helm
+
+      - name: Upload installation packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: installation-${{ github.sha }}
+          path: ${{ runner.temp }}/cir-installers-${{ github.sha }}/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload SCA evidence
         if: always()
@@ -90,6 +163,131 @@ jobs:
           path: SCA_PIP_AUDIT.json
           if-no-files-found: warn
           retention-days: 30
+
+  ui-documentation:
+    name: Real UI screenshots and documentation
+    needs: [release-metadata]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      CIR_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
+      CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v7
+
+      - name: Set up Python for browser documentation
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-ui.txt
+            requirements-docs.txt
+
+      - name: Stamp the workflow release identity
+        run: python scripts/prepare_release_metadata.py --build "$CIR_RELEASE_BUILD" --expected-version "$CIR_RELEASE_VERSION" --write
+
+      - name: Install application and pinned browser dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt -r requirements-ui.txt pip-audit
+          python -m pip check
+          python -m pip_audit -r requirements.txt -r requirements-ui.txt -r requirements-docs.txt --strict
+
+      - name: Install exact-PDF first-page renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          pdftoppm -v
+
+      - name: Install matching Chromium and system dependencies
+        run: python -m playwright install --with-deps chromium
+
+      - name: Capture and test the real application interface
+        run: |
+          python scripts/capture_ui_screenshots.py \
+            --output "${RUNNER_TEMP}/cir-ui-evidence" \
+            --source-commit "${GITHUB_SHA}"
+
+      - name: Build manuals from verified real screenshots
+        run: |
+          python scripts/build_documentation_pdfs.py \
+            --screenshot-manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+            --output-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
+            --require-real-screenshots \
+            --include-brochures \
+            --source-commit "${GITHUB_SHA}"
+
+      - name: Audit brochure artwork provenance and all editorial pages
+        run: |
+          python scripts/audit_documentation_media.py \
+            --docs "${RUNNER_TEMP}/cir-ui-evidence/documentation"
+
+      - name: Build editable training presentation from this run
+        run: |
+          python scripts/build_training_presentation.py \
+            --output "${RUNNER_TEMP}/cir-ui-evidence/documentation/CIR_Operational_Training_IT.pptx" \
+            --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
+            --screenshot-manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+            --source-commit "${GITHUB_SHA}" \
+            --require-real-screenshots
+
+      - name: Validate and seal complete documentation bundle
+        run: |
+          python scripts/finalize_documentation_bundle.py \
+            --screenshot-manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+            --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
+            --source-commit "${GITHUB_SHA}"
+
+      - name: Install verified documentation and package the current source
+        run: |
+          python scripts/install_ui_documentation.py \
+            --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+            --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
+            --source-commit "${GITHUB_SHA}"
+          ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
+
+      - name: Upload real screenshots, manuals and source package
+        id: ui-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-documentation-${{ github.sha }}
+          path: ${{ runner.temp }}/cir-ui-evidence/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Report screenshot and documentation evidence
+        env:
+          UI_ARTIFACT_URL: ${{ steps.ui-artifact.outputs.artifact-url }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'cir-ui-evidence/manifest.json').read_text())
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as out:
+              out.write('## Real application UI and documentation\n\n')
+              out.write(f"Source commit: `{data['source_commit']}`\n\n")
+              out.write(f"{len(data['screenshots'])} real Chromium captures; isolated synthetic data; CSRF enabled.\n\n")
+              out.write('Five manuals, two brochures, screenshot gallery, editable PowerPoint and five actual PDF first-page previews are validated as one commit/version/build-bound bundle.\n\n')
+              out.write('The AI response comes from a labelled local test provider through the real application endpoint.\n\n')
+              out.write(f"[Download screenshots, manuals, brochures, PowerPoint and cumulative source]({os.environ['UI_ARTIFACT_URL']})\n")
+          PY
+
+      - name: Upload failed UI capture diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-capture-failure-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/cir-ui-evidence/failure.json
+            ${{ runner.temp }}/cir-ui-evidence/screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 7
 
   release-scope:
     name: Detect production-impacting changes
@@ -141,7 +339,10 @@ jobs:
   docker-release:
     name: Build, scan and promote multi-arch image
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/main' && needs.release-scope.outputs.production_changed == 'true'))
-    needs: [quality-gates, release-scope]
+    needs: [release-metadata, quality-gates, ui-documentation, release-scope]
+    env:
+      CIR_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
+      CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -151,6 +352,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Stamp the workflow release identity
+        run: python scripts/prepare_release_metadata.py --build "$CIR_RELEASE_BUILD" --expected-version "$CIR_RELEASE_VERSION" --write
+
+      - name: Download verified documentation from this workflow run
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: ui-documentation-${{ github.sha }}
+          path: ${{ runner.temp }}/cir-ui-evidence
+          digest-mismatch: error
+
+      - name: Install exact-source UI documentation before building
+        run: |
+          python scripts/install_ui_documentation.py \
+            --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+            --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
+            --source-commit "${GITHUB_SHA}"
 
       - name: Resolve Docker repository and final tag
         id: image
@@ -201,6 +419,12 @@ jobs:
           pull: true
           no-cache: true
           tags: ${{ steps.image.outputs.candidate_image }}
+          build-args: |
+            CIR_RELEASE_BUILD=${{ needs.release-metadata.outputs.build }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.release-metadata.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            io.cir.build=${{ needs.release-metadata.outputs.build }}
           provenance: mode=max
 
       - name: Install Trivy
@@ -288,6 +512,8 @@ jobs:
             echo
             echo "- Image: \`$image\`"
             echo "- Digest: \`$digest\`"
+            echo "- Version: \`$CIR_RELEASE_VERSION\`"
+            echo "- Build: \`$CIR_RELEASE_BUILD\` (Europe/Rome)"
             echo "- Platforms: \`linux/amd64, linux/arm64\`"
             echo "- Platform manifest equivalence: PASS"
             echo "- Trivy gate: PASS"

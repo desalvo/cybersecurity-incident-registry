@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Parametri di {{ tenant.name }}</h2>
+  <p>Un valore salvato nel tenant, compreso un valore vuoto, ha precedenza sul valore di Tenants Default. Puoi tornare al valore condiviso rimuovendo la personalizzazione locale. Le schermate amministrative abituali permettono di modificare i valori.</p>
+  <p>Questa pagina mostra la provenienza dei parametri senza visualizzare credenziali. Le liste, i documenti e i workflow si gestiscono nelle rispettive sezioni.</p>
+  {% if tenant.is_default %}<p>Compatibilità legacy indica un parametro storico del tenant operativo default, utilizzato quando non esistono un valore locale o un valore condiviso in Tenants Default.</p>{% endif %}
+  <p><a href="{{ url_for('main.admin_tenant_defaults') }}">Torna a Tenants Default</a></p>
+  <table>
+    <thead><tr><th>Parametro</th><th>Provenienza</th><th>Azione</th></tr></thead>
+    <tbody>
+    {% for parameter in parameters %}
+    <tr>
+      <td><code>{{ parameter.key }}</code></td>
+      <td>{% if tenant.is_system_defaults %}Valore condiviso{% elif parameter.local %}Personalizzazione locale{% elif parameter.shared %}Ereditato da Tenants Default{% else %}Compatibilità legacy{% endif %}</td>
+      <td>{% if parameter.local and parameter.shared and not tenant.is_system_defaults %}
+        <form method="post" action="{{ url_for('main.admin_tenant_defaults_setting_inherit') }}">
+          {{ csrf_field()|safe }}<input type="hidden" name="key" value="{{ parameter.key }}">
+          <button class="secondary">Usa il valore condiviso</button>
+        </form>
+      {% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="3">Nessun parametro configurato per questo ambito. Sono applicati i valori predefiniti dell’applicazione.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

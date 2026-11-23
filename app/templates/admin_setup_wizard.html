@@ -3,14 +3,14 @@
 <div class="setup-wizard-shell" aria-labelledby="setup-wizard-title">
   <aside class="setup-wizard-sidebar card" aria-label="Avanzamento setup iniziale">
     <div class="setup-wizard-brand">
-      <img class="setup-wizard-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Logo applicazione" onerror="this.style.display='none'">
+      <img class="setup-wizard-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Logo applicazione" data-cir-hide-on-error>
       <div>
         <h2 id="setup-wizard-title">{{ app_name }}</h2>
         <p class="muted">Versione {{ app_version }}{% if app_build %} · build {{ app_build }}{% endif %}</p>
       </div>
     </div>
     <div class="setup-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress_percent }}">
-      <div class="setup-progress-bar" style="width: {{ progress_percent }}%"></div>
+      <div class="setup-progress-bar" data-cir-progress="{{ progress_percent }}"></div>
     </div>
     <p class="muted"><strong>{{ progress_percent }}%</strong> configurazione completata o saltata.</p>
     <ol class="setup-step-list">

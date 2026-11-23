@@ -30,13 +30,14 @@ def test_legacy_button_action_config_is_backward_compatible(monkeypatch, tmp_pat
     monkeypatch.setenv('ADMIN_PASSWORD', 'AdminPassword123!')
     monkeypatch.setenv('WTF_CSRF_ENABLED', '0')
     from app import create_app, db
-    from app.models import ConfigLabel
+    from app.models import ConfigLabel, Tenant
     from app.routes import BUTTON_ACTIONS_SETTING, button_action_config, set_setting_value
 
     app = create_app()
     app.config['TESTING'] = True
     with app.app_context():
-        label = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        tenant = Tenant.query.filter_by(name='default').one()
+        label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         assert label is not None
         set_setting_value(BUTTON_ACTIONS_SETTING, '{"incident_update": %d}' % label.id)
         db.session.commit()
@@ -83,7 +84,7 @@ def test_save_tag_button_action_runs_only_for_configured_tags(monkeypatch, tmp_p
     app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
-        label = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         admin = User.query.filter_by(username='admin').first()
         assert tenant is not None
         assert label is not None
@@ -137,7 +138,7 @@ def test_save_tag_button_action_supports_multiple_tag_rules(monkeypatch, tmp_pat
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
         admin = User.query.filter_by(username='admin').first()
-        label_a = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label_a = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         label_b = ConfigLabel(tenant_id=tenant.id, kind='action_label', group='action_label', value='99-test tag action')
         db.session.add(label_b)
         db.session.add_all([
@@ -190,7 +191,7 @@ def test_save_tag_button_action_rejects_duplicate_tags_across_rules(monkeypatch,
     app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
-        label_a = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label_a = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         label_b = ConfigLabel(tenant_id=tenant.id, kind='action_label', group='action_label', value='99-duplicate tag action')
         db.session.add(label_b)
         db.session.add_all([
@@ -245,7 +246,7 @@ def test_document_download_button_action_uses_first_generic_rule_without_workflo
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
         admin = User.query.filter_by(username='admin').first()
-        label = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         inc = Incident(tenant_id=tenant.id, name='Download generic rule', reference='DL-1', status='aperto')
         db.session.add(inc)
         db.session.flush()
@@ -300,7 +301,7 @@ def test_workflow_document_section_step_template_overrides_download_button_templ
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
         admin = User.query.filter_by(username='admin').first()
-        label = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         inc = Incident(tenant_id=tenant.id, name='Workflow download override', reference='DL-STEP', status='aperto')
         db.session.add(inc)
         db.session.flush()
@@ -395,7 +396,7 @@ def test_workflow_document_download_requires_matching_template_rule(monkeypatch,
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
         admin = User.query.filter_by(username='admin').first()
-        label = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         inc = Incident(tenant_id=tenant.id, name='Workflow no download match', reference='DL-NO-MATCH', status='aperto')
         db.session.add(inc)
         db.session.flush()
@@ -454,7 +455,7 @@ def test_incident_update_button_uses_workflow_step_action_rule_when_general_sect
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
         admin = User.query.filter_by(username='admin').first()
-        generic = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        generic = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         workflow = ConfigLabel(tenant_id=tenant.id, kind='action_label', group='action_label', value='99-workflow-update-main')
         other = ConfigLabel(tenant_id=tenant.id, kind='action_label', group='action_label', value='99-workflow-other')
         inc = Incident(tenant_id=tenant.id, name='Incident update workflow', reference='WF-MAIN-1', status='aperto')

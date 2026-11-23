@@ -44,7 +44,7 @@ def test_document_upload_template_rule_applies_tags_only_in_workflow_context(mon
     app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
     with app.app_context():
         tenant = Tenant.query.filter_by(name='default').first()
-        label = ConfigLabel.query.filter_by(kind='action_label', value='09-aggiornamento dati incidente').first()
+        label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='action_label', value='09-aggiornamento dati incidente').first()
         admin = User.query.filter_by(username='admin').first()
         db.session.add(NotificationType(code='upload_tag_match', label='Upload tag', enabled=True))
         inc = Incident(tenant_id=tenant.id, name='Upload workflow', reference='UP-1', status='aperto')
