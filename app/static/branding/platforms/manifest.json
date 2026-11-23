@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "purpose": "Local platform identification artwork for the user-approved CIR documentation design",
+  "origin": "Locally authored vector interpretations of the identification marks shown in the approved documentation mockup, rendered to PNG for portable PDF/PPTX use; not downloaded official brand artwork",
+  "trademarks": "Names and marks identify compatible products and remain the property of their respective owners. No endorsement or certification is implied.",
+  "artwork_reference": "docs/design/documentation-v2/proposal-pdf.png",
+  "platforms": [
+    {
+      "id": "docker",
+      "name": "Docker",
+      "logo": "branding/platforms/docker.png",
+      "vector": "branding/platforms/docker.svg",
+      "url": "https://www.docker.com/",
+      "sha256": "c61a9337ff6970a7b89132b8d8de25356b532aa74eef965eca8f98edfe8f9b9c"
+    },
+    {
+      "id": "podman",
+      "name": "Podman",
+      "logo": "branding/platforms/podman.png",
+      "vector": "branding/platforms/podman.svg",
+      "url": "https://podman.io/",
+      "sha256": "b0c3ae8d3226c9642da97d61bc1baccd5e2dc47d30960ec998024f063d6950d9"
+    },
+    {
+      "id": "kubernetes",
+      "name": "Kubernetes",
+      "logo": "branding/platforms/kubernetes.png",
+      "vector": "branding/platforms/kubernetes.svg",
+      "url": "https://kubernetes.io/",
+      "sha256": "4f8ca901cefd7e257dcbde91cebae452fe74fc31b8676287cb9fefc77bee6247"
+    },
+    {
+      "id": "helm",
+      "name": "Helm",
+      "logo": "branding/platforms/helm.png",
+      "vector": "branding/platforms/helm.svg",
+      "url": "https://helm.sh/",
+      "sha256": "f8f9103203abc4785d89649b26a564ef581b8bf99dae66a154202788abb5628f"
+    },
+    {
+      "id": "openshift",
+      "name": "OpenShift",
+      "logo": "branding/platforms/openshift.png",
+      "vector": "branding/platforms/openshift.svg",
+      "url": "https://www.redhat.com/en/technologies/cloud-computing/openshift",
+      "sha256": "c79d14da4532ec12dde8be5edfef9c84a262c66e81936818ee68d11dbd35290a"
+    },
+    {
+      "id": "postgresql",
+      "name": "PostgreSQL",
+      "logo": "branding/platforms/postgresql.png",
+      "vector": "branding/platforms/postgresql.svg",
+      "url": "https://www.postgresql.org/",
+      "sha256": "dafe8c4fe1afc4d79e3fa4f7998febd76eddd399b9604674c050f3bc1388fc8f"
+    }
+  ]
+}

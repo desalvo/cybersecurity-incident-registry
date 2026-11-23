@@ -33,8 +33,8 @@ def _tenant_alfresco_setting(key, default=''):
     """Read an Alfresco setting without cross-tenant legacy fallback.
 
     Existing unscoped legacy values are accepted only for the default tenant.
-    Every other tenant must have its own tenant:<id>: key, preventing accidental
-    credential/destination inheritance from the historical single-tenant setup.
+    An explicitly published Tenants Default value may be inherited. Other
+    tenants never inherit credentials from the historical single-tenant setup.
     """
     tid = current_tenant_id()
     if not tid:
@@ -43,6 +43,10 @@ def _tenant_alfresco_setting(key, default=''):
     row = db.session.get(Setting, physical)
     if row is not None and row.value is not None:
         return decrypt_setting_value(key, row.value)
+    from ...tenant_default_settings import inherited_setting
+    inherited = inherited_setting(key, tid)
+    if inherited is not None:
+        return inherited
     try:
         if int(tid) == int(default_tenant().id):
             legacy = db.session.get(Setting, key)

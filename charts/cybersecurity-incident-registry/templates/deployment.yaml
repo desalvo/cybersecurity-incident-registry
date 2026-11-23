@@ -1,0 +1,120 @@
+{{- include "cir.validate" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cir.fullname" . }}
+  labels:
+    {{- include "cir.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  # A shared writable restore volume must not be promoted by overlapping revisions.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "cir.selector" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        {{- include "cir.selector" . | nindent 8 }}
+        app.kubernetes.io/component: web
+    spec:
+      serviceAccountName: {{ include "cir.fullname" . }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.runtime.terminationGracePeriod }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        {{- if eq .Values.platform "kubernetes" }}
+        runAsUser: {{ .Values.kubernetesSecurity.runAsUser }}
+        runAsGroup: {{ .Values.kubernetesSecurity.runAsGroup }}
+        fsGroup: {{ .Values.kubernetesSecurity.fsGroup }}
+        fsGroupChangePolicy: OnRootMismatch
+        {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . | quote }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: web
+          image: {{ include "cir.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "cir.containerSecurity" . | nindent 12 }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              case "$DATABASE_URL" in
+                postgresql://*|postgresql+psycopg2://*) ;;
+                *) echo 'CIR requires a PostgreSQL DATABASE_URL' >&2; exit 1 ;;
+              esac
+              mkdir -p /tmp/cir-home
+              exec /app/docker-entrypoint.sh
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.existingSecret | quote }}, key: {{ .Values.secretKeys.databaseUrl | quote }}}
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.existingSecret | quote }}, key: {{ .Values.secretKeys.secretKey | quote }}}
+            - name: ADMIN_INITIAL_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.existingSecret | quote }}, key: {{ .Values.secretKeys.adminPassword | quote }}}
+            - name: SETTING_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.existingSecret | quote }}, key: {{ .Values.secretKeys.settingEncryptionKey | quote }}}
+            - {name: CIR_PRODUCTION, value: "1"}
+            - {name: CIR_DISABLE_CSRF, value: "0"}
+            - {name: SESSION_COOKIE_SECURE, value: "1"}
+            - {name: CIR_FORCE_HSTS, value: "1"}
+            - {name: CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE, value: "0"}
+            - {name: HOME, value: /tmp/cir-home}
+            - {name: PORT, value: "8000"}
+            - {name: SSL_ENABLED, value: "0"}
+            - {name: UPLOAD_DIR, value: /data/uploads}
+            - {name: LOGO_DIR, value: /data/logo}
+            - {name: FORM_TEMPLATE_DIR, value: /data/form_templates}
+            - {name: SSO_LOGO_DIR, value: /data/sso_logos}
+            - {name: SSL_DIR, value: /data/ssl}
+            - {name: BACKUP_DIR, value: /data/backups}
+            - {name: AI_CHATBOT_DOC_DIR, value: /data/ai_chatbot_docs}
+            - {name: WEB_CONCURRENCY, value: {{ .Values.runtime.workers | quote }}}
+            - {name: GUNICORN_THREADS, value: {{ .Values.runtime.threads | quote }}}
+            - {name: GUNICORN_TIMEOUT, value: {{ .Values.runtime.requestTimeout | quote }}}
+            - {name: GUNICORN_GRACEFUL_TIMEOUT, value: {{ .Values.runtime.terminationGracePeriod | quote }}}
+            - {name: CIR_TRUSTED_PROXY_CIDRS, value: {{ join "," .Values.trustedProxyCidrs | quote }}}
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: {{ .Values.runtime.startupFailureThreshold }}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # A long import must not be killed merely because all request workers are busy.
+          livenessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "cir.dataClaim" . }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi

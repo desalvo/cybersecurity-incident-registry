@@ -22,6 +22,7 @@
 {% block content %}
 <div class="card">
   <h2>Flussi operativi incidenti</h2>
+  <p><a class="btn secondary" href="{{ url_for('main.admin_workflow_catalog') }}">Catalogo Tenants Default e export portabile</a></p>
   <p class="muted">Definisci le azioni previste per categoria. Uno step è considerato solo se non ha condizioni oppure se tutte le condizioni associate sono verificate nell’incidente. Le condizioni si assegnano trascinando i chip nello spazio dello step.</p>
 </div>
 
@@ -182,8 +183,25 @@
 
 {% for key, rows in grouped.items() %}
   {% set workflow_anchor = 'workflow-' ~ key %}
+  {% set lifecycle = lifecycle_states.get(key) if lifecycle_states is defined else none %}
   <details class="card workflow-admin-workflow" id="{{ workflow_anchor }}">
-    <summary><h3>{% if key == 0 %}Flusso di default{% else %}Categoria: {{ (categories|selectattr('id','equalto',key)|list|first).value if (categories|selectattr('id','equalto',key)|list) else key }}{% endif %}</h3><span class="muted">{{ rows|length }} step</span></summary>
+    <summary><h3>{% if key == 0 %}Flusso di default{% else %}Categoria: {{ (categories|selectattr('id','equalto',key)|list|first).value if (categories|selectattr('id','equalto',key)|list) else key }}{% endif %}</h3><span class="badge">{{ 'Obsoleto' if lifecycle and lifecycle.status == 'obsolete' else 'Corrente' }}</span><span class="muted">{{ rows|length }} step</span></summary>
+    {% if lifecycle %}
+    {% if lifecycle.status == 'obsolete' %}<p class="warning">Questo workflow resta disponibile agli incidenti che lo usano già. Sono bloccate nuove assegnazioni e nuovi incidenti.</p>{% endif %}
+    <form method="post" action="{{ url_for('main.admin_workflow_catalog_local_status', workflow_id=lifecycle.id) }}">
+      {{ csrf_field()|safe }}<input type="hidden" name="status" value="{{ 'current' if lifecycle.status == 'obsolete' else 'obsolete' }}">
+      <button class="secondary">{{ 'Segna corrente' if lifecycle.status == 'obsolete' else 'Segna obsoleto' }}</button>
+    </form>
+    {% if lifecycle.source_entry_id %}
+    <p class="muted">Copia del catalogo. L’obsolescenza della sorgente si applica anche a questa copia. La riattivazione richiede che la sorgente sia corrente.</p>
+    {% if not lifecycle.personalized %}
+    <form method="post" action="{{ url_for('main.admin_workflow_catalog_personalize', workflow_id=lifecycle.id) }}">
+      {{ csrf_field()|safe }}<button class="secondary">Personalizza parametri di questa copia</button>
+    </form>
+    <p class="muted">I parametri condivisi diventano copie locali modificabili solo per questo flusso. Se il workflow è già usato da un incidente, importa una nuova copia con un altro nome.</p>
+    {% else %}<p class="muted">Parametri personalizzati: le modifiche non si propagano alle altre copie.</p>{% endif %}
+    {% endif %}
+    {% endif %}
     <form method="post">
       <input type="hidden" name="action" value="save">
       <input type="hidden" name="return_anchor" value="{{ workflow_anchor }}">

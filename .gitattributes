@@ -1,0 +1,6 @@
+# Generated documents and image assets must retain exact bytes in release patches.
+*.pdf binary
+*.pptx binary
+*.png binary
+*.jpg binary
+*.jpeg binary

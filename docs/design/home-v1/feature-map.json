@@ -1,0 +1,445 @@
+{
+  "scope": "main_page_and_common_shell_only",
+  "source_baseline": "0.9.0-1 RC18",
+  "endpoints": {
+    "ai_chatbot.admin_plugins": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "ai_chatbot.chat": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "ai_chatbot.widget_ask": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Optional AlBot entry in Help; no assistant panel in this main-only proposal",
+      "mock_only": true
+    },
+    "alfresco.admin_plugins": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_audit": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_backups": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_external_recipients": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_help_page": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_incident_button_actions": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_incident_custom_fields": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_incident_form_fields": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_incident_templates": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_incident_workflows": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_labels": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_logo": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_other_configurations": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_people": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_recommendations": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_security_owner": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_security_responsible": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_setup_wizard": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_ssl": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_status": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_structure": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_tenant_activate": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Topbar tenant selector (superuser demo)",
+      "mock_only": true
+    },
+    "main.admin_tenant_defaults": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_tenant_defaults_alerts": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_tenants": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_users": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_workflow_catalog": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.admin_workflow_catalog_notices": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.app_info": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.change_password": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.export_csv": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.export_full": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.help_page": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.import_csv": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.import_full": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.index": {
+      "source_templates": [
+        "base.html",
+        "index.html"
+      ],
+      "placement": "Registry list, filtering, sorting, page size and pagination",
+      "mock_only": true
+    },
+    "main.ldap_settings": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.logo_image": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Application branding / assets",
+      "mock_only": true
+    },
+    "main.logout": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.mfa_settings": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.modules_configuration": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.notification_settings": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.notification_template": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.notification_template_new": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.notification_types": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.release_notes": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.settings_external_recipients": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.sso_settings_admin": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "main.stats": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Sidebar grouped navigation / account",
+      "mock_only": true
+    },
+    "static": {
+      "source_templates": [
+        "base.html"
+      ],
+      "placement": "Application branding / assets",
+      "mock_only": true
+    },
+    "main.clone": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Incident row / contextual actions",
+      "mock_only": true
+    },
+    "main.incident_delete": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Incident row / contextual actions",
+      "mock_only": true
+    },
+    "main.incident_detail": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Incident row / contextual actions",
+      "mock_only": true
+    },
+    "main.incident_move_tenant": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Incident row / contextual actions",
+      "mock_only": true
+    },
+    "main.incident_new": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "New incident primary action",
+      "mock_only": true
+    },
+    "main.incidents_bulk_delete": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Selected rows action menu",
+      "mock_only": true
+    },
+    "main.incidents_bulk_move_tenant": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Selected rows action menu",
+      "mock_only": true
+    },
+    "main.pdf": {
+      "source_templates": [
+        "index.html"
+      ],
+      "placement": "Incident row / contextual actions",
+      "mock_only": true
+    }
+  },
+  "preserve_on_implementation": [
+    "All backend role and tenant authorization",
+    "CSRF and existing forms/methods",
+    "Configured organization logo plus CIR branding",
+    "Conditional modules, notification templates, AlBot, auth-provider menus",
+    "Mobile incident expandable details and every current field/action",
+    "Procedural status warning/ok/finalized and accessible pending tasks",
+    "Move destination search excluding Tenants Default",
+    "Existing internationalization and active language",
+    "Incident procedural blocks, arrows, text and buttons preserved in later phase"
+  ]
+}

@@ -19,7 +19,7 @@
         <td>{{ p.name }}</td>
         <td>{{ p.email or '' }}</td>
         <td>
-          <form method="post" action="{{ url_for('main.admin_people_delete', pid=p.id) }}" onsubmit="return confirm('Cancellare questa persona e rimuoverla dagli incidenti?')">
+          <form method="post" action="{{ url_for('main.admin_people_delete', pid=p.id) }}" data-cir-confirm="Cancellare questa persona e rimuoverla dagli incidenti?">
             <button class="danger" type="submit">Elimina</button>
           </form>
         </td>
