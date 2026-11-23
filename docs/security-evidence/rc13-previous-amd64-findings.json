@@ -1,0 +1,726 @@
+{
+  "decision": "REVIEW_REQUIRED_NOT_AN_ACCEPTANCE",
+  "reports": {
+    "amd64.json": {
+      "findings": [
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-6653",
+          "severity": "CRITICAL",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "bsdutils",
+          "installed_version": "1:2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "bsdutils",
+          "installed_version": "1:2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "bsdutils",
+          "installed_version": "1:2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "bsdutils",
+          "installed_version": "1:2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "dirmngr",
+          "installed_version": "2.4.7-21+deb13u1+b5",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "gnupg",
+          "installed_version": "2.4.7-21+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "gnupg-l10n",
+          "installed_version": "2.4.7-21+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "gpg",
+          "installed_version": "2.4.7-21+deb13u1+b5",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "gpg-agent",
+          "installed_version": "2.4.7-21+deb13u1+b5",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "gpgconf",
+          "installed_version": "2.4.7-21+deb13u1+b5",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-24882",
+          "severity": "HIGH",
+          "package": "gpgsm",
+          "installed_version": "2.4.7-21+deb13u1+b5",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-54369",
+          "severity": "HIGH",
+          "package": "libacl1",
+          "installed_version": "2.3.2-2+b1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "libblkid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "libblkid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "libblkid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "libblkid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-12064",
+          "severity": "HIGH",
+          "package": "libcurl3t64-gnutls",
+          "installed_version": "8.14.1-2+deb13u7",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-8458",
+          "severity": "HIGH",
+          "package": "libcurl3t64-gnutls",
+          "installed_version": "8.14.1-2+deb13u7",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-12064",
+          "severity": "HIGH",
+          "package": "libcurl4t64",
+          "installed_version": "8.14.1-2+deb13u7",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-8458",
+          "severity": "HIGH",
+          "package": "libcurl4t64",
+          "installed_version": "8.14.1-2+deb13u7",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-113351",
+          "severity": "HIGH",
+          "package": "libexpat1",
+          "installed_version": "2.9.0-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-115506",
+          "severity": "HIGH",
+          "package": "libexpat1",
+          "installed_version": "2.9.0-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-117610",
+          "severity": "HIGH",
+          "package": "libexpat1",
+          "installed_version": "2.9.0-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-118370",
+          "severity": "HIGH",
+          "package": "libexpat1",
+          "installed_version": "2.9.0-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "liblastlog2-2",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "liblastlog2-2",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "liblastlog2-2",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "liblastlog2-2",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "libmount1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "libmount1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "libmount1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "libmount1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2025-69720",
+          "severity": "HIGH",
+          "package": "libncursesw6",
+          "installed_version": "6.5+20250216-2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2025-71436",
+          "severity": "HIGH",
+          "package": "libraptor2-0",
+          "installed_version": "2.0.16-6",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "libsmartcols1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "libsmartcols1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "libsmartcols1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "libsmartcols1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-119373",
+          "severity": "HIGH",
+          "package": "libsqlite3-0",
+          "installed_version": "3.46.1-7+deb13u2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-119374",
+          "severity": "HIGH",
+          "package": "libsqlite3-0",
+          "installed_version": "3.46.1-7+deb13u2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-119379",
+          "severity": "HIGH",
+          "package": "libsqlite3-0",
+          "installed_version": "3.46.1-7+deb13u2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-124709",
+          "severity": "HIGH",
+          "package": "libssl3t64",
+          "installed_version": "3.5.9-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-16742",
+          "severity": "HIGH",
+          "package": "libsystemd0",
+          "installed_version": "257.13-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-36849",
+          "severity": "HIGH",
+          "package": "libtiff6",
+          "installed_version": "4.7.0-3+deb13u3",
+          "fixed_version": null,
+          "status": "will_not_fix"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-52490",
+          "severity": "HIGH",
+          "package": "libtiff6",
+          "installed_version": "4.7.0-3+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2025-69720",
+          "severity": "HIGH",
+          "package": "libtinfo6",
+          "installed_version": "6.5+20250216-2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-16742",
+          "severity": "HIGH",
+          "package": "libudev1",
+          "installed_version": "257.13-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "libuuid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "libuuid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "libuuid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "libuuid1",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-88806",
+          "severity": "HIGH",
+          "package": "libx11-6",
+          "installed_version": "2:1.8.12-1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-88806",
+          "severity": "HIGH",
+          "package": "libx11-data",
+          "installed_version": "2:1.8.12-1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-74860",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-86138",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-86139",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-86140",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-86142",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-86143",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-86144",
+          "severity": "HIGH",
+          "package": "libxml2",
+          "installed_version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-88807",
+          "severity": "HIGH",
+          "package": "libxrender1",
+          "installed_version": "1:0.9.12-1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "login",
+          "installed_version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "login",
+          "installed_version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "login",
+          "installed_version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "login",
+          "installed_version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "mount",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "mount",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "mount",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "mount",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2025-69720",
+          "severity": "HIGH",
+          "package": "ncurses-base",
+          "installed_version": "6.5+20250216-2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2025-69720",
+          "severity": "HIGH",
+          "package": "ncurses-bin",
+          "installed_version": "6.5+20250216-2",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-124709",
+          "severity": "HIGH",
+          "package": "openssl",
+          "installed_version": "3.5.9-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-124709",
+          "severity": "HIGH",
+          "package": "openssl-provider-legacy",
+          "installed_version": "3.5.9-1~deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-9538",
+          "severity": "HIGH",
+          "package": "perl-base",
+          "installed_version": "5.40.1-6+deb13u1",
+          "fixed_version": null,
+          "status": "fix_deferred"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-76642",
+          "severity": "HIGH",
+          "package": "util-linux",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78408",
+          "severity": "HIGH",
+          "package": "util-linux",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78409",
+          "severity": "HIGH",
+          "package": "util-linux",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        },
+        {
+          "target": "desalvo/cybersecurity-incident-registry@sha256:6a8607f840fa47fd79f848cf55290906455d6aa61feeec52259fdb20aa2513a0 (debian 13.8)",
+          "vulnerability": "CVE-2026-78410",
+          "severity": "HIGH",
+          "package": "util-linux",
+          "installed_version": "2.41.5-0+deb13u1",
+          "fixed_version": null,
+          "status": "affected"
+        }
+      ],
+      "count": 79,
+      "severity": {
+        "CRITICAL": 1,
+        "HIGH": 78
+      },
+      "fix_available": 0
+    }
+  }
+}
