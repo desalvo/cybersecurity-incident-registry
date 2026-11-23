@@ -57,7 +57,7 @@ def test_kubernetes_prepares_pvcs_for_non_root_container_and_exposes_csrf_flag()
     assert "fsGroup: 10001" in deployment
     assert "CIR_DISABLE_CSRF" in deployment
     assert "AI_CHATBOT_DOC_DIR" in deployment
-    assert "desalvo/cybersecurity-incident-registry:0.9.0-1" in deployment
+    assert "desalvo/cybersecurity-incident-registry:" + (PROJECT_ROOT / "VERSION").read_text().strip() in deployment
     assert "name: cir-data" in pvc
     assert "ReadWriteMany" in pvc
     assert "claimName: cir-data" in deployment
@@ -71,3 +71,43 @@ def test_kubernetes_prepares_pvcs_for_non_root_container_and_exposes_csrf_flag()
     else:
         digest = digest_state.split("@sha256:", 1)[-1]
         assert f"digest: sha256:{digest}" in kustomization
+
+
+def test_browser_capture_tooling_is_excluded_without_removing_runtime_ui_or_manuals() -> None:
+    patterns = [
+        line.strip() for line in (PROJECT_ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert {
+        "requirements-ui.txt", "scripts/seed_ui_documentation.py",
+        "scripts/capture_ui_screenshots.py", "docs/design/", "docs/visual-assets/",
+        "requirements-docs.txt", "scripts/build_training_presentation.py",
+    } <= set(patterns)
+    # Runtime UI code and verified CI documentation are copied by Dockerfile's
+    # source COPY. No broad exclusion may remove them along with browser tools.
+    retained = (
+        "app/ui_settings.py", "app/ui_documentation.py", "app/static/ui/ui.css",
+        "app/templates/ui/login_modern.html", "app/static/help/ui-runtime/manifest.json",
+        "app/static/help/ui-runtime/login-desktop.png", "docs/documentazione_utente.pdf",
+        "docs/documentazione_amministrativa.pdf", "docs/user_documentation_en.pdf",
+        "docs/administrator_documentation_en.pdf", "docs/CIR_UI_Screenshots.pdf",
+        "docs/UI_SCREENSHOTS_SOURCE.json", "docs/UI_SCREENSHOTS_BUILD.json",
+        "docs/ADMIN_ALFRESCO.pdf", "docs/brochure_cybersecurity_incident_registry.pdf",
+        "docs/presentation/CIR_Operational_Training_IT.pptx", "docs/presentation/presentation-receipt.json",
+        "docs/presentation/manual-first-page-documentazione_utente.png", "application_identity.py",
+        "app/static/branding/platforms/manifest.json", "app/static/branding/platforms/docker.png",
+        "app/templates/documentation/cover.html", "app/static/ui/documentation.css",
+    )
+    from fnmatch import fnmatchcase
+    for name in retained:
+        prefixes = [str(parent) for parent in Path(name).parents if str(parent) != "."]
+        excluded = False
+        for pattern in patterns:
+            negated = pattern.startswith("!")
+            normalized = pattern.lstrip("!").strip("/")
+            if any(fnmatchcase(part, normalized) for part in [name, *prefixes]):
+                excluded = not negated
+        assert not excluded, name
+    requirements = (PROJECT_ROOT / "requirements.txt").read_text(encoding="utf-8")
+    assert "playwright" not in requirements.lower()
+    assert "python-pptx" not in requirements.lower()

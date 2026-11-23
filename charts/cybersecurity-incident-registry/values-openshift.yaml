@@ -1,0 +1,6 @@
+# Overlay for restricted-v2 (or a stricter compatible SCC).
+platform: openshift
+route:
+  enabled: true
+# Supply image.digest and existingSecret in a separate local values file.
+# The SCC supplies UID and fsGroup. Do not add fixed IDs, anyuid, or a root init container.

@@ -2,9 +2,11 @@
 {% block content %}
 <div class="card">
   <h2>Liste configurabili</h2>
+  <p><a href="{{ url_for('main.admin_tenant_defaults') }}">Import/export configurazioni e Tenants Default</a></p>
+  {% if not (active_tenant and active_tenant.is_system_defaults) %}<p class="muted">Se modifichi una copia ricevuta da Tenants Default, la tua modifica resta locale e viene aggiunta una copia aggiornata del parametro condiviso. La cancellazione delle copie condivise si gestisce nei defaults.</p>{% endif %}
   <p class="muted">Aggiungi o cancella label separatamente per ciascuna categoria. Per aggiungere una label basta inserire il nome nella categoria corretta.</p>
   <p class="muted">La sezione <strong>Label azioni</strong> usa una vista a schede: i campi principali, il tempo massimo, il flag esportabile e le operazioni automatiche sono separati per rendere più chiara la configurazione dei task.</p>
-  <form method="post" action="{{ url_for('main.admin_labels_restore_defaults') }}" class="inline-form" onsubmit="return confirm('Reinserire i valori predefiniti mancanti per Gravità, Dati interessati, Categorie incidente e Azioni? Le label già presenti non verranno duplicate.');">
+  <form method="post" action="{{ url_for('main.admin_labels_restore_defaults') }}" class="inline-form" data-cir-confirm="Reinserire i valori predefiniti mancanti per Gravità, Dati interessati, Categorie incidente e Azioni? Le label già presenti non verranno duplicate.">
     <button type="submit" class="secondary">Reinserisci valori predefiniti mancanti</button>
   </form>
   <p class="muted">All’avvio dell’applicazione, se il database è già popolato, questi valori non vengono più aggiunti automaticamente: usa questo pulsante per ripristinare solo quelli mancanti.</p>
@@ -60,11 +62,11 @@
         <details class="action-label-edit-card action-label-collapse-card">
           <summary class="action-label-card-header">
             <div>
-              <h4>{{ l.value }}</h4>
+              <h4>{{ l.value }} {% if l.id in shared_label_ids %}<span class="badge">Tenants Default</span>{% endif %}</h4>
               <p class="muted">ID {{ l.id }} · {{ l.group or group_name }}</p>
             </div>
-            <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" onsubmit="return confirm('Cancellare questa label e rimuoverla dagli incidenti?')">
-              <button class="danger" type="submit">Cancella</button>
+            <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" data-cir-confirm="Cancellare questa label e rimuoverla dagli incidenti?">
+              <button class="danger" type="submit" {% if l.id in shared_label_ids %}disabled title="Gestito da Tenants Default"{% endif %}>Cancella</button>
             </form>
           </summary>
           <form id="label-update-{{l.id}}" method="post" action="{{ url_for('main.admin_label_update', lid=l.id) }}"></form>
@@ -111,12 +113,12 @@
         <tbody>
         {% for l in items if l.kind == kind %}
           <tr>
-            <td><form id="label-update-{{l.id}}" method="post" action="{{ url_for('main.admin_label_update', lid=l.id) }}"></form><input name="value" value="{{ l.value }}" required form="label-update-{{l.id}}"></td>
+            <td><form id="label-update-{{l.id}}" method="post" action="{{ url_for('main.admin_label_update', lid=l.id) }}"></form><input name="value" value="{{ l.value }}" required form="label-update-{{l.id}}">{% if l.id in shared_label_ids %}<span class="badge">Tenants Default</span>{% endif %}</td>
             <td><textarea name="description" form="label-update-{{l.id}}">{{ l.description or '' }}</textarea></td>
             <td>
               <button type="submit" form="label-update-{{l.id}}" class="secondary">Salva</button>
-              <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" onsubmit="return confirm('Cancellare questa label e rimuoverla dagli incidenti?')">
-                <button class="danger" type="submit">Cancella</button>
+              <form method="post" action="{{ url_for('main.admin_label_delete', lid=l.id) }}" data-cir-confirm="Cancellare questa label e rimuoverla dagli incidenti?">
+                <button class="danger" type="submit" {% if l.id in shared_label_ids %}disabled title="Gestito da Tenants Default"{% endif %}>Cancella</button>
               </form>
             </td>
           </tr>

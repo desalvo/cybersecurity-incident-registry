@@ -94,7 +94,8 @@ def test_notification_type_legacy_unique_index_is_removed_for_tenant_clone():
     assert "DROP INDEX IF EXISTS" in migration_block
     assert "ix_notification_type_code" in migration_block
     assert "notification_type.code = 'user'" in migration_block
-    assert 'DELETE FROM notification_type nt' in migration_block
+    assert 'DELETE FROM notification_type nt' not in migration_block
+    assert 'Duplicate tenant configuration' in migration_block
 
 
 def test_default_notification_types_are_created_in_default_tenant_not_global():

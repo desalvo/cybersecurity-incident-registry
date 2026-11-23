@@ -1,4 +1,51 @@
-# Development history: 0.8.0 to 0.9.0-1
+# Development history: 0.8.0 to 0.10.0-1
+
+## 0.10.0-1 / RC1 — nuova linea di sviluppo
+
+La richiesta dell'utente sposta la versione funzionale in sviluppo a 0.10.0-1,
+lasciando invariato il tag esistente 0.9.0-1. I cumulativi precedenti, compresa
+RC20, sono la genealogia della nuova linea. L'identità corrente è allineata in
+runtime, documentazione, materiali, chart, installer e controlli di release.
+La build torna automatica `YYYYMMDD` (`Europe/Rome`), calcolata una sola volta
+per esecuzione CI e riusata da test, documenti e immagine. I file VERSION/BUILD
+distribuiti impediscono a vecchi override di ambiente di mostrare una release diversa.
+
+Il passaggio non aggiunge una migrazione DDL e non modifica la revisione
+`20261122_01_legacy_bridge`. Le note precedenti mantengono versioni, build e prove
+storiche; i risultati non sono riclassificati come nuovi PASS della 0.10.0-1.
+La disposition scaduta resta chiusa e il digest production resta pending.
+
+## RC20 — 2026-11-22: UI approvata e documentazione verificabile
+
+Dopo l'approvazione di login, home, dettaglio incidente e AlBot, la RC20 integra
+la nuova interfaccia responsive. Il registro resta una lista e il workflow
+mantiene blocchi descrittivi/task con frecce. L'istruzione successiva porta lo
+switch globale a default moderno ON, persistente e riservato ai superuser;
+la modalità classica resta selezionabile. I mock approvati rimangono invariati
+come riferimenti, senza essere presentati come prove del runtime.
+
+La pipeline aggiunge l'applicazione reale con dati isolati, 13 catture Chromium,
+manuali e galleria PDF legati al commit, ed installazione prima del build/scansione.
+Sono conservate le conferme operative sotto CSP, e l'AI applica sessione, CSRF,
+ruolo e binding del tenant prima di invocare il provider. La procedura di upgrade
+da 0.9.0-1 build20260902 chiarisce migrazioni automatiche, backup coerente,
+primo avvio seriale e conservazione di DB/PVC/Secret. Versione e build invariate;
+nessuna estensione della disposition scaduta o promozione dell'immagine.
+
+La RC20 introduce revisioni tecniche ordinate indipendenti da VERSION/BUILD,
+un bridge per i database precedenti al registro `cir_schema_migrations` e un
+migratore eseguito dall'entrypoint prima dei worker. Il marker di completamento
+condivide il commit finale del bootstrap; una revisione sconosciuta, una DDL
+obbligatoria fallita o dati incompatibili fermano l'avvio senza attestare successo.
+Le DDL storiche possono essere parzialmente applicate e sono ripetibili al retry.
+I test su schema RC16 autentico affiancano regressioni su `auth_provider`, date,
+sequence PostgreSQL e conservazione delle personalizzazioni. Per versioni future
+è obbligatoria una nuova revisione con test dalla precedente baseline supportata.
+
+## RC18 - 2026-11-22: configurazione condivisa e ciclo di vita
+
+Evoluzione cumulativa della 0.9.0-1 da RC17. Il tenant speciale ora nasce dalla configurazione di default solo se assente; full/bootstrap includono il tenant speciale. I workflow importati conservano la provenienza, usano gli ID delle repliche locali e possono diventare varianti indipendenti tramite personalizzazione. Obsolescenza propagata con avvisi per amministratori; cancellazioni in uso bloccate. Aggiunti Helm, OpenShift e materiale formativo. La storia RC17 seguente descrive lo stadio precedente e non prevale sulle istruzioni RC18.
+
 
 Chronological engineering and hardening record for the 0.9.0-1 development line. The numbered rounds are iterations of the same functional 0.9.0-1 release, not separate functional versions.
 
@@ -968,3 +1015,24 @@ The production Trivy gate detected three new Debian Trixie HIGH CVEs: `CVE-2026-
 ## RC15 Python dependency security update - 2026-10-01
 
 The live `pip-audit` SCA gate detected eight known vulnerabilities in `pypdf==6.16.2`: `CVE-2026-102993`, `CVE-2026-102994`, `CVE-2026-102995`, `CVE-2026-102996`, `CVE-2026-102997`, `CVE-2026-102998`, `CVE-2026-102999`, and `CVE-2026-103000`. The highest minimum fix version across the set is `6.19.0`, so RC15 pins `pypdf==6.19.0`. No Python vulnerability acceptance is added. The SCA helper now prints a concise package/CVE/fix summary when `pip-audit` returns non-zero, while retaining the JSON report.
+# RC17 — Tenants Default (2026-11-22)
+
+Evoluzione cumulativa della 0.9.0-1 a partire dalla RC16. La richiesta introduce
+una sorgente condivisa distinta dal tenant operativo `default`, con propagazione
+dei parametri e catalogo di workflow importabili più volte. Le identità numeriche
+vengono rimappate; UUID di provenienza distinguono valori condivisi e locali.
+Gli aggiornamenti conservano le personalizzazioni e i ritiri mantengono i record
+in uso con avvisi amministrativi.
+
+L'estensione successiva include tutti i parametri di tenant, documenti/template di
+notifica ed export completo della sorgente. I Settings usano precedenza locale,
+condivisa, legacy; i workflow importati hanno dipendenze proprie e restano editabili.
+I nuovi modelli PDF hanno ownership per evitare che la modifica di una copia cambi
+documenti di un altro tenant. Il formato di configurazione conserva indirizzi e
+testi; l'export di bootstrap anonimizzato preesistente resta una funzione distinta.
+
+Sono aggiunti Handoff persistente e obbligo di inclusione nel package, fallback
+di packaging senza rsync e test della migrazione SQLite eseguibili con la libreria
+standard. I test storici Trivy sono resi indipendenti dal trascorrere del tempo,
+mantenendo un test del CLI reale e la scadenza production. Lo stato della verifica
+completa e le attività di ripresa sono registrati in [HANDOFF.md](HANDOFF.md).

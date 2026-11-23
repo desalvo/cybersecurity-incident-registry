@@ -7,9 +7,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.pdfbase.pdfmetrics import stringWidth
 try:
-    from flask import current_app
+    from flask import current_app, has_app_context
 except Exception:
     current_app = None
+    has_app_context = lambda: False
 try:
     from svglib.svglib import svg2rlg
 except Exception:
@@ -23,11 +24,13 @@ except Exception:
     Setting=None
     incident_consequence_list=None
 
-def _setting_value(key, default=''):
-    if not Setting or db is None:
+def _setting_value(key, default='', tenant_id=None):
+    if not Setting or db is None or not has_app_context():
         return default
-    obj = db.session.get(Setting, key)
-    return obj.value if obj and obj.value is not None else default
+    from .routes import setting_value, _setting_value_without_request_user
+    if tenant_id is not None:
+        return _setting_value_without_request_user(key, default, tenant_id)
+    return setting_value(key, default)
 
 def _incident_consequences(inc):
     if incident_consequence_list:
@@ -127,7 +130,7 @@ def _first_existing(paths):
     return None
 
 
-def _report_logos_table(styles):
+def _report_logos_table(styles, tenant_id=None):
     """Application logo and GUI-uploaded logo for the first PDF page.
 
     The application logo is loaded from the raster PNG asset used by the help PDFs
@@ -142,7 +145,7 @@ def _report_logos_table(styles):
         os.path.join(static_dir, 'cir-application-logo.png'),
         os.path.join(static_dir, 'cir-application-logo.svg'),
     ])
-    gui_logo=_resolve_logo_path(_setting_value('logo_path', ''))
+    gui_logo=_resolve_logo_path(_setting_value('logo_path', '', tenant_id))
     app_flow=_pdf_logo_flowable(app_logo, max_width=5.0*cm, max_height=2.0*cm)
     gui_flow=_pdf_logo_flowable(gui_logo, max_width=5.0*cm, max_height=2.0*cm)
     cells=[]
@@ -224,6 +227,11 @@ def _format_incident_duration(inc):
         return f'{days} giorni, {hours:02d}:{minutes:02d}:{seconds:02d}'
     return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 def incident_pdf(inc):
+    tenant_id = getattr(inc, 'tenant_id', None)
+
+    def report_setting(key, default=''):
+        return _setting_value(key, default, tenant_id)
+
     fd,path=tempfile.mkstemp(suffix='.pdf'); os.close(fd)
     styles=getSampleStyleSheet()
     styles.add(ParagraphStyle('report-title', parent=styles['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#1f3a5f'), alignment=1, spaceAfter=8))
@@ -234,7 +242,7 @@ def incident_pdf(inc):
     body=ParagraphStyle('body',parent=styles['BodyText'],fontSize=9,leading=12)
 
     story=[]
-    logos=_report_logos_table(styles)
+    logos=_report_logos_table(styles, tenant_id)
     if logos:
         story += [logos, Spacer(1,0.45*cm)]
     story += [Paragraph('Report incidente informatico',styles['report-title'])]
@@ -243,7 +251,7 @@ def incident_pdf(inc):
     index_rows=[['Indice sintetico'],['Sintesi'],['Descrizione'],['Categorie e dati interessati'],['Conseguenze derivate'],['Misure adottate'],['Raccomandazioni'],['Personale coinvolto'],['Azioni intraprese'],['Grafico azioni nel tempo'],['Documenti']]
     story += [Paragraph('Indice sintetico', styles['section-heading']), wrap_table(index_rows, small, widths=[17.5*cm]), Spacer(1,0.25*cm)]
 
-    meta=[['Campo','Valore'],['Nome',inc.name],['Riferimento',inc.reference or ''],['Compilatore',inc.creator_name],['Email compilatore',inc.creator_email],['Gravità',inc.severity.value if inc.severity else ''],['Stato',inc.status],['Periodo',_format_incident_period(inc)],['Durata',_format_incident_duration(inc) or ''],['Rischio per diritti e libertà','Sì' if inc.personal_data else 'No'], ['Numero interessati', getattr(inc, 'data_subjects_count', '') or ''], ['Volume dati', getattr(inc, 'data_volume', '') or ''], ['Titolare',_setting_value('security_owner_name')], ['Ruolo titolare',_setting_value('security_owner_role')], ['Email titolare',_setting_value('security_owner_email')], ['Struttura',_setting_value('structure_name')], ['Responsabile',_setting_value('security_responsible_name')], ['Email responsabile',_setting_value('security_responsible_email')], ['Telefono responsabile',_setting_value('security_responsible_phone','-')], ['Funzione responsabile',_setting_value('security_responsible_function')]]
+    meta=[['Campo','Valore'],['Nome',inc.name],['Riferimento',inc.reference or ''],['Compilatore',inc.creator_name],['Email compilatore',inc.creator_email],['Gravità',inc.severity.value if inc.severity else ''],['Stato',inc.status],['Periodo',_format_incident_period(inc)],['Durata',_format_incident_duration(inc) or ''],['Rischio per diritti e libertà','Sì' if inc.personal_data else 'No'], ['Numero interessati', getattr(inc, 'data_subjects_count', '') or ''], ['Volume dati', getattr(inc, 'data_volume', '') or ''], ['Titolare',report_setting('security_owner_name')], ['Ruolo titolare',report_setting('security_owner_role')], ['Email titolare',report_setting('security_owner_email')], ['Struttura',report_setting('structure_name')], ['Responsabile',report_setting('security_responsible_name')], ['Email responsabile',report_setting('security_responsible_email')], ['Telefono responsabile',report_setting('security_responsible_phone','-')], ['Funzione responsabile',report_setting('security_responsible_function')]]
     _add_section(story, 'Sintesi', wrap_table(meta, small), styles)
     _add_section(story, 'Descrizione', P(inc.description,body), styles)
     _add_section(story, 'Categorie e dati interessati', wrap_table([['Categorie',', '.join(x.value for x in inc.categories)],['Dati interessati',', '.join(x.value for x in inc.data_types)]], small), styles)

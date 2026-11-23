@@ -32,7 +32,7 @@
       <h3>Rubrica{% if search_query %} - risultati ricerca{% endif %}</h3>
       <p class="muted">Il comando “Rimuovi tutto” elimina tutti i destinatari esterni visibili per il tenant corrente.</p>
     </div>
-    <form method="post" onsubmit="return confirm('Rimuovere tutti i destinatari esterni registrati nella rubrica? L’operazione non può essere annullata.')">
+    <form method="post" data-cir-confirm="Rimuovere tutti i destinatari esterni registrati nella rubrica? L’operazione non può essere annullata.">
       <input type="hidden" name="action" value="delete_all">
       <button class="danger" type="submit" {% if not recipients %}disabled{% endif %}>Rimuovi tutto</button>
     </form>
@@ -43,7 +43,7 @@
     <tr>
       <td>{{ r.name }}</td><td>{{ r.email }}</td><td>{{ r.notes }}</td>
       <td class="button-row"><a class="button secondary" href="{{ url_for(endpoint_name or 'main.admin_external_recipients', edit=r.id, q=search_query) }}">Modifica</a>
-        <form method="post" onsubmit="return confirm('Cancellare il destinatario esterno?')">{% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}<input type="hidden" name="recipient_id" value="{{ r.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button></form></td>
+        <form method="post" data-cir-confirm="Cancellare il destinatario esterno?">{% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}<input type="hidden" name="recipient_id" value="{{ r.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button></form></td>
     </tr>
     {% else %}<tr><td colspan="4">Nessun destinatario esterno configurato.</td></tr>{% endfor %}
   </table>

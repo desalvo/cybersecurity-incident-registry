@@ -1,0 +1,41 @@
+.cir-doc-cover{color:#061329;padding:0 0 1.8rem;background:#fff;min-width:0}
+.cir-doc-breadcrumb{font-size:.9rem;color:#38586e;margin:0 0 1.1rem;overflow-wrap:anywhere}
+.cir-doc-breadcrumb a{color:#00788b;text-decoration:none}
+.cir-doc-brand{display:flex;align-items:center;gap:.8rem;font-weight:750;color:#0a3757;font-size:clamp(1rem,1.6vw,1.4rem);margin-bottom:1.3rem}
+.cir-doc-brand img{width:54px;height:54px;object-fit:contain;flex:none}
+.cir-doc-cover h1{font-size:clamp(2.1rem,3.6vw,3.65rem);line-height:1.08;letter-spacing:-.035em;margin:0 0 .6rem;color:#061329}
+.cir-doc-subtitle{font-size:clamp(1.05rem,1.7vw,1.5rem);line-height:1.4;margin:.3rem 0 1.2rem;color:#193b50}
+.cir-doc-badges{display:flex;gap:.7rem;flex-wrap:wrap;margin:0 0 1.3rem}
+.cir-doc-badges span{background:#123f68;color:white;padding:.4rem .85rem;border-radius:7px;font-weight:700;line-height:1.4}
+.cir-doc-badges span+span{background:#00788b}
+.cir-doc-hero-image{display:block;width:100%;height:clamp(180px,23vw,330px);object-fit:cover;object-position:68% center;border:0;border-radius:0;margin:0 0 1rem}
+.cir-doc-about{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.55fr);gap:1.6rem;margin:0;padding:0 0 1rem;border-bottom:1px solid #adc5d5}
+.cir-doc-about div+div{border-left:1px solid #adc5d5;padding-left:1.6rem}
+.cir-doc-about dt{font-size:1.1rem;font-weight:750;margin:0 0 .3rem}
+.cir-doc-about dd{margin:0;line-height:1.6;overflow-wrap:anywhere}
+.cir-doc-about a,.cir-doc-platforms a{color:#006d80;text-decoration:none}
+.cir-doc-about a:hover,.cir-doc-platforms a:hover{text-decoration:underline}
+.cir-doc-platforms{padding:0 0 .9rem;border-bottom:1px solid #adc5d5}
+.cir-doc-platforms h2{font-size:1.2rem;font-weight:750;margin:1rem 0 .8rem;color:#061329}
+.cir-doc-platforms ul{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1rem;margin:0;padding:0;list-style:none}
+.cir-doc-platforms li{margin:0;padding:0;min-width:0}
+.cir-doc-platforms a{display:flex;flex-direction:column;align-items:center;gap:.4rem;font-weight:700;font-size:.9rem;color:#061329}
+.cir-doc-platforms img{width:clamp(42px,5.2vw,65px);height:clamp(42px,5.2vw,65px);object-fit:contain}
+.cir-doc-architectures{font-size:.85rem;text-align:center;margin:1rem 0 0;letter-spacing:.04em;color:#38586e}
+.cir-doc-actions{display:flex;gap:.8rem;flex-wrap:wrap;margin:1rem 0 0}
+.cir-doc-actions .button{background:#00788b;color:#fff;border-color:#00788b}
+.cir-doc-actions .secondary{background:white;color:#061329;border:1px solid #38586e}
+.cir-doc-inline-nav{display:flex;flex-wrap:wrap;gap:.6rem 1rem;margin-top:1.4rem;padding-top:1rem;border-top:1px solid #adc5d5}
+.cir-doc-inline-nav a[aria-current=page]{font-weight:750;color:#00788b}
+.cir-doc-source{font-size:1rem;line-height:1.6;min-width:0;overflow-wrap:anywhere}
+.cir-doc-source pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eef4f7;border:1px solid #d3e0e9;border-radius:6px;padding:1rem}
+.cir-doc-source h2,.cir-doc-source h3,.cir-doc-source h4{scroll-margin-top:6rem}
+.cir-doc-app-navigation{border-top:1px solid #d2e1e8;margin-top:1rem;padding-top:1rem}
+.cir-doc-app-navigation>summary{font-weight:700;padding:.7rem .4rem;cursor:pointer;list-style-position:inside}
+.cir-documentation-guide{min-width:0}
+.cir-doc-table-scroll{max-width:100%;overflow:auto;margin:1rem 0}
+.cir-doc-source table{width:100%;border-collapse:collapse}
+.cir-doc-source td,.cir-doc-source th{vertical-align:top;text-align:left;padding:.65rem;border:1px solid #d3e0e9}
+.cir-doc-source th{background:#eef4f7}
+@media(max-width:760px){.cir-doc-about{grid-template-columns:1fr;gap:1rem}.cir-doc-about div+div{border-left:0;padding-left:0}.cir-doc-platforms ul{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem .6rem}.cir-doc-cover h1{font-size:clamp(1.8rem,7vw,2.75rem)}.cir-doc-hero-image{height:190px;object-position:71% center}.cir-doc-brand{align-items:center;font-size:1rem}.cir-doc-brand img{width:44px;height:44px}.cir-doc-actions .button{flex:1;text-align:center}.cir-doc-cover{padding-bottom:1rem}}
+@media print{.cir-doc-actions,.cir-doc-inline-nav,.cir-doc-breadcrumb{display:none}.cir-doc-cover{break-after:page}.cir-doc-platforms a,.cir-doc-about a{color:#123f68}}

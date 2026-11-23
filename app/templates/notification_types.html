@@ -25,7 +25,7 @@
     <tr>
       <td><code>{{ t.code }}</code></td><td>{{ t.label }}</td><td>nei template</td><td>{{ 'abilitato' if t.enabled else 'disabilitato' }}</td>
       <td class="button-row"><a class="button secondary" href="{{ url_for('main.notification_types', edit=t.id) }}">Modifica</a>
-        <form method="post" onsubmit="return confirm('Cancellare questo tipo di notifica?')"><input type="hidden" name="type_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit" {% if t.code in ['user','csirt','dpo'] %}disabled{% endif %}>Cancella</button></form>
+        <form method="post" data-cir-confirm="Cancellare questo tipo di notifica?"><input type="hidden" name="type_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit" {% if t.code in ['user','csirt','dpo'] %}disabled{% endif %}>Cancella</button></form>
       </td>
     </tr>
     {% endfor %}

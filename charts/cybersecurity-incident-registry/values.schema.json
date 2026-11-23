@@ -1,0 +1,690 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "platform": {
+      "type": "string",
+      "title": "Platform",
+      "enum": [
+        "kubernetes",
+        "openshift"
+      ],
+      "description": "OpenShift omits fixed UID/GID/fsGroup so the restricted SCC can allocate them."
+    },
+    "nameOverride": {
+      "type": "string",
+      "title": "Release application name",
+      "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "title": "CIR image repository",
+          "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*(:[0-9]+)?(/[a-z0-9]+([._-][a-z0-9]+)*)*$"
+        },
+        "digest": {
+          "type": "string",
+          "title": "Approved OCI index digest",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": [
+            "IfNotPresent",
+            "Always"
+          ]
+        },
+        "pullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "title": "Image pull Secret",
+            "pattern": "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "repository",
+        "digest",
+        "pullPolicy",
+        "pullSecrets"
+      ],
+      "description": "An immutable approved OCI index digest is mandatory; no default image is deployed."
+    },
+    "existingSecret": {
+      "type": "string",
+      "title": "Existing CIR Secret",
+      "pattern": "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$",
+      "minLength": 1,
+      "description": "Existing Secret in the selected namespace containing PostgreSQL URL and independent production keys."
+    },
+    "secretKeys": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "databaseUrl": {
+          "type": "string",
+          "title": "databaseUrl",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "secretKey": {
+          "type": "string",
+          "title": "secretKey",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "adminPassword": {
+          "type": "string",
+          "title": "adminPassword",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "settingEncryptionKey": {
+          "type": "string",
+          "title": "settingEncryptionKey",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        }
+      },
+      "required": [
+        "databaseUrl",
+        "secretKey",
+        "adminPassword",
+        "settingEncryptionKey"
+      ]
+    },
+    "replicaCount": {
+      "type": "integer",
+      "title": "Application replicas",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "kubernetesSecurity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runAsUser": {
+          "type": "integer",
+          "title": "runAsUser",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "runAsGroup": {
+          "type": "integer",
+          "title": "runAsGroup",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "fsGroup": {
+          "type": "integer",
+          "title": "fsGroup",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "runAsUser",
+        "runAsGroup",
+        "fsGroup"
+      ]
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existingClaim": {
+          "type": "string",
+          "title": "Existing PVC",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "storageClass": {
+          "type": "string",
+          "title": "Storage class",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "accessMode": {
+          "type": "string",
+          "enum": [
+            "ReadWriteOnce",
+            "ReadWriteMany"
+          ]
+        },
+        "size": {
+          "type": "string",
+          "title": "Persistent volume size",
+          "pattern": "^[1-9][0-9]*(Ki|Mi|Gi|Ti)$"
+        }
+      },
+      "required": [
+        "existingClaim",
+        "storageClass",
+        "accessMode",
+        "size"
+      ],
+      "description": "Writable /data volume. More than one web replica requires ReadWriteMany."
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "port": {
+          "type": "integer",
+          "title": "Service port",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "port"
+      ]
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable Kubernetes TLS Ingress"
+        },
+        "className": {
+          "type": "string",
+          "title": "Ingress class",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "host": {
+          "type": "string",
+          "title": "Public hostname",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+        },
+        "tlsSecret": {
+          "type": "string",
+          "title": "TLS Secret",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        }
+      },
+      "required": [
+        "enabled",
+        "className",
+        "host",
+        "tlsSecret"
+      ]
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable OpenShift TLS Route"
+        },
+        "host": {
+          "type": "string",
+          "title": "Public hostname",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+        },
+        "timeout": {
+          "type": "string",
+          "title": "Route timeout",
+          "pattern": "^[1-9][0-9]*(s|m|h)$"
+        }
+      },
+      "required": [
+        "enabled",
+        "host",
+        "timeout"
+      ]
+    },
+    "trustedProxyCidrs": {
+      "type": "array",
+      "title": "Trusted reverse proxy CIDRs",
+      "items": {
+        "type": "string",
+        "title": "CIDR"
+      },
+      "uniqueItems": true,
+      "description": "Only the actual reverse proxy CIDRs; never trust all addresses."
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workers": {
+          "type": "integer",
+          "title": "Gunicorn workers",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "threads": {
+          "type": "integer",
+          "title": "Gunicorn threads",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "requestTimeout": {
+          "type": "integer",
+          "title": "Request timeout seconds",
+          "minimum": 30,
+          "maximum": 36000
+        },
+        "terminationGracePeriod": {
+          "type": "integer",
+          "title": "Pod shutdown grace seconds",
+          "minimum": 60,
+          "maximum": 36000
+        },
+        "startupFailureThreshold": {
+          "type": "integer",
+          "title": "Startup attempts every five seconds",
+          "minimum": 60,
+          "maximum": 7200
+        }
+      },
+      "required": [
+        "workers",
+        "threads",
+        "requestTimeout",
+        "terminationGracePeriod",
+        "startupFailureThreshold"
+      ]
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "title": "CPU",
+              "pattern": "^([0-9]+m|[0-9]+(\\.[0-9]+)?)$"
+            },
+            "memory": {
+              "type": "string",
+              "title": "Memory",
+              "pattern": "^[1-9][0-9]*(Ki|Mi|Gi|Ti)$"
+            }
+          },
+          "required": [
+            "cpu",
+            "memory"
+          ]
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "title": "CPU",
+              "pattern": "^([0-9]+m|[0-9]+(\\.[0-9]+)?)$"
+            },
+            "memory": {
+              "type": "string",
+              "title": "Memory",
+              "pattern": "^[1-9][0-9]*(Ki|Mi|Gi|Ti)$"
+            }
+          },
+          "required": [
+            "cpu",
+            "memory"
+          ]
+        }
+      },
+      "required": [
+        "requests",
+        "limits"
+      ]
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "title": "Database mode",
+          "enum": [
+            "external",
+            "internal"
+          ]
+        },
+        "internal": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "title": "PostgreSQL 18 image repository",
+                  "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*(:[0-9]+)?(/[a-z0-9]+([._-][a-z0-9]+)*)*$"
+                },
+                "digest": {
+                  "type": "string",
+                  "title": "PostgreSQL image digest",
+                  "pattern": "^$|^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "repository",
+                "digest"
+              ]
+            },
+            "existingSecret": {
+              "type": "string",
+              "title": "PostgreSQL Secret",
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "secretKeys": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "username": {
+                  "type": "string",
+                  "title": "username",
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "password": {
+                  "type": "string",
+                  "title": "password",
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "database": {
+                  "type": "string",
+                  "title": "database",
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                }
+              },
+              "required": [
+                "username",
+                "password",
+                "database"
+              ]
+            },
+            "persistence": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "existingClaim": {
+                  "type": "string",
+                  "title": "Existing PVC",
+                  "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "storageClass": {
+                  "type": "string",
+                  "title": "Storage class",
+                  "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "size": {
+                  "type": "string",
+                  "title": "Persistent volume size",
+                  "pattern": "^[1-9][0-9]*(Ki|Mi|Gi|Ti)$"
+                }
+              },
+              "required": [
+                "existingClaim",
+                "storageClass",
+                "size"
+              ]
+            },
+            "kubernetesSecurity": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "runAsUser": {
+                  "type": "integer",
+                  "title": "runAsUser",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                },
+                "runAsGroup": {
+                  "type": "integer",
+                  "title": "runAsGroup",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                },
+                "fsGroup": {
+                  "type": "integer",
+                  "title": "fsGroup",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                }
+              },
+              "required": [
+                "runAsUser",
+                "runAsGroup",
+                "fsGroup"
+              ]
+            },
+            "startupFailureThreshold": {
+              "type": "integer",
+              "title": "Startup attempts every five seconds",
+              "minimum": 60,
+              "maximum": 7200
+            },
+            "pgCtlTimeout": {
+              "type": "integer",
+              "title": "Initialization shutdown timeout seconds",
+              "minimum": 60,
+              "maximum": 36000
+            },
+            "terminationGracePeriod": {
+              "type": "integer",
+              "title": "Database shutdown grace seconds",
+              "minimum": 60,
+              "maximum": 3600
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "cpu": {
+                      "type": "string",
+                      "title": "CPU",
+                      "pattern": "^([0-9]+m|[0-9]+(\\.[0-9]+)?)$"
+                    },
+                    "memory": {
+                      "type": "string",
+                      "title": "Memory",
+                      "pattern": "^[1-9][0-9]*(Ki|Mi|Gi|Ti)$"
+                    }
+                  },
+                  "required": [
+                    "cpu",
+                    "memory"
+                  ]
+                },
+                "limits": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "cpu": {
+                      "type": "string",
+                      "title": "CPU",
+                      "pattern": "^([0-9]+m|[0-9]+(\\.[0-9]+)?)$"
+                    },
+                    "memory": {
+                      "type": "string",
+                      "title": "Memory",
+                      "pattern": "^[1-9][0-9]*(Ki|Mi|Gi|Ti)$"
+                    }
+                  },
+                  "required": [
+                    "cpu",
+                    "memory"
+                  ]
+                }
+              },
+              "required": [
+                "requests",
+                "limits"
+              ]
+            }
+          },
+          "required": [
+            "image",
+            "existingSecret",
+            "secretKeys",
+            "persistence",
+            "kubernetesSecurity",
+            "startupFailureThreshold",
+            "pgCtlTimeout",
+            "terminationGracePeriod",
+            "resources"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "internal"
+      ],
+      "description": "External PostgreSQL is the production default. Internal mode is a single instance, with its own pinned image and existing Secret."
+    }
+  },
+  "required": [
+    "platform",
+    "nameOverride",
+    "image",
+    "existingSecret",
+    "secretKeys",
+    "replicaCount",
+    "kubernetesSecurity",
+    "persistence",
+    "service",
+    "ingress",
+    "route",
+    "trustedProxyCidrs",
+    "runtime",
+    "resources",
+    "database"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cybersecurity Incident Registry 0.10.0-1",
+  "description": "Production configuration; provide an approved immutable image digest and an existing Secret. Credentials never belong in values.",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "database": {
+            "properties": {
+              "mode": {
+                "const": "internal"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "database": {
+            "properties": {
+              "internal": {
+                "properties": {
+                  "existingSecret": {
+                    "minLength": 1
+                  },
+                  "image": {
+                    "properties": {
+                      "digest": {
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "replicaCount": {
+            "minimum": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "persistence": {
+            "properties": {
+              "accessMode": {
+                "const": "ReadWriteMany"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ingress": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "route": {
+            "properties": {
+              "enabled": {
+                "const": false
+              }
+            }
+          },
+          "ingress": {
+            "properties": {
+              "host": {
+                "minLength": 1
+              },
+              "tlsSecret": {
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "platform": {
+            "const": "openshift"
+          },
+          "ingress": {
+            "properties": {
+              "enabled": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

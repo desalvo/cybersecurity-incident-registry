@@ -24,8 +24,7 @@ services:
       SETTING_ENCRYPTION_KEY_FILE: ${SETTING_ENCRYPTION_KEY_FILE:-}
       CIR_PRODUCTION: ${CIR_PRODUCTION:-0}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
-      APP_VERSION: 0.9.0-1
-      APP_BUILD: 20260902
+      # VERSION and the automatic BUILD are authoritative image metadata.
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       LOGO_DIR: ${LOGO_DIR:-/data/logo}
       FORM_TEMPLATE_DIR: ${FORM_TEMPLATE_DIR:-/data/form_templates}
