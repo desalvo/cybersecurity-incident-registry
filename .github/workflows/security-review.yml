@@ -86,7 +86,7 @@ jobs:
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567
         with:
-          version: v0.74.0
+          version: v0.76.2
           cache: true
       - name: Review exact digest through the CIR production gate
         env:
@@ -95,7 +95,7 @@ jobs:
           CIR_TRIVY_OUTPUT_DIR: ${{ runner.temp }}/cir-security-review
           TRIVY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           TRIVY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: ./scripts/run_trivy_production_gate.sh "$CIR_PRODUCTION_IMAGE"
+        run: bash ./scripts/run_trivy_production_gate.sh "$CIR_PRODUCTION_IMAGE"
       - name: Retain platform review evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -119,3 +119,32 @@ jobs:
             echo 'Pending production metadata, expired acceptance, fixes, new findings and Python HIGH/CRITICAL remain blocking.'
             echo 'No image build, promotion or automatic acceptance renewal is performed.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  notify:
+    name: Notify about periodic production security findings
+    needs: [dependencies, production-image]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Open or update actionable security issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDENCIES_RESULT: ${{ needs.dependencies.result }}
+          PRODUCTION_RESULT: ${{ needs.production-image.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: '[CIR security] Periodic production review requires attention'
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=success
+          if [[ "$DEPENDENCIES_RESULT" != success || "$PRODUCTION_RESULT" != success ]]; then
+            result=failure
+          fi
+          python scripts/notify_security_issue.py \
+            --title "$TITLE" --result "$result" --run-url "$RUN_URL" \
+            --context "Dependency SCA: ${DEPENDENCIES_RESULT}; immutable production image: ${PRODUCTION_RESULT}" \
+            --repository "$GITHUB_REPOSITORY"

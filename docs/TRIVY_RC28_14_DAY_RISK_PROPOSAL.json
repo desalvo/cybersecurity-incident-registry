@@ -1,0 +1,1018 @@
+{
+  "schema": 1,
+  "title": "CIR 0.10.0-1 proposed time-limited residual risk review",
+  "status": "PROPOSAL_NOT_APPROVED",
+  "requested_duration_days": 14,
+  "duration_starts": "on actual formal approval, not on generation",
+  "source": "CI Trivy run 45227508842; RC27 reviewed evidence",
+  "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "source_release": "0.10.0-1",
+  "immutable_candidate_digest": "NOT_YET_VALIDATED_FOR_THIS_APPROVAL",
+  "findings": [
+    {
+      "cve": "CVE-2025-69720",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libncursesw6",
+          "version": "6.5+20250216-2"
+        },
+        {
+          "name": "libtinfo6",
+          "version": "6.5+20250216-2"
+        },
+        {
+          "name": "ncurses-base",
+          "version": "6.5+20250216-2"
+        },
+        {
+          "name": "ncurses-bin",
+          "version": "6.5+20250216-2"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2025-71436",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libraptor2-0",
+          "version": "2.0.16-6"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-107494",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libssl3t64",
+          "version": "3.5.9-1~deb13u1"
+        },
+        {
+          "name": "openssl",
+          "version": "3.5.9-1~deb13u1"
+        },
+        {
+          "name": "openssl-provider-legacy",
+          "version": "3.5.9-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "network_crypto",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-113351",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libexpat1",
+          "version": "2.9.0-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-115506",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libexpat1",
+          "version": "2.9.0-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-117610",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libexpat1",
+          "version": "2.9.0-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-118370",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libexpat1",
+          "version": "2.9.0-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-119373",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-119374",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-119379",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-12064",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libcurl3t64-gnutls",
+          "version": "8.14.1-2+deb13u7"
+        },
+        {
+          "name": "libcurl4t64",
+          "version": "8.14.1-2+deb13u7"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "network_crypto",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-124709",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libssl3t64",
+          "version": "3.5.9-1~deb13u1"
+        },
+        {
+          "name": "openssl",
+          "version": "3.5.9-1~deb13u1"
+        },
+        {
+          "name": "openssl-provider-legacy",
+          "version": "3.5.9-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "network_crypto",
+      "historically_reviewed": false,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-16742",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libsystemd0",
+          "version": "257.13-1~deb13u1"
+        },
+        {
+          "name": "libudev1",
+          "version": "257.13-1~deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-24882",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "dirmngr",
+          "version": "2.4.7-21+deb13u1+b5"
+        },
+        {
+          "name": "gnupg",
+          "version": "2.4.7-21+deb13u1"
+        },
+        {
+          "name": "gnupg-l10n",
+          "version": "2.4.7-21+deb13u1"
+        },
+        {
+          "name": "gpg",
+          "version": "2.4.7-21+deb13u1+b5"
+        },
+        {
+          "name": "gpg-agent",
+          "version": "2.4.7-21+deb13u1+b5"
+        },
+        {
+          "name": "gpgconf",
+          "version": "2.4.7-21+deb13u1+b5"
+        },
+        {
+          "name": "gpgsm",
+          "version": "2.4.7-21+deb13u1+b5"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-36849",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libtiff6",
+          "version": "4.7.0-3+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-52490",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libtiff6",
+          "version": "4.7.0-3+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-54369",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libacl1",
+          "version": "2.3.2-2+b1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-6653",
+      "severity": "CRITICAL",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "CRITICAL_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-74860",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-76642",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libblkid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libmount1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libuuid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1"
+        },
+        {
+          "name": "mount",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "util-linux",
+          "version": "2.41.5-0+deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-78408",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libblkid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libmount1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libuuid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1"
+        },
+        {
+          "name": "mount",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "util-linux",
+          "version": "2.41.5-0+deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-78409",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libblkid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libmount1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libuuid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1"
+        },
+        {
+          "name": "mount",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "util-linux",
+          "version": "2.41.5-0+deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-78410",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libblkid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libmount1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "libuuid1",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1"
+        },
+        {
+          "name": "mount",
+          "version": "2.41.5-0+deb13u1"
+        },
+        {
+          "name": "util-linux",
+          "version": "2.41.5-0+deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-8458",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libcurl3t64-gnutls",
+          "version": "8.14.1-2+deb13u7"
+        },
+        {
+          "name": "libcurl4t64",
+          "version": "8.14.1-2+deb13u7"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "network_crypto",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-86138",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-86139",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-86140",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-86142",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-86143",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-86144",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxml2",
+          "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "document_parser",
+      "historically_reviewed": true,
+      "triage_priority": "HIGH_EXPOSURE_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-88806",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libx11-6",
+          "version": "2:1.8.12-1"
+        },
+        {
+          "name": "libx11-data",
+          "version": "2:1.8.12-1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-88807",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "libxrender1",
+          "version": "1:0.9.12-1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    },
+    {
+      "cve": "CVE-2026-9538",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "name": "perl-base",
+          "version": "5.40.1-6+deb13u1"
+        }
+      ],
+      "architectures": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "exposure_group": "system_utility",
+      "historically_reviewed": true,
+      "triage_priority": "CONDITIONAL_REVIEW",
+      "debian_vendor_verdict": "PENDING_INDEPENDENT_REVIEW",
+      "reachable_vulnerable_path": "NOT_ESTABLISHED",
+      "risk_decision": "PENDING_APPROVAL",
+      "risk_owner": null,
+      "reviewed_on": null,
+      "valid_until": null,
+      "mitigations_verified": false
+    }
+  ],
+  "approval": {
+    "risk_owner": null,
+    "decision": null,
+    "signed_at": null,
+    "expires_at": null
+  },
+  "constraints": [
+    "no acceptance for any newly observed CVE/package/version",
+    "no acceptance when a vendor fix is available",
+    "Python HIGH/CRITICAL remain disallowed",
+    "reassess at least weekly and immediately on new fixes/findings",
+    "preserve document conversion and all application features",
+    "validate runtime hardening and document input boundaries before signoff"
+  ]
+}

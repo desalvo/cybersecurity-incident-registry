@@ -79,9 +79,13 @@ class PeriodicWorkflowTests(unittest.TestCase):
         self.assertEqual(set(triggers), {'schedule', 'workflow_dispatch'})
         self.assertEqual(triggers['schedule'], [{'cron': '15 6 * * 1'}])
         self.assertEqual(self.workflow['permissions'], {'contents': 'read'})
-        for job in self.workflow['jobs'].values():
-            self.assertEqual(job['if'], "github.ref == 'refs/heads/main'")
-            self.assertNotIn('permissions', job)
+        for name, job in self.workflow['jobs'].items():
+            self.assertIn("github.ref == 'refs/heads/main'", job['if'])
+            if name == 'notify':
+                self.assertEqual(job['permissions'], {'contents': 'read', 'issues': 'write'})
+                self.assertIn('always()', job['if'])
+            else:
+                self.assertNotIn('permissions', job)
 
     def test_platforms_are_reviewed_independently_without_short_circuiting(self):
         job = self.workflow['jobs']['production-image']
@@ -92,7 +96,7 @@ class PeriodicWorkflowTests(unittest.TestCase):
         gate = next(step for step in job['steps'] if 'run_trivy_production_gate.sh' in step.get('run', ''))
         self.assertEqual(gate['env']['CIR_TRIVY_PLATFORMS'], '${{ matrix.platform }}')
         self.assertEqual(gate['env']['CIR_PRODUCTION_IMAGE'], '${{ steps.target.outputs.image }}')
-        self.assertEqual(gate['run'], './scripts/run_trivy_production_gate.sh "$CIR_PRODUCTION_IMAGE"')
+        self.assertEqual(gate['run'], 'bash ./scripts/run_trivy_production_gate.sh "$CIR_PRODUCTION_IMAGE"')
 
     def test_pending_digest_preflight_precedes_trivy_and_all_gate_failures_propagate(self):
         steps = self.workflow['jobs']['production-image']['steps']
@@ -124,7 +128,11 @@ class PeriodicWorkflowTests(unittest.TestCase):
         for forbidden in ('docker build', 'build-push-action', 'imagetools', 'record_production_digest',
                           'git push', 'gh pr', 'gh issue', 'gh api', 'CIR_TRIVY_POLICY='):
             self.assertNotIn(forbidden, commands)
-        for job in self.workflow['jobs'].values():
+        for name, job in self.workflow['jobs'].items():
+            if name == 'notify':
+                self.assertEqual(job['permissions']['issues'], 'write')
+                self.assertIn('scripts/notify_security_issue.py', '\n'.join(step.get('run', '') for step in job['steps']))
+                continue
             uploads = [step for step in job['steps'] if step.get('uses', '').startswith('actions/upload-artifact@')]
             self.assertEqual(len(uploads), 1)
             self.assertEqual(uploads[0]['if'], 'always()')

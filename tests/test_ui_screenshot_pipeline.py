@@ -194,7 +194,8 @@ class ScreenshotWorkflowTests(unittest.TestCase):
     def test_release_requires_successful_ui_documentation_job(self):
         jobs = self.workflow["jobs"]
         self.assertIn("ui-documentation", jobs["docker-release"]["needs"])
-        self.assertNotIn("if", jobs["ui-documentation"])
+        self.assertEqual(jobs["ui-documentation"]["if"], "needs.ci-mode.outputs.security_only != 'true'")
+        self.assertIn('ci-mode', jobs['ui-documentation']['needs'])
         self.assertEqual(jobs["ui-documentation"]["permissions"], {"contents": "read"})
         for step in jobs["ui-documentation"]["steps"]:
             self.assertFalse(step.get("continue-on-error", False))
