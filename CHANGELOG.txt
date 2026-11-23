@@ -1661,3 +1661,25 @@ Versione 0.5.0-1 - aggiornamento compliance AGID
 - Pin Werkzeug 3.1.9 in response to the new pip-audit finding from the RC4 pull-request run.
 - Align the runtime dependency invariant with the security pin.
 - The 20 remaining CI test failures are not certified resolved; full CI and browser capture are required.
+
+0.10.0-1 RC18: Added reproducible multiarch Trivy exposure evidence and documented risk review, no production acceptance.
+
+0.10.0-1 RC20: fix shell expansion in multiarch Debian evidence collection; validate generated evidence and add regression tests.
+
+RC21: Reviewed Debian installed/candidate versions from both Trivy security artifacts, preserved functionality and blocked unapproved risk acceptance.
+
+RC22: refresh both-architecture Trivy evidence and formal residual-risk decision dossier; no runtime or policy changes.
+
+0.10.0-1 RC23: add evidence-based multiarch Trivy applicability/acceptance decision register; retain production block and all runtime features.
+
+RC24: security CI hotfix: invoke Trivy gate with bash in fast, release and scheduled workflows; restore executable ZIP mode; preserve all security policy and runtime behavior. The 45216896624 run did not scan either architecture (exit 126); its empty reports are not vulnerability evidence.
+
+0.10.0-1 RC25: upgrade Trivy to v0.76.2 across all security workflows; add evidence-based multiarch CVE review matrix and scanner-pin regression test; retain fail-closed production gates.
+
+0.10.0-1 RC28: Proposed 14-day, exact-scope Trivy residual-risk approval register; no automatic acceptance or runtime change.
+
+0.10.0-1 RC29: align tests with documentation and CI evolution, repair archived Markdown links, restore executable script modes.
+
+RC30: Restore executable mode for PostgreSQL CI test runner and invoke through bash; no application or security policy changes.
+
+RC31: Restore SCA and production verification executable modes and make CI invocations robust via bash. No application behavior or security policy change.

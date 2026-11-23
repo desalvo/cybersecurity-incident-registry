@@ -1,0 +1,1172 @@
+# Historical README archive
+
+The following text is retained for historical traceability; its release statements are not necessarily current.
+
+# Cybersecurity Incident Registry 0.10.0-1
+
+## Sviluppo corrente: 0.10.0-1 / RC1
+
+La release in sviluppo è **0.10.0-1**. Il cumulativo conserva Tenants Default,
+workflow importabili e modificabili, UI moderna con switch globale, migrazioni
+all'avvio e documentazione generata dalla UI reale. Il tag storico `0.9.0-1`
+identifica la precedente linea di release e non viene spostato o riutilizzato.
+
+La **build è automatica**, nel formato `YYYYMMDD` e fuso `Europe/Rome`. La CI la
+calcola una sola volta e la condivide fra verifiche, screenshot/manuali e immagine.
+`VERSION` e `BUILD` sono l'identità del sorgente distribuito e dell'immagine;
+vecchi override `APP_VERSION`/`APP_BUILD` nel deployment non ne cambiano l'etichetta.
+Per preparare una build locale usare `python scripts/prepare_release_metadata.py --write`.
+
+**Da 0.9.0-1 a 0.10.0-1:** aggiornare l'immagine approvata e ricreare il pod
+conservando database, PVC e Secret. L'entrypoint esegue le migrazioni mancanti
+prima dei worker; il cambio di versione non aggiunge una revisione DDL.
+La revisione esistente `20261122_01_legacy_bridge` resta invariata. Servono backup
+coerente e avvio coordinato con una sola replica: [procedura completa](../docs/MIGRATION.md#aggiornamento-a-0100-1-da-090-1).
+
+Questo è un **candidato sorgente**, non una nuova immagine production già approvata.
+`PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`; i gate production e la
+review della disposition Debian scaduta il 20 ottobre 2026 rimangono obbligatori.
+[Release](../docs/RELEASE.md#0100-1--rc1-linea-di-sviluppo-corrente) · [Verifiche](../docs/TESTING_AND_PRODUCTION.md) · [Handoff](../docs/HANDOFF.md).
+
+Le sezioni RC20, RC18, RC17 e Round seguenti conservano la **cronologia della 0.9.0-1**;
+le loro vecchie versioni/build e attestazioni non certificano questo candidato.
+
+
+### Identità comune della documentazione e formazione
+
+La grafica fotografica approvata è applicata ai manuali PDF e online, nelle due
+lingue, e alle brochure. Runtime e generatori condividono i dati About, compreso
+l'URL del progetto. Le guide utente/admin conservano ricerca e indice; il menu
+Documentazione apre anche installazione, migrazione, Alfresco, sicurezza,
+formazione, test, architettura e procedure di rilascio. Ogni guida online offre
+il PDF con la stessa copertina. Le sezioni storiche restano riconoscibili.
+
+Il [PowerPoint didattico modificabile](../docs/presentation/CIR_Operational_Training_IT.pptx)
+contiene 34 slide con note per il relatore, esercizi sugli incidenti, prime pagine
+reali dei manuali, piattaforme supportate, riferimenti di sviluppo/compliance e
+ciclo di revisione delle vulnerabilità. Nell'edizione sorgente i riquadri delle
+schermate indicano chiaramente l'attesa delle acquisizioni CI. Il job obbligatorio
+genera 17 screenshot reali, 8 PDF e il PowerPoint completo, verifica file,
+commit/versione/build e installa l'intero bundle nell'immagine candidata.
+
+Il workflow **CIR periodic security review** opera ogni lunedì alle 06:15 UTC o
+su avvio manuale da main. Controlla le dipendenze Python correnti ed entrambe le
+architetture del digest production immutabile registrato. Non pubblica immagini
+e non rinnova risk acceptance: digest pending o disposition scaduta sono errori
+espliciti. Vedi [formazione](../docs/TRAINING.md) e [sicurezza](../docs/SECURITY.md).
+
+## RC20: interfaccia approvata e documentazione dall'applicazione reale
+
+La nuova interfaccia desktop/mobile è integrata nell'applicazione ed è **attiva per default**. Il superuser può scegliere **Admin → Interfaccia globale → Moderna / Classica**: la scelta è salvata nel database e vale per tutti i tenant, gli utenti e la login anonima, al caricamento successivo della pagina. Un riavvio conserva una scelta esplicita.
+
+Login, pagina principale e incidente adottano i riferimenti approvati, con fotografie sintetiche di cybersecurity senza persone. Il registro conserva la struttura a lista; gli incidenti mantengono i blocchi procedurali con descrizione sopra, task/comando sotto e frecce. Menu, permessi, moduli e operazioni esistenti restano disponibili. AlBot si apre dalla testata: pannello affiancato su desktop ampio, vista dedicata su schermi più piccoli. Il provider riceve la domanda e il contesto previsto dal plugin; il nuovo pannello non invia automaticamente l'incidente aperto o la cronologia della chat.
+
+Il job obbligatorio **Real UI screenshots and documentation** esegue l'app reale con dati dimostrativi isolati, verifica i percorsi operativi e genera 13 screenshot desktop/mobile, i quattro manuali PDF e una galleria. Le prove sono legate al commit tramite checksum; la build candidate incorpora esattamente quei documenti prima della scansione. I mock in [docs/design](../docs/design/DESIGN_SPEC.md) restano riferimenti approvati, distinti dagli screenshot effettivi. Le nuove proposte di copertina e brochure restano da valutare separatamente.
+
+**Aggiornamento Kubernetes:** si aggiorna l'immagine e si ricrea il pod mantenendo database, PVC e Secret. L'entrypoint esegue le migrazioni applicative prima dei worker HTTP/HTTPS; il registro tecnico indipendente `cir_schema_migrations` applica solo le revisioni mancanti e blocca schemi sconosciuti/più recenti. Non occorre un Full Import o un bootstrap. Prima del primo avvio usare un backup coerente, fermare le vecchie repliche e avviare una sola replica applicativa, controllare probe e timeout, quindi ripristinare lo scaling. Istruzioni complete in [Migrazione](../docs/MIGRATION.md#aggiornamento-a-rc20-da-090-1-build-20260902) e [Release](../docs/RELEASE.md#rc20-interfaccia-approvata-e-migrazione-2026-11-22).
+
+Versione funzionale **0.9.0-1**, build **20260902**. RC20 è un candidato sorgente: migrazioni e HTTP reali sono stati verificati in un ambiente di compatibilità SQLite, ma pytest completo con i pin esatti, PostgreSQL, browser, SCA e Trivy devono ancora essere eseguiti nella CI. Nessuna immagine è dichiarata promossa; `PRODUCTION_IMAGE_DIGEST` resta `PENDING_HOTFIX_REBUILD`. La disposition Debian scaduta non è stata estesa. [Stato verifiche](../docs/TESTING_AND_PRODUCTION.md) · [Handoff](../docs/HANDOFF.md).
+
+## RC18: catalogo, obsolescenza e installazione su cluster
+
+Tenants Default viene inizializzato dalla configurazione del tenant `default` se assente. Il catalogo consente importazioni ripetute, copie nominative e personalizzazione dei parametri; l'origine UUID garantisce riferimenti corretti anche con ID diversi nei tenant. Lo stato **corrente/obsoleto** blocca nuove assegnazioni e propaga l'obsolescenza dalla sorgente alle copie, con avvisi agli amministratori. Le configurazioni in uso negli incidenti sono protette dalla cancellazione.
+
+Full Export e bootstrap includono Tenants Default. È disponibile anche il bundle completo del solo tenant speciale per un'altra istanza. [Migrazione e procedure](../docs/MIGRATION.md).
+
+Il package include [Helm e OpenShift](../docs/DEPLOYMENT.md), [guida del laboratorio](../docs/TRAINING.md), [slide PowerPoint](../docs/presentation/CIR_Operational_Training_IT.pptx) e brochure aggiornate. La versione funzionale resta **0.9.0-1**. Le verifiche e i gate ancora necessari sono riportati in [Testing](../docs/TESTING_AND_PRODUCTION.md) e [Handoff](../docs/HANDOFF.md).
+
+
+## Tenants Default RC17
+
+La RC17 introduce **Tenants Default**, distinto dal tenant operativo `default`,
+per pubblicare configurazioni condivise e mantenere un catalogo di workflow.
+Ogni importazione dal catalogo crea una copia autonoma, con nome scelto, parametri,
+notifiche e documenti modificabili nel tenant destinatario. Lo stesso workflow
+può essere importato più volte. L'export completo del tenant speciale include
+configurazioni, documenti, impostazioni e catalogo, con inclusione delle credenziali
+solo su scelta esplicita del superuser.
+
+Guida operativa: [Tenants Default e migrazione](../docs/MIGRATION.md#tenants-default-rc18).
+Stato di verifica: [release RC17](../docs/RELEASE.md#rc17-tenants-default).
+Per riprendere lo sviluppo: [Handoff aggiornato](../docs/HANDOFF.md).
+La versione funzionale rimane **0.9.0-1**; la RC richiede ancora i gate applicativi
+e production indicati nella documentazione.
+
+## Genealogia della release
+
+La **0.8.0** (build 20260718) è la baseline funzionale da cui sono partiti i Round 1-18. Tutti i cambiamenti introdotti nei Round 1-18 confluiscono nella **0.9.0-1** (build 20260902). I round sono iterazioni interne di sviluppo/audit della 0.9.0-1 e non release funzionali intermedie. Le note cumulative della release sono in `docs/RELEASE.md`.
+
+- Esteso il wizard guidato di setup iniziale, ri-eseguibile da **Admin → Wizard setup iniziale**: la testata usa sempre il logo applicativo di default e mostra nome applicazione, versione e build; la prima sezione consente il cambio della password dell’utente locale admin e le sezioni successive includono parametri generali, logo custom, struttura, personale, tenant, LDAP, SSO/OAuth2, motori AI, Alfresco, documentazione, notifiche/SMTP e sicurezza/audit, con possibilità di saltare gruppi di impostazioni. Il wizard aggiorna le configurazioni esistenti dell’applicazione senza duplicarle.
+### Aggiornamento 0.7.0-7 - Limite upload configurabile e lista incidenti
+
+- Risolto a fondo l'errore "Request entity too large" sugli import workflow grandi: il limite configurato viene applicato sia a `MAX_CONTENT_LENGTH` sia a `MAX_FORM_MEMORY_SIZE` e la preview dell'import workflow non reinvia più il JSON come campo nascosto, ma usa un token temporaneo lato server. Il campo **Dimensione massima upload (MB)** in **Admin → Altre configurazioni** resta valido per import workflow, allegati, documenti, loghi e restore; default 25 MB, con reverse proxy e ingress da allineare a un valore almeno uguale.
+- Nella lista principale degli incidenti la colonna **Compilatore** è stata sostituita da **Riferimento**, con ordinamento dedicato per il campo riferimento.
+
+### Aggiornamento 0.7.0-7 - Workflow aggiorna sezione e azioni automatiche pulsanti
+
+La configurazione workflow include la tipologia di sistema `Operazione`, non eliminabile ma modificabile nella descrizione, con lo stesso comportamento operativo di `Aggiorna sezione`, e la tipologia di sistema `Aggiorna sezione`, che apre una sezione del dettaglio incidente e considera lo step completato quando e' presente l'azione associata allo step. La pagina Admin include inoltre la configurazione delle azioni automatiche associate ai pulsanti operativi: ogni associazione puo' essere eseguita sempre oppure solo quando il pulsante viene premuto da una sezione aperta tramite uno step workflow `Aggiorna sezione` o `Operazione`. Il layout delle azioni permette di nascondere il campo Label per default.
+
+### Aggiornamento 0.7.0-7 - Riorganizzazione documentazione
+
+Le guide utente e amministrativa sono state ristrutturate per integrare nei capitoli corretti le note operative su notifiche schedulate, CC, conseguenze automatiche, stato servizi, AI Chatbot, workflow e destinatari esterni. Le figure di flusso sono ora collocate all’interno dei capitoli introduttivi, le sezioni finali sono numerate e contestualizzate e il layout desktop della documentazione è stato rafforzato. I risultati AGID non vengono rigenerati automaticamente: nuove evidenze vengono salvate solo su richiesta esplicita.
+
+0.7.0-7 - Abilitazione CC in anteprima notifiche manuali
+- Nell’anteprima delle notifiche manuali è disponibile la checkbox “Usa CC per questa notifica”, abilitata per default.
+- Se la checkbox viene disabilitata, il campo CC viene nascosto e ignorato sia per l’invio reale sia per “Conferma senza inviare”.
+
+### Aggiornamento 0.7.0-7 - Template incidente e cleanup documenti orfani
+
+Il salvataggio dei modelli incidente conserva ora l’ordine delle categorie selezionate tramite drag and drop, così la modifica successiva del modello mantiene la sequenza operativa definita dall’amministratore. In **Admin → Altre configurazioni** è stato aggiunto il pulsante **Cleanup documenti orfani**, che rimuove da `uploads` solo i file generati dall’applicazione non più collegati ad alcun incidente, documento o allegato azione, senza cancellare gli allegati caricati manualmente.
+
+### Aggiornamento 0.7.0-7 - Markdown con colore/dimensione e notifiche schedulate plain text
+
+Il rendering Markdown sicuro supporta ora anche la sintassi controllata `{color:<valore>}testo{/color}`, `{size:<valore>}testo{/size}` e `{button:Etichetta|URL}` nei punti dell’applicazione che visualizzano Markdown, inclusi workflow e AI Chatbot. I pulsanti possono usare URL HTTP/HTTPS, percorsi relativi e ancore della pagina corrente come `#incident-main`. I valori ammessi sono limitati a colori CSS semplici o esadecimali e dimensioni testuali predefinite o comprese negli intervalli consentiti, evitando HTML libero e script. Le notifiche schedulate inviate via email rimuovono automaticamente la formattazione Markdown prima dell’invio, preservando il contenuto testuale e i link in forma leggibile.
+
+
+0.7.0-7 - Anteprima CC precompilata e svuotamento manuale
+- L’anteprima delle notifiche manuali precompila il CC modificabile con il default del template, se presente.
+- Se l’operatore svuota il campo CC prima della conferma, l’invio ignora il CC e procede senza destinatari in copia.
+
+# cybersecurity-incident-registry
+
+
+
+
+Applicazione Flask/Gunicorn per registro incidenti informatici con PostgreSQL.
+
+## Requisiti e compatibilità
+
+Il file `requirements.txt` è stato aggiornato per ambienti Python 3.13, mantenendo compatibilità con Python 3.11 usato dall'immagine container. I pin risolvono i problemi di build/installazione di `matplotlib==3.9.1` e `psycopg2-binary==2.9.9` su Python 3.13; sono inoltre presenti pin espliciti aggiornati per `Werkzeug==3.1.6`, `Pillow==12.2.0`, `python-dotenv==1.2.2`, `pypdf==6.19.0`, `requests==2.33.0`, `cryptography==50.0.1` e, nei requisiti di sviluppo, `pytest==9.0.3`. Il pacchetto Python corretto per le chiamate HTTP è `requests`.
+
+## Stato applicativo
+
+La documentazione operativa descrive la piattaforma 0.10.0-1; la build automatica del package è registrata in `BUILD`. Le variazioni cronologiche sono mantenute nelle Note di rilascio e in `CHANGELOG.txt`, non nelle guide utente o amministrative.
+
+## Compliance sviluppo sicuro AgID/CWE/OWASP - build 20260608
+
+La build 0.7.0-7 introduce un hardening applicativo orientato alle linee guida di sviluppo sicuro allegate:
+
+- validazione server-side rafforzata per password, email, username, campi testuali e upload;
+- policy password locale con almeno 12 caratteri, complessità, blocco di password comuni/default e divieto di includere username/email;
+- rate limiting server-side del login con blocco temporaneo progressivo dopo tentativi falliti e audit degli eventi di autenticazione;
+- rigenerazione/invalida sessione dopo login/logout, timeout di inattività configurabile con `SESSION_IDLE_TIMEOUT_SECONDS`;
+- Content-Security-Policy configurabile con `CONTENT_SECURITY_POLICY`, oltre a HSTS, HttpOnly, SameSite, Secure cookie in produzione;
+- controllo upload con whitelist estensioni, verifica magic number per formati binari principali, limite dimensione e salvataggio con permessi restrittivi;
+- audit security per login falliti/bloccati/riusciti, logout, timeout sessione, cambio password e CSRF falliti;
+- password amministratore iniziale generata temporaneamente se `ADMIN_INITIAL_PASSWORD` non è impostata; in produzione resta obbligatorio definire esplicitamente `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD` e PostgreSQL.
+
+Per la compliance operativa si raccomanda inoltre di eseguire in pipeline `pytest`, `bandit`, `pip-audit` e una scansione container, e di mantenere anche a livello di reverse proxy la disabilitazione dei metodi HTTP TRACE/TRACK, già bloccati dall’applicazione.
+
+## Hardening produzione build 20260608
+
+Questa build introduce una baseline di sicurezza applicativa per l'uso in produzione:
+
+- protezione CSRF automatica su tutte le form `POST`, `PUT`, `PATCH` e `DELETE`, con inserimento server-side del campo nascosto nei template HTML; per test locali è disponibile `CIR_DISABLE_CSRF=1`, che viene rifiutata quando `CIR_PRODUCTION=1`;
+- header HTTP di sicurezza: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e HSTS quando HTTPS è attivo o `CIR_FORCE_HSTS=1`;
+- cookie di sessione `HttpOnly`, `SameSite=Lax` e `Secure` quando `SESSION_COOKIE_SECURE=1`; `CIR_PRODUCTION=1` mantiene i controlli fail-fast ma non forza più cookie `Secure`, così CSRF resta utilizzabile anche in Docker Compose plain HTTP quando `SESSION_COOKIE_SECURE=0`;
+- limite dimensione upload configurabile con `MAX_CONTENT_LENGTH`, default 25 MiB;
+- controllo fail-fast in produzione: con `CIR_PRODUCTION=1` l'applicazione rifiuta `SECRET_KEY` deboli, password bootstrap admin deboli e database SQLite;
+- scheduler notifiche/promemoria protetto da lock PostgreSQL advisory, quindi sicuro anche con più worker o repliche Kubernetes;
+- `docker-compose.yml` non contiene più segreti hardcoded e richiede un file `.env` derivato da `.env.example`.
+
+Per preparare un avvio sicuro:
+
+```bash
+cp .env.example .env
+# modificare POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY e ADMIN_INITIAL_PASSWORD
+docker compose pull
+docker compose up -d
+```
+
+Per costruire localmente invece dell'immagine pubblicata usare:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml build --no-cache web
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d
+```
+
+
+Nota container: l'immagine applica esplicitamente i permessi `0755` a `/app/docker-entrypoint.sh` durante la build. L'entrypoint prepara i volumi persistenti montati sotto `/data`, corregge proprietà e permessi per UID/GID `10001`, copia gli asset predefiniti nei volumi appena creati e poi rientra come utente non privilegiato `appuser`. Se un bind mount host non può essere corretto, `CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE=1` evita crash di startup come `Permission denied: /data/sso_logos/facebook-logo.svg` continuando come root con warning.
+
+
+## Variabili di ambiente e gestione container
+
+È stata aggiunta la guida dedicata `docs/CONTAINER_ENVIRONMENT.md`, che descrive tutte le variabili di ambiente usate dal container, i volumi persistenti, l'avvio con Docker Compose, l'uso dei secret Kubernetes, HTTPS interno, tuning Gunicorn, scheduler notifiche/promemoria, backup e aggiornamento del container.
+
+La documentazione amministrativa online include lo stesso contenuto operativo in forma sintetica: in produzione preparare sempre un file `.env` da `.env.example`, valorizzare `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD`, `POSTGRES_PASSWORD`, abilitare `CIR_PRODUCTION=1` e montare su storage persistente `UPLOAD_DIR`, `LOGO_DIR`, `FORM_TEMPLATE_DIR`, `SSO_LOGO_DIR` e `SSL_DIR`.
+
+## Avvio locale
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Aprire `http://localhost:8000`. L'utente locale iniziale è `admin`; la password iniziale deriva da `ADMIN_INITIAL_PASSWORD` solo alla prima creazione dell'utente. Ai riavvii non viene resettata. Per l'uso via HTTP mantenere `SESSION_COOKIE_SECURE=0`: il browser riceve e reinvia il cookie di sessione e la login protetta da CSRF funziona anche con `CIR_PRODUCTION=1`. Impostare `SESSION_COOKIE_SECURE=1` solo quando l'applicazione è servita via HTTPS o dietro reverse proxy TLS. Se la password nel file `.env` è stata copiata con virgolette o CRLF, l'applicazione normalizza il valore di bootstrap rimuovendo solo tali artefatti esterni.
+
+## Caratteristiche principali
+
+- PostgreSQL persistente.
+- Login locale, LDAP configurabile con filtro utenti e login SSO/OAuth2/OpenID Connect configurabile da interfaccia Admin.
+- Ruoli: admin, operator, reader, writer, disabled.
+- Drag & drop per categorie, dati interessati, personale e raccomandazioni, con destinazioni adiacenti alle palette.
+- Help online contestuale nella scheda del singolo incidente per i campi principali e per le informazioni procedurali più delicate.
+- Upload/download documenti.
+- Export CSV, export completo compresso con tutti i campi reali del database, report PDF professionale con tabelle wrappate e grafico azioni nel tempo.
+- Seed idempotente con lock PostgreSQL per evitare duplicate key e WORKER_BOOT_ERROR.
+- Hash password PBKDF2-SHA256 con pre-hash SHA256 per evitare il limite bcrypt di 72 byte.
+
+
+## Login SSO / OAuth2
+
+Gli amministratori possono configurare l’accesso federato da **Admin → SSO**. La configurazione include:
+
+- abilitazione/disabilitazione del login SSO;
+- nome del provider visualizzato nella pagina di login;
+- authorization endpoint, token endpoint e userinfo endpoint;
+- client ID e client secret;
+- scope OAuth2/OpenID Connect, di default `openid email profile`;
+- nomi dei claim da usare per username, email, nome e identificativo univoco;
+- creazione automatica degli utenti SSO e ruolo predefinito, di default `disabled`;
+- logo opzionale del provider, mostrato sul pulsante di login se presente. I loghi condivisi caricati dalla UI sono salvati nella directory persistente configurata con `SSO_LOGO_DIR`, default `/data/sso_logos`, e non sotto l'area statica effimera del container.
+
+Il redirect URI da registrare sul provider viene mostrato nella pagina Admin → SSO. La stessa pagina include il pulsante **Controlla configurazione**, che usa i valori presenti nella form anche prima del salvataggio e verifica parametri obbligatori, endpoint di autorizzazione, token endpoint, UserInfo endpoint, scope e claim principali. Il controllo è non distruttivo: non crea utenti e non completa un login reale. Per la prova completa è disponibile anche **Avvia test login interattivo**, che usa il normale flusso OAuth2 con redirect verso il provider. Il login locale e LDAP restano disponibili. Gli utenti SSO creati automaticamente possono essere abilitati o promossi da **Admin → Utenti**. L’identità dell’account applicativo è sempre la coppia **username + backend**: lo stesso username può quindi esistere contemporaneamente come account locale, LDAP e SSO/OAuth2, anche su profili SSO diversi, senza sovrascrivere ruoli, MFA o preferenze degli altri account.
+
+### Storage persistente loghi SSO
+
+I loghi condivisi dei profili SSO/OAuth2 caricati da **Admin → SSO** sono salvati fuori da `app/static`, nella directory indicata dalla variabile d’ambiente `SSO_LOGO_DIR`. Il default è `/data/sso_logos`. Nei container di produzione questa directory deve essere montata su volume persistente; il `docker-compose.yml` include il volume nominato `sso_logos` e i manifest Kubernetes includono la PVC `cir-sso-logos`.
+
+All’avvio l’applicazione copia nella directory persistente i loghi predefiniti inclusi nell’immagine, solo se non sono già presenti. L’export completo include i file presenti in `SSO_LOGO_DIR` e l’import completo li ripristina nella stessa area persistente.
+
+
+
+I manifest Docker Compose e Kubernetes supportano sia l'immagine pubblicata `desalvo/cybersecurity-incident-registry:latest` sia il build locale: Compose usa l'immagine pubblicata di default e il file `docker-compose.build.yml` come override per il build; Kubernetes usa la stessa immagine `latest` e include `k8s/kustomization.yaml` per cambiare tag o immagine in cluster di test. La variabile `CIR_DISABLE_CSRF` è esposta in entrambi i setup e deve restare `0` in produzione. I volumi applicativi sono preparati per l'utente non-root del container tramite entrypoint Docker o initContainer Kubernetes; sono inclusi `sso_logos` e `ai_chatbot_docs`.
+
+## Kubernetes
+
+Applicare i manifest in `k8s/` dopo aver pubblicato l'immagine container.
+
+## Build container
+
+```bash
+docker build --no-cache -t cybersecurity-incident-registry:latest .
+docker compose pull
+docker compose up -d
+```
+
+Questa versione usa `python:3.11-slim-bookworm`, installa le librerie native richieste da `psycopg2`, `reportlab` e `matplotlib`, usa Gunicorn come server Flask di produzione e include `.dockerignore` per evitare di copiare file locali nel build context.
+
+## Aggiornamento container Debian Trixie
+
+Il Dockerfile usa ora `python:3.12-slim-trixie`, basato su Debian 13 Trixie. Le dipendenze native necessarie per PostgreSQL, ReportLab, Matplotlib e healthcheck vengono installate con `apt` e le dipendenze di build vengono rimosse dopo `pip install`.
+
+Build:
+
+```bash
+docker compose build --no-cache
+```
+
+Avvio:
+
+```bash
+docker compose up -d
+```
+
+## Fix Docker build Debian Trixie
+
+Il Dockerfile usa `python:3.12-slim-trixie` e installa solo dipendenze runtime disponibili in Debian Trixie. Le dipendenze Python vengono installate solo da wheel binarie (`--only-binary=:all:`), evitando compilazioni native e pacchetti come `build-essential`/`libpq-dev`, che erano la causa più probabile del fallimento allo step 4.
+
+Build:
+
+```bash
+docker build --no-cache -t cybersecurity-incident-registry:trixie .
+```
+
+
+## Aggiornamento incluso
+- Cancellazione incidenti da lista e dettaglio per ruoli admin/writer.
+- Gestione personale semplificata: aggiunta solo con nome ed email; rimosso il campo Categoria/Gruppo.
+- Cancellazione del personale con rimozione automatica dai riferimenti negli incidenti.
+
+## Aggiornamento schema
+
+All'avvio l'applicazione esegue migrazioni leggere e idempotenti. Se un database esistente non contiene la colonna `incident.reference`, questa viene aggiunta automaticamente senza cancellare dati.
+
+
+## Informazioni applicazione
+- Nome: Cybersecurity Incident Registry
+- Versione: 0.10.0-1
+- Build: automatica `YYYYMMDD`, registrata nel file `BUILD`
+- Autore: Alessandro De Salvo <Alessandro.DeSalvo@roma1.infn.it>
+
+Le informazioni sono visibili da **Info → Applicazione**. Versione e build provengono dai file `VERSION` e `BUILD` distribuiti; gli override legacy `APP_VERSION`/`APP_BUILD` non prevalgono su questi file. Nome e autore restano configurabili via `APP_NAME`, `APP_AUTHOR` e `APP_AUTHOR_EMAIL`.
+
+## Notifiche CSIRT/DPO
+
+Dal dettaglio di ogni incidente è disponibile la sezione **Notifiche** con i pulsanti **Notifica CSIRT** e **Notifica DPO**.
+Prima dell'invio viene mostrata un'anteprima del messaggio. L'invio usa il mittente dell'utente loggato, allega il report PDF aggiornato e aggiunge automaticamente un'azione all'incidente con label:
+
+- `04-comunicazione allo CSIRT` per CSIRT
+- `05-comunicazione al DPO` per DPO
+
+Dal menu **Notifiche** un amministratore può configurare:
+
+- parametri SMTP e mittente predefinito;
+- template separati per utente, CSIRT, DPO e altri tipi;
+- destinatario e CC direttamente dentro ogni template di notifica manuale;
+- promemoria automatici di scadenza delle azioni.
+
+Le impostazioni globali **Email CSIRT**, **CC CSIRT**, **Email DPO** e **CC DPO** non sono più presenti: i relativi indirizzi vanno definiti nei template tramite valore fisso, e-mail del Destinatario dell’incidente, compilatore o compilazione manuale/rubrica esterna.
+
+Nei template sono disponibili i segnaposto `%DATA%`, `%CATEGORIES%`, `%RISK_RIGHTS_FREEDOM%`, `%REPORT%`, `%DOCUMENTS%`, `%ACTIONS%`, `%MEASURES_ADOPTED%`, `%RECOMMENDATIONS%`, `%INCIDENT_URL%`, `%SITE%`, `%RESP%`, `%RESP_EMAIL%`, `%DIRECTOR%`, `%DIRECTOR_ROLE%`, `%STATISTICS%`, `%APP_INFO%` e gli altri campi mostrati nella pagina di configurazione del template. Il link diretto all’incidente viene inserito solo tramite `%INCIDENT_URL%`; `%STATISTICS%` allega il report statistiche in PDF.
+
+### Promemoria automatici scadenze azioni
+
+Nelle label azioni, amministrate da **Admin → Liste configurabili**, sono disponibili il campo numerico **Tempo massimo (ore)**, espresso in ore e con default 0, e il campo **Esportabile per default**. Il valore 0 significa che per quella label non esiste alcun tempo massimo e la label non viene considerata nei promemoria. Se il valore è maggiore di zero, il sistema considera l’azione come attività da completare entro quel numero di ore a partire dalla prima azione di tipo **informazione iniziale** dell’incidente.
+
+Nelle impostazioni notifiche sono configurabili:
+
+- abilitazione/disabilitazione dei promemoria automatici;
+- intervallo di controllo in ore e minuti;
+- esecuzione manuale immediata del controllo.
+
+A ogni controllo, per ogni incidente aperto e non silenziato, l’applicazione cerca le label azione con tempo massimo configurato che non sono ancora presenti nella timeline dell’incidente. L’invio delle email può essere disabilitato totalmente da **Admin → Notifiche** con l’opzione dedicata **Abilita invio email per task in scadenza**. Se l’invio è abilitato ed esistono azioni mancanti, la mail viene inviata solo quando nell’incidente è selezionata almeno una unità di personale associata; i destinatari effettivi sono le persone coinvolte con indirizzo e-mail valorizzato. In assenza di personale selezionato l’incidente viene saltato e non viene inviata alcuna mail. Dalla pagina di dettaglio di ogni incidente è possibile selezionare **Silenzia notifiche email per task in scadenza** per escludere solo quello specifico incidente dai promemoria automatici. Il testo delle email di scadenza task è configurabile nella stessa pagina tramite template di oggetto e corpo con placeholder nella forma `%nome_placeholder%`; la pagina mostra l’elenco dei placeholder disponibili e una preview con dati dimostrativi prima dell’invio reale.
+
+### Conferma notifiche senza invio
+
+Nelle pagine di anteprima delle notifiche manuali/non schedulate è disponibile il pulsante **Conferma senza inviare**. L’operazione richiede una conferma esplicita aggiuntiva: se confermata, l’applicazione completa il flusso operativo senza trasmettere alcuna email, registra comunque l’azione nella timeline dell’incidente e allega il PDF con il testo della comunicazione prevista. La descrizione dell’azione indica chiaramente che si tratta di una conferma senza invio.
+
+### Modifica data e ora delle azioni
+
+Nella sezione **Azioni** del dettaglio incidente, la timeline è presentata con un riquadro separato e collassabile per ciascuna azione, chiuso per default per rendere più compatta la consultazione. L’intestazione mostra data/ora, nome azione calcolato dalla descrizione della label/task se presente oppure dal nome della label/task, persona e stato esportabile/non esportabile; aprendo il riquadro vengono mostrati metadati, descrizione, conseguenze, allegati e comandi operativi. Gli utenti con permessi di scrittura possono modificare direttamente anche la data e ora di ciascuna azione esistente, oltre a label, persona, descrizione, conseguenze e flag esportabile.
+
+
+### Leggibilità form e checkbox
+
+Le checkbox dell’applicazione sono allineate in modo coerente con il testo associato, incluse le opzioni inline, le liste di selezione e i flag presenti nelle schede di modifica. Questo evita disallineamenti visuali tra controllo e label su desktop, mobile e pagine amministrative.
+
+## Aiuto
+
+Il menu **Aiuto** mostra una documentazione sintetica d'uso dell'applicazione.
+
+### Template email task in scadenza
+
+In **Admin → Notifiche** sono disponibili i campi **Oggetto** e **Corpo del messaggio** per personalizzare le email dei task in scadenza. I placeholder supportati sono mostrati nella pagina e includono, tra gli altri, `%incident_name%`, `%incident_reference%`, `%incident_status%`, `%initial_information_at%`, `%pending_actions%`, `%pending_actions_count%`, `%recipients%`, `%generated_at%` e `%application_name%`. Il pulsante **Anteprima template task** genera una preview usando dati dimostrativi e non invia alcuna email.
+
+## Documentazione progettuale
+
+Il pacchetto include `docs/PROJECT_DESIGN.md`, che descrive l'architettura logica, il modello dati, i flussi applicativi, le regole di autorizzazione, il sistema notifiche, export/reportistica e una sezione testuale completa per riprodurre l'applicazione da capo mantenendo le funzionalità della build corrente.
+
+
+## Aggiornamento PostgreSQL 18.6 e fix creazione incidenti
+
+Questa build usa PostgreSQL `18.4` nel `docker-compose.yml` e include anche un manifest Kubernetes dedicato in `k8s/postgresql.yaml` con immagine `postgres:18.6`.
+
+La creazione di nuovi incidenti è stata resa più robusta:
+
+- gli ID non vengono mai assegnati dall'applicazione;
+- la sequence PostgreSQL della tabella `incident` viene riallineata prima dell'inserimento;
+- i valori provenienti dai campi drag & drop vengono deduplicati prima di popolare le tabelle associative `incident_categories`, `incident_data_types`, `incident_people` e `incident_recommendations`;
+- questo evita errori `duplicate key value violates unique constraint` sia sulla tabella degli incidenti sia sulle relazioni many-to-many quando la UI invia accidentalmente lo stesso valore più volte.
+
+Per ricostruire il container:
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up
+```
+
+
+
+## Date e ore degli incidenti
+
+Nella form degli incidenti la data e l’ora di inizio sono campi separati (**Data inizio** e **Ora inizio**). Anche la fine dell’incidente usa campi separati (**Data fine** e **Ora fine**). All’avvio l’applicazione migra automaticamente i database esistenti popolando i nuovi campi separati a partire dalle colonne storiche `start_at` ed `end_at`; dopo la migrazione le colonne legacy non più usate vengono rimosse dal database. Il codice espone proprietà compatibili per report e filtri, calcolate dai nuovi campi granulari. La pagina principale e le statistiche ordinano e filtrano usando le colonne reali `start_date` e `start_time`, evitando query SQL sulle proprietà calcolate `start_at`/`end_at`.
+
+Nei mapping dei moduli PDF sono disponibili i campi granulari `start_date`, `start_time`, `end_date`, `end_time`; le etichette compatibili `start_at`/`end_at` restano disponibili come valori calcolati combinati, senza colonne legacy nel database.
+
+
+## Durata degli incidenti
+
+La durata operativa degli incidenti è calcolata esclusivamente dal momento della prima azione registrata fino alla conclusione dell’incidente, rappresentata da `end_date` e `end_time` / proprietà compatibile `end_at`. I campi `start_date` e `start_time` descrivono l’inizio dichiarato o noto dell’evento e restano usati per filtri, ordinamenti temporali e periodo visualizzato, ma non partecipano al computo della durata. Se un incidente non ha azioni o non ha data/ora fine, la durata è considerata non disponibile. Lo stesso criterio è usato nella lista principale, nell’ordinamento per durata, nel CSV e nelle statistiche/PDF statistiche.
+
+## Generazione moduli PDF compilabili
+
+L’applicazione genera moduli partendo direttamente dal PDF originario caricato in **Moduli → Configurazione**. Il PDF deve contenere campi AcroForm compilabili: i nomi dei campi da mappare coincidono con i nomi presenti nel modulo PDF. Non viene più creato né usato un template XML intermedio.
+
+Il flusso amministrativo è:
+
+1. caricare un PDF compilabile da **Moduli → Configurazione**;
+2. verificare l’elenco dei campi AcroForm rilevati;
+3. salvare il PDF originario come template;
+4. associare i campi database dell’incidente ai campi PDF tramite drag & drop. Le sezioni **Campi database incidenti** e **Campi del template** hanno barre di scorrimento verticali per gestire liste lunghe senza perdere il contesto della pagina;
+5. associare al template, sempre con drag & drop, uno o più tag corrispondenti ai tipi di notifica. I tag sono identificati dal nome del tipo nella UI e salvati con il relativo codice tecnico; i tag già associati possono essere rimossi usando il pulsante × nel chip selezionato e salvando la configurazione.
+
+Dalla pagina di dettaglio dell’incidente, gli utenti abilitati selezionano uno o più template PDF facendo click sulle schede dei template, evidenziate con colore diverso quando selezionate, e generano un’anteprima. Alla conferma, il PDF compilato viene registrato come documento allegato all’incidente e riceve per default solo i tag notifica attualmente configurati sul template modulo usato per generarlo. Nella configurazione di ciascun template l’amministratore può scegliere il font di compilazione, tra Helvetica e Times Roman, e la dimensione da usare, tra 8 e 16 pt. Durante la compilazione l’applicazione usa tutta la larghezza disponibile, applica il font e la dimensione configurati e genera un **nuovo PDF finale statico**: i valori compilati sono disegnati nel contenuto delle pagine e i campi AcroForm vengono rimossi. La resa dei campi risolve anche widget annidati o privi di nome diretto usando il nome completo del campo AcroForm, tiene conto del CropBox della pagina, ignora i widget nascosti e raccoglie i widget sia dalle annotazioni di pagina sia dall’albero AcroForm. In questo modo vengono gestiti anche PDF prodotti da editor che non sincronizzano completamente `/Annots` e `/Fields`. Per evitare campi mancanti, la generazione accetta anche la corrispondenza tra nome gerarchico completo e nome terminale del campo e centra verticalmente i valori nei campi piccoli. Il file prodotto non contiene più campi modificabili e può essere visualizzato correttamente anche da viewer PDF che non rigenerano le apparenze dei moduli.
+
+I template PDF sono conservati nella directory persistente `FORM_TEMPLATE_DIR` e, da questa versione, anche in una copia binaria nel database nella tabella `form_template_binary`. All’avvio l’applicazione verifica la directory dei template e ripristina automaticamente dal database eventuali PDF mancanti: in questo modo un riavvio del container o una configurazione incompleta del volume non fa più sparire i modelli dalla configurazione moduli. I template sono inclusi nell’export/import completo insieme alle mappature e ai metadati dei campi PDF rilevati, così l’archivio è autosufficiente per rigenerare i moduli dopo un ripristino. Dalla configurazione moduli è possibile sostituire il PDF originario di un template esistente: la sostituzione viene accettata solo se il nuovo PDF contiene esattamente gli stessi campi AcroForm compilabili del modello precedente. In questo caso vengono mantenuti nome template, mapping dei campi, font e dimensione configurati.
+
+## Campi amministrativi disponibili nei moduli
+
+Oltre ai dati dell’incidente, nei mapping dei moduli sono disponibili anche:
+
+- `security_owner`: nome del titolare, configurato in **Admin → Dati titolare**;
+- `security_owner_role`: ruolo del titolare, configurato in **Admin → Dati titolare**;
+- `security_owner_email`: email del titolare, configurata in **Admin → Dati titolare**;
+- `structure`: nome della struttura, configurato in **Admin → Struttura**;
+- i dati del responsabile della sicurezza configurati in **Admin → Dati responsabile**.
+
+## Nota PostgreSQL 18.6
+
+Nei manifest Docker Compose e Kubernetes il volume persistente PostgreSQL è montato su `/var/lib/postgresql`, come richiesto per l'immagine `postgres:18.6`. La directory dati effettiva viene gestita dall'immagine ufficiale all'interno del volume, evitando problemi di permessi o inizializzazione quando si monta direttamente `/var/lib/postgresql/data`.
+
+
+## Aggiornamento dati titolare, responsabile e raccomandazioni
+
+Questa versione aggiunge ai dati disponibili per ciascun incidente anche le informazioni amministrative centralizzate relative al titolare e al responsabile della sicurezza:
+
+- **Titolare**: configurabile da `Admin -> Dati titolare`.
+- **Responsabile**: configurabile da `Admin -> Dati responsabile`.
+- **Email responsabile**: configurabile da `Admin -> Dati responsabile`.
+- **Telefono responsabile**: configurabile da `Admin -> Dati responsabile`; il valore predefinito è `-`.
+- **Funzione responsabile**: configurabile da `Admin -> Dati responsabile`.
+
+Nella pagina dell’incidente vengono inoltre mostrati:
+
+- **Conseguenze**, derivate automaticamente dalle categorie dell’incidente e dai tipi di dati interessati.
+- **Misure adottate**, derivate automaticamente dalla lista cronologica delle azioni intraprese.
+- **Raccomandazioni**, selezionabili tra le voci configurate da `Admin -> Raccomandazioni` mediante lo stesso meccanismo drag & drop usato per categorie, dati interessati e personale. Le raccomandazioni disponibili sono trascinate nella sezione “Raccomandazioni selezionate”; un clic sulla chip selezionata la rimuove dalla scheda.
+
+I campi sono disponibili anche per la generazione dei moduli PDF tramite il modulo `form_generation` e sono inclusi nell’export completo. Il full export serializza tutte le colonne effettive delle tabelle applicative e delle tabelle di relazione, includendo nel manifest anche lo schema dei campi esportati.
+
+
+## Aggiornamento campo Destinatario
+Ogni incidente richiede il campo **Riferimento**, normalmente corrispondente all’utente o soggetto interessato dall’incidente. Il valore è obbligatorio sia in creazione sia in modifica e viene validato anche lato server. Ogni incidente include inoltre il campo opzionale **Destinatario**, usato per indicare l'utente destinatario delle comunicazioni di data breach. Se il campo non viene compilato, l'applicazione usa automaticamente il valore di **Riferimento**. Il campo è disponibile nelle form, nei mapping dei moduli PDF e nei template tramite il campo database `recipient`.
+
+## Export completo
+
+L’export completo produce un archivio `tar.gz` autosufficiente. Il file `export.json` contiene tutte le colonne reali delle tabelle applicative SQLAlchemy, le tabelle di relazione molti-a-molti e una sezione `schema` con l’elenco dei campi esportati per ogni tabella. Per gli incidenti, i campi temporali granulari `start_date`, `start_time`, `end_date` ed `end_time` sono sempre serializzati esplicitamente, con fallback dai valori compatibili `start_at`/`end_at` quando necessario; nel manifest sono presenti anche gli alias `start_at` ed `end_at` per compatibilità con script o import di versioni precedenti. L’archivio include inoltre i file fisici collegati: documenti degli incidenti, allegati delle azioni, logo e template PDF dei moduli. L’import completo filtra e converte i campi in base al modello corrente, così gli export restano compatibili anche in presenza di campi aggiunti da versioni successive.
+
+
+### Export bootstrap anonimizzato del tenant default
+
+Per superuser e account locale `admin`, il menu **Export** espone anche **Export bootstrap anonimizzato (tenant default)**. Questa modalità crea un full export importabile in una nuova istanza, ma conserva soltanto la configurazione riutilizzabile del tenant `default`: tassonomie/label, raccomandazioni, workflow, tipi e template di notifica, configurazioni tecniche sanificate e i soli template PDF effettivamente referenziati dai workflow o dai template di notifica. Non vengono esportati incidenti, azioni, documenti operativi, allegati, persone, destinatari esterni, audit, MFA, knowledge base AI, job di backup o utenti reali.
+
+L'archivio contiene un unico account locale `admin` privo di hash password, e-mail o identità della sorgente. Durante il Full Import bootstrap la password viene rigenerata usando `ADMIN_INITIAL_PASSWORD` configurata **sulla nuova istanza**; se la variabile non è impostata l'import viene rifiutato prima del rebuild del database. I secret SMTP/LDAP/SSO/AI/Alfresco vengono svuotati; i profili SSO mantengono endpoint, claim e Client ID ma vengono disabilitati e privati del Client Secret finché non vengono riconfigurati sulla destinazione. Gli indirizzi e-mail e le identità note presenti nei testi di configurazione vengono redatti. Il logo custom, le chiavi/certificati SSL e gli asset SSO non referenziati non vengono trasferiti.
+
+Il bootstrap è pensato per clonare un **setup**, non dati operativi. Dopo l'import occorre impostare i secret della nuova istanza, verificare SSO/LDAP/SMTP/Alfresco, controllare gli eventuali testi/template mantenuti e completare il wizard/configurazione locale prima dell'uso in produzione.
+
+## Template moduli
+I template moduli predefiniti basati su XML/DOCX sono stati rimossi. Dal menu **Moduli → Configurazione** è possibile caricare PDF AcroForm compilabili, salvarli come template originari e cancellare template esistenti con conferma.
+
+## Aggiornamento documenti allegati
+
+Nella sezione Documenti della pagina di dettaglio incidente viene mostrata, per ogni documento allegato, anche la data e ora di upload e un pulsante `Scarica` per il download diretto del file. Per ogni documento è possibile associare o rimuovere i tag dei tipi notifica tramite palette drag & drop: la zona di rilascio è evidenziata e il pulsante di rimozione del tag selezionato è esplicito; all’inizio della sezione è presente la legenda dei tag con nome e descrizione, mostrata anche come tooltip. I tag selezionati vengono salvati esplicitamente e sono usati per preselezionare gli allegati nelle notifiche manuali. Il pulsante `Salva tag` è configurabile anche nelle azioni automatiche pulsanti: la sezione dedicata, collassabile per default, permette di creare più regole; ogni regola associa una diversa label azione a uno specifico insieme di tag selezionati tramite un’area drag & drop evidenziata. Un tag può essere usato in una sola regola del pulsante `Salva tag`; quando è già selezionato altrove viene disabilitato nelle altre regole. Al salvataggio dei tag vengono registrate tutte le azioni le cui regole hanno almeno un tag corrispondente tra quelli presenti sul documento. Al pulsante `Scarica` della sezione Documenti possono essere associate più regole ordinate: una regola con template specifico si applica solo al documento generato da quel template nel flusso guidato workflow, mentre la prima regola senza template è il fallback usato nei download manuali o negli step senza template.
+
+
+
+
+- Rimossi i campi legacy database start_at/end_at: il sistema utilizza ora esclusivamente start_date/start_time/end_date/end_time con proprietà compatibili applicative.
+
+### Campi dinamici e azioni esportabili nei moduli PDF
+
+Nella configurazione dei moduli PDF, tra i **Campi database incidenti**, sono disponibili anche i campi calcolati dinamicamente `awareness_date` (**Data venuta a conoscenza**) e `awareness_time` (**Ora venuta a conoscenza**). I due valori sono ricavati dalla prima azione cronologica dell’incidente la cui label contiene “informazione iniziale”. Se l’azione non è presente, il campo compilato resta vuoto.
+
+Il campo derivato `measures_adopted` include solo le azioni marcate come **exportable**. Per ogni azione esportabile la stringa compilata mostra prima il testo dell’azione, composto da label ed eventuale descrizione, e poi la data e ora dell’azione nel formato `YYYY-MM-DD HH:MM`. Il valore iniziale del flag sulle nuove azioni deriva dal campo **Esportabile per default** configurato sulla label azione in **Admin → Liste configurabili**; in assenza di label configurata resta il fallback sulle parole chiave storiche “notifica”, “comunicazione”, “informazione iniziale”, “analisi” o “conclusione”. Il flag può essere modificato aprendo il riquadro collassabile dell’azione nella sezione Azioni del dettaglio dell’incidente.
+
+## Avvisi procedurali
+
+Nel dettaglio incidente il sistema mostra avvisi procedurali derivati dagli step del workflow applicabile marcati come richiesti e non ancora completati. Ogni avviso riporta la descrizione operativa dello step, se disponibile, altrimenti la descrizione o il nome del task. Nella lista della pagina principale gli incidenti con almeno un avviso procedurale pendente sono evidenziati con un simbolo di pericolo accanto al nome; passando sopra il simbolo, o usando il focus da tastiera, viene mostrata una tabella dei task ancora da completare in sequenza, con rendering Markdown sicuro delle descrizioni. Gli incidenti senza avvisi procedurali attivi ma non ancora chiusi mostrano invece il simbolo di finalizzato, mentre gli incidenti chiusi senza avvisi attivi mostrano il simbolo di ok. La sezione "Avvisi procedurali" è collocata subito sotto "Fasi procedurali"; nella sezione delle fasi, la prima fase non completata è segnalata con una grande freccia rossa. In assenza di avvisi attivi, l’inserimento dell’azione di conclusione porta automaticamente l’incidente allo stato "chiuso".
+
+
+## Documentazione utente e logo applicativo
+
+La guida utente è disponibile dal menu **Aiuto -> Documentazione**. È stata riscritta come manuale operativo completo, con capitoli separati, esempi dettagliati passo-passo, checklist e descrizione delle principali funzioni di gestione incidenti. La pagina è ricercabile: il campo di ricerca filtra in tempo reale i capitoli della documentazione online.
+
+Dal menu **Aiuto -> Documentazione utente** è possibile aprire la guida online; il PDF corrispondente resta scaricabile dal pulsante interno alla pagina. Nel pacchetto di rilascio sono inoltre salvate copie statiche aggiornate in `docs/documentazione_utente.pdf`, `docs/documentazione_amministrativa.pdf`, `docs/user_documentation_en.pdf` e `docs/administrator_documentation_en.pdf`. Le versioni PDF statiche in italiano e inglese mantengono le figure vicino ai capitoli che le citano e possono essere rigenerate con `python scripts/build_documentation_pdfs.py`. La brochure è disponibile sia in italiano (`docs/brochure_cybersecurity_incident_registry.pdf`) sia in inglese (`docs/brochure_cybersecurity_incident_registry_en.pdf`).
+
+L’applicazione include inoltre un logo pittorico statico che rappresenta un cybersecurity incident registry. Il logo è mostrato sempre nella pagina di login e, nelle viste desktop/non mobile, anche nella barra del menu principale; resta disponibile anche la variante decorativa in basso a destra nelle pagine interne. Non sostituisce e non modifica il logo custom configurabile da **Admin -> Logo**, che continua a funzionare come nelle versioni precedenti. Nella versione mobile il logo pittorico della barra e quello decorativo sono nascosti per preservare lo spazio dello schermo. La barra menu desktop/non mobile usa background blu e mostra il nome **Cybersecurity Incident Registry** in verticale, con una parola per riga. La voce **Nuovo incidente** è rimossa dalla barra dei menu: la creazione avviene dal pulsante omonimo nella pagina principale degli incidenti.
+
+
+## Aggiornamenti funzionali su azioni, label, categorie, moduli e dati incidente
+
+Le azioni dell’incidente includono ora anche il campo **Conseguenze associate all’azione**, modificabile dal dettaglio incidente insieme a persona, label, descrizione e flag `exportable`. Le conseguenze esplicite inserite sulle azioni sono usate nei report e nei moduli quando viene richiesto il campo derivato delle conseguenze; in assenza di testi specifici resta disponibile la derivazione automatica basata su categorie, dati interessati e rischio per diritti e libertà.
+
+In **Admin → Liste configurabili** le sezioni sono visualizzate in verticale, una sotto l’altra, per migliorare la leggibilità dei campi modificabili e delle descrizioni estese.
+
+Se il database è già popolato, il bootstrap applicativo non reinserisce automaticamente i valori predefiniti mancanti per **Gravità**, **Dati interessati**, **Categorie incidente** e **Label azioni**. In **Admin → Liste configurabili** è disponibile il pulsante **Reinserisci valori predefiniti mancanti**, che ripristina solo le label assenti senza duplicare quelle già presenti.
+
+Le label configurabili hanno un campo **Descrizione** amministrabile da **Admin → Liste configurabili**. La descrizione è disponibile per le label delle azioni e per le categorie incidente. Nel campo modulo `measures_adopted` le azioni esportabili sono riportate usando la descrizione della label, se presente, al posto del nome tecnico della label; seguono l’eventuale descrizione dell’azione e la data/ora. Per le categorie incidente, il nuovo campo modulo `category_descriptions` / “Descrizione e causa” restituisce l’elenco delle descrizioni delle categorie associate, usando il nome categoria come fallback.
+
+Gli incidenti includono i nuovi campi **Numero di interessati** e **Volume dati**, modificabili nella scheda incidente ed esportati/importati nel full export come tutte le colonne reali del database. In **Moduli → Configurazione** sono disponibili anche i nuovi campi database: `data_subjects_count`, `data_volume`, `privacy_authority_non_notification_reason` e `documentation_location`. Questi ultimi due leggono i valori configurati in **Admin → Altre configurazioni**: “Motivazione non comunicazione al Garante della Privacy” e “Luogo documentazione”.
+
+Nella configurazione moduli è ora possibile rinominare un template PDF esistente mantenendo il PDF, i mapping campo PDF/campo database e la configurazione di font. La sostituzione del PDF continua a richiedere gli stessi campi AcroForm per preservare i mapping.
+
+## Documentazione utente
+
+La documentazione utente è disponibile dal menu **Aiuto → Documentazione utente** come guida online ricercabile; il PDF formattato professionalmente resta scaricabile dal pulsante interno alla pagina. La guida include il logo applicativo, diagrammi di flusso, grafici e schermate illustrative. Il logo custom configurato dall'amministratore non viene incluso nella documentazione utente.
+
+## Documentazione amministrativa
+
+Dal menu **Aiuto → Documentazione amministrativa** è disponibile una guida dedicata agli amministratori. La guida è ricercabile online con lo stesso meccanismo della documentazione utente e descrive in modo esteso:
+
+- responsabilità amministrative, prerequisiti e sicurezza degli account;
+- gestione utenti, ruoli e autorizzazioni;
+- configurazione LDAP, OAuth2/SSO e controllo della connessione SSO;
+- tassonomie, label, categorie, descrizioni e dati organizzativi;
+- SMTP, template e notifiche;
+- template PDF, mapping, sostituzione e rinomina dei moduli;
+- logo applicativo, logo custom e menu Aiuto;
+- full export, import, backup, ripristino e continuità operativa;
+- controlli periodici, audit, qualità dati e troubleshooting.
+
+Dal menu **Aiuto → Documentazione amministrativa** è possibile aprire la guida amministrativa; la versione PDF professionale è scaricabile dal pulsante interno alla pagina. Il PDF include copertina, logo applicativo, informazioni di versione lette da `APP_INFO`, indice, header/footer, numerazione pagine, diagrammi di flusso, grafici e schermate illustrative. Anche in questo caso viene usato esclusivamente il logo applicativo, senza includere il logo custom configurabile dall'amministratore. Le copie PDF statiche incluse in `docs/` devono essere rigenerate a ogni aggiornamento documentale con `python scripts/build_documentation_pdfs.py`. La brochure è disponibile sia in italiano (`docs/brochure_cybersecurity_incident_registry.pdf`) sia in inglese (`docs/brochure_cybersecurity_incident_registry_en.pdf`).
+
+## Multi-factor authentication TOTP
+
+L'applicazione supporta la multi-factor authentication basata su TOTP per utenti locali e LDAP. La MFA è disattivata per default per ogni utente. La creazione di un token avviene in due fasi: generazione temporanea di stringa segreta/QR Code e verifica obbligatoria del codice TOTP. Il token viene salvato nel database solo se la verifica ha esito positivo.
+
+Ogni utente può gestire i propri token dal menu **Impostazioni → Multi-factor authentication**. La MFA può essere attivata solo quando nell'utenza esiste almeno un token verificato; se viene rimosso l'ultimo token verificato la MFA viene disattivata automaticamente per evitare blocchi di accesso.
+
+Gli amministratori possono gestire la MFA di tutti gli utenti da **Admin → Utenti → gestisci MFA**: possono attivare o disattivare la richiesta MFA solo in presenza di token verificati, revocare singoli token o rimuovere tutti i token di un utente. I dettagli segreti dei token altrui non sono visibili agli amministratori; restano visibili solo per i propri token nella pagina di gestione personale. Le cancellazioni usano un solo passaggio di conferma operativa, evitando doppie richieste di conferma.
+
+Da **Admin → Utenti** è inoltre possibile creare account locali o LDAP anche quando lo stesso username esiste già su un altro backend. Per gli utenti non `admin` si possono gestire più membership tenant, il ruolo specifico per ciascun tenant e il tenant attivo predefinito usato al login; gli utenti con più tenant accessibili hanno anche un selettore tenant nella barra superiore che effettua lo switch immediato della sessione corrente e filtra subito la pagina principale sugli incidenti del tenant selezionato. La tabella mostra il tipo di login in forma leggibile: per gli account SSO/OAuth2 visualizza anche il nome del provider e l'id del profilo, mantenendo sotto il backend tecnico (`local`, `ldap`, `sso:<id profilo>`). Questo rende immediatamente distinguibili due utenti con lo stesso username provenienti da provider SSO diversi, perché la combinazione **username + backend** identifica l’utente reale dell’applicazione. È inoltre possibile rimuovere un account non più necessario. La rimozione elimina l’utente e i token MFA associati, impedendo nuovi accessi locali, LDAP o SSO per quell’identità applicativa. Per preservare la tracciabilità, incidenti, promemoria e audit non vengono cancellati: i riferimenti tecnici all’account rimosso vengono svincolati, mentre nei record storici restano disponibili i nomi e le e-mail già salvati nei dati dell’incidente o dell’audit. L’interfaccia impedisce di rimuovere l’utente amministratore correntemente connesso e blocca la rimozione dell’ultimo amministratore rimasto.
+
+Per l'utilizzo sono richieste le dipendenze `pyotp` e `qrcode[pil]`, incluse nel file `requirements.txt`.
+
+## Licenza
+
+Il pacchetto include il file `LICENSE` con indicazione di licenza europea EUPL-1.2.
+
+0.110-72
+- I token TOTP vengono salvati solo dopo verifica positiva del codice generato dall'app.
+- La MFA può essere attivata solo se l'utente possiede almeno un token verificato.
+- La rimozione dell'ultimo token verificato disattiva automaticamente la MFA dell'utente.
+- Semplificate le cancellazioni dei token evitando conferme duplicate.
+- Aggiornate documentazioni utente, amministrativa e progettuale.
+
+## Aggiornamento interfaccia selezioni incidente
+
+Nelle pagine di creazione e modifica incidente la selezione delle raccomandazioni usa ora il medesimo schema drag & drop già adottato per categorie, dati interessati e personale. Le voci disponibili sono presentate nella colonna sorgente e vanno trascinate nell’area di destinazione; le selezioni sono salvate come campi nascosti e vengono deduplicate lato server prima dell’associazione all’incidente. Le checkbox dell’interfaccia sono state rese più compatte per ridurre l’ingombro visivo nelle tabelle, nei pannelli di configurazione e nelle anteprime.
+
+
+## Aggiornamento selezione template nei moduli incidente
+
+Nella sezione **Generazione moduli** del dettaglio incidente la scelta dei template PDF non usa più checkbox visibili. Ogni template è presentato come una scheda cliccabile con nome e numero di campi PDF; un click seleziona o deseleziona la scheda, che viene evidenziata in blu quando attiva. La selezione multipla resta supportata e il backend riceve gli stessi valori del campo `templates`, mantenendo compatibilità con la generazione esistente.
+
+
+### Persistenza dei template PDF
+
+I PDF caricati nella configurazione moduli vengono salvati sia nel file system operativo (`FORM_TEMPLATE_DIR`) sia nel database applicativo. Il file system resta usato per analisi, anteprima, sostituzione e generazione dei PDF finali; la copia nel database è una copia di sicurezza applicativa che permette il ripristino automatico dei file mancanti dopo un riavvio. Se la directory montata è vuota o viene ricreata, i template registrati vengono riscritti automaticamente prima della visualizzazione della configurazione moduli e prima della generazione dei documenti. La rinomina, sostituzione e cancellazione di un template aggiorna coerentemente file, mapping, configurazione e copia binaria persistente.
+
+
+### Full export completo
+
+Il full export produce un archivio `tar.gz` autosufficiente. L'archivio contiene:
+
+- tutte le tabelle applicative configurate nel modello dati corrente;
+- tutte le colonne reali di ogni tabella, incluse configurazioni, utenti, ruoli, LDAP/SSO, MFA TOTP, notifiche, label, categorie, incidenti, azioni, raccomandazioni e template;
+- tutte le tabelle di relazione many-to-many;
+- documenti associati agli incidenti e allegati delle azioni;
+- template PDF dei moduli sia come file fisico sia come copia binaria persistente nel database;
+- logo custom configurato e loghi applicativi statici;
+- manifest `schema` con elenco colonne e sezione `_coverage` per verificare cosa viene esportato.
+
+I dati binari presenti nel database sono serializzati in Base64 all'interno del manifest JSON. L'import completo ricostruisce database, configurazioni, file, template e loghi.
+
+
+Aggiornamento 0.110-82: configurazione URL applicazione e placeholder notifiche. Nel menu Admin → Altre configurazioni è disponibile il campo “URL applicazione”, con default http://localhost:8000, usato per generare link esterni nelle email. Nei template delle email dei task in scadenza sono disponibili %external_url%, %report% e %statistics%: il primo inserisce la URL esterna configurata, mentre %report% e %statistics% richiedono rispettivamente l'allegato PDF del report incidente e il PDF delle statistiche, generati al momento dell'invio. Nei template generali del menu Notifiche è disponibile anche %EXTERNAL_URL%. L’anteprima dei task in scadenza segnala gli allegati previsti senza inviare email.
+
+## Aggiornamento 0.110-84 - mantenimento della posizione nella pagina incidente
+
+Nelle pagine di dettaglio incidente, dopo le operazioni eseguite dai pulsanti di salvataggio, aggiunta azione, upload documenti e generazione moduli PDF, l’applicazione torna automaticamente alla stessa sezione operativa da cui è partita l’azione. Le sezioni interessate sono identificate con ancore stabili: dati principali dell’incidente, azioni, documenti e generazione moduli. Il comportamento riduce la perdita di contesto nelle pagine lunghe e semplifica l’inserimento progressivo di azioni, allegati e moduli generati.
+
+
+## Aggiornamento 0.110-85 - data/ora azioni e chiusura automatica
+
+Nella scheda di modifica incidente, il campo **Data e ora** della sezione **Azioni** viene precompilato quando la pagina viene caricata. Il valore corrisponde al momento corrente calcolato nel fuso orario applicativo configurato in **Admin → Altre configurazioni → Time zone applicazione**. Il valore predefinito è `Europe/Rome`; è possibile usare qualunque identificativo IANA valido, ad esempio `UTC` o `Europe/Rome`.
+
+Quando viene aggiunta, o aggiornata, un’azione la cui label, descrizione della label o descrizione libera contiene il testo “conclusione”, l’incidente viene automaticamente portato nello stato **chiuso**. La data/ora fine dell’incidente viene allineata alla data/ora dell’azione di conclusione, così il computo della durata operativa continua a usare l’intervallo tra prima azione e conclusione.
+
+
+### 0.110-86
+
+- Chiusura automatica: quando viene aggiunta un’azione di conclusione, lo stato passa a `chiuso` e i campi `Data fine` e `Ora fine` vengono copiati dalla data/ora dell’azione.
+
+
+### 0.110-87
+
+- Prima della generazione dei moduli PDF, l’applicazione verifica i campi dell’incidente utilizzati dai mapping dei template selezionati.
+- Se uno o più valori sono mancanti, la generazione viene bloccata e l’utente riceve un messaggio cumulativo con i campi da completare, raggruppati per template e campo PDF.
+- La validazione evita la produzione di documenti compilati parzialmente e mantiene la posizione nella sezione di generazione moduli.
+
+## Aggiornamento 0.110-88 - errori contestuali, audit log e menu Moduli dinamico
+
+Nella scheda di modifica incidente gli esiti e gli errori delle operazioni richieste dall’utente vengono mostrati nella sezione operativa da cui sono stati generati: dati principali dell’incidente, azioni, documenti o generazione moduli. In questo modo, ad esempio, un errore di generazione PDF o di validazione dei campi necessari al template resta visibile direttamente nella sezione **Generazione moduli**, mentre gli errori di inserimento o aggiornamento azione restano nella sezione **Azioni**.
+
+È stata introdotta la tabella `audit_log`, usata per registrare le operazioni applicative con data/ora, tipo di operazione, utente, tipo attore e dettagli tecnici essenziali. Le operazioni effettuate dagli utenti tramite richieste di modifica vengono registrate automaticamente; il controllo automatico delle scadenze notifiche registra una voce con attore scheduler. La ritenzione predefinita dell’audit è di 6 mesi ed è configurabile in **Admin → Altre configurazioni → Ritenzione audit log**. La pulizia dei record più vecchi avviene in modo opportunistico durante le operazioni applicative.
+
+Il menu **Moduli** è ora visualizzato solo quando l’utente dispone di almeno una voce accessibile. Per gli utenti senza privilegi di configurazione dei moduli il menu non viene mostrato, evitando dropdown vuoti.
+
+
+
+## Aggiornamento 0.110-90 - Retention audit granulare e layout configurazioni
+
+La configurazione della ritenzione del registro audit in **Admin → Altre configurazioni** è ora espressa in quattro campi separati: mesi, giorni, ore e minuti. Il valore predefinito resta 6 mesi; se tutti i campi vengono impostati a zero, l’applicazione ripristina automaticamente il default a 6 mesi per evitare una retention nulla. La pulizia della tabella `audit_log` usa il valore complessivo configurato e continua a essere applicata dopo operazioni utente, scheduler notifiche e full import.
+
+Il pulsante di salvataggio della pagina **Altre configurazioni** usa la classe `admin-config-save-button` e ha altezza massima pari a 1 cm, così il layout resta compatto anche con il nuovo gruppo di campi.
+
+## Aggiornamento 0.110-89 - Audit consultabile, full export/import e retention
+
+La tabella `audit_log` e tutte le configurazioni salvate nella tabella `setting` sono incluse nel full export e nel full import. Il manifest `export.json` riporta `audit_logs` e `settings` tra le tabelle esportate, così il ripristino conserva sia i parametri applicativi sia il registro audit entro i limiti di retention.
+
+La pulizia della tabella audit è centralizzata nella funzione `purge_audit_logs()`, che elimina i record con `occurred_at` più vecchio del cutoff calcolato da `audit_retention_months_part / audit_retention_days_part / audit_retention_hours_part / audit_retention_minutes_part`. La funzione viene richiamata dopo le operazioni utente, dopo il controllo scheduler delle notifiche e al termine del full import; dopo un import completo, eventuali record audit più vecchi della retention configurata nell’archivio ripristinato vengono rimossi automaticamente.
+
+Nel menu **Admin** è disponibile la nuova voce **Audit**, visibile solo agli utenti con ruolo admin. La pagina permette di visualizzare gli ultimi record audit e di cercare per testo libero, tipo operazione, utente, origine (`user`, `scheduler`, `system`) e intervallo temporale. I risultati sono ordinati dal più recente e limitati a 500 righe per mantenere la pagina reattiva.
+
+
+## Aggiornamento 0.110-91 - Avvisi procedurali in cima al dettaglio incidente
+
+La pagina di dettaglio di uno specifico incidente mostra ora la sezione **Avvisi procedurali** nella parte alta, subito dopo la scheda principale dell’incidente. La documentazione utente e progettuale è stata aggiornata per chiarire la nuova posizione della sezione e la finalità di evidenziare subito eventuali notifiche o verifiche mancanti.
+
+
+## Aggiornamento 0.110-92 - Exportable default configurabile sulle label azioni
+
+In **Admin → Liste configurabili → Label azioni** le azioni esistenti sono presentate in sezioni verticali collassabili, chiuse per default. È stato aggiunto il campo **Esportabile per default**. Durante l’inserimento di una nuova azione in un incidente, il sistema inizializza il flag `exportable` dell’azione usando il valore configurato sulla label selezionata. Il modello dati `ConfigLabel` include la nuova colonna `default_exportable`, migrata automaticamente sui database esistenti e inclusa nel full export/import insieme alle altre configurazioni delle label.
+
+## Aggiornamento 0.110-93 - Tempo massimo in ore e timezone nelle notifiche di scadenza
+
+La colonna della sezione **Label azioni** in **Admin → Liste configurabili** è ora denominata **Tempo massimo (ore)**, così l’unità di misura è esplicita anche nella tabella di modifica. Le notifiche automatiche dei task in scadenza formattano tutte le date e ore, incluse scadenza, prima informazione iniziale e data di generazione, nel fuso orario applicativo configurato in **Admin → Altre configurazioni**. Il nome della timezone configurata viene riportato nel testo della notifica per evitare ambiguità operative.
+
+
+
+### Lingua interfaccia
+
+L'interfaccia e le documentazioni sono disponibili in italiano e inglese. Per default la lingua segue il locale del browser: italiano per locale italiano, inglese per tutti gli altri locale. Un amministratore può forzare `auto`, `it` o `en` da Admin → Altre configurazioni.
+
+## Aggiornamento 0.110-95 - README inglese del pacchetto
+
+Il pacchetto include ora anche `README_en.md`, traduzione inglese del file `README.md`. Da questa versione il README italiano e il README inglese devono essere mantenuti allineati insieme alla documentazione utente, amministrativa e progettuale. Le richieste operative possono continuare a essere fornite in italiano; gli aggiornamenti funzionali devono riportare automaticamente anche la corrispondente documentazione inglese.
+
+
+## Aggiornamento 0.110-96 - Dicitura avviso notifica utente
+
+Negli **Avvisi procedurali** del dettaglio incidente la voce relativa alla notifica all'utente è ora espressa come **Notifica all'utente richiesta**. La nuova dicitura chiarisce che l'adempimento è richiesto dalla procedura e non semplicemente da valutare.
+
+### Report PDF incidenti: sezione Documenti
+
+Nei report PDF degli incidenti, la tabella della sezione **Documenti** assegna più spazio alla colonna del nome del documento e riduce lo spazio riservato alla data e ora di caricamento. La data e ora di caricamento è formattata come `YYYY-MM-DD HH:MM:SS`; i secondi sono sempre espressi come valori interi e non vengono riportate frazioni di secondo o microsecondi.
+
+## Aggiornamento 0.110-97 - Report PDF documenti
+
+La sezione Documenti dei report PDF degli incidenti usa ora una colonna data/ora di caricamento più compatta e assegna più spazio al nome del documento. I timestamp di caricamento sono normalizzati nel formato `YYYY-MM-DD HH:MM:SS`, senza microsecondi e con secondi sempre interi.
+## Aggiornamento 0.1.0-98 - Report PDF incidenti: orari e durata
+
+Nei report PDF degli incidenti tutti i valori data/ora testuali sono normalizzati nel formato `YYYY-MM-DD HH:MM:SS`: i secondi sono sempre interi e non vengono mai visualizzate frazioni di secondo o microsecondi. La sezione di sintesi del report include ora anche la **Durata**, quando disponibile, calcolata con lo stesso criterio della pagina principale dell’applicazione: intervallo tra la prima azione registrata e la data/ora di conclusione dell’incidente.
+## Aggiornamento 0.1.0-99 - Report PDF incidenti: impaginazione professionale
+
+I report PDF degli incidenti sono stati riformattati con una presentazione più professionale: all'inizio del documento viene mostrato il logo applicativo; se è stato caricato un logo da GUI viene mostrato anch'esso senza etichette testuali. Se nessun logo è caricato da GUI, il relativo spazio viene omesso. Subito dopo viene inserito un indice sintetico delle sezioni. I titoli delle sezioni usano uno stile evidenziato e vengono mantenuti sulla stessa pagina del contenuto relativo, evitando titoli isolati a fine pagina. Il piè di pagina include la numerazione delle pagine.
+
+## Aggiornamento 0.1.0-100 - Report PDF incidenti: loghi
+
+Nei report PDF degli incidenti la prima pagina non mostra più la dicitura **logo custom**. Il logo applicativo statico resta presente; il logo caricato da GUI viene mostrato, quando disponibile, come logo applicativo aggiuntivo. Se nessun logo è stato caricato da GUI, il relativo spazio viene omesso dal PDF.
+
+
+## Aggiornamento 0.1.0-101 - Report PDF incidenti: rendering immagini logo
+
+Nei report PDF degli incidenti i loghi della prima pagina vengono renderizzati come immagini effettive. In particolare il logo applicativo SVG viene convertito internamente in PNG temporaneo prima dell'inserimento nel PDF, evitando che metadata o testo alternativo dello SVG vengano visualizzati al posto dell'immagine. La tabella iniziale dei loghi non mostra etichette testuali sotto le immagini; il logo caricato da GUI continua a essere omesso quando non configurato o non disponibile.
+
+## Aggiornamento 0.1.0-102 - Report PDF incidenti: logo applicativo e logo caricato
+
+Nei report PDF degli incidenti il logo applicativo viene ora inserito usando come sorgente primaria l’immagine PNG applicativa già usata dalla documentazione, con fallback allo SVG solo se necessario. Questo evita che nel PDF compaia testo o che il logo applicativo venga omesso. Il logo caricato da GUI continua ad apparire accanto al logo applicativo quando configurato e presente su filesystem; se non è stato caricato alcun logo da GUI, viene mostrato solo il logo applicativo.
+
+## Aggiornamento 0.1.0-103 - Scheduler notifiche e menu Admin raggruppato
+
+Le notifiche periodiche dei task in scadenza non dipendono più dal passaggio di richieste web sull'applicazione. All'avvio viene avviato uno scheduler interno leggero che controlla periodicamente se l'intervallo configurato in **Admin → Notifiche** è trascorso e, in caso positivo, esegue lo stesso controllo usato dal pulsante manuale. Il poll tecnico dello scheduler è configurabile con la variabile d'ambiente `CIR_DEADLINE_SCHEDULER_POLL_SECONDS` e può essere disabilitato con `CIR_ENABLE_DEADLINE_SCHEDULER=0` per installazioni che preferiscono un job esterno. Ogni esecuzione effettiva registra un record nella tabella `audit_log` con tipo operazione `scheduler:deadline_notification_check`, attore `scheduler`, sorgente dell'esecuzione e riepilogo di incidenti controllati, invii, salti ed errori.
+
+Il menu **Admin** è stato riorganizzato in sottogruppi collassabili: configurazione generale, anagrafiche e workflow, utenti e accesso, controllo e audit. La riorganizzazione riduce l'altezza del menu e consente di visualizzare meglio tutte le voci amministrative anche su schermi più piccoli.
+
+## Aggiornamento 0.1.0-104 - Prossimo invio notifiche task e schedulazione da mezzanotte
+
+La pagina **Impostazioni → Notifiche** mostra ora una sezione **Prossimo invio stimato** per i promemoria automatici dei task in scadenza. La sezione indica lo stato del controllo automatico, lo stato dell'invio email, l'intervallo effettivo in minuti, la mezzanotte di riferimento nel fuso applicativo, lo slot corrente, l'ultima esecuzione automatica registrata e la data/ora stimata del prossimo invio.
+
+Lo scheduler non calcola più gli intervalli a partire dall'avvio dell'applicazione. Gli slot di esecuzione sono sempre multipli dell'intervallo configurato a partire dalla mezzanotte del giorno corrente nel fuso orario impostato in **Admin → Altre configurazioni**. Per esempio, con intervallo di 4 ore, gli slot sono 00:00, 04:00, 08:00, 12:00, 16:00 e 20:00. Il pulsante manuale continua a eseguire subito il controllo senza modificare la pianificazione automatica.
+
+## Promemoria specifici per incidente
+
+Ogni incidente dispone ora della sezione **Promemoria specifici**, dalla quale gli utenti con permessi di scrittura possono programmare, modificare e cancellare promemoria non periodici con data e ora puntuali. Il messaggio è definito dall’utente, i destinatari principali sono automaticamente le persone associate all’incidente con indirizzo e-mail valorizzato ed è possibile indicare ulteriori indirizzi in CC.
+
+Lo scheduler invia tutti i promemoria specifici scaduti che non sono già marcati come inviati tramite `sent_at`. Dopo un riavvio dell’applicazione, i promemoria non periodici saltati vengono recuperati tutti leggendo lo stato del promemoria, senza applicare il blocco per tipologia/intervallo usato dalle notifiche periodiche. La protezione anti-concorrenza non è più un criterio di salto: un ciclo concorrente attende/rivaluta il campo `sent_at`, senza considerare bloccante la presa in carico tecnica dello stesso record. Promemoria diversi nello stesso periodo non vengono soppressi. Le notifiche periodiche dei task in scadenza restano invece deduplicate per tipologia/intervallo: se l’applicazione salta più slot, viene eseguita solo l’ultima notifica dovuta per quella tipologia.
+
+Il full export/import include anche la tabella dei promemoria specifici e mantiene la cronologia audit degli invii automatici.
+
+
+## Aggiornamento 0.1.0-106 - Chiusura incidenti, audit paginato e link diretti nelle notifiche
+
+La chiusura manuale o automatica di un incidente viene impedita quando sono ancora presenti avvisi procedurali attivi. Il messaggio di blocco viene mostrato nella sezione dell'operazione richiesta: dati principali dell'incidente per la chiusura manuale, sezione Azioni per la chiusura automatica tramite azione di conclusione.
+
+La pagina **Admin → Audit** ora usa paginazione. Il numero predefinito di record per pagina è configurabile in **Admin → Altre configurazioni** tramite il campo **Record audit per pagina**, con default 20 e massimo 100. In cima alla pagina Audit sono visualizzati il numero totale corrente dei record della tabella, il numero di record filtrati e l'intervallo attualmente selezionato.
+
+Nelle notifiche manuali/non schedulate relative a incidenti il link diretto alla pagina dello specifico incidente viene inserito nel testo solo se il template contiene il placeholder `%INCIDENT_URL%`. Nei template dei task in scadenza resta disponibile `%incident_url%` e il comportamento dello scheduler è separato. Nei template generali sono inoltre disponibili `%MEASURES_ADOPTED%` (lista delle contromisure adottate finora nell’incidente), `%RECOMMENDATIONS%` (lista delle raccomandazioni da fornire agli interessati, stesso valore del campo `recommendations` dei moduli), `%SITE%` (nome della struttura configurata in Admin → Struttura) e `%STATISTICS%`, che richiede l’allegato PDF del report statistiche generato al momento dell’invio.
+
+### Aggiornamento 0.1.0-107
+
+- La sezione **Promemoria specifici** nella pagina del singolo incidente usa un layout responsive a schede: su smartphone data/ora, messaggio, CC, stato e azioni restano visibili e modificabili senza scorrimento orizzontale.
+- I record di **Audit** registrano e mostrano dettagli sintetici, leggibili e limitati alle informazioni essenziali dell’operazione, evitando di salvare payload lunghi o poco comprensibili.
+
+### Aggiornamento 0.1.0-108 - Pianificazione cron notifiche task
+
+Le notifiche automatiche dei task con scadenza passano da una sola pianificazione a intervallo regolare a una pianificazione in stile cron configurabile da **Admin → Notifiche**. È possibile scegliere tra modalità **Intervallo regolare** e **Cron / orari specifici**. In modalità cron si possono indicare orari giornalieri nel formato `HH:MM`, separati da virgole, spazi o righe; gli eventuali intervalli restano disponibili e sono sempre calcolati dalla mezzanotte del fuso applicativo. Lo scheduler non usa l’orario di avvio dell’applicazione come riferimento: se l’applicazione riparte dopo uno o più slot saltati, esegue solo l’ultimo slot periodico dovuto e registra l’esito nella tabella audit. La pagina mostra anche gli slot configurati, lo slot corrente, il prossimo invio stimato e l’ultima esecuzione automatica.
+
+La logica di invio è stata ricontrollata: lo scheduler interno continua a funzionare indipendentemente dal traffico web, registra errori SMTP e riepilogo invii in audit. Per le notifiche manuali il link diretto è sotto controllo del template e viene sostituito solo tramite `%INCIDENT_URL%`; per le notifiche schedulate resta disponibile `%incident_url%`.
+
+### Aggiornamento 0.1.0-109
+- Il menu Admin raggruppato in sottosezioni collassabili viene sempre caricato con tutti i sottogruppi chiusi per default, migliorando la leggibilità quando si ricarica o si cambia pagina.
+
+### Aggiornamento 0.1.0-110
+
+Corretto lo scheduler delle notifiche dei task in scadenza. Il controllo automatico non considera più lo slot cron/intervallo come definitivamente completato solo perché un primo poll non ha trovato task pendenti: la deduplica avviene ora per singolo incidente e per singolo slot pianificato. Se lo scheduler parte prima che i task risultino rilevabili, i poll successivi dello stesso slot possono ancora inviare le notifiche. Il rilevamento dei task pendenti è separato dalla verifica dei destinatari: gli incidenti senza personale o senza e-mail vengono conteggiati e registrati come saltati, invece di risultare come assenza di task. Gli invii riusciti registrano anche un audit `scheduler:deadline_notification_sent` con incidente, slot e destinatari.
+
+### Aggiornamento 0.1.0-111 - Audit scheduler notifiche task
+
+Il controllo automatico delle notifiche per task in scadenza continua a essere eseguito con poll tecnico frequente, ma i record globali di audit `scheduler:deadline_notification_check` vengono ora scritti solo in due casi: quando vengono effettivamente inviate notifiche oppure una sola volta per lo slot pianificato cron/intervallo in cui le notifiche sarebbero dovute partire, anche se non sono stati trovati task da notificare. I poll intermedi dello stesso slot non producono più record audit ripetuti. Gli invii riusciti continuano a registrare anche il record specifico `scheduler:deadline_notification_sent` per incidente e slot.
+
+### Aggiornamento 0.1.0-112 - Formattazione documentazione
+Le documentazioni utente e amministrativa, online e PDF, sono state riviste per evitare che titoli o testi escano dai riquadri. Le immagini illustrative del flusso operativo consigliato, della pagina principale, del dettaglio incidente e della configurazione moduli sono state rigenerate con wrapping del testo e spaziature più ampie. La schermata della pagina principale non presenta più il pulsante “Nuovo incidente” sovrapposto al titolo. I CSS della documentazione includono regole responsive e di wrapping più robuste per desktop e mobile.
+
+### Audit anti-flooding e note di rilascio
+
+Il registro audit collassa i record consecutivi identici incrementando il campo `Occorrenze` invece di creare molte righe uguali. Al raggiungimento di 100 occorrenze viene scritto un nuovo record e il contatore riparte. I sommari di aggiornamento sono ora disponibili dal menu **Aiuto → Note di rilascio**, anche in formato PDF, separati dalla documentazione operativa.
+
+### Audit: limite massimo, purge manuale e CSV
+
+La pagina `Admin → Audit` include la configurazione del numero massimo di record audit da mantenere, con default 10000. Il purge automatico applica sia la ritenzione temporale sia il limite massimo di righe, eliminando i record più vecchi. Dalla stessa pagina è possibile eseguire purge manuali per numero di record da conservare o per data limite, ed esportare in CSV l’audit corrente secondo i filtri applicati.
+
+## Aggiornamento 0.1.0-117 - Deduplica notifiche deadline nello stesso intervallo
+
+Le notifiche automatiche dei task con scadenza ora mantengono uno stato persistente dell’ultimo invio riuscito per ogni notifica riepilogativa di incidente. Prima di spedire una nuova mail, lo scheduler verifica la finestra compresa tra lo slot pianificato corrente e quello successivo: se una notifica dello stesso tipo per lo stesso incidente è già stata inviata con successo in quella finestra, il messaggio viene saltato. Questo evita reinvii multipli durante l’intervallo di pausa tra due schedule successive, anche in presenza di poll tecnici ripetuti o riavvii dell’applicazione. Gli invii riusciti continuano a essere registrati in audit e aggiornano la tabella di stato `deadline_notification_state`, inclusa nel full export/import.
+
+
+## Aggiornamento 0.1.0-118 - Profili multipli SSO/OAuth2
+
+L'accesso federato SSO/OAuth2/OpenID Connect supporta ora più profili configurabili e attivabili contemporaneamente da **Admin → SSO**. Ogni profilo ha un ID tecnico, nome provider, stato attivo/disattivo, endpoint authorization/token/userinfo, client ID, client secret, scope e mapping dei claim.
+
+Nella pagina di login, quando sono presenti profili SSO attivi e completi, viene mostrato un pulsante per ciascun provider, così l'utente può scegliere quale SSO utilizzare. Il redirect URI resta comune e viene mostrato nella pagina Admin → SSO. Gli utenti creati automaticamente da SSO mantengono il ruolo predefinito del profilo; il valore consigliato resta `disabled` per consentire la successiva abilitazione amministrativa.
+
+È disponibile il pulsante **Aggiungi esempio Google**, che precompila un profilo Google OpenID Connect con:
+
+- Authorization endpoint: `https://accounts.google.com/o/oauth2/v2/auth`;
+- Token endpoint: `https://oauth2.googleapis.com/token`;
+- UserInfo endpoint: `https://openidconnect.googleapis.com/v1/userinfo`;
+- scope: `openid email profile`;
+- claim: `email`, `email`, `name`, `sub`.
+
+Compilare poi Client ID e Client secret ottenuti dalla console Google e registrare il redirect URI mostrato dall'applicazione. I profili SSO sono salvati nelle configurazioni applicative e inclusi nel full export/import.
+
+## Aggiornamento 0.1.0-119 - Profili SSO/OAuth2: callback HTTPS e profilo generico
+
+La configurazione dei profili SSO/OAuth2 genera e usa sempre un redirect/callback URI con schema `https://`, anche quando l'applicazione riceve traffico interno HTTP dietro reverse proxy o container. I pulsanti **Salva profilo SSO** e **Controlla configurazione** non richiedono più conferme di cancellazione; la conferma resta limitata alla sola eliminazione del profilo.
+
+In **Admin → SSO** è disponibile anche il pulsante **Aggiungi profilo generico**, oltre all'esempio Google, per creare un profilo OAuth2/OpenID Connect vuoto da completare con gli endpoint del proprio Identity Provider.
+
+
+## Aggiornamento 0.1.0-120 - Accesso HTTPS/SSL opzionale
+
+Il container espone ora anche la porta 8443 per l'accesso HTTPS/SSL opzionale. La porta HTTP 8000 resta sempre disponibile. Quando HTTPS è abilitato senza un certificato esterno, l'entrypoint genera automaticamente un certificato host self-signed e lo rigenera se manca, è scaduto, non ancora valido, malformato o non corrisponde alla chiave privata.
+
+La configurazione può essere eseguita tramite variabili di ambiente in Docker Compose o Kubernetes: `SSL_ENABLED`, `SSL_PORT`, `SSL_DIR`, `SSL_CERT_FILE` e `SSL_KEY_FILE`. In alternativa, un amministratore può usare la nuova voce **Admin → HTTPS/SSL** per abilitare o disabilitare l'accesso HTTPS e caricare certificato host e chiave privata in formato PEM. I certificati caricati da web o definiti esplicitamente con `CIR_SSL_CERT_FILE`/`CIR_SSL_KEY_FILE` oppure la coppia compatibile `SSL_CERT_FILE`/`SSL_KEY_FILE` sono sempre considerati gestiti dall'utente e non vengono sovrascritti dal fallback self-signed.
+
+Il full export/import include anche i certificati SSL caricati dall'interfaccia, così da mantenere ripristinabile la configurazione applicativa completa.
+
+
+## Documentazione - 0.1.0-121
+
+La documentazione utente e amministrativa è stata riorganizzata in capitoli più chiari, con procedure, checklist, esempi e layout migliorato per evitare testi fuori dai riquadri nelle versioni online e PDF.
+
+## Aggiornamento 0.1.0-122
+
+- La documentazione utente indica versione, build e autore dell’applicazione nella pagina della guida.
+- È chiarito che solo le azioni contrassegnate come esportabili vengono considerate nella generazione dei documenti e nei campi dinamici dei moduli PDF.
+- La documentazione amministrativa è stata rifinita nei capitoli SSO e HTTPS/SSL.
+- La pagina Admin → Audit mostra, filtra ed esporta le date e ore nel fuso orario configurato nell’applicazione.
+
+## Note di rilascio
+
+Le variazioni di versione sono raccolte in `CHANGELOG.txt` e nella pagina **Aiuto → Note di rilascio** dell’applicazione. Le guide operative mantengono solo le istruzioni d’uso correnti.
+
+
+## Aggiornamento 0.7.0-7 - Scheduler notifiche, anti-flooding e timezone
+
+Le notifiche schedulate per task con tempo massimo sono state rese più robuste contro invii multipli contemporanei. Prima dell'invio lo scheduler riserva in modo persistente lo slot di notifica per ogni incidente; se un altro worker o replica tenta di inviare la stessa notifica nello stesso intervallo, l'invio viene saltato. Ogni ciclo dello scheduler esegue inoltre il cleanup degli stati residui riferiti a incidenti cancellati.
+
+Tutte le schedule, gli orari cron e gli intervalli dei task in scadenza sono interpretati nella timezone applicativa configurata in **Admin → Altre configurazioni**. Gli intervalli regolari partono sempre dalla mezzanotte del giorno corrente in tale timezone, non dall'avvio del container o del processo.
+
+### Descrizioni workflow, Markdown, colori e dimensioni
+
+In **Admin → Flussi operativi incidenti** la descrizione dello step procedurale è multilinea, più ampia nelle sezioni collassabili degli step e limitata a 500 caratteri. Nella pagina del singolo incidente il testo degli step viene renderizzato con un sottoinsieme sicuro di Markdown: grassetto, corsivo, codice inline, titoli, elenchi puntati/numerati, link, pulsanti `{button:Etichetta|URL}` e dimensioni font controllate. Gli URL `http://` e `https://`, i percorsi relativi e le ancore presenti nei pulsanti sono resi cliccabili; il click sul resto del riquadro continua ad avviare il comportamento guidato del workflow.
+
+Esempi supportati:
+
+```markdown
+**Azione urgente** da completare prima della scadenza.
+- Verificare i log
+- Aprire il ticket [interno](https://example.org/ticket)
+{color:red}Attenzione: attività critica{/color}
+{color:#0b7285}Nota informativa in colore personalizzato{/color}
+{size:large}Testo grande{/size}
+{size:14px}Testo a 14 pixel{/size}
+```
+
+La sintassi colore ammessa è `{color:nome-colore}testo{/color}` oppure `{color:#RRGGBB}testo{/color}`. La sintassi dimensione ammessa è `{size:small|normal|large|x-large|xx-large}testo{/size}` oppure `{size:8px..32px}testo{/size}`. Lo stesso rendering Markdown viene usato anche negli avvisi procedurali, che mostrano inoltre il nome del task associato. Il markup HTML libero viene escapato.
+
+### Aggiornamento 0.7.0-7 - Scheduler notifiche seriale
+
+Le notifiche schedulate non vengono più inviate dall'hook sulle richieste web: l'invio automatico è responsabilità esclusiva del thread dedicato dello scheduler. Le mail schedulate vengono inviate in sequenza. I riepiloghi task in scadenza mantengono il claim persistente per tipo/finestra; i promemoria specifici usano invece `sent_at` come unico criterio funzionale; la concorrenza viene gestita con lock/rivalutazione del record, senza saltare l’invio perché il promemoria risulta preso in carico da un altro ciclo.
+
+## Aggiornamento 0.7.0-7 - Audit degli incidenti saltati dallo scheduler notifiche
+
+Quando lo scheduler delle notifiche salta un incidente, viene registrato un record audit dedicato con l'incidente interessato e il motivo del salto. Le notifiche periodiche dei task in scadenza usano `scheduler:deadline_notification_skipped`; i promemoria specifici usano `scheduler:incident_reminder_skipped`. I dettagli includono sorgente del ciclo, slot o data programmata, codice motivo e descrizione leggibile, così la pagina **Admin → Audit** permette di distinguere invii già effettuati, assenza destinatari/errori SMTP, promemoria già marcati come inviati ed eccezioni.
+
+## Aggiornamento 0.7.0-7 - Controllo manuale scadenze e promemoria specifici
+
+Il pulsante **Esegui controllo ora** nella sezione **Controllo scadenze azioni** riallinea preventivamente le sequence PostgreSQL e l'inserimento dei record audit gestisce subito eventuali collisioni `audit_log_pkey`. In questo modo il controllo manuale non fallisce più al commit quando il database proviene da import/restore o da sequence non allineate.
+
+Per i promemoria specifici dei singoli incidenti il criterio funzionale di blocco è esclusivamente il campo `incident_reminder.sent_at`: se è valorizzato il promemoria non viene reinviato, se è nullo può essere inviato o ritentato. `deadline_notification_state` resta solo diagnostica; la protezione anti-concorrenza avviene sul record del promemoria e non introduce slot/finestra né un motivo di salto “già preso in carico”.
+
+## Aggiornamento 0.7.0-7 - Controllo manuale promemoria specifici
+
+La pagina **Notifiche → Impostazioni** include alla fine una sezione **Controllo promemoria specifici** con il pulsante **Esegui controllo promemoria ora**. Il controllo manuale elabora subito i promemoria specifici dei singoli incidenti già scaduti e non ancora inviati, usando la stessa logica serializzata dello scheduler automatico.
+
+Per i promemoria specifici, il blocco funzionale dell'invio resta esclusivamente `incident_reminder.sent_at`: non vengono usati slot, finestre o periodi di schedule. La concorrenza viene risolta bloccando/rivalutando il record del promemoria: un ciclo concorrente non blocca funzionalmente l’invio, ma attende l’esito e poi vede `sent_at` valorizzato.
+
+Quando un promemoria viene saltato, sia dallo scheduler sia dal pulsante manuale, l'audit `scheduler:incident_reminder_skipped` riporta incidente, identificativo promemoria, data programmata, messaggio sintetico, destinatari/CC configurati, ultimo errore disponibile, sorgente del controllo, codice motivo e descrizione leggibile del motivo.
+## Aggiornamento 0.7.0-7 - Correzione controllo promemoria specifici
+
+Il pulsante **Esegui controllo promemoria ora** nella sezione **Controllo promemoria specifici** non accede più a un attributo inesistente del modello `IncidentReminder`. I destinatari effettivi sono ricavati dal personale associato all’incidente, come già avviene per l’invio SMTP, e la stessa logica viene riutilizzata per compilare gli audit dei promemoria saltati.
+
+Per i promemoria specifici resta invariata la regola funzionale: una mail viene bloccata solo se il relativo record ha `incident_reminder.sent_at` valorizzato. Gli stati tecnici dello scheduler non introducono slot o finestre di deduplica per questi promemoria.
+
+
+### Aggiornamento notifiche e promemoria specifici
+
+Il pulsante **Esegui controllo promemoria ora** mostra ora, quando presenti, i promemoria specifici saltati con identificativo, incidente, data programmata, messaggio sintetico e motivo. Per i promemoria specifici il blocco di invio resta basato solo su `sent_at`: gli stati tecnici dello scheduler sono solo diagnostici; l’eventuale concorrenza viene risolta rivalutando `sent_at` sul record del promemoria.
+
+La sezione **Prossime notifiche schedulate** usa la stessa risoluzione destinatari dell'invio delle notifiche per task in scadenza e mostra i destinatari effettivi anche per le notifiche già inviate di recente.
+
+### Aggiornamento 0.7.0-7 - Promemoria specifici senza blocco da presa in carico
+
+Per i promemoria specifici la presa in carico tecnica da parte di un altro ciclo scheduler o di un controllo manuale concorrente non è più un motivo di blocco. L'invio viene deciso solo dal campo `incident_reminder.sent_at`: se è vuoto il promemoria è inviabile, se è valorizzato è già considerato inviato. La concorrenza viene gestita rivalutando atomicamente il record del promemoria, mentre `deadline_notification_state` resta solo diagnostico e non usa slot o finestre.
+
+### Aggiornamento 0.7.0-7 - Scheduler promemoria e pagina Stato servizi
+
+Il thread scheduler esegue ad ogni ciclo sia il controllo delle notifiche periodiche dei task in scadenza sia il controllo dei promemoria specifici. I due controlli sono indipendenti: un errore o una disabilitazione del controllo dei task in scadenza non impedisce più l'elaborazione dei promemoria specifici già scaduti e non inviati. Per i promemoria specifici resta valido il solo criterio funzionale `incident_reminder.sent_at`: se è vuoto il promemoria viene considerato inviabile, se è valorizzato non viene reinviato.
+
+Nel menu **Admin → Controllo e audit** è disponibile la nuova voce **Stato**, che mostra lo stato complessivo dei servizi applicativi: thread scheduler notifiche, scheduler backup, heartbeat, poll, fuso orario, ultimi cicli eseguiti per task in scadenza e promemoria specifici, risultati dell'ultimo ciclo, errori, contatori operativi e informazioni sulle schedule configurate.
+
+### Scheduler promemoria specifici
+
+I promemoria specifici degli incidenti sono controllati da un thread separato rispetto allo scheduler delle notifiche periodiche dei task in scadenza. L'intervallo è configurabile da **Impostazioni → Notifiche**, sezione **Promemoria automatici scadenze azioni**, con default 60 secondi. Ogni esecuzione del controllo promemoria produce un record di audit, anche quando non sono presenti promemoria scaduti. La pagina **Admin → Stato** riporta lo stato del thread, l'intervallo configurato e data/ora dell'ultima esecuzione del controllo sui promemoria specifici.
+
+### Note 0.7.0-7
+
+- Corretto il controllo promemoria specifici in thread: i link incidente nelle mail non dipendono più da un request context Flask.
+- Aggiunto intervallo configurabile per il controllo automatico dei task in scadenza, default 60 secondi.
+- La pagina Admin → Stato mostra pallini colorati per thread attivi/non attivi e per gli ultimi cicli scheduler.
+
+### Note 0.7.0-7
+
+Corretto il problema `RuntimeError: Working outside of application context` nei thread scheduler. Gli intervalli configurabili dei controlli automatici vengono letti dalla tabella `setting` solo all'interno di `app.app_context()`, mentre le eventuali chiamate diagnostiche fuori contesto usano un fallback sicuro.
+
+Il thread dei task in scadenza e il thread dei promemoria specifici mantengono la separazione operativa e continuano a registrare stato, heartbeat e risultati nella pagina **Admin → Stato**, con indicatori a pallino colorato per mostrare se i thread sono attivi.
+
+### Dettaglio incidente collassabile
+
+La pagina del singolo incidente è organizzata in sezioni collassabili. La sezione principale è denominata **Dati Generali**; le altre sezioni, incluse azioni, promemoria, documenti, generazione moduli e notifiche, possono essere aperte singolarmente per ridurre l’ingombro visivo della pagina. La sezione **Operazioni previste** rimane aperta per default perché guida il lavoro operativo; quando si clicca uno step del flusso, la sezione di destinazione, ad esempio **Azioni** o **Generazione moduli**, viene aperta automaticamente prima dello scorrimento.
+
+
+### Aggiornamento notifiche manuali e destinatari
+- La configurazione di destinatario e CC predefiniti delle notifiche manuali è stata spostata nei singoli template di notifica.
+- Ogni template può scegliere la sorgente del destinatario/CC: default del tipo notifica, e-mail del Destinatario dell’incidente, e-mail del compilatore, valore fisso o campo vuoto/manuale.
+- Per ogni template è possibile rendere destinatario e CC modificabili in anteprima e abilitare l’uso della rubrica dei destinatari esterni. Se il CC è modificabile, l’anteprima lo precompila con il valore di default del template quando presente; se l’operatore lo svuota manualmente prima della conferma, l’invio viene effettuato senza CC. La checkbox “Usa CC per questa notifica”, attiva per default, permette inoltre di disabilitare esplicitamente il CC: in questo caso il campo viene nascosto e non considerato per invio reale o conferma senza invio.
+- Nei Dati Generali degli incidenti e nei Modelli incidente è disponibile il campo “E-mail Destinatario”, utilizzabile come destinatario predefinito dalle notifiche manuali.
+
+## Destinatari esterni e notifiche manuali
+
+Nella form degli incidenti e nei modelli incidente è possibile caricare Riferimento, Destinatario o E-mail Destinatario dalla rubrica dei destinatari esterni. La sintassi del campo E-mail Destinatario viene controllata sempre lato server in creazione, modifica e salvataggio dei modelli: valori non conformi a un singolo indirizzo e-mail valido bloccano il salvataggio con un messaggio di errore esplicito. Le nuove e-mail destinatario salvate sugli incidenti non vengono inserite automaticamente in rubrica: la rubrica viene aggiornata solo dalla gestione dedicata o da import espliciti; dalla gestione della rubrica è disponibile anche “Rimuovi tutto” con conferma preventiva. Le notifiche manuali richiedono sempre almeno un destinatario effettivo: se il destinatario è vuoto, il pulsante di invio resta utilizzabile ma l’operazione viene respinta lato server con un messaggio di errore esplicito. Se il template permette la compilazione manuale del destinatario, l’operatore può digitare un indirizzo e-mail valido direttamente in anteprima e inviare senza doverlo preconfigurare nel template. I valori manuali di destinatario e CC digitati nei campi compilabili dell’anteprima vengono acquisiti direttamente al momento del submit, sia per l’invio reale sia per la conferma senza invio, previa conferma dell’operatore. Se il CC è modificabile, l’anteprima lo precompila con il valore di default del template quando presente; se l’operatore svuota il campo prima della conferma, il valore vuoto è considerato una scelta manuale esplicita e la mail viene inviata senza CC. In anteprima è presente anche la checkbox “Usa CC per questa notifica”, abilitata per default: quando viene deselezionata il campo CC viene nascosto e ignorato dal submit.
+
+
+### Full export autosufficiente
+
+Il full export contiene l'intero stato applicativo necessario a riprodurre l'installazione corrente: dump JSON di tutte le tabelle applicative, relazioni many-to-many, configurazioni, utenti, ruoli, MFA, audit, notifiche, modelli incidente, template notifiche, promemoria, scheduler, documenti, allegati azione, template PDF dei moduli, loghi, certificati SSL caricati dall'applicazione e snapshot dei volumi persistenti operativi.
+
+Nel manifest `export.json` la sezione `files.persistent_files` elenca anche i file presenti nei volumi `uploads`, `form_templates`, `custom_logos`, `sso_logos` e `ssl`, così l'export resta ripristinabile anche se un file operativo non è più referenziato direttamente da un singolo record. L'import completo ricrea il database e ripristina i file nelle directory applicative corrispondenti.
+
+### 0.7.0-7 - Rischio per diritti e libertà e notifiche deadline coerenti con il workflow
+
+La checkbox storica dell’incidente relativa a `personal_data` è ora mostrata nelle form come **Rischio per diritti e libertà**. La stessa denominazione è usata nella configurazione dei workflow per la condizione corrispondente; il token tecnico resta `personal_data` per compatibilità con database ed esportazioni esistenti.
+
+I placeholder delle notifiche automatiche per task in scadenza `%pending_actions%` e `%pending_actions_count%` sono calcolati solo sugli step del workflow applicabili allo specifico incidente. Le condizioni impostate nel workflow, inclusi rischio per diritti e libertà, gravità e dati interessati, vengono quindi rispettate anche nelle email schedulate.
+
+### Placeholder notifiche e conseguenze configurabili
+
+Nei template di notifica manuale il placeholder corretto per le raccomandazioni è `%RECOMMENDATIONS%`; i template già presenti nel database che contengono `%RECOMMENDATION%` vengono aggiornati automaticamente in migrazione. È disponibile anche `%APP_INFO%`, valorizzato con nome applicazione, versione e build.
+
+Il campo `consequences` usato per la compilazione dei moduli viene costruito sommando le conseguenze automatiche configurate e le conseguenze eventualmente indicate nelle azioni dell’incidente. La logica automatica è configurabile da **Admin → Altre configurazioni → Logica conseguenze automatiche**, dove è possibile abilitare/disabilitare le regole, modificarne testo e condizioni, aggiungere nuove regole e rimuovere quelle non più necessarie. Le condizioni possono riferirsi a categoria, tipo di dato, gravità, stato, rischio per diritti e libertà e altri campi testuali dell’incidente. Nell’anteprima delle notifiche manuali i documenti generati da un template associato non vengono preselezionati automaticamente se non hanno anche il tag notifica appropriato.
+
+
+### Import/export singoli workflow
+
+Da **Admin → Flussi operativi incidenti** è disponibile una sezione **Import / Export workflow**. L’export consente di selezionare il flusso di default o il workflow di una specifica categoria e mostra prima una anteprima della struttura JSON da confermare. Il pacchetto include step, condizioni, label usate, tipi di notifica richiesti, template di notifica collegati, template modulo collegati e configurazioni necessarie al riuso del workflow.
+
+In fase di import il file JSON viene prima analizzato: gli elementi nuovi saranno creati, mentre per ogni elemento già esistente con valori diversi viene mostrata una tabella delle differenze. L’amministratore deve confermare esplicitamente, tramite checkbox, ogni singolo valore/elemento che verrebbe sovrascritto; gli elementi non confermati vengono mantenuti invariati.
+
+### Plugin AI Chatbot
+
+Il menu **Admin → Plugins → Chatbot AI** permette di attivare il plugin opzionale **AI Chatbot**, disattivato per default. Il plugin fornisce una chat di supporto sulle funzionalità dell’applicazione, sulle operazioni e sulle procedure per gli incidenti di sicurezza.
+
+Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity. Ogni motore ha configurazione separata, ma solo uno può essere attivo alla volta. Il chatbot usa la documentazione progettuale dell’applicazione e può essere arricchito caricando documenti procedurali aggiuntivi nella knowledge base del plugin. La schermata mostra sempre il nome corretto ChatGPT e include sia un pulsante globale per ripristinare tutte le configurazioni dei backend AI ai valori di default, cancellando le API key salvate e riportando endpoint, modelli e motore attivo alla configurazione iniziale, sia pulsanti nei singoli motori per ripristinare solo il backend selezionato. I reset non modificano l’abilitazione del plugin o l’opzione di contesto database.
+
+
+Aggiornamento AI Chatbot: nella configurazione del plugin è disponibile l'opzione **Consenti al motore AI di usare anche uno snapshot sanitizzato del database corrente**. L'opzione è disattivata per default. Se abilitata, il contesto inviato al motore selezionato include anche una vista JSON del database applicativo corrente, filtrata per escludere dati personali, dati sensibili, credenziali, token, indirizzi e-mail, allegati binari e campi di testo libero potenzialmente identificativi.
+
+### Identità visuale AlBot
+
+Il plugin AI Chatbot si presenta agli utenti come **AlBot**, chiamabile anche **Alex**. L'icona ufficiale è distribuita nel pacchetto in `app/static/ai-chatbot/albot-avatar.png` ed è usata dal launcher flottante, dall'intestazione del widget, dalle risposte del bot e dalla pagina completa della chat.
+
+### AI Chatbot globale
+
+Quando il plugin **AI Chatbot** è abilitato da **Admin → Plugins → Chatbot AI**, ogni pagina mostra un accesso rapido alla chat. Su desktop l’icona helpdesk/chat e la finestra restano preferibilmente nell’area in basso a destra, sopra il logo decorativo dell’applicazione; uno script anti-collisione calcola automaticamente distanza dal logo e bordi viewport per evitare sovrapposizioni con gli elementi fissi della pagina. Su mobile la chat si apre con un pulsante posto in alto, accanto al menu, con layout responsive che evita sovrapposizioni con il logo/header. La finestra può essere iconizzata nuovamente senza cambiare pagina. La finestra del widget interpreta e visualizza le risposte in Markdown sicuro: grassetto, corsivo, titoli, elenchi, codice inline/blocchi codice, link e pulsanti `{button:Etichetta|URL}` vengono formattati nella chat; HTML libero e script restano escapati.
+
+## Compliance AGID - hardening 0.7.0-7 build 20260608
+
+### Rifinitura compliance completa
+
+La build blocca direttamente a livello applicativo i metodi HTTP `TRACE` e `TRACK`, generando audit `security:method_blocked` in caso di tentativo. La password di bind LDAP viene letta tramite la stessa funzione di decifrazione usata dagli altri setting sensibili, quindi il valore cifrato a riposo resta utilizzabile per login, test connessione e ricerca UID. Il pacchetto di rilascio esclude cache Python e cache pytest. È incluso `pytest.ini` per eseguire i test con `pytest` dalla radice del progetto.
+
+Questa build applica ulteriori controlli per l'allineamento alle linee guida AGID per lo sviluppo sicuro: nessun segreto statico di default, cookie e sessioni protetti, CSRF server-side, CSP con nonce, password policy, rate limiting server-side del login, validazione upload con whitelist/magic bytes, escape dei filtri LDAP, cifratura a riposo dei setting segreti e validazione preventiva degli archivi di full import. In produzione impostare sempre `CIR_PRODUCTION=1`, lasciare `CIR_DISABLE_CSRF=0`, usare `SECRET_KEY` robusta, `ADMIN_INITIAL_PASSWORD` robusta, `DATABASE_URL` PostgreSQL e, preferibilmente, `SETTING_ENCRYPTION_KEY` stabile custodita come secret infrastrutturale.
+
+
+### Chiusura compliance AGID: lockout login server-side
+
+Il blocco dopo tentativi di login falliti è ora gestito server-side tramite la tabella `login_failure`, indicizzata per chiave derivata da indirizzo IP e username normalizzato. Il contatore non è più salvato nella sessione/cookie del browser e quindi non può essere aggirato eliminando i cookie o aprendo una nuova sessione. La policy è configurabile tramite variabili d'ambiente: `LOGIN_LOCKOUT_THRESHOLD`, `LOGIN_LOCKOUT_WINDOW_SECONDS`, `LOGIN_LOCKOUT_STEP_SECONDS` e `LOGIN_LOCKOUT_MAX_SECONDS`. Gli eventi continuano a essere registrati nell'audit come `security:login_failure` e `security:login_blocked`.
+
+## Suite di conformità AGID inclusa nel pacchetto
+
+Il pacchetto include una suite riproducibile per i controlli di conformità alle linee guida AGID per lo sviluppo sicuro. Eseguire:
+
+```bash
+pip install -r requirements-dev.txt
+./scripts/run_agid_compliance.sh
+```
+
+Le evidenze vengono salvate in `compliance/agid/<RUN_ID>/` con log, risultati Bandit, eventuale `pip-audit`, `summary.json` e `SUMMARY.md`. La documentazione sintetica è in `docs/AGID_COMPLIANCE.md`.
+
+Da questa versione ogni aggiornamento del progetto deve includere l'esecuzione della suite AGID e il salvataggio dei risultati nel pacchetto.
+
+
+## Verifiche AGID incluse nel pacchetto
+
+Il pacchetto include una suite riproducibile per la conformità alle Linee guida AGID per lo sviluppo sicuro. Eseguire:
+
+```bash
+pip install -r requirements-dev.txt
+./scripts/run_agid_compliance.sh
+```
+
+Le evidenze sono salvate in `compliance/agid/<RUN_ID>/` con log, risultati Bandit, sintesi JSON/Markdown e note su eventuali limitazioni ambientali. La documentazione sintetica dedicata è in `docs/AGID_COMPLIANCE.md`. Ogni aggiornamento del progetto deve rieseguire la suite e includere nel pacchetto la nuova directory dei risultati.
+
+La suite AGID standard usa `scripts/run_pytest_offline_safe.sh` per eseguire pytest in processi isolati e deterministici anche nei container Docker/offline, con plugin pytest esterni disabilitati e costo hash password ridotto solo in ambiente test. `pip-audit` resta bloccante nei run con rete; negli ambienti offline dichiarati con `AGID_OFFLINE=1` viene registrato lo skip controllato e il controllo deve essere rieseguito in CI con rete prima del rilascio produttivo.
+
+## Aggiornamento compliance AGID con pip-audit in CI
+
+La suite `./scripts/run_agid_compliance.sh` conserva nel pacchetto solo l'ultimo run in `compliance/agid/<RUN_ID>/`. Le evidenze precedenti vengono rimosse automaticamente, salvo uso locale esplicito di `AGID_KEEP_PREVIOUS_RESULTS=1`.
+
+`pip-audit` è ora bloccante per impostazione predefinita (`AGID_PIP_AUDIT_STRICT=1`) e deve essere eseguito in CI con rete, ad esempio tramite `.github/workflows/agid-compliance.yml`. In ambienti offline è possibile registrare la limitazione con `AGID_PIP_AUDIT_STRICT=0`, ma il rilascio produttivo richiede un run connesso senza vulnerabilità note.
+
+### Resolver DNS locale per pip-audit AGID
+
+La pipeline AGID configura ora un resolver DNS locale prima dell'audit delle dipendenze. Usare:
+
+```bash
+AGID_DNS_UPSTREAMS="1.1.1.1 8.8.8.8" ./scripts/configure_local_dns.sh
+AGID_USE_LOCAL_DNS=1 AGID_PIP_AUDIT_STRICT=1 ./scripts/run_agid_compliance.sh
+```
+
+Il workflow GitHub Actions applica la stessa procedura e considera bloccante sia il bootstrap DNS locale sia `pip-audit`.
+
+## Verifica compliance AGID manuale
+
+Il pacchetto include uno script dedicato per rieseguire manualmente la suite completa su un sistema connesso a Internet:
+
+```bash
+./compliance/agid/run_manual_agid_compliance.sh
+```
+
+Le istruzioni complete sono in `compliance/agid/ISTRUZIONI_TEST_MANUALI_AGID.md`. A ogni run ordinario viene mantenuta solo l’ultima directory `compliance/agid/<RUN_ID>/`.
+
+
+## Compliance AGID manuale con Docker
+
+La verifica completa AGID con `pip-audit` si esegue solo manualmente tramite Docker:
+
+```bash
+./compliance/agid/run_docker_agid_compliance.sh
+```
+
+Il runner costruisce `compliance/agid/Dockerfile`, esegue test applicativi, test dinamici AGID, Bandit e `pip-audit`, e salva le evidenze in `compliance/agid/<RUN_ID>/`. La suite standard `scripts/run_agid_compliance.sh` non esegue `pip-audit`; per la compliance completa usare il runner Docker su un sistema connesso a Internet.
+
+### Output a video della suite AGID
+
+Al termine dell’esecuzione degli script di compliance viene sempre stampato a video un riepilogo sintetico con:
+
+- directory dei risultati;
+- esito globale PASS/FAIL;
+- esito dei singoli controlli (`pip_check`, `compileall`, `pytest`, test dinamici AGID, Bandit e, nella modalità Docker manuale, `pip-audit`);
+- conteggio Bandit per severità;
+- percorso dei report `SUMMARY.md` e `summary.json`.
+
+Gli stessi dati sono salvati nella directory del run AGID, insieme ai log completi.
+
+- Dipendenza runtime aggiornata: Flask 3.1.3.
+
+
+### Rendering Markdown sicuro con colori e dimensioni
+
+Il rendering Markdown applicativo usa un sottoinsieme sicuro e comune in tutte le viste che mostrano Markdown: descrizioni workflow, avvisi procedurali, pagina del chatbot e widget chatbot. Oltre a titoli, elenchi, grassetto, corsivo, codice, link HTTP/HTTPS e pulsanti `{button:Etichetta|URL}` con URL assoluti o relativi/ancore, è possibile evidenziare il testo con colori e dimensioni controllate:
+
+- `{color:red}testo{/color}` o `{color:#0b7285}testo{/color}`
+- `{color:rgb(200,0,0)}testo{/color}` o `{color:hsl(210,80%,40%)}testo{/color}`
+- `{size:large}testo{/size}`, `{size:14px}testo{/size}`, `{size:1.2em}testo{/size}`, `{size:1.2rem}testo{/size}` o `{size:120%}testo{/size}`
+- `{button:Dati generali|#incident-main}`, `{button:Azioni|#incident-actions}` o `{button:Guida|/help#cap-markdown-rendering}`
+
+L'HTML libero resta escapato. Per mantenere la compatibilità con la Content Security Policy, il renderer non genera attributi `style` inline: produce attributi controllati `data-md-color` e `data-md-size`, poi il JavaScript globale applica i valori solo se superano la validazione allowlist. Le notifiche schedulate continuano a rimuovere la formattazione Markdown prima dell'invio.
+
+### Full backup e knowledge base AI Chatbot
+
+Il full backup, ottenuto selezionando tutte le categorie in **Admin → Backup**, usa il formato del full export e comprende anche i documenti caricati nella knowledge base dell’AI Chatbot. I file sono salvati nel manifest sotto `files.persistent_files.ai_chatbot_docs` e nell’archivio sotto `files/persistent/ai_chatbot_docs/`, insieme ai record database `ai_chatbot_document`.
+
+
+### Import workflow: deduplica elementi identici
+L’import mostra solo gli elementi esistenti con valori diversi e richiede una checkbox dedicata per ogni sovrascrittura. Gli elementi già presenti e identici al pacchetto importato non vengono importati di nuovo, non sono conteggiati come sovrascritture e non generano avvisi di sovrascrittura; nel riepilogo finale sono indicati come identici non importati.
+
+## Documentazione PDF
+
+La cartella `docs/` include anche le versioni PDF aggiornate della documentazione e la brochure riepilogativa `brochure_cybersecurity_incident_registry.pdf`. I PDF sono generati con `scripts/build_documentation_pdfs.py`, che esclude elementi di navigazione non utili alla stampa. La brochure è in formato verticale, massimo due pagine, con filigrana professionale a tema cybersecurity, logo/versione, scopo, funzionalità principali, immagini di esempio, riferimento alla licenza EUPL, disponibilità Docker Hub `desalvo/cybersecurity-incident-registry`, supporto Docker Compose/Kubernetes e link al progetto GitHub.
+
+### Clonazione workflow e priorità categoria
+
+In **Admin → Flussi operativi incidenti** è disponibile la funzione **Clona workflow**, che consente di copiare tutti gli step da un workflow sorgente a un workflow destinazione, scegliendo sia il flusso di default sia una categoria specifica. Se la destinazione contiene già step, occorre selezionare **Sovrascrivi**. I superuser dispongono anche della funzione **Clona workflow tra tenant**, utile per copiare un flusso specifico da un tenant sorgente a un tenant destinazione: le action label e le condizioni basate su gravità/dati interessati vengono riusate o clonate nel tenant destinazione per evitare riferimenti cross-tenant. Per gli incidenti con più categorie, il workflow applicato è quello della prima categoria selezionata nell'ordine drag-and-drop; se non esiste un workflow per quella categoria, viene applicato il flusso di default. Quando un superuser sposta un incidente a un altro tenant, l'ordine delle categorie viene preservato rimappando le label verso quelle equivalenti del tenant destinazione.
+
+### Plugin Alfresco
+
+Il plugin opzionale **Alfresco** è **disabilitato per default** ed è configurabile da **Admin → Plugins → Alfresco**. Ogni tenant possiede una configurazione separata: stato on/off, endpoint, username, password/API secret, Site/Parent Node ID, percorso destinazione, timeout e opzioni di organizzazione non vengono condivisi tra tenant. Per configurare un tenant selezionarlo come tenant attivo e aprire la pagina Alfresco. Le installazioni legacy possono usare i valori non scoped solo per il tenant default; gli altri tenant non ereditano credenziali legacy.
+
+Configurazione consigliata:
+
+1. creare in Alfresco un account tecnico dedicato con permessi limitati alla cartella del tenant;
+2. impostare URL base e credenziali;
+3. indicare il **Parent Node ID** (UUID della cartella padre) oppure un **Site**; se entrambi sono presenti, il Parent Node ID ha precedenza;
+4. impostare la cartella destinazione;
+5. usare **Salva e testa destinazione** prima degli upload.
+
+Ogni incidente usa una directory `incident-<id> - <nome-incidente>` sotto la destinazione configurata. Per default i documenti sono ulteriormente raggruppati in `pdf`, `office`, `images`, `archives`, `data` e `other`. Gli upload supportano **Solo CIR**, **CIR + Alfresco** e **Solo Alfresco**. ZIP e GZIP sono supportati come documenti opachi. Il report automatico, se abilitato a livello tenant e incidente, viene mantenuto come `incident-<id> - <nome-incidente> - report.pdf` direttamente nella directory dell’incidente.
+
+Nella sezione **Documenti** di ogni incidente, quando il plugin del tenant è attivo, CIR consente download, upload manuale e **cancellazione da Alfresco** del nodo remoto mantenendo il record CIR. La cancellazione usa la normale API Alfresco e, salvo diversa policy server, il contenuto può passare dal cestino anziché essere eliminato permanentemente. È inoltre disponibile **Sync Alfresco**: il comando controlla esclusivamente lo stato dei node id già registrati, marca in CIR i file come presenti/mancanti/non verificabili e aggiorna il timestamp di verifica. Il sync è deliberatamente in sola lettura verso Alfresco: **non carica, non ricrea e non modifica file remoti**. Questo permette di rilevare documenti cancellati direttamente dall’interfaccia web Alfresco.
+
+Per sicurezza, utilizzare TLS verificato, credenziali dedicate e `CIR_OUTBOUND_PRIVATE_HOSTS` quando l’hostname Alfresco risolve a reti private. La password/API secret è cifrata come setting segreto e non viene mostrata in chiaro.
+
+### Multi-tenancy
+
+L'applicazione supporta tenant multipli. Ogni utente è associato a un tenant, con `default` come tenant iniziale. Il ruolo `superuser` può gestire tutti i tenant da **Admin → Tenant**; il ruolo `admin` gestisce solo il proprio tenant. Incidenti e configurazioni operative sono isolati per tenant, mentre moduli PDF/configurazioni moduli, HTTPS/SSL, URL applicazione e fuso orario applicazione sono condivisi.
+
+Aggiornamento workflow cross-tenant: nella sezione di clonazione dei flussi, quando un superuser seleziona il tenant sorgente vengono mostrati solo i workflow esistenti in quel tenant. Il tenant di destinazione mostra solo i workflow gia' definiti nel tenant selezionato piu' la voce "Nuovo workflow". Scegliendo "Nuovo workflow" viene creata nel tenant destinazione una nuova categoria workflow e vengono clonate le dipendenze operative dal tenant sorgente, incluse action label e condizioni basate sulle liste configurabili.
+
+La clonazione tenant e la clonazione workflow cross-tenant sono idempotenti: label, categorie, action label, notifiche, destinatari, template, raccomandazioni e altre dipendenze vengono prima cercati nel tenant destinazione e riusati se gia' esistenti. La voce "Nuovo workflow" riusa una categoria equivalente nel tenant destinazione invece di crearne una copia, evitando duplicazioni in creazioni o clonazioni ripetute.
+
+
+Nota operativa: il selettore tenant della barra superiore non è mostrato nelle schermate di inserimento nuovo incidente e dettaglio/modifica incidente, così non è possibile cambiare tenant mentre si sta compilando o modificando un record.
+Nota multi-tenant: la clonazione dei tenant e dei workflow è idempotente e non duplica label già esistenti nel tenant destinazione. Eventuali label legacy senza tenant vengono assorbite o fuse nel tenant corretto durante i flussi di clonazione/migrazione.
+
+
+Nota PostgreSQL multi-tenant: le migrazioni rimuovono gli indici univoci legacy non tenant-scoped, incluso `ix_notification_type_code`, sostituendoli con chiavi tenant-aware per consentire la clonazione dei tenant senza conflitti sui tipi di notifica.
+
+
+Aggiornamento UI 0.7.0-7: i tipi di notifica includono una descrizione modificabile con default generato dal nome; la descrizione è usata come help/tooltip in tutte le palette drag & drop dei tag.
+
+### Ambiente Python isolato
+
+Per evitare conflitti con pacchetti gia' installati nel sistema, ad esempio pacchetti esterni che richiedono versioni diverse di `pypdf` o `Pillow`, il progetto include lo script:
+
+```bash
+scripts/setup_python_env.sh
+source .venv/bin/activate
+```
+
+Lo script crea un virtual environment dedicato, installa `requirements-dev.txt` e verifica l'ambiente con `pip check`. La versione richiesta dal progetto per `pypdf` resta `pypdf==6.19.0`; eventuali conflitti con pacchetti non appartenenti al progetto vengono evitati isolando l'ambiente invece di rilassare il pin di sicurezza/funzionale.
+
+## Test di integrazione PostgreSQL reale
+
+La suite standard non richiede un server PostgreSQL. I test che verificano advisory lock, concorrenza, rollback DDL transazionale, riallineamento delle sequence e recovery dopo un vero `SIGKILL` del worker sono marcati `postgres` e vengono saltati automaticamente quando `CIR_POSTGRES_TEST_URL` non è configurata.
+
+Per eseguirli contro un PostgreSQL 18.6 temporaneo con Docker Compose:
+
+```bash
+./scripts/run_postgres_tests.sh
+```
+
+La porta host predefinita è `55432`; può essere cambiata con `CIR_POSTGRES_TEST_PORT`. Per usare un database PostgreSQL di test già esistente:
+
+**Usare esclusivamente un database usa-e-getta dedicato ai test.** Per protezione, la suite rifiuta per default database il cui nome non contiene `test`; l’override `CIR_POSTGRES_TEST_ALLOW_NONTEST_DATABASE=1` è riservato a database temporanei/CI esplicitamente isolati e non deve mai essere usato verso produzione.
+
+```bash
+CIR_POSTGRES_TEST_URL='postgresql+psycopg2://user:password@host:5432/cir_test' pytest -m postgres
+```
+
+Usare esclusivamente un database di test sacrificabile: la suite crea e rimuove tabelle temporanee con nomi univoci e acquisisce advisory lock PostgreSQL.
+
+## Hardening Round 16
+
+Il Round 16 completa l'audit trasversale di isolamento tenant e gestione dei segreti. Template/tipi di notifica, knowledge base e contesto database del chatbot AI, scheduler background e retention/audit amministrativo rispettano ora sempre il tenant attivo. Le credenziali SMTP, LDAP e SSO non vengono più reinserite in chiaro nell'HTML amministrativo: un campo password vuoto conserva il valore già cifrato. I dettagli tecnici e le verifiche sono in `docs/DEVELOPMENT_HISTORY.md`.
+
+
+## Hardening Round 17
+
+Il Round 17 rafforza supply chain e deployment production. `sbom/SBOM_ROUND17.cdx.json` contiene l'inventario CycloneDX 1.6 delle dipendenze Python dirette e transitive con hash SHA-256 delle wheel disponibili; `scripts/generate_sbom.py` lo rigenera senza accesso alla rete e `scripts/run_sca.sh` esegue `pip-audit` in CI/release quando il relativo tooling e' disponibile. Le immagini runtime di riferimento sono aggiornate a Python 3.12.14 e PostgreSQL 18.6.
+
+Per Docker Compose production usare anche `docker-compose.production.yml`, impostando `CIR_PRODUCTION_IMAGE` a un tag di release immutabile o, preferibilmente, a un digest `image@sha256:...`. L'override abilita root filesystem read-only, `no-new-privileges`, capability ridotte, cookie Secure/HSTS e impedisce il fallback root su errori di permesso dei volumi. Kubernetes disabilita il service-account token automatico, usa seccomp `RuntimeDefault`, root filesystem read-only per l'applicazione e richiede Secret esterni; `k8s/secrets.example.yaml` e' soltanto un modello e non e' incluso da Kustomize.
+
+Le variabili core `DATABASE_URL`, `SECRET_KEY`, `ADMIN_INITIAL_PASSWORD` e `SETTING_ENCRYPTION_KEY` supportano anche la forma `NOME_FILE=/run/secrets/...`; non impostare contemporaneamente valore inline e `_FILE`. Se CIR e' dietro reverse proxy, configurare `CIR_TRUSTED_PROXY_CIDRS` con le sole reti proxy realmente fidate: `X-Forwarded-For` viene ignorato per connessioni dirette, impedendo di aggirare il rate limiting del login tramite spoofing dell'header. Dettagli e verifiche sono in `docs/DEVELOPMENT_HISTORY.md`.
+
+## Release Candidate Round 18
+
+Il Round 18 sincronizza la build della release candidate a `20260902` e introduce `scripts/verify_release_candidate.py`, che verifica offline la coerenza tra `VERSION`, `BUILD`, Docker Compose, Kubernetes, SBOM e i principali requisiti di hardening production. Il controllo non sostituisce i gate che richiedono infrastruttura esterna.
+
+Prima della promozione production devono risultare completati anche: `scripts/run_sca.sh` in un ambiente con accesso al vulnerability service, i sette test PostgreSQL reali (`scripts/run_postgres_tests.sh`), la scansione dell'immagine container finale e il pin dell'immagine CIR tramite digest `@sha256:`. La checklist completa è in `docs/RELEASE.md`.
+
+## Build Docker multi-arch
+
+Per generare e pubblicare l'immagine `desalvo/cybersecurity-incident-registry:latest` per **amd64** e **arm64**:
+
+```bash
+docker login
+./scripts/build_multiarch_image.sh
+```
+
+Lo script usa Docker Buildx e pubblica un unico manifest multi-arch per `linux/amd64,linux/arm64`. Repository e tag possono essere cambiati separatamente con `--repository`/`--tag` oppure con `CIR_DOCKER_REPOSITORY`/`CIR_DOCKER_TAG`. Per compatibilità resta disponibile `--image`/`CIR_DOCKER_IMAGE`, che imposta il riferimento completo e ha precedenza. Esempio: `./scripts/build_multiarch_image.sh --repository miaorg/cir --tag 0.10.0-1`.
+
+## Migrazione da 0.8.0 a >= 0.9.0
+
+Per aggiornare deployment Docker Compose o Kubernetes dalla baseline 0.8.0 alla 0.9.0-1 o successive, seguire `docs/MIGRATION.md`. La guida documenta immagine/tag, nuove variabili e secret, volumi persistenti, Compose production, Kustomize/PVC, securityContext/probe e la cautela necessaria per eventuali upgrade major di PostgreSQL.
+
+### Gate Trivy production (RC R8)
+
+Dopo la build multi-arch, eseguire `./scripts/run_trivy_production_gate.sh IMMAGINE`. Il gate controlla separatamente amd64 e arm64 contro `TRIVY_RISK_ACCEPTANCE_R8.json`; non usa una soppressione generica degli `unfixed` e fallisce su nuovi HIGH/CRITICAL, finding Python HIGH/CRITICAL o vulnerabilità accettate per cui diventa disponibile una versione corretta. Vedere `docs/SECURITY.md`.
+
+
+### Naming incidenti su Alfresco (Hotfix 6)
+
+Le directory incidenti includono ID e nome leggibile (`incident-<id> - <nome-incidente>`) e il report canonico usa `<cartella-incidente> - report.pdf`. Vedere `docs/ADMIN_ALFRESCO.md`.
+
+### CI/CD GitHub Actions
+
+La release include `.github/workflows/ci-release.yml`: pull request e push eseguono i gate automatici; un push su `main` pubblica `latest` solo dopo il PASS dei gate, mentre un tag Git pubblica lo stesso tag Docker. Configurazione, secrets Docker Hub e strategia di promozione per digest sono documentati in `docs/TESTING_AND_PRODUCTION.md`.

@@ -679,3 +679,95 @@ cumulative from the last confirmed RC10.
 - `scripts/summarize_trivy_findings.py` produces a normalized, non-approving findings inventory. Historical amd64 evidence and review procedure are in `docs/security-evidence/`.
 - Runtime LibreOffice dependency retained because `app/form_generation.py` uses it. No speculative package removal or risk-acceptance renewal.
 - Candidate requires updated real amd64/arm64 Trivy scans and human disposition before production promotion.
+
+
+## RC14 — documentation restructure and production security evidence
+
+README.md and README_en.md now introduce the application, features and deployment. Their prior complete contents are archived under docs/DEVELOPMENT_HISTORY_README_IT.md and docs/DEVELOPMENT_HISTORY_README_EN.md. Both Trivy architecture reports are summarized in docs/PRODUCTION_SECURITY_REVIEW_RC14.md. Production remains blocked; risk acceptance was not renewed. Last user-confirmed commit and merge: RC13.
+
+
+## RC15: temporary security-only CI
+
+A feature-branch/PR commit containing `[ci-security]` selects local-image Trivy checks on amd64 and arm64 and skips costly full CI jobs for that ref only. Main and tags always run the original full pipeline. No publishing, risk acceptance renewal, or promotion. See `docs/CI_SECURITY_FAST.md`. RC13 remains the last user-confirmed commit; RC14 README restructuring is included cumulatively.
+
+
+## RC16 security automation
+
+Permanent ci-security diagnostic (no temporary suffix), weekly source-image scans on main, existing Monday immutable production review, and actionable idempotent GitHub Issues alerts. No automatic risk acceptance or production promotion. Baseline committed RC13; RC14/RC15/RC16 remain cumulative and uncommitted until confirmed.
+
+
+## RC17 security triage (uncommitted; last confirmed commit RC13)
+
+Preserve all functionality. Reviewed the supplied amd64/arm64 Trivy report and created `docs/TRIVY_RC17_RISK_REVIEW.md` and `docs/TRIVY_RC17_REVIEW_MATRIX.csv`. No production approval, policy renewal or package removal was performed. RC14–RC17 remain cumulative changes since RC13.
+
+
+## RC18 — evidence-only Trivy disposition
+
+Cumulative from RC17 (committed on a feature branch, not merged). Added reproducible amd64/arm64 report comparison and per-package evidence matrix, with no automatic risk approval. All functionality preserved; production gate remains blocked. See docs/TRIVY_RC18_REMEDIATION_DECISION.md.
+
+
+## RC19 security-only diagnostics
+
+Added Debian package candidate/reverse-dependency evidence to the permanent `[ci-security]` workflow on both platforms, plus a JSON summarizer and RC19 risk-decision note. No runtime packages or risk acceptance changed. Last confirmed commit: RC17 on development branch; RC18 not confirmed committed. Production remains blocked.
+
+
+## RC19 security-only diagnostics
+
+Added Debian package candidate/reverse-dependency evidence to the permanent `[ci-security]` workflow on both platforms, plus a JSON summarizer and RC19 risk-decision note. No runtime packages or risk acceptance changed. Last confirmed commit: RC17 on development branch; RC18 not confirmed committed. Production remains blocked.
+
+
+## 0.10.0-1 RC20 — security diagnostics repair
+
+Latest [ci-security] run 45178795238 collected Trivy for both architectures (78 HIGH, 1 CRITICAL each), but Debian evidence was incomplete: `/bin/sh: Package: parameter not set` at the `dpkg-query -f` format. RC20 escapes the literal dpkg format variables, validates all three expected outputs and marks incomplete evidence explicitly in the summary. No runtime changes, risk acceptance updates, or promotion. Last confirmed Git commit is RC17; RC18 and RC19 remain unconfirmed as commits.
+
+
+## RC21 - Debian APT evidence review
+
+Both platform inventories from security-only run 45186139811 are complete. Installed and candidate versions match for nine priority Debian packages on both architectures. Added docs/TRIVY_RC21_APT_DECISION.md and CSV evidence. No runtime, security gate or risk acceptance changes; production remains blocked. The last confirmed Git commit is RC17 on the security branch; RC18-21 are not confirmed committed.
+
+
+## RC22 — refreshed multiarch security evidence
+
+CI run 45200319586: amd64 and arm64 each 81 HIGH, 1 CRITICAL, 33 unique CVEs, complete APT evidence, no Trivy FixedVersion. Added `TRIVY_RC22_EVIDENCE.csv`, `.json` and `TRIVY_RC22_RISK_DECISION.md`; risk acceptance unchanged and production remains blocked. Last confirmed Git commit: RC17 security branch (RC18–RC21 commit status not confirmed).
+
+
+## RC23 — evidence-based Trivy applicability review
+
+Added `docs/TRIVY_RC23_FORMAL_REVIEW.md`, `docs/TRIVY_RC23_DECISION_REGISTER.csv`, and `docs/TRIVY_RC23_DECISION_SUMMARY.json`, comparing the latest dual-architecture Trivy findings with the expired historical acceptance. All decisions remain NOT_APPROVED; no application behavior, Dockerfile, gate, or acceptance changed. RC17 is the last confirmed branch commit; RC18–RC23 remain cumulative unless the user confirms newer commits.
+
+RC24: security CI hotfix: invoke Trivy gate with bash in fast, release and scheduled workflows; restore executable ZIP mode; preserve all security policy and runtime behavior. The 45216896624 run did not scan either architecture (exit 126); its empty reports are not vulnerability evidence.
+
+
+## 0.10.0-1 RC25 — Trivy scanner and risk review
+
+Pinned Trivy v0.76.2 in ci-security-fast, ci-release and security-review; SHA-pinned setup action unchanged. Latest supplied CI run 45221043225: 81 HIGH + 1 CRITICAL per architecture, 33 unique CVEs, no FixedVersion. `docs/TRIVY_RC25_DECISION_MATRIX.csv` and `docs/TRIVY_RC25_REVIEW.md` are evidence for review only. No risk acceptance, runtime dependencies or production gate were relaxed. RC17 is the last user-confirmed branch commit; later commits have not been confirmed.
+
+
+## RC26 security review
+
+RC25 remains the source baseline. Run 45224547175 shows 81 HIGH + 1 CRITICAL and 33 distinct CVEs on each architecture. Added formal unapproved review register and procedure. No risk acceptance or runtime change; production remains blocked.
+
+
+## RC27 security decision register
+
+The 2026-11-23 run 45227508842 produced matching 82 HIGH/CRITICAL package findings per architecture (81 HIGH, 1 CRITICAL; 33 distinct CVEs). RC27 adds a review register and a HOLD decision guide. It does not modify the runtime, acceptance policy or gate; the last confirmed commit remains RC17 on the security branch unless the user confirms otherwise.
+
+
+## RC28 — 14-day risk review proposal
+
+The user authorized preparing a 14-day assessment, not unconditional CVE approval. The RC28 package adds an exact 33-CVE proposed decision register and approval checklist. The historical risk acceptance and production gate are unchanged; no image was promoted. Last user-confirmed Git commit is RC17 on a development branch.
+
+
+## RC29 — PR regression fixes after committed RC28
+
+The full PR suite identified 11 regressions caused by tests assuming README release history, earlier workflow layout and missing executable bits. RC29 updates tests to follow the archived historical READMEs, preserves the permanent security-only workflow and issue notifier, fixes archived Markdown relative links, and restores executable permissions on the entrypoint and release packager. Full CI must be rerun before merge. No Trivy risk acceptance or production policy has been relaxed.
+
+
+## RC30 - PostgreSQL CI permission fix
+
+The RC29 PR run passed 958 application tests and the documentation pipeline but failed before PostgreSQL tests because `scripts/run_postgres_tests.sh` lacked its executable Git mode. RC30 restores mode 100755 and invokes the script through bash in ci-release.yml. This fixes only the execution error; the 22 PostgreSQL tests must be rerun in GitHub Actions. Last confirmed commit: RC29 on PR branch.
+
+
+## RC31 — CI SCA executable permission hardening
+
+The PR after RC30 passed the application suite, PostgreSQL and browser documentation, but failed with exit 126 invoking `scripts/run_sca.sh`. RC31 restores executable mode for `run_sca.sh` and `verify_production_release.sh`, invokes them via `bash` in release and periodic security workflows, and likewise protects packaging invocations. Focused workflow regressions: 28 passed, 8 subtests; offline release verifier PASS. Production promotion is still subject to Trivy and explicit risk acceptance. Last confirmed commit: RC30 (user reported a subsequent PR failure).
