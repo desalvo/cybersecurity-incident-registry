@@ -1,0 +1,455 @@
+{
+  "status": "DRAFT_NOT_APPROVED",
+  "release": "0.10.0-1",
+  "duration_days": 14,
+  "effective_on": "TO_BE_SET_ON_APPROVAL",
+  "valid_until": "TO_BE_SET_ON_APPROVAL",
+  "review_owner": "PENDING",
+  "scan_run": "45227508842",
+  "policy_constraints": {
+    "python_high_critical_allowed": false,
+    "new_os_high_critical_allowed": false,
+    "fixed_version_available_allowed": false,
+    "require_exact_allowlist_for_residual_os": true,
+    "enforce_package_scope_when_declared": true,
+    "require_runtime_hardening_verification": true
+  },
+  "findings": {
+    "CVE-2025-69720": {
+      "packages": [
+        "libncursesw6",
+        "libtinfo6",
+        "ncurses-base",
+        "ncurses-bin"
+      ],
+      "package_version_regex": {
+        "libncursesw6": "6\\.5\\+20250216\\-2",
+        "libtinfo6": "6\\.5\\+20250216\\-2",
+        "ncurses-base": "6\\.5\\+20250216\\-2",
+        "ncurses-bin": "6\\.5\\+20250216\\-2"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2025-71436": {
+      "packages": [
+        "libraptor2-0"
+      ],
+      "package_version_regex": {
+        "libraptor2-0": "2\\.0\\.16\\-6"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-107494": {
+      "packages": [
+        "libssl3t64",
+        "openssl",
+        "openssl-provider-legacy"
+      ],
+      "package_version_regex": {
+        "libssl3t64": "3\\.5\\.9\\-1\\~deb13u1",
+        "openssl": "3\\.5\\.9\\-1\\~deb13u1",
+        "openssl-provider-legacy": "3\\.5\\.9\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-113351": {
+      "packages": [
+        "libexpat1"
+      ],
+      "package_version_regex": {
+        "libexpat1": "2\\.9\\.0\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-115506": {
+      "packages": [
+        "libexpat1"
+      ],
+      "package_version_regex": {
+        "libexpat1": "2\\.9\\.0\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-117610": {
+      "packages": [
+        "libexpat1"
+      ],
+      "package_version_regex": {
+        "libexpat1": "2\\.9\\.0\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-118370": {
+      "packages": [
+        "libexpat1"
+      ],
+      "package_version_regex": {
+        "libexpat1": "2\\.9\\.0\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-119373": {
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "package_version_regex": {
+        "libsqlite3-0": "3\\.46\\.1\\-7\\+deb13u2"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-119374": {
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "package_version_regex": {
+        "libsqlite3-0": "3\\.46\\.1\\-7\\+deb13u2"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-119379": {
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "package_version_regex": {
+        "libsqlite3-0": "3\\.46\\.1\\-7\\+deb13u2"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-12064": {
+      "packages": [
+        "libcurl3t64-gnutls",
+        "libcurl4t64"
+      ],
+      "package_version_regex": {
+        "libcurl3t64-gnutls": "8\\.14\\.1\\-2\\+deb13u7",
+        "libcurl4t64": "8\\.14\\.1\\-2\\+deb13u7"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-124709": {
+      "packages": [
+        "libssl3t64",
+        "openssl",
+        "openssl-provider-legacy"
+      ],
+      "package_version_regex": {
+        "libssl3t64": "3\\.5\\.9\\-1\\~deb13u1",
+        "openssl": "3\\.5\\.9\\-1\\~deb13u1",
+        "openssl-provider-legacy": "3\\.5\\.9\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-16742": {
+      "packages": [
+        "libsystemd0",
+        "libudev1"
+      ],
+      "package_version_regex": {
+        "libsystemd0": "257\\.13\\-1\\~deb13u1",
+        "libudev1": "257\\.13\\-1\\~deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-24882": {
+      "packages": [
+        "dirmngr",
+        "gnupg",
+        "gnupg-l10n",
+        "gpg",
+        "gpg-agent",
+        "gpgconf",
+        "gpgsm"
+      ],
+      "package_version_regex": {
+        "dirmngr": "2\\.4\\.7\\-21\\+deb13u1\\+b5",
+        "gnupg": "2\\.4\\.7\\-21\\+deb13u1",
+        "gnupg-l10n": "2\\.4\\.7\\-21\\+deb13u1",
+        "gpg": "2\\.4\\.7\\-21\\+deb13u1\\+b5",
+        "gpg-agent": "2\\.4\\.7\\-21\\+deb13u1\\+b5",
+        "gpgconf": "2\\.4\\.7\\-21\\+deb13u1\\+b5",
+        "gpgsm": "2\\.4\\.7\\-21\\+deb13u1\\+b5"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-36849": {
+      "packages": [
+        "libtiff6"
+      ],
+      "package_version_regex": {
+        "libtiff6": "4\\.7\\.0\\-3\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-52490": {
+      "packages": [
+        "libtiff6"
+      ],
+      "package_version_regex": {
+        "libtiff6": "4\\.7\\.0\\-3\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-54369": {
+      "packages": [
+        "libacl1"
+      ],
+      "package_version_regex": {
+        "libacl1": "2\\.3\\.2\\-2\\+b1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-6653": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-74860": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-76642": {
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "package_version_regex": {
+        "bsdutils": "1:2\\.41\\.5\\-0\\+deb13u1",
+        "libblkid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "liblastlog2-2": "2\\.41\\.5\\-0\\+deb13u1",
+        "libmount1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libsmartcols1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libuuid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "login": "1:4\\.16\\.0\\-2\\+really2\\.41\\.5\\-0\\+deb13u1",
+        "mount": "2\\.41\\.5\\-0\\+deb13u1",
+        "util-linux": "2\\.41\\.5\\-0\\+deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-78408": {
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "package_version_regex": {
+        "bsdutils": "1:2\\.41\\.5\\-0\\+deb13u1",
+        "libblkid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "liblastlog2-2": "2\\.41\\.5\\-0\\+deb13u1",
+        "libmount1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libsmartcols1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libuuid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "login": "1:4\\.16\\.0\\-2\\+really2\\.41\\.5\\-0\\+deb13u1",
+        "mount": "2\\.41\\.5\\-0\\+deb13u1",
+        "util-linux": "2\\.41\\.5\\-0\\+deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-78409": {
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "package_version_regex": {
+        "bsdutils": "1:2\\.41\\.5\\-0\\+deb13u1",
+        "libblkid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "liblastlog2-2": "2\\.41\\.5\\-0\\+deb13u1",
+        "libmount1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libsmartcols1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libuuid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "login": "1:4\\.16\\.0\\-2\\+really2\\.41\\.5\\-0\\+deb13u1",
+        "mount": "2\\.41\\.5\\-0\\+deb13u1",
+        "util-linux": "2\\.41\\.5\\-0\\+deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-78410": {
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "package_version_regex": {
+        "bsdutils": "1:2\\.41\\.5\\-0\\+deb13u1",
+        "libblkid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "liblastlog2-2": "2\\.41\\.5\\-0\\+deb13u1",
+        "libmount1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libsmartcols1": "2\\.41\\.5\\-0\\+deb13u1",
+        "libuuid1": "2\\.41\\.5\\-0\\+deb13u1",
+        "login": "1:4\\.16\\.0\\-2\\+really2\\.41\\.5\\-0\\+deb13u1",
+        "mount": "2\\.41\\.5\\-0\\+deb13u1",
+        "util-linux": "2\\.41\\.5\\-0\\+deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-8458": {
+      "packages": [
+        "libcurl3t64-gnutls",
+        "libcurl4t64"
+      ],
+      "package_version_regex": {
+        "libcurl3t64-gnutls": "8\\.14\\.1\\-2\\+deb13u7",
+        "libcurl4t64": "8\\.14\\.1\\-2\\+deb13u7"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-86138": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-86139": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-86140": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-86142": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-86143": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-86144": {
+      "packages": [
+        "libxml2"
+      ],
+      "package_version_regex": {
+        "libxml2": "2\\.12\\.7\\+dfsg\\+really2\\.9\\.14\\-2\\.1\\+deb13u3"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-88806": {
+      "packages": [
+        "libx11-6",
+        "libx11-data"
+      ],
+      "package_version_regex": {
+        "libx11-6": "2:1\\.8\\.12\\-1",
+        "libx11-data": "2:1\\.8\\.12\\-1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-88807": {
+      "packages": [
+        "libxrender1"
+      ],
+      "package_version_regex": {
+        "libxrender1": "1:0\\.9\\.12\\-1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    },
+    "CVE-2026-9538": {
+      "packages": [
+        "perl-base"
+      ],
+      "package_version_regex": {
+        "perl-base": "5\\.40\\.1\\-6\\+deb13u1"
+      },
+      "review_before": "TO_BE_SET_ON_APPROVAL",
+      "reason": "PENDING: verify applicability, runtime exposure, compensating controls and explicit authorized approval."
+    }
+  },
+  "requirements": [
+    "Approval by authorized risk owner",
+    "No HIGH/CRITICAL Python findings",
+    "No new or out-of-scope OS findings",
+    "No FixedVersion available",
+    "Verified runtime hardening and document conversion controls",
+    "Re-review weekly and upon new CVE or package fix"
+  ]
+}

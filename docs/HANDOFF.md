@@ -771,3 +771,8 @@ The RC29 PR run passed 958 application tests and the documentation pipeline but 
 ## RC31 — CI SCA executable permission hardening
 
 The PR after RC30 passed the application suite, PostgreSQL and browser documentation, but failed with exit 126 invoking `scripts/run_sca.sh`. RC31 restores executable mode for `run_sca.sh` and `verify_production_release.sh`, invokes them via `bash` in release and periodic security workflows, and likewise protects packaging invocations. Focused workflow regressions: 28 passed, 8 subtests; offline release verifier PASS. Production promotion is still subject to Trivy and explicit risk acceptance. Last confirmed commit: RC30 (user reported a subsequent PR failure).
+
+
+## RC32 — formal 14-day risk proposal
+
+Added a non-operative, exact-package/version-scoped draft for 33 CVEs across both architectures from CI run 45227508842, with a per-finding approval matrix. The expired active policy is unchanged. Authorized risk-owner approval, exposure evidence, full production gates and digest promotion remain pending. RC31 is the latest user-confirmed merged baseline.
