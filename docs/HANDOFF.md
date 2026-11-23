@@ -672,3 +672,10 @@ PostgreSQL diagnostics additionally print pg_blocking_pids(). This is a targeted
 fix based on the captured traceback, not a claim that the full PostgreSQL gate
 was rerun locally. RC11 remains unconfirmed as committed; commit text must be
 cumulative from the last confirmed RC10.
+
+## RC13 production-security review checkpoint
+
+- Trivy gate now scans both architectures and returns failure if either scan or policy evaluation fails; no bypass of expired acceptance.
+- `scripts/summarize_trivy_findings.py` produces a normalized, non-approving findings inventory. Historical amd64 evidence and review procedure are in `docs/security-evidence/`.
+- Runtime LibreOffice dependency retained because `app/form_generation.py` uses it. No speculative package removal or risk-acceptance renewal.
+- Candidate requires updated real amd64/arm64 Trivy scans and human disposition before production promotion.
