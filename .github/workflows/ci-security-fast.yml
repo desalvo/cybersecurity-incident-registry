@@ -1,0 +1,168 @@
+name: CIR security-only diagnostic
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+    tags-ignore:
+      - '**'
+  workflow_dispatch:
+  schedule:
+    # Weekly security-only source-image checks on main (Wednesday 06:45 UTC).
+    - cron: "45 6 * * 3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cir-security-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  select:
+    name: Detect [ci-security] marker
+    runs-on: ubuntu-24.04
+    outputs:
+      enabled: ${{ steps.mode.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Select explicitly requested diagnostic mode
+        id: mode
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" == workflow_dispatch || "$EVENT_NAME" == schedule ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+          fi
+          message="$(git show -s --format=%B "$HEAD_SHA")"
+          if [[ "$message" == *'[ci-security]'* ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  security:
+    name: Trivy diagnostic (${{ matrix.arch }})
+    needs: select
+    if: needs.select.outputs.enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: arm64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Prepare current build identity
+        run: python scripts/prepare_release_metadata.py --write
+      - name: Build local image without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          pull: true
+          no-cache: true
+          tags: cir-security-local:${{ matrix.arch }}
+          build-args: |
+            CIR_SECURITY_DIAGNOSTIC=1
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567
+        with:
+          version: v0.76.2
+          cache: true
+      - name: Scan image and evaluate current policy (never auto-accept)
+        shell: bash
+        env:
+          CIR_TRIVY_PLATFORMS: ${{ matrix.platform }}
+          CIR_TRIVY_OUTPUT_DIR: ${{ runner.temp }}/cir-trivy-fast
+        run: |
+          set -euo pipefail
+          bash ./scripts/run_trivy_production_gate.sh "cir-security-local:${{ matrix.arch }}"
+      - name: Inspect Debian package candidates and installed reverse dependencies
+        if: always()
+        shell: bash
+        env:
+          CIR_SECURITY_ARCH: ${{ matrix.arch }}
+          CIR_TRIVY_OUTPUT_DIR: ${{ runner.temp }}/cir-trivy-fast
+        run: |
+          set -euo pipefail
+          mkdir -p "$CIR_TRIVY_OUTPUT_DIR"
+          # This runs only in the disposable local diagnostic container.
+          # It never modifies or publishes the candidate image.
+          docker run --rm --network bridge --entrypoint /bin/sh \
+            -v "$CIR_TRIVY_OUTPUT_DIR:/evidence" \
+            -e "CIR_SECURITY_ARCH=$CIR_SECURITY_ARCH" \
+            "cir-security-local:${CIR_SECURITY_ARCH}" \
+            -c 'set -eu
+              apt-get update > /evidence/debian-apt-update.log 2>&1 || { cat /evidence/debian-apt-update.log; exit 1; }
+              dpkg-query -W -f="\${Package}\t\${Version}\t\${Status}\n" > /evidence/debian-installed.tsv
+              apt-cache policy > /evidence/debian-policy.txt
+              for p in libxml2 libexpat1 libsqlite3-0 libraptor2-0 libtiff6 libssl3t64 openssl libcurl4t64 util-linux gnupg; do
+                echo "===== $p ====="
+                apt-cache policy "$p" || true
+                echo "--- reverse dependencies ---"
+                apt-cache rdepends --installed "$p" || true
+              done > /evidence/debian-priority-packages.txt
+              test -s /evidence/debian-installed.tsv
+              test -s /evidence/debian-policy.txt
+              test -s /evidence/debian-priority-packages.txt'
+      - name: Summarize actionable Trivy and Debian evidence
+        if: always()
+        shell: bash
+        env:
+          CIR_TRIVY_OUTPUT_DIR: ${{ runner.temp }}/cir-trivy-fast
+        run: |
+          python scripts/summarize_security_diagnostic.py \
+            --evidence-dir "$CIR_TRIVY_OUTPUT_DIR" \
+            --output "$CIR_TRIVY_OUTPUT_DIR/security-diagnostic-summary.json"
+      - name: Upload raw security evidence even when policy rejects
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-security-${{ matrix.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cir-trivy-fast/*
+          if-no-files-found: warn
+          retention-days: 14
+
+  notify:
+    name: Notify about scheduled source-image security findings
+    needs: [select, security]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Open or update actionable security issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.security.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: '[CIR security] Scheduled source-image scan requires attention'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/notify_security_issue.py \
+            --title "$TITLE" --result "$RESULT" --run-url "$RUN_URL" \
+            --context 'Scheduled main source-image amd64/arm64 Trivy checks' \
+            --repository "$GITHUB_REPOSITORY"
