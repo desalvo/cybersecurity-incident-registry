@@ -41,7 +41,7 @@ def test_incident_documents_expose_alfresco_actions_only_when_enabled():
 
 def test_alfresco_password_is_secret_setting_and_documented():
     routes = Path('app/routes.py').read_text(encoding='utf-8')
-    readme = Path('README.md').read_text(encoding='utf-8')
+    readme = Path('docs/DEVELOPMENT_HISTORY_README_IT.md').read_text(encoding='utf-8')
     assert "'alfresco_password'" in routes
     assert 'Plugin Alfresco' in readme
     assert 'disabilitato per default' in readme

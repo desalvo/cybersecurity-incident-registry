@@ -6,7 +6,7 @@ MODELS=(ROOT/'app/models.py').read_text(encoding='utf-8')
 INIT=(ROOT/'app/__init__.py').read_text(encoding='utf-8')
 TPL=(ROOT/'app/templates/incident_detail.html').read_text(encoding='utf-8')
 ADMIN=(ROOT/'app/plugins/alfresco/templates/alfresco_admin_plugins.html').read_text(encoding='utf-8')
-README=(ROOT/'README.md').read_text(encoding='utf-8')
+README=(ROOT/'docs/DEVELOPMENT_HISTORY_README_IT.md').read_text(encoding='utf-8')
 
 def test_alfresco_config_is_strictly_tenant_scoped():
     assert "def _tenant_alfresco_setting" in CLIENT

@@ -1,0 +1,17 @@
+{
+  "run": "45227508842",
+  "architectures": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "findings_per_architecture": 82,
+  "high_per_architecture": 81,
+  "critical_per_architecture": 1,
+  "distinct_cves": 33,
+  "matched_findings_between_architectures": true,
+  "historically_reviewed_cves": 23,
+  "not_historically_reviewed_cves": 10,
+  "approval_status": "NONE_GRANTED",
+  "production": "BLOCKED",
+  "note": "Historical acceptance does not authorize current image; no Debian applicability or reachability verdict inferred from Trivy."
+}
