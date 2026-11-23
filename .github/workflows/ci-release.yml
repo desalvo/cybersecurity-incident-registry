@@ -21,8 +21,43 @@ env:
   DEFAULT_DOCKER_REPOSITORY: desalvo/cybersecurity-incident-registry
 
 jobs:
+  ci-mode:
+    name: Select full CI or temporary security-only mode
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      security_only: ${{ steps.mode.outputs.security_only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Determine mode from exact head commit
+        id: mode
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          echo 'security_only=false' >> "$GITHUB_OUTPUT"
+          # Never bypass full CI for main, tags or explicit manual releases.
+          if [[ "$EVENT_NAME" != pull_request && "$EVENT_NAME" != push ]]; then exit 0; fi
+          if [[ "$REF_NAME" == refs/heads/main || "$REF_NAME" == refs/tags/* ]]; then exit 0; fi
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+          fi
+          message="$(git show -s --format=%B "$HEAD_SHA")"
+          if [[ "$message" == *'[ci-security]'* ]]; then
+            echo 'security_only=true' >> "$GITHUB_OUTPUT"
+            echo 'Security-only request detected; full tests and documentation are skipped for this non-main ref.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   release-metadata:
     name: Resolve release metadata
+    needs: [ci-mode]
+    if: needs.ci-mode.outputs.security_only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -41,7 +76,8 @@ jobs:
 
   quality-gates:
     name: Tests, PostgreSQL, SCA and offline gates
-    needs: [release-metadata]
+    needs: [ci-mode, release-metadata]
+    if: needs.ci-mode.outputs.security_only != 'true'
     env:
       CIR_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
       CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}
@@ -166,7 +202,8 @@ jobs:
 
   ui-documentation:
     name: Real UI screenshots and documentation
-    needs: [release-metadata]
+    needs: [ci-mode, release-metadata]
+    if: needs.ci-mode.outputs.security_only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

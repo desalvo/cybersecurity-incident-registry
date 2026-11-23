@@ -69,7 +69,14 @@ COPY . .
 # direct Docker builds generate it here in Europe/Rome (tzdata above).
 ARG CIR_RELEASE_BUILD
 ARG SOURCE_DATE_EPOCH
-RUN python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write --verify-installed-documentation
+# Only the temporary, non-publishing security diagnostic may omit CI-generated
+# screenshot documentation. The production build defaults to strict verification.
+ARG CIR_SECURITY_DIAGNOSTIC=0
+RUN if [ "${CIR_SECURITY_DIAGNOSTIC}" = "1" ]; then \
+      python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write; \
+    else \
+      python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write --verify-installed-documentation; \
+    fi
 
 RUN set -eux; \
     chmod 0755 /app/docker-entrypoint.sh; \

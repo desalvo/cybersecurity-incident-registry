@@ -1,0 +1,104 @@
+name: CIR security-only diagnostic (temporary)
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+    tags-ignore:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cir-security-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  select:
+    name: Detect [ci-security] marker
+    runs-on: ubuntu-24.04
+    outputs:
+      enabled: ${{ steps.mode.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Select explicitly requested diagnostic mode
+        id: mode
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+          fi
+          message="$(git show -s --format=%B "$HEAD_SHA")"
+          if [[ "$message" == *'[ci-security]'* ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  security:
+    name: Trivy diagnostic (${{ matrix.arch }})
+    needs: select
+    if: needs.select.outputs.enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: arm64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Prepare current build identity
+        run: python scripts/prepare_release_metadata.py --write
+      - name: Build local image without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          pull: true
+          no-cache: true
+          tags: cir-security-local:${{ matrix.arch }}
+          build-args: |
+            CIR_SECURITY_DIAGNOSTIC=1
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567
+        with:
+          version: v0.74.0
+          cache: true
+      - name: Scan image and evaluate current policy (never auto-accept)
+        shell: bash
+        env:
+          CIR_TRIVY_PLATFORMS: ${{ matrix.platform }}
+          CIR_TRIVY_OUTPUT_DIR: ${{ runner.temp }}/cir-trivy-fast
+        run: |
+          set -euo pipefail
+          ./scripts/run_trivy_production_gate.sh "cir-security-local:${{ matrix.arch }}"
+      - name: Upload raw security evidence even when policy rejects
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-security-${{ matrix.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cir-trivy-fast/*.json
+          if-no-files-found: warn
+          retention-days: 14

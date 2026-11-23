@@ -679,3 +679,13 @@ cumulative from the last confirmed RC10.
 - `scripts/summarize_trivy_findings.py` produces a normalized, non-approving findings inventory. Historical amd64 evidence and review procedure are in `docs/security-evidence/`.
 - Runtime LibreOffice dependency retained because `app/form_generation.py` uses it. No speculative package removal or risk-acceptance renewal.
 - Candidate requires updated real amd64/arm64 Trivy scans and human disposition before production promotion.
+
+
+## RC14 — documentation restructure and production security evidence
+
+README.md and README_en.md now introduce the application, features and deployment. Their prior complete contents are archived under docs/DEVELOPMENT_HISTORY_README_IT.md and docs/DEVELOPMENT_HISTORY_README_EN.md. Both Trivy architecture reports are summarized in docs/PRODUCTION_SECURITY_REVIEW_RC14.md. Production remains blocked; risk acceptance was not renewed. Last user-confirmed commit and merge: RC13.
+
+
+## RC15: temporary security-only CI
+
+A feature-branch/PR commit containing `[ci-security]` selects local-image Trivy checks on amd64 and arm64 and skips costly full CI jobs for that ref only. Main and tags always run the original full pipeline. No publishing, risk acceptance renewal, or promotion. See `docs/CI_SECURITY_FAST.md`. RC13 remains the last user-confirmed commit; RC14 README restructuring is included cumulatively.
