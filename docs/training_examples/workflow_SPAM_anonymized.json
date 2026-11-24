@@ -1,0 +1,731 @@
+{
+  "format": "cybersecurity-incident-registry.workflow.v1",
+  "exported_at": "2026-11-24T15:39:11.477444Z",
+  "application": {
+    "name": "Cybersecurity Incident Registry",
+    "version": "0.10.0-1",
+    "build": "20261124"
+  },
+  "workflow": {
+    "scope": "category",
+    "status": "current",
+    "category": {
+      "source_id": 10,
+      "kind": "category",
+      "group": "categorie",
+      "value": "SPAM",
+      "description": "Accesso non autorizzato alla casella di posta ed invio di SPAM.",
+      "max_completion_hours": 0,
+      "default_exportable": true,
+      "automatic_operations": ""
+    },
+    "steps": [
+      {
+        "position": 10,
+        "action_label": {
+          "source_id": 12,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "informazione iniziale",
+          "description": "Informazione iniziale della violazione",
+          "max_completion_hours": 0,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Acquisire la data e ora di venuta a conoscenza dell'incidente, e inserirla come data/ora di esecuzione di questa fase",
+        "step_type": "registration",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 20,
+        "action_label": {
+          "source_id": 13,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "analisi",
+          "description": "Analisi forense preliminare",
+          "max_completion_hours": 12,
+          "default_exportable": true,
+          "automatic_operations": ""
+        },
+        "description": "# Identificare la username dell'utente e riportarla nella descrizione delle operazioni compiute\r\n# Link utili:\r\n* {size:14px}[Postfix](https://example.invalid/documentazione){/size}\r\n* {size:14px}[Procedure Mail](https://example.invalid/documentazione)\r\n* {size:14px}[PMG1 e PMG2](https://example.invalid/documentazione){/size}",
+        "step_type": "registration",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 30,
+        "action_label": {
+          "source_id": 14,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "blocco",
+          "description": "Blocco delle credenziali utente",
+          "max_completion_hours": 12,
+          "default_exportable": true,
+          "automatic_operations": "end_breach"
+        },
+        "description": "# Bloccare l'utente\r\n# Link utili:\r\n- {size:14px}[Cambio password](https://example.invalid/documentazione){/size}",
+        "step_type": "registration",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 40,
+        "action_label": {
+          "source_id": 21,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "analisi successiva 01",
+          "description": "Analisi forense successiva",
+          "max_completion_hours": 24,
+          "default_exportable": true,
+          "automatic_operations": ""
+        },
+        "description": "# Effettuare l'analisi approfondita, verificando i punti seguenti:\r\n* {size:10px}`Nome utente`{/size}\r\n* {size:10px}`E-mail utente`{/size}\r\n* {size:10px}`Rischio diritti`{/size}\r\n* {size:10px}`Data di inizio`{/size}\r\n* {size:10px}`Volume dati`{/size}\r\n* {size:10px}[altre analisi](https://example.invalid/documentazione){/size}\r\n\r\n# Aggiorna i dati dell'incidente con le evidenze ottenute.",
+        "step_type": "update_section",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": "incident-main"
+      },
+      {
+        "position": 50,
+        "action_label": {
+          "source_id": 22,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione all'utente",
+          "description": "Comunicazione semplice all'interessato della violazione",
+          "max_completion_hours": 24,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Comunicare l'incidente all'utente",
+        "step_type": "execution",
+        "conditions": [],
+        "required": true,
+        "requires_notification": true,
+        "required_notification_type": "user_alert",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 60,
+        "action_label": {
+          "source_id": 15,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione allo CSIRT",
+          "description": "Comunicazione allo CSIRT",
+          "max_completion_hours": 24,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Inviare la notifica allo CSIRT",
+        "step_type": "execution",
+        "conditions": [],
+        "required": true,
+        "requires_notification": true,
+        "required_notification_type": "csirt",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 70,
+        "action_label": {
+          "source_id": 23,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "generazione notifica interna DPO",
+          "description": "Generazione del documento di notifica interna per il DPO",
+          "max_completion_hours": 0,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Generare il documento per il DPO da far firmare al Direttore\r\n`***{color:red}{size:medium}IL DOCUMENTO DA INVIARE DEVE ESSERE FIRMATO DIGITALMENTE.{/size}{/color}***`\r\n{color:blue}**{size:medium}VERIFICARE CON CURA IL CONTENUTO DEL DOCUMENTO GENERATO PRIMA DI SALVARLO.{/size}**{/color}",
+        "step_type": "execution",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": true,
+        "document_template_name": "DPO_notifica_interna_data_breach",
+        "section_target": ""
+      },
+      {
+        "position": 80,
+        "action_label": {
+          "source_id": 49,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "download notifica DPO generata",
+          "description": "Download del documento di notifica interna per il DPO.",
+          "max_completion_hours": 0,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "**Scaricare il documento generato di notifica interna per il DPO e {color:red}farlo firmare DIGITALMENTE al Direttore della struttura{/color}.**",
+        "step_type": "operation",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": true,
+        "document_template_name": "DPO_notifica_interna_data_breach",
+        "section_target": "incident-documents"
+      },
+      {
+        "position": 90,
+        "action_label": {
+          "source_id": 48,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "upload notifica DPO firmata",
+          "description": "Upload della notifica DPO firmata dal Direttore e taggata come `**Notifica DPO**`",
+          "max_completion_hours": 0,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "Dopo la firma digitale del Direttore, caricare il documento di notifica interna al DPO.",
+        "step_type": "operation",
+        "conditions": [],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": true,
+        "document_template_name": "DPO_notifica_interna_data_breach",
+        "section_target": "incident-documents"
+      },
+      {
+        "position": 100,
+        "action_label": {
+          "source_id": 16,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione al DPO",
+          "description": "Comunicazione al DPO",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Inviare la notifica al DPO\r\n\r\n**In caso di necessità si possono consultare i {button:Documenti|#incident-documents}**",
+        "step_type": "execution",
+        "conditions": [],
+        "required": true,
+        "requires_notification": true,
+        "required_notification_type": "dpo",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 110,
+        "action_label": {
+          "source_id": 17,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione al Garante della Privacy",
+          "description": "Comunicazione al Garante della Privacy",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Inviare la comunicazione al garante per la privacy\r\n{color:red}Questa operazione va effettuata dal Direttore{/color}",
+        "step_type": "registration",
+        "conditions": [
+          "personal_data"
+        ],
+        "required": true,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 120,
+        "action_label": {
+          "source_id": 18,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "notifica all’utente",
+          "description": "Notifica all'utente",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "description": "# Notifica formale all'utente",
+        "step_type": "execution",
+        "conditions": [
+          "personal_data"
+        ],
+        "required": true,
+        "requires_notification": true,
+        "required_notification_type": "user",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      },
+      {
+        "position": 130,
+        "action_label": {
+          "source_id": 19,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "conclusione",
+          "description": "Conclusione dell'incidente",
+          "max_completion_hours": 0,
+          "default_exportable": false,
+          "automatic_operations": "close_without_warnings,global_check"
+        },
+        "description": "# Confermare il completamento di tutte le operazioni per concludere la procedura.",
+        "step_type": "registration",
+        "conditions": [],
+        "required": false,
+        "requires_notification": false,
+        "required_notification_type": "",
+        "document_generation_enabled": false,
+        "document_template_name": "",
+        "section_target": ""
+      }
+    ]
+  },
+  "dependencies": {
+    "labels": [
+      {
+        "source_id": 10,
+        "kind": "category",
+        "group": "categorie",
+        "value": "SPAM",
+        "description": "Accesso non autorizzato alla casella di posta ed invio di SPAM.",
+        "max_completion_hours": 0,
+        "default_exportable": true,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 12,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "informazione iniziale",
+        "description": "Informazione iniziale della violazione",
+        "max_completion_hours": 0,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 13,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "analisi",
+        "description": "Analisi forense preliminare",
+        "max_completion_hours": 12,
+        "default_exportable": true,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 14,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "blocco",
+        "description": "Blocco delle credenziali utente",
+        "max_completion_hours": 12,
+        "default_exportable": true,
+        "automatic_operations": "end_breach"
+      },
+      {
+        "source_id": 21,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "analisi successiva 01",
+        "description": "Analisi forense successiva",
+        "max_completion_hours": 24,
+        "default_exportable": true,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 22,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "comunicazione all'utente",
+        "description": "Comunicazione semplice all'interessato della violazione",
+        "max_completion_hours": 24,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 15,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "comunicazione allo CSIRT",
+        "description": "Comunicazione allo CSIRT",
+        "max_completion_hours": 24,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 23,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "generazione notifica interna DPO",
+        "description": "Generazione del documento di notifica interna per il DPO",
+        "max_completion_hours": 0,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 49,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "download notifica DPO generata",
+        "description": "Download del documento di notifica interna per il DPO.",
+        "max_completion_hours": 0,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 48,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "upload notifica DPO firmata",
+        "description": "Upload della notifica DPO firmata dal Direttore e taggata come `**Notifica DPO**`",
+        "max_completion_hours": 0,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 16,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "comunicazione al DPO",
+        "description": "Comunicazione al DPO",
+        "max_completion_hours": 72,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 17,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "comunicazione al Garante della Privacy",
+        "description": "Comunicazione al Garante della Privacy",
+        "max_completion_hours": 72,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 18,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "notifica all’utente",
+        "description": "Notifica all'utente",
+        "max_completion_hours": 72,
+        "default_exportable": false,
+        "automatic_operations": ""
+      },
+      {
+        "source_id": 19,
+        "kind": "action_label",
+        "group": "azioni",
+        "value": "conclusione",
+        "description": "Conclusione dell'incidente",
+        "max_completion_hours": 0,
+        "default_exportable": false,
+        "automatic_operations": "close_without_warnings,global_check"
+      }
+    ],
+    "notification_types": [
+      {
+        "source_id": 5,
+        "code": "user_alert",
+        "label": "Comunicazione utente",
+        "description": "Comunicazioni semplici di incidente ad un utente.",
+        "enabled": true
+      },
+      {
+        "source_id": 2,
+        "code": "csirt",
+        "label": "Notifica CSIRT",
+        "description": "Notifiche destinate allo CSIRT.",
+        "enabled": true
+      },
+      {
+        "source_id": 3,
+        "code": "dpo",
+        "label": "Notifica DPO",
+        "description": "Notifiche destinate al DPO.",
+        "enabled": true
+      },
+      {
+        "source_id": 1,
+        "code": "user",
+        "label": "Notifica utente",
+        "description": "Notifiche formali ad utenti a seguito di gravi violazioni su diritti e libertà",
+        "enabled": true
+      }
+    ],
+    "notification_templates": [
+      {
+        "source_id": 10,
+        "kind": "user_alert",
+        "name": "comunicazione_semplice_utente",
+        "subject": "Notifica incidente informatico: %NAME% - %REFERENCE%",
+        "body": "Buongiorno,\r\nsi comunica che è stato registrato un incidente informatico che la coinvolge.\r\n\r\nStato: %STATUS%\r\nData e ora di inizio: %START%\r\nData e ora di fine: %END%\r\nDati interessati: %DATA%\r\nCategorie: %CATEGORIES%\r\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\r\n\r\nContromisure intraprese:\r\n%MEASURES_ADOPTED%\r\n\r\nRaccomandazioni:\r\n%RECOMMENDATIONS%\r\n\r\nL'utenza si potrà riattivare dopo 14gg a partire dalla data dell'incidente, contattando il SICR.\r\nIn caso di domande si può contattare il SICR all'indirizzo utente@example.invalid\r\nCordiali saluti,\r\n\r\n      %OPERATOR%",
+        "linked_form_template_name": "",
+        "action_label": {
+          "source_id": 22,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione all'utente",
+          "description": "Comunicazione semplice all'interessato della violazione",
+          "max_completion_hours": 24,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "incident_recipient_email",
+        "recipient_value": "",
+        "recipient_editable": true,
+        "recipient_external_allowed": true,
+        "cc_source": "type_default",
+        "cc_value": "",
+        "cc_editable": true,
+        "cc_external_allowed": true,
+        "is_default": true
+      },
+      {
+        "source_id": 2,
+        "kind": "csirt",
+        "name": "Esempio notifica CSIRT",
+        "subject": "Notifica CSIRT - Incidente: %NAME%",
+        "body": "Buongiorno,\nsi invia notifica allo CSIRT relativa al seguente incidente informatico.\n\nNome: %NAME%\nRiferimento: %REFERENCE%\nStato: %STATUS%\nCreatore: %CREATOR% <%CREATOR_EMAIL%>\nData e ora di inizio: %START%\nData e ora di fine: %END%\nDati interessati: %DATA%\nCategorie: %CATEGORIES%\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\n\nDescrizione:\n%DESCRIPTION%\n\nAzioni finora intraprese:\n%ACTIONS%\n\nReport aggiornato: %REPORT%\nDocumenti allegati: %DOCUMENTS%\n\nNotifica inviata da: %OPERATOR%",
+        "linked_form_template_name": "",
+        "action_label": {
+          "source_id": 15,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione allo CSIRT",
+          "description": "Comunicazione allo CSIRT",
+          "max_completion_hours": 24,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "type_default",
+        "recipient_value": "",
+        "recipient_editable": true,
+        "recipient_external_allowed": true,
+        "cc_source": "type_default",
+        "cc_value": "",
+        "cc_editable": true,
+        "cc_external_allowed": true,
+        "is_default": false
+      },
+      {
+        "source_id": 7,
+        "kind": "csirt",
+        "name": "Notifica CSIRT",
+        "subject": "Notifica CSIRT - Incidente: %NAME% - INFN %SITE%",
+        "body": "Buongiorno,\r\nsi invia notifica allo CSIRT relativa al seguente incidente informatico.\r\n\r\nNome: %NAME%\r\nRiferimento: %REFERENCE%\r\nStato: %STATUS%\r\nCreatore: %CREATOR% <%CREATOR_EMAIL%>\r\nData e ora di inizio: %START%\r\nData e ora di fine: %END%\r\nDati interessati: %DATA%\r\nCategorie: %CATEGORIES%\r\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\r\n\r\nDescrizione:\r\n%DESCRIPTION%\r\n\r\nAzioni finora intraprese:\r\n%ACTIONS%\r\n\r\nContromisure adottate:\r\n%MEASURES_ADOPTED%\r\n\r\nURL diretta all’incidente: %INCIDENT_URL%\r\n\r\nReport aggiornato: %REPORT%\r\n\r\nNotifica inviata da: %OPERATOR%",
+        "linked_form_template_name": "",
+        "action_label": {
+          "source_id": 15,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione allo CSIRT",
+          "description": "Comunicazione allo CSIRT",
+          "max_completion_hours": 24,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "fixed",
+        "recipient_value": "utente@example.invalid",
+        "recipient_editable": false,
+        "recipient_external_allowed": false,
+        "cc_source": "fixed",
+        "cc_value": "utente@example.invalid, utente@example.invalid",
+        "cc_editable": false,
+        "cc_external_allowed": false,
+        "is_default": true
+      },
+      {
+        "source_id": 3,
+        "kind": "dpo",
+        "name": "Esempio notifica DPO",
+        "subject": "Notifica DPO - Incidente: %NAME%",
+        "body": "Buongiorno,\nsi invia notifica al DPO relativa al seguente incidente informatico.\n\nNome: %NAME%\nRiferimento: %REFERENCE%\nStato: %STATUS%\nCreatore: %CREATOR% <%CREATOR_EMAIL%>\nData e ora di inizio: %START%\nData e ora di fine: %END%\nDati interessati: %DATA%\nCategorie: %CATEGORIES%\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\n\nDescrizione:\n%DESCRIPTION%\n\nAzioni finora intraprese:\n%ACTIONS%\n\nReport aggiornato: %REPORT%\nDocumenti allegati: %DOCUMENTS%\n\nNotifica inviata da: %OPERATOR%",
+        "linked_form_template_name": "",
+        "action_label": {
+          "source_id": 16,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione al DPO",
+          "description": "Comunicazione al DPO",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "type_default",
+        "recipient_value": "",
+        "recipient_editable": true,
+        "recipient_external_allowed": true,
+        "cc_source": "type_default",
+        "cc_value": "",
+        "cc_editable": true,
+        "cc_external_allowed": true,
+        "is_default": false
+      },
+      {
+        "source_id": 8,
+        "kind": "dpo",
+        "name": "Notifica DPO",
+        "subject": "Notifica DPO - Incidente: %NAME% - INFN %SITE%",
+        "body": "Buongiorno,\r\nsi invia notifica al DPO e per cc al Direttore Generale, relativa al seguente incidente informatico.\r\n\r\nNome: %NAME%\r\nStato: %STATUS%\r\nCreatore: %CREATOR% <%CREATOR_EMAIL%>\r\nData e ora di inizio: %START%\r\nData e ora di fine: %END%\r\nDati interessati: %DATA%\r\nCategorie: %CATEGORIES%\r\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\r\n\r\nContromisure adottate:\r\n%MEASURES_ADOPTED%\r\n\r\nReport aggiornato: %REPORT%\r\nDocumenti allegati: %DOCUMENTS%\r\nLink diretto ai dati dell'incidente: %INCIDENT_URL%\r\n\r\nCordiali saluti,\r\n\r\n     %OPERATOR%\r\n     a nome del Direttore della %SITE%",
+        "linked_form_template_name": "DPO_notifica_interna_data_breach",
+        "action_label": {
+          "source_id": 16,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione al DPO",
+          "description": "Comunicazione al DPO",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "fixed",
+        "recipient_value": "utente@example.invalid",
+        "recipient_editable": false,
+        "recipient_external_allowed": false,
+        "cc_source": "fixed",
+        "cc_value": "utente@example.invalid, utente@example.invalid, utente@example.invalid",
+        "cc_editable": false,
+        "cc_external_allowed": false,
+        "is_default": false
+      },
+      {
+        "source_id": 21,
+        "kind": "dpo",
+        "name": "Notifica DPO - no direct link",
+        "subject": "Notifica DPO - Incidente: %NAME% - INFN %SITE%",
+        "body": "Buongiorno,\r\nsi invia notifica al DPO e per cc al Direttore Generale, relativa al seguente incidente informatico.\r\n\r\nNome: %NAME%\r\nStato: %STATUS%\r\nCreatore: %CREATOR% <%CREATOR_EMAIL%>\r\nData e ora di inizio: %START%\r\nData e ora di fine: %END%\r\nDati interessati: %DATA%\r\nCategorie: %CATEGORIES%\r\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\r\n\r\nContromisure adottate:\r\n%MEASURES_ADOPTED%\r\n\r\nReport aggiornato: %REPORT%\r\nDocumenti allegati: %DOCUMENTS%\r\n\r\nCordiali saluti,\r\n\r\n     %OPERATOR%\r\n     a nome del Direttore della %SITE%",
+        "linked_form_template_name": "DPO_notifica_interna_data_breach",
+        "action_label": {
+          "source_id": 16,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "comunicazione al DPO",
+          "description": "Comunicazione al DPO",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "fixed",
+        "recipient_value": "utente@example.invalid",
+        "recipient_editable": false,
+        "recipient_external_allowed": false,
+        "cc_source": "fixed",
+        "cc_value": "utente@example.invalid, utente@example.invalid, utente@example.invalid",
+        "cc_editable": false,
+        "cc_external_allowed": false,
+        "is_default": true
+      },
+      {
+        "source_id": 1,
+        "kind": "user",
+        "name": "Esempio notifica utente",
+        "subject": "Notifica incidente informatico: %NAME%",
+        "body": "Buongiorno,\nsi comunica che è stato registrato un incidente informatico relativo a: %NAME%.\n\nRiferimento: %REFERENCE%\nStato: %STATUS%\nData e ora di inizio: %START%\nData e ora di fine: %END%\nDati interessati: %DATA%\nCategorie: %CATEGORIES%\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\n\nDescrizione:\n%DESCRIPTION%\n\nAzioni finora intraprese:\n%ACTIONS%\n\nOperatore: %OPERATOR%\n\nCordiali saluti",
+        "linked_form_template_name": "",
+        "action_label": {
+          "source_id": 18,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "notifica all’utente",
+          "description": "Notifica all'utente",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "type_default",
+        "recipient_value": "",
+        "recipient_editable": true,
+        "recipient_external_allowed": true,
+        "cc_source": "type_default",
+        "cc_value": "",
+        "cc_editable": true,
+        "cc_external_allowed": true,
+        "is_default": false
+      },
+      {
+        "source_id": 6,
+        "kind": "user",
+        "name": "notifica utente",
+        "subject": "Notifica incidente informatico: %NAME%",
+        "body": "Buongiorno,\r\nsi comunica che è stato registrato un incidente informatico che la coinvolge.\r\n\r\nStato: %STATUS%\r\nData e ora di inizio: %START%\r\nData e ora di fine: %END%\r\nDati interessati: %DATA%\r\nCategorie: %CATEGORIES%\r\nRischi per diritti e libertà: %RISK_RIGHTS_FREEDOM%\r\n\r\nDescrizione:\r\n%DESCRIPTION%\r\n\r\nContromisure intraprese:\r\n%MEASURES_ADOPTED%\r\n\r\nCordiali saluti,\r\n\r\n      %OPERATOR%\r\n\r\n%DOCUMENTS%",
+        "linked_form_template_name": "USER_comunicazione_data_breach",
+        "action_label": {
+          "source_id": 18,
+          "kind": "action_label",
+          "group": "azioni",
+          "value": "notifica all’utente",
+          "description": "Notifica all'utente",
+          "max_completion_hours": 72,
+          "default_exportable": false,
+          "automatic_operations": ""
+        },
+        "recipient_source": "incident_recipient_email",
+        "recipient_value": "",
+        "recipient_editable": true,
+        "recipient_external_allowed": true,
+        "cc_source": "fixed",
+        "cc_value": "utente@example.invalid, utente@example.invalid, utente@example.invalid",
+        "cc_editable": true,
+        "cc_external_allowed": true,
+        "is_default": true
+      }
+    ],
+    "form_templates": [
+      {
+        "template_name": "DPO_notifica_interna_data_breach",
+        "font_family": "Helvetica",
+        "font_size": 10,
+        "notification_tags": [],
+        "binary": {
+          "filename": "modello_dimostrativo.pdf",
+          "pdf_base64": "[OMESSO: documentazione didattica]"
+        }
+      },
+      {
+        "template_name": "USER_comunicazione_data_breach",
+        "font_family": "Helvetica",
+        "font_size": 10,
+        "notification_tags": [
+          "user"
+        ],
+        "binary": {
+          "filename": "modello_dimostrativo.pdf",
+          "pdf_base64": "[OMESSO: documentazione didattica]"
+        }
+      }
+    ]
+  }
+}

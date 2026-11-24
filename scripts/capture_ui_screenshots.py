@@ -36,6 +36,7 @@ MOBILE = {"width": 430, "height": 932}
 REQUIRED_CAPTURES = {
     "login-desktop", "login-mobile", "registry-desktop", "registry-mobile",
     "registry-mobile-menu", "incident-desktop", "incident-mobile",
+    "spam-incident-desktop", "spam-workflow-steps",
     "assistant-desktop", "assistant-mobile", "interface-settings-desktop",
     "classic-registry-desktop", "admin-modules-desktop", "admin-sso-desktop",
     "documentation-user-desktop", "documentation-user-mobile",
@@ -297,6 +298,18 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             expect(page.locator("#incident-workflow .workflow-step-arrow")).to_have_count(3)
             snap(page, "incident-desktop", "Incidente reale di esempio e quattro fasi procedurali", "Actual example incident and four procedural stages")
             checks["four_procedural_blocks_rendered"] = True
+            # Real authenticated CIR route with the imported 13-step SPAM workflow.
+            go(page, f'/incident/{fixture["spam_incident_id"]}')
+            expect(page.locator("#incident-workflow .workflow-step-card")).to_have_count(13)
+            expect(page.locator("#incident-workflow .workflow-step-arrow")).to_have_count(12)
+            snap(page, "spam-incident-desktop", "Incidente SPAM sintetico: interfaccia CIR autentica",
+                 "Synthetic SPAM incident: authentic CIR interface")
+            page.locator("#incident-workflow").scroll_into_view_if_needed()
+            snap(page, "spam-workflow-steps", "Workflow SPAM: 13 fasi, pulsanti e condizioni",
+                 "SPAM workflow: 13 stages, controls and conditions", full_page=True)
+            checks["spam_real_13_step_workflow_rendered"] = True
+            go(page, f'/incident/{fixture["incident_id"]}')
+
             task = page.locator("#incident-workflow .workflow-step-action").nth(1)
             task_label = task.get_attribute("data-action-label-id")
             assert task_label
