@@ -1,3 +1,4 @@
+RC53: SPAM browser fixture enables personal_data to render both conditional steps (13 total); added regression coverage.
 # CIR — Handoff di sviluppo
 
 Ultimo aggiornamento: **2026-11-23** (Europe/Rome). Versione funzionale
@@ -825,3 +826,17 @@ RC40 rejected an otherwise inert editor metadata `<title>` inside RDF/Work in th
 
 ## RC42: static SVG style migration
 Legacy SSO SVG logos with strictly validated inline `fill` and `fill-opacity` are normalized to SVG presentation attributes in memory. Arbitrary CSS, active content and external references remain rejected. No PVC writes or DB changes. Real INFN logo bytes not available for local test; verify on Kubernetes before rollout.
+
+
+## RC43 – login, navigazione e presentazione estesa
+
+Nuovo login semplificato con logo organizzazione centrato e footer versione/build, badge rossi sui contatori, pulsanti torna-su in flow senza sovrapposizioni, fonte didattica estesa a 58 slide. La presentazione estesa è un artefatto sorgente editabile: le screenshot reali devono ancora essere generate e attestate dalla CI. L’export workflow richiesto non è disponibile nella sessione e l’esempio è indicato come illustrativo.
+
+
+## RC46 — formazione SPAM e governance tenant
+
+Presentazione editabile a 80 slide: flusso SPAM a 13 step, import da Tenants Default, stati current/obsolete, parametri globali/condivisi/locali e limiti espliciti delle screenshot. La cattura browser reale del caso SPAM è **ancora da implementare e attestare**; le immagini esistenti non vanno etichettate come catture SPAM.
+
+
+## RC52 — 2026-11-24
+Idempotent SPAM category seeding; 19 capture IDs and corresponding source training slides; regenerated source presentation and provenance receipt; corrected release layout. Browser capture must still be executed in CI.

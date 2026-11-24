@@ -209,11 +209,11 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
                     self.load()
                 self.manifest[key] = original
 
-    def test_complete_batch_resolves_all_17_distinct_artifacts(self):
+    def test_complete_batch_resolves_all_required_distinct_artifacts(self):
         loaded = self.load()
-        self.assertEqual(len(loaded["_paths"]), 17)
+        self.assertEqual(len(loaded["_paths"]), len(evidence.REQUIRED_SCREENSHOTS))
         self.assertEqual(set(loaded["_paths"]), evidence.REQUIRED_SCREENSHOTS)
-        self.assertEqual(len(set(loaded["_paths"].values())), 17)
+        self.assertEqual(len(set(loaded["_paths"].values())), len(evidence.REQUIRED_SCREENSHOTS))
         for sid, path in loaded["_paths"].items():
             self.assertEqual(path, self.images / (sid + ".png"))
 
