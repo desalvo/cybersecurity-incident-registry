@@ -30,14 +30,14 @@
   </div>
 </div>
 <nav id="cir-incident-navigation" class="cir-incident-navigation" aria-label="{{ cir_incident_text('Sezioni incidente', 'Incident sections') }}">
-  {% if workflow_status and workflow_status.steps %}<a href="#incident-workflow" data-cir-section-link aria-current="location">{{ cir_incident_text('Fasi', 'Phases') }}</a>{% endif %}
-  <a href="#incident-procedural-alerts" data-cir-section-link>{{ cir_incident_text('Avvisi', 'Notices') }}{% if procedural_warning_steps %} <span>{{ procedural_warning_steps|length }}</span>{% endif %}</a>
+  {% if workflow_status and workflow_status.steps %}<a href="#incident-workflow" data-cir-section-link aria-current="location">{{ cir_incident_text('Fasi', 'Phases') }} <span class="cir-section-count">{{ workflow_status.steps|length }}</span></a>{% endif %}
+  <a href="#incident-procedural-alerts" data-cir-section-link>{{ cir_incident_text('Avvisi', 'Notices') }}{% if procedural_warning_steps %} <span class="cir-section-count">{{ procedural_warning_steps|length }}</span>{% endif %}</a>
   <a href="#incident-main" data-cir-section-link>{{ cir_incident_text('Dati generali', 'General data') }}</a>
   <a href="#incident-contacts" data-cir-section-link>{{ cir_incident_text('Titolare e responsabile', 'Controller and processor') }}</a>
   <a href="#incident-consequences" data-cir-section-link>{{ cir_incident_text('Conseguenze e misure', 'Consequences and measures') }}</a>
-  <a href="#incident-actions" data-cir-section-link>{{ cir_incident_text('Azioni', 'Actions') }} <span>{{ inc.actions|length }}</span></a>
+  <a href="#incident-actions" data-cir-section-link>{{ cir_incident_text('Azioni', 'Actions') }} <span class="cir-section-count">{{ inc.actions|length }}</span></a>
   <a href="#incident-reminders" data-cir-section-link>{{ cir_incident_text('Promemoria', 'Reminders') }}</a>
-  <a href="#incident-documents" data-cir-section-link>{{ cir_incident_text('Documenti', 'Documents') }} <span>{{ inc.documents|length }}</span></a>
+  <a href="#incident-documents" data-cir-section-link>{{ cir_incident_text('Documenti', 'Documents') }} <span class="cir-section-count">{{ inc.documents|length }}</span></a>
   <a href="#incident-forms" data-cir-section-link>{{ cir_incident_text('Moduli', 'Forms') }}</a>
   {% if current_user.username != 'admin' %}<a href="#incident-notifications" data-cir-section-link>{{ cir_incident_text('Notifiche', 'Notifications') }}</a>{% endif %}
 </nav>

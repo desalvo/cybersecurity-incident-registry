@@ -261,3 +261,24 @@ class ScreenshotWorkflowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_spam_training_fixture_enables_conditional_personal_data_steps():
+    """A 13-step screenshot requires the two conditional steps to be applicable."""
+    import ast
+    import json
+    source = (ROOT / "scripts" / "seed_ui_documentation.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    incident_calls = [node for node in ast.walk(tree)
+                      if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                      and node.func.id == "Incident" and any(
+                          kw.arg == "reference" and isinstance(kw.value, ast.Constant)
+                          and kw.value.value == "DEMO-SPAM-2026-0001"
+                          for kw in node.keywords)]
+    assert len(incident_calls) == 1
+    assert any(kw.arg == "personal_data" and isinstance(kw.value, ast.Constant)
+               and kw.value.value is True for kw in incident_calls[0].keywords)
+    fixture = json.loads((ROOT / "tests" / "fixtures" / "spam_training_workflow.json").read_text())
+    assert len(fixture["steps"]) == 13
+    assert sum("personal_data" in step["conditions"] for step in fixture["steps"]) == 2
+    assert 'to_have_count(13)' in (ROOT / "scripts" / "capture_ui_screenshots.py").read_text()

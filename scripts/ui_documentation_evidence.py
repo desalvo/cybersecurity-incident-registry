@@ -21,6 +21,7 @@ from release_metadata import read_release_metadata
 REQUIRED_SCREENSHOTS = frozenset({
     'login-desktop', 'login-mobile', 'registry-desktop', 'registry-mobile',
     'registry-mobile-menu', 'incident-desktop', 'incident-mobile',
+    'spam-incident-desktop', 'spam-workflow-steps',
     'assistant-desktop', 'assistant-mobile', 'interface-settings-desktop',
     'classic-registry-desktop', 'admin-modules-desktop', 'admin-sso-desktop',
     'documentation-user-desktop', 'documentation-user-mobile',

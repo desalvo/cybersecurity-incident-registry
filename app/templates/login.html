@@ -15,8 +15,8 @@
   <div class="login-wrap">
     <div class="login-card">
       <div class="login-logo-wrap"><img class="login-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" data-cir-hide-on-error></div>
-      <div class="login-app-logo-wrap"><img class="login-app-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="Cybersecurity Incident Registry"></div>
-      <h1 class="login-title">Cybersecurity Incident Registry</h1>
+      
+      <h1 class="login-title">Cybersecurity Incident Registry</h1><p class="cir-login-subheading">Login</p>
       {% for m in get_flashed_messages() %}<div class="flash">{{m}}</div>{% endfor %}
       <form method="post">
         {{ csrf_field()|safe }}
@@ -32,6 +32,7 @@
         {% endfor %}
       </div>
       {% endif %}
+      <footer class="cir-classic-login-footer">Cybersecurity Incident Registry · {{ config.get('APP_INFO', {}).get('version', '') }} · {{ config.get('APP_INFO', {}).get('build', '') }}</footer>
     </div>
   </div>
 </body>

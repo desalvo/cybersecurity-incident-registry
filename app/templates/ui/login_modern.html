@@ -14,22 +14,26 @@
   <a class="skip-link" href="#username">{{ 'Go to sign-in form' if cir_english else 'Vai al modulo di accesso' }}</a>
   <main class="cir-login-layout">
     <section class="cir-login-hero" aria-labelledby="cir-login-hero-title">
-      <div class="cir-mobile-photo-brand"><img src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt=""><span>Cybersecurity<br>Incident Registry</span></div>
+      
       <img class="cir-login-image" src="{{ url_for('static', filename='ui/cybersecurity-login-v2.png') }}" alt="" fetchpriority="high">
       <div class="cir-login-hero-copy">
-        <div class="cir-login-hero-mark"><span></span>CIR / INCIDENT REGISTRY</div>
-        <h1 id="cir-login-hero-title">Cybersecurity<br>Incident Registry</h1>
+        
+        <h1 id="cir-login-hero-title">{{ 'Incident response' if cir_english else 'Gestione incidenti' }}</h1>
         <p class="cir-login-tagline">{{ 'Security incident management' if cir_english else 'Gestione degli incidenti di sicurezza' }}<br><em>{{ 'and activity traceability.' if cir_english else 'e tracciabilità delle attività.' }}</em></p>
         <p class="cir-login-description">{{ 'Coordinate the incident response.' if cir_english else 'Coordina la risposta agli incidenti.' }}<br>{{ 'Link every activity to its evidence.' if cir_english else 'Collega ogni attività alle sue evidenze.' }}</p>
       </div>
       <div class="cir-login-hero-foot"><span class="cir-tiny-dot" aria-hidden="true"></span>{{ 'Incidents · workflows · evidence · notifications' if cir_english else 'Incidenti · workflow · evidenze · notifiche' }}</div>
     </section>
     <section class="cir-access-panel" aria-labelledby="cir-access-title"><div class="cir-access-inner">
-      <div class="cir-access-brand"><img src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt=""><div><strong>CIR</strong><span>Cybersecurity Incident Registry</span></div></div>
-      <img class="cir-login-organization-logo" src="{{ url_for('main.logo_image') }}" alt="{{ 'Organization logo' if cir_english else 'Logo organizzazione' }}" data-cir-hide-on-error>
-      <p class="cir-eyebrow">{{ 'APPLICATION ACCESS' if cir_english else 'ACCESSO ALL’APPLICAZIONE' }}</p>
-      <h2 id="cir-access-title">{{ 'Sign in to CIR.' if cir_english else 'Accedi a CIR.' }}</h2>
-      <p class="cir-access-intro">{{ 'Your workspace for managing' if cir_english else 'Il tuo spazio per la gestione' }}<br>{{ 'security incidents.' if cir_english else 'degli incidenti di sicurezza.' }}</p>
+      
+      <header class="cir-login-brand-row">
+        <img class="cir-login-app-logo" src="{{ url_for('static', filename='cir-application-logo.svg') }}" alt="" aria-hidden="true">
+        <div class="cir-login-brand-copy">
+          <h1 class="cir-login-heading" id="cir-access-title">Cybersecurity Incident Registry</h1>
+          <p class="cir-login-subheading">Login</p>
+        </div>
+        <img class="cir-login-organization-logo" src="{{ url_for('main.logo_image') }}" alt="{{ 'Organization logo' if cir_english else 'Logo organizzazione' }}" data-cir-hide-on-error>
+      </header>
       {% for category,m in get_flashed_messages(with_categories=true) %}<div class="flash {{ category }}" role="alert">{{ m }}</div>{% endfor %}
       <form method="post" class="cir-login-form">
         {{ csrf_field()|safe }}
@@ -42,7 +46,7 @@
       <div class="cir-login-separator"><span>{{ 'or' if cir_english else 'oppure' }}</span></div>
       <div class="cir-sso-profiles">{% for profile in sso_profiles %}<a class="cir-sso-button" href="{{ url_for('main.sso_login', profile_id=profile.id) }}">{% if profile.sso_logo_path %}<img class="sso-provider-logo" src="{{ sso_logo_url(profile.sso_logo_path) }}" alt="" data-cir-hide-on-error>{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>{% endif %}<span>{{ 'Sign in with' if cir_english else 'Accedi con' }} {{ profile.sso_provider_name or 'SSO' }}</span></a>{% endfor %}</div>
       {% endif %}
-      <footer class="cir-access-footer"><span>Cybersecurity Incident Registry</span><span>{{ config.get('APP_INFO', {}).get('version', '') }}</span></footer>
+      <footer class="cir-access-footer"><span>Cybersecurity Incident Registry</span><span>{{ config.get('APP_INFO', {}).get('version', '') }} · {{ config.get('APP_INFO', {}).get('build', '') }}</span></footer>
     </div></section>
   </main>
 </body>
