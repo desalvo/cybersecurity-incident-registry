@@ -6,5 +6,4 @@ resources:
 - deployment.yaml
 images:
 - name: desalvo/cybersecurity-incident-registry
-  newName: desalvo/cybersecurity-incident-registry
-  digest: sha256:fab6e36198e20f7ec8d0b873eb5c897b63473370b99291f680f7ca49977bd234
+  newTag: "PENDING_HOTFIX_REBUILD"

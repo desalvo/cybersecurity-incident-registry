@@ -1272,6 +1272,10 @@ def bootstrap(app):
         db.session.flush()
         assign_default_tenant_to_unscoped(default_tenant)
         from .tenant_defaults import ensure_defaults_tenant, sync_defaults_configuration
+        # Transactional legacy repair before exporting the operational default tenant.
+        # The enclosing bootstrap rollback also rolls back this repair on any failure.
+        from .legacy_notification_migration import normalize_legacy_notification_kinds
+        normalize_legacy_notification_kinds(db.session, logger=app.logger)
         ensure_defaults_tenant(seed_from_default=True)
         sync_defaults_configuration()
         from .workflow_lifecycle import backfill_workflow_states

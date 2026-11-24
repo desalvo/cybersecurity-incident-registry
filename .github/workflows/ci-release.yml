@@ -360,7 +360,7 @@ jobs:
           metadata_only=true
           for path in "${changed[@]}"; do
             case "$path" in
-              PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml) ;;
+              PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml|docs/UI_SCREENSHOTS_SOURCE.json|docs/UI_SCREENSHOTS_BUILD.json|docs/*.pdf|docs/presentation/*|app/static/help/ui-runtime/*.png|app/static/help/ui-runtime/manifest.json) ;;
               *) metadata_only=false ;;
             esac
           done
@@ -556,7 +556,14 @@ jobs:
             echo "- Trivy gate: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Open production digest metadata pull request
+      - name: Verify repository documentation publication inputs
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/verify_documentation_publication.py --root . --source-commit "$GITHUB_SHA"
+
+      - name: Open production digest and documentation pull request
         if: github.ref == 'refs/heads/main'
         shell: bash
         env:
@@ -570,9 +577,14 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml
+          # Publish exactly the same verified real-UI documents used in the
+          # promoted image. Avoid adding generated archives, logs or secrets.
+          git add -f PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml \
+            docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json \
+            docs/*.pdf docs/presentation/* \
+            app/static/help/ui-runtime/*.png app/static/help/ui-runtime/manifest.json
           if git diff --cached --quiet; then
-            echo "Production digest metadata already up to date."
+            echo "Production digest and documentation already up to date."
             exit 0
           fi
 
@@ -580,7 +592,7 @@ jobs:
           short_digest="${short_digest#sha256:}"
           branch="automation/production-digest-${short_digest:0:16}"
           git checkout -b "$branch"
-          git commit -m "chore: record promoted production OCI digest"
+          git commit -m "chore(cir): record production digest and publish verified UI documentation"
           git push origin "HEAD:$branch"
 
           existing="$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
@@ -588,8 +600,8 @@ jobs:
             gh pr create \
               --base main \
               --head "$branch" \
-              --title "chore: record promoted production OCI digest" \
-              --body "Records the immutable OCI digest already promoted to production after all CIR quality, PostgreSQL, SCA and Trivy gates passed. This PR changes only production digest metadata and must not rebuild the production image."
+              --title "chore: record promoted production OCI digest and UI documentation" \
+              --body "Records the approved immutable OCI digest and publishes the exact same-run real UI screenshots, manuals, brochures and training PowerPoint used in the promoted image. This PR must not rebuild the production image. Verify the build/commit evidence before merging."
           else
             echo "Production digest PR already open: #$existing"
           fi
