@@ -6,7 +6,7 @@
   "real_screenshots": false,
   "screenshot_manifest_sha256": null,
   "file": "CIR_Operational_Training_IT.pptx",
-  "sha256": "60506509b7f6d2c41ab247806fd8ee26f2a30a6f16389e8721512365029f4434",
+  "sha256": "42e34af0a0ba43f42cc088b8f6777c094092cbb138c38c78325ec2a1455a0b84",
   "editable_text": true,
   "speaker_notes": true,
   "screenshots": [],
@@ -52,6 +52,6 @@
       "page": 1
     }
   ],
-  "slides": 34,
+  "slides": 58,
   "status": "source-edition-awaiting-verified-ci-screenshots"
 }
