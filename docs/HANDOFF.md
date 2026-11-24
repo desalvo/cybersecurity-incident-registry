@@ -781,3 +781,19 @@ Added a non-operative, exact-package/version-scoped draft for 33 CVEs across bot
 ## RC33 conditional risk acceptance (2026-11-23)
 
 RC32 was committed and merged per user confirmation. RC33 activates an explicitly scoped 14-day Debian residual-risk decision expiring 2026-12-07, limited to 33 CVEs and exact reviewed package versions. Both historical Trivy JSON reports are used as regression inputs; production remains gated by new CI, SCA, both architecture scans, and immutable digest. No application functionality removed.
+
+## 0.10.0-1 RC34 — legacy notification kind repair
+
+Production RC33 bootstrap failed when legacy notification templates used `kind=notifica_interna` but their tenant had only the canonical `NotificationType(code=internal)`. RC34 adds `app/legacy_notification_migration.py` and invokes it before Tenants Default initial seeding, inside the existing serialized bootstrap transaction. The only recognized alias is `notifica_interna -> internal`, and only if the tenant has `internal` and does not have an explicit custom `notifica_interna` type. A target-name collision or absent canonical type fails closed; no arbitrary type is synthesized. The operation changes only `NotificationTemplate.kind`, never body, subject, recipients, action label, or other fields. It is idempotent, never commits, and rolls back with the bootstrap transaction on any later exception. Unknown legacy cases still require explicit review. Do not manually patch production data before testing this release. Note: PostgreSQL DDL in older schema migration callbacks may have independent transaction boundaries; the guarantee here covers the new notification data normalization and bootstrap session, not an unconditional whole-database snapshot restore.
+
+Local verification: 80 focused tests passed (including 5 new RC34 regression tests). Real production PostgreSQL startup and full CI still required. Last user-confirmed commit is RC33; use full CI, not `[ci-security]`.
+
+
+## RC35: publish verified UI documentation after production promotion
+
+On a production-impacting merge to main, the same-run verified manuals, brochures, training PowerPoint and real screenshots are staged with the promoted immutable digest in a protected-main PR. The PR is generated only after the image passes all gates and is promoted. A metadata/documentation-only merge is excluded from the Docker rebuild loop. No direct push to protected main; PR checks are explicitly dispatched. The repository content is not updated until the generated PR is reviewed and merged.
+
+
+## RC36 — CI documentation publication regression
+
+Updated the historical production metadata PR test to validate the renamed production digest **and documentation** PR step, the documentation publication verifier, and the exact staged screenshot/manual/presentation paths. No runtime or security policy changes. CI full suite remains required.
