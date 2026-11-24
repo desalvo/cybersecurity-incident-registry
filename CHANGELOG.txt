@@ -1709,3 +1709,13 @@ RC35: publish CI-verified screenshots, PDF manuals, brochures and training PPTX 
 0.10.0-1 RC41: allow inert RDF metadata title in legacy SSO SVG normalization; preserve strict active-content checks and add regressions.
 
 RC42: Normalize strictly inert SVG fill/fill-opacity styles during legacy SSO asset export; add rejection regression tests.
+
+RC43: login copy and logo placement, incident navigation counters and mobile scroll controls, 58-slide training source and editable extended presentation.
+
+RC46: extended 80-slide SPAM training and workflow/tenant governance; source-grounded illustrative UI, real SPAM browser capture pending.
+
+RC48: Rebuilt 80-slide operational training with editable vector diagrams, Arial bullet hierarchy, and verified global/tenant workflow lifecycle details.
+
+RC49: ristrutturazione presentazione didattica in 73 slide con sette sezioni logiche, diagrammi pertinenti e laboratorio SPAM.
+
+RC51: fixture isolata SPAM a 13 step e screenshot browser obbligatori con provenienza attestata.

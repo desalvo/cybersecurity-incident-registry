@@ -511,6 +511,510 @@
       "caption": "{{version}} / {{candidate}} · Manuali, esercizi e note del relatore nel package",
       "image": "app/static/ui/cybersecurity-hero-v2.png",
       "notes": "Aprire la discussione: quale workflow del vostro setup può essere pubblicato in Tenants Default e quale variante deve restare locale? Chiedere come verificare l'origine di uno screenshot e il digest dell'immagine installata. Per continuare: README.md, docs/MIGRATION.md, docs/DEPLOYMENT.md, docs/TRAINING.md, docs/HANDOFF.md. La fotografia è un'illustrazione sintetica di cybersecurity senza persone, non documentazione di un sito o di un incidente reale."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Finalità: dal rilevamento alla chiusura",
+      "items": [
+        [
+          "GOVERNANCE",
+          "Registro, responsabilità, audit e visibilità dello stato."
+        ],
+        [
+          "OPERATIVITÀ",
+          "Azioni, scadenze, workflow e dipendenze."
+        ],
+        [
+          "EVIDENZE",
+          "Documenti, notifiche e report tracciabili."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Finalità: dal rilevamento alla chiusura. GOVERNANCE: Registro, responsabilità, audit e visibilità dello stato. OPERATIVITÀ: Azioni, scadenze, workflow e dipendenze. EVIDENZE: Documenti, notifiche e report tracciabili. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Cosa CIR non sostituisce",
+      "items": [
+        [
+          "NON È UN SIEM",
+          "Non rileva automaticamente ogni evento di sicurezza."
+        ],
+        [
+          "NON È UN EDR",
+          "Il contenimento tecnico avviene con strumenti dedicati."
+        ],
+        [
+          "È UN REGISTRO",
+          "Coordina attività e documenta decisioni e risultati."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Cosa CIR non sostituisce. NON È UN SIEM: Non rileva automaticamente ogni evento di sicurezza. NON È UN EDR: Il contenimento tecnico avviene con strumenti dedicati. È UN REGISTRO: Coordina attività e documenta decisioni e risultati. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Documentazione e repository",
+      "items": [
+        [
+          "MANUALI",
+          "Utente e amministratore in italiano e inglese."
+        ],
+        [
+          "BROCHURE",
+          "Panoramiche di funzioni e piattaforme."
+        ],
+        [
+          "REPOSITORY",
+          "github.com/desalvo/cybersecurity-incident-registry"
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Documentazione e repository. MANUALI: Utente e amministratore in italiano e inglese. BROCHURE: Panoramiche di funzioni e piattaforme. REPOSITORY: github.com/desalvo/cybersecurity-incident-registry Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Installazione generica",
+      "items": [
+        [
+          "DEPLOY",
+          "Docker, Podman, Kubernetes o OpenShift."
+        ],
+        [
+          "STORAGE",
+          "PostgreSQL, volumi persistenti, Secret e backup."
+        ],
+        [
+          "BOOTSTRAP",
+          "Configurazione iniziale e migrazioni transazionali."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Installazione generica. DEPLOY: Docker, Podman, Kubernetes o OpenShift. STORAGE: PostgreSQL, volumi persistenti, Secret e backup. BOOTSTRAP: Configurazione iniziale e migrazioni transazionali. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Personalizzazione per INFN",
+      "items": [
+        [
+          "BASE GENERICA",
+          "L’istanza non deve essere vincolata a una sola organizzazione."
+        ],
+        [
+          "INFN",
+          "Configurare tenant, branding e provider INFN AAI."
+        ],
+        [
+          "VERIFICHE",
+          "Controllare attributi SSO, ruoli e accessi."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Personalizzazione per INFN. BASE GENERICA: L’istanza non deve essere vincolata a una sola organizzazione. INFN: Configurare tenant, branding e provider INFN AAI. VERIFICHE: Controllare attributi SSO, ruoli e accessi. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Autenticazione e MFA",
+      "items": [
+        [
+          "LOCALE / LDAP",
+          "Credenziali secondo policy amministrativa."
+        ],
+        [
+          "SSO / OIDC",
+          "Provider custom, inclusa INFN AAI se configurata."
+        ],
+        [
+          "MFA",
+          "Applicata dal provider di identità quando supportata."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Autenticazione e MFA. LOCALE / LDAP: Credenziali secondo policy amministrativa. SSO / OIDC: Provider custom, inclusa INFN AAI se configurata. MFA: Applicata dal provider di identità quando supportata. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Login: esperienza operativa",
+      "items": [
+        [
+          "LOGO",
+          "Logo organizzazione centrato nel pannello."
+        ],
+        [
+          "BACKEND",
+          "Opzioni locali e SSO configurate."
+        ],
+        [
+          "IDENTITÀ",
+          "Versione e build sempre nel footer."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Login: esperienza operativa. LOGO: Logo organizzazione centrato nel pannello. BACKEND: Opzioni locali e SSO configurate. IDENTITÀ: Versione e build sempre nel footer. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Ruoli e responsabilità",
+      "items": [
+        [
+          "AMMINISTRATORE",
+          "Gestisce tenant, ruoli, integrazioni e cataloghi."
+        ],
+        [
+          "OPERATORE",
+          "Compila incidenti, azioni e documenti."
+        ],
+        [
+          "CONSULTAZIONE",
+          "Accede secondo autorizzazioni e visibilità."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Ruoli e responsabilità. AMMINISTRATORE: Gestisce tenant, ruoli, integrazioni e cataloghi. OPERATORE: Compila incidenti, azioni e documenti. CONSULTAZIONE: Accede secondo autorizzazioni e visibilità. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Tenant: isolamento e governance",
+      "items": [
+        [
+          "CONTESTO",
+          "Dati e permessi separati per tenant."
+        ],
+        [
+          "DEFAULTS",
+          "Catalogo e configurazioni riusabili."
+        ],
+        [
+          "OPERATIVITÀ",
+          "Selezionare sempre il tenant corretto."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Tenant: isolamento e governance. CONTESTO: Dati e permessi separati per tenant. DEFAULTS: Catalogo e configurazioni riusabili. OPERATIVITÀ: Selezionare sempre il tenant corretto. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Tenant: operazioni amministrative",
+      "items": [
+        [
+          "CREAZIONE",
+          "Definire tenant e proprietari."
+        ],
+        [
+          "CONFIGURAZIONE",
+          "Workflow, notifiche, template e utenti."
+        ],
+        [
+          "MANUTENZIONE",
+          "Import, export, audit e migrazioni."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Tenant: operazioni amministrative. CREAZIONE: Definire tenant e proprietari. CONFIGURAZIONE: Workflow, notifiche, template e utenti. MANUTENZIONE: Import, export, audit e migrazioni. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Cataloghi workflow: importazione",
+      "items": [
+        [
+          "SELEZIONE",
+          "Scegliere il catalogo e il workflow."
+        ],
+        [
+          "ANTEPRIMA",
+          "Confrontare differenze e conflitti."
+        ],
+        [
+          "IMPORT",
+          "Confermare senza sovrascritture implicite."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Cataloghi workflow: importazione. SELEZIONE: Scegliere il catalogo e il workflow. ANTEPRIMA: Confrontare differenze e conflitti. IMPORT: Confermare senza sovrascritture implicite. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Workflow: fasi e condizioni",
+      "items": [
+        [
+          "FASI",
+          "Ogni fase rappresenta un compito verificabile."
+        ],
+        [
+          "AVVISI",
+          "Vincoli e task incompleti segnalati."
+        ],
+        [
+          "CHIUSURA",
+          "Consentita solo se le condizioni sono soddisfatte."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Workflow: fasi e condizioni. FASI: Ogni fase rappresenta un compito verificabile. AVVISI: Vincoli e task incompleti segnalati. CHIUSURA: Consentita solo se le condizioni sono soddisfatte. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Laboratorio dimostrativo: apertura",
+      "items": [
+        [
+          "SEGNALAZIONE",
+          "Registrare riferimento, data e categoria."
+        ],
+        [
+          "TRIAGE",
+          "Valutare impatto e persone coinvolte."
+        ],
+        [
+          "ASSEGNAZIONE",
+          "Individuare responsabili e azioni."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Laboratorio dimostrativo: apertura. SEGNALAZIONE: Registrare riferimento, data e categoria. TRIAGE: Valutare impatto e persone coinvolte. ASSEGNAZIONE: Individuare responsabili e azioni. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Laboratorio: contenimento e analisi",
+      "items": [
+        [
+          "AZIONI",
+          "Documentare contenimento ed evidenze."
+        ],
+        [
+          "DIPENDENZE",
+          "Non anticipare fasi vincolate."
+        ],
+        [
+          "SCADENZE",
+          "Monitorare avvisi e tempi."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Laboratorio: contenimento e analisi. AZIONI: Documentare contenimento ed evidenze. DIPENDENZE: Non anticipare fasi vincolate. SCADENZE: Monitorare avvisi e tempi. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Laboratorio: comunicazioni e chiusura",
+      "items": [
+        [
+          "NOTIFICHE",
+          "Verificare destinatari, contenuti e allegati."
+        ],
+        [
+          "REPORT",
+          "Generare sintesi finale e cronologia."
+        ],
+        [
+          "CHIUSURA",
+          "Verificare assenza di avvisi bloccanti."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Laboratorio: comunicazioni e chiusura. NOTIFICHE: Verificare destinatari, contenuti e allegati. REPORT: Generare sintesi finale e cronologia. CHIUSURA: Verificare assenza di avvisi bloccanti. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Modelli documentali e mapping",
+      "items": [
+        [
+          "MODELLO",
+          "Associare un PDF o un DOCX valido."
+        ],
+        [
+          "CAMPI",
+          "Mappare dati incidente verso segnaposto."
+        ],
+        [
+          "OUTPUT",
+          "Generare, verificare e allegare il documento."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Modelli documentali e mapping. MODELLO: Associare un PDF o un DOCX valido. CAMPI: Mappare dati incidente verso segnaposto. OUTPUT: Generare, verificare e allegare il documento. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Notifiche: configurazione",
+      "items": [
+        [
+          "TIPI",
+          "Definire codici, destinatari e permessi."
+        ],
+        [
+          "TEMPLATE",
+          "Oggetto, corpo e campi dinamici."
+        ],
+        [
+          "ALLEGATI",
+          "Documenti generati o selezionati, secondo policy."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Notifiche: configurazione. TIPI: Definire codici, destinatari e permessi. TEMPLATE: Oggetto, corpo e campi dinamici. ALLEGATI: Documenti generati o selezionati, secondo policy. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Report operativi",
+      "items": [
+        [
+          "DOVE",
+          "Sezioni di report ed esportazione autorizzate."
+        ],
+        [
+          "COME",
+          "Filtrare periodo, tenant e stato."
+        ],
+        [
+          "PERCHÉ",
+          "Audit, passaggi di consegne e governance."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Report operativi. DOVE: Sezioni di report ed esportazione autorizzate. COME: Filtrare periodo, tenant e stato. PERCHÉ: Audit, passaggi di consegne e governance. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Statistiche e indicatori",
+      "items": [
+        [
+          "METRICHE",
+          "Incidenti aperti, chiusi e tempi."
+        ],
+        [
+          "FILTRI",
+          "Confrontare periodi e categorie."
+        ],
+        [
+          "LIMITI",
+          "Le metriche dipendono dalla qualità dei dati."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Statistiche e indicatori. METRICHE: Incidenti aperti, chiusi e tempi. FILTRI: Confrontare periodi e categorie. LIMITI: Le metriche dipendono dalla qualità dei dati. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "AlBot: assistenza AI",
+      "items": [
+        [
+          "USO",
+          "Aiuto alla consultazione e redazione."
+        ],
+        [
+          "CONTROLLO",
+          "L’operatore verifica sempre il risultato."
+        ],
+        [
+          "PRIVACY",
+          "Rispettare permessi e policy del provider."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. AlBot: assistenza AI. USO: Aiuto alla consultazione e redazione. CONTROLLO: L’operatore verifica sempre il risultato. PRIVACY: Rispettare permessi e policy del provider. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Alfresco: integrazione documentale",
+      "items": [
+        [
+          "SETUP",
+          "Configurare endpoint e credenziali."
+        ],
+        [
+          "UPLOAD",
+          "Associare documenti all’incidente."
+        ],
+        [
+          "VERIFICA",
+          "Controllare esito, autorizzazioni e riferimenti."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Alfresco: integrazione documentale. SETUP: Configurare endpoint e credenziali. UPLOAD: Associare documenti all’incidente. VERIFICA: Controllare esito, autorizzazioni e riferimenti. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Gestione errori e migrazioni legacy",
+      "items": [
+        [
+          "TRANSAZIONI",
+          "Rollback automatico in caso di errore."
+        ],
+        [
+          "CLEANUP",
+          "Solo dati obsoleti privi di riferimenti."
+        ],
+        [
+          "AUDIT",
+          "Log e verifiche prima della produzione."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Gestione errori e migrazioni legacy. TRANSAZIONI: Rollback automatico in caso di errore. CLEANUP: Solo dati obsoleti privi di riferimenti. AUDIT: Log e verifiche prima della produzione. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Piattaforme e manutenzione",
+      "items": [
+        [
+          "DOCKER / PODMAN",
+          "Distribuzione e volumi persistenti."
+        ],
+        [
+          "KUBERNETES",
+          "Deployment, PVC, Secret e probe."
+        ],
+        [
+          "OPENSHIFT",
+          "Policy di sicurezza e deployment compatibili."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Piattaforme e manutenzione. DOCKER / PODMAN: Distribuzione e volumi persistenti. KUBERNETES: Deployment, PVC, Secret e probe. OPENSHIFT: Policy di sicurezza e deployment compatibili. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "columns",
+      "kicker": "APPROFONDIMENTO OPERATIVO",
+      "title": "Materiali di approfondimento",
+      "items": [
+        [
+          "MANUALI",
+          "docs/ e documentazione generata dalla CI."
+        ],
+        [
+          "REPOSITORY",
+          "github.com/desalvo/cybersecurity-incident-registry"
+        ],
+        [
+          "EVIDENZE",
+          "Screenshot reali soltanto da CI della stessa build."
+        ]
+      ],
+      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
+      "notes": "Approfondimento per la formazione CIR. Materiali di approfondimento. MANUALI: docs/ e documentazione generata dalla CI. REPOSITORY: github.com/desalvo/cybersecurity-incident-registry EVIDENZE: Screenshot reali soltanto da CI della stessa build. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     }
   ],
   "screenshot_captions": {

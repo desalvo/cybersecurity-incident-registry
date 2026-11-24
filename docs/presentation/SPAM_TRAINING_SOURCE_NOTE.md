@@ -1,0 +1,5 @@
+# Workflow SPAM — provenienza e limitazioni delle schermate
+
+Le sequenze del laboratorio derivano dall’export workflow_SPAM.json fornito dall’utente (13 step, 10–130). I destinatari nominativi e gli URL interni non sono riportati nel materiale. Le schermate di incidente incluse nell’edizione RC46 sono immagini dimostrative preesistenti della UI CIR, **non** screenshot reali di un incidente SPAM con i 13 step. La cattura di un incidente SPAM di test richiede una fixture di database sintetica e un run Playwright attestato dalla CI; non dichiarare completata tale acquisizione.
+
+Il codice `workflow_lifecycle.py` distingue current/obsolete: l'obsolescenza blocca nuove assegnazioni ma non cancella workflow degli incidenti esistenti; l'obsolescenza del catalogo condiviso si propaga alle copie installate, la riattivazione locale non è automatica. `admin_tenant_defaults_settings.html` documenta precedenza locale, ereditarietà e rimozione degli override. L'interfaccia globale è controllata dal super amministratore.

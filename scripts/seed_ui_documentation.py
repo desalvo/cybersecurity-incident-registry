@@ -227,6 +227,46 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
             db.session.add(Action(incident_id=incident.id, when_at=opened, person_name="Operatore A",
                                   description="Presa in carico registrata nell'esercitazione.", label_id=labels[0].id))
             incidents.append(incident)
+        # Independent, anonymized SPAM exercise based on the supplied workflow.
+        # Never import source recipients, internal URLs, personal data or PDF bytes.
+        spam = json.loads((Path(__file__).resolve().parents[1] / "tests" / "fixtures" /
+                           "spam_training_workflow.json").read_text(encoding="utf-8"))
+        assert spam["category"] == "SPAM" and len(spam["steps"]) == 13
+        spam_category = ConfigLabel(tenant_id=tenant.id, kind="category", value="SPAM",
+                                    description="Accesso non autorizzato alla posta - laboratorio sintetico")
+        db.session.add(spam_category)
+        db.session.flush()
+        for item in spam["steps"]:
+            action_label = ConfigLabel.query.filter_by(tenant_id=tenant.id, kind="action_label",
+                                                       value=item["label"]).first()
+            if action_label is None:
+                action_label = ConfigLabel(tenant_id=tenant.id, kind="action_label", value=item["label"])
+                db.session.add(action_label)
+                db.session.flush()
+            action_label.max_completion_hours = item["max_completion_hours"]
+            action_label.automatic_operations = item["automatic_operations"]
+            db.session.add(IncidentWorkflowStep(
+                tenant_id=tenant.id, category_id=spam_category.id,
+                action_label_id=action_label.id, position=item["position"],
+                description=item["description"], step_type=item["step_type"],
+                conditions=",".join(item["conditions"]), required=item["required"],
+                requires_notification=item["requires_notification"],
+                required_notification_type=item["required_notification_type"] or None,
+                document_generation_enabled=item["document_generation_enabled"],
+                document_template_name=item["document_template_name"] or None,
+                section_target=item["section_target"] or None))
+        ensure_workflow_state(tenant.id, spam_category.id, name="SPAM - laboratorio")
+        spam_incident = Incident(tenant_id=tenant.id, creator_id=users["demo-supervisor"].id,
+                                creator_name="Admin operativo", creator_email="demo-supervisor@example.invalid",
+                                name="SPAM - account dimostrativo", reference="DEMO-SPAM-2026-0001",
+                                description="Incidente interamente sintetico, senza indirizzi o persone reali.",
+                                severity_id=severity.id, start_date=fixture_time.date(),
+                                start_time=fixture_time.time(), status="aperto", created_at=fixture_time)
+        spam_incident.categories = [spam_category]
+        spam_incident.category_order = str(spam_category.id)
+        db.session.add(spam_incident)
+        db.session.flush()
+        spam_incident_id = spam_incident.id
         kb = "Procedure dimostrative: registrare le attività con Azioni; allegare le evidenze in Documenti."
         (Path(app.config["AI_CHATBOT_DOC_DIR"]) / "procedure-demo.txt").write_text(kb, encoding="utf-8")
         db.session.add(AIChatbotDocument(tenant_id=tenant.id, title="Procedure dimostrative CIR",
@@ -237,5 +277,5 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
                    "default_tenant_id": tenant.id, "other_tenant_id": other.id,
                    "usernames": list(users), "incident_start_utc": fixture_time.isoformat(),
                    "timestamp_policy": "synthetic start 2h18m before capture, then one day per scenario",
-                   "incident_count": len(incidents), "workflow_step_count": 4}
+                   "incident_count": len(incidents), "workflow_step_count": 4, "spam_incident_id": spam_incident_id, "spam_workflow_step_count": 13}
     return app, fixture
