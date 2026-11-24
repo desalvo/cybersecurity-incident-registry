@@ -1700,3 +1700,8 @@ RC35: publish CI-verified screenshots, PDF manuals, brochures and training PPTX 
 0.10.0-1 RC37
 - Repair documentation packaging, presentation-media provenance and incident-lab tests for source and installed CI-generated documentation without weakening release evidence checks.
 - Preserve strict build/commit/checksum validation for installed documentation and release packages.
+
+0.10.0-1 RC39
+- Add generalized dependency-aware cleanup of unreferenced missing-PDF legacy form configurations before Tenants Default seeding.
+- Preserve operationally referenced templates; delete only eligible configs and field mappings with transaction-bound audit and rollback.
+- Add five regression tests and administrator documentation.
