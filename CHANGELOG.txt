@@ -1687,3 +1687,12 @@ RC31: Restore SCA and production verification executable modes and make CI invoc
 RC32: Prepare non-operative 14-day Debian residual-risk approval draft and exact-version CVE review matrix; production gate unchanged.
 
 0.10.0-1 RC33: Conditional 14-day Debian 13 residual-risk acceptance for exact reviewed CVE/package/version scope; gate remains strict for new/patchable findings. Expires 2026-12-07.
+
+0.10.0-1 RC34
+- Normalize the verified legacy notification template alias `notifica_interna` to `internal` per tenant before initial Tenants Default seeding, preserving custom types and all template content.
+- Reject missing canonical types and unique-key collisions without committing partial changes.
+- Add idempotence, rollback and data-preservation regression tests; preserve strict import validation.
+
+RC35: publish CI-verified screenshots, PDF manuals, brochures and training PPTX to GitHub through production digest metadata PR; prevent recursive rebuilds.
+
+0.10.0-1 RC36: update CI regression test for combined production digest and verified documentation PR; preserve full security gates.

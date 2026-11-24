@@ -280,7 +280,14 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert 'if [[ "$GITHUB_REF" == refs/tags/* ]]' in workflow
     assert "pull-requests: write" in workflow
     assert "actions: write" in workflow
-    assert "Open production digest metadata pull request" in workflow
+    # The production PR now publishes the verified same-run documentation as well
+    # as the immutable image digest.  Verify both the step and its inputs.
+    assert "Open production digest and documentation pull request" in workflow
+    assert "Verify repository documentation publication inputs" in workflow
+    assert "scripts/verify_documentation_publication.py" in workflow
+    assert "docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json" in workflow
+    assert "docs/*.pdf docs/presentation/*" in workflow
+    assert "app/static/help/ui-runtime/*.png app/static/help/ui-runtime/manifest.json" in workflow
     assert "if: github.ref == 'refs/heads/main'" in workflow
     assert "scripts/record_production_digest.py" in workflow
     assert '--digest "${{ steps.published.outputs.digest }}"' in workflow
@@ -299,7 +306,7 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert "[skip ci]" not in workflow
 
     verify_idx = workflow.index("Verify published manifest and report digest")
-    record_idx = workflow.index("Open production digest metadata pull request")
+    record_idx = workflow.index("Open production digest and documentation pull request")
     assert verify_idx < record_idx
 
     # Tag releases publish/report only and never mutate main metadata.
