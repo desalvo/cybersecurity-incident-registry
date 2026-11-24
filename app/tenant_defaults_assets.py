@@ -95,6 +95,42 @@ def _setting_references(settings):
 _LEGACY_SVG_METADATA = {'metadata', 'RDF', 'Work', 'format', 'type', 'title', 'namedview'}
 
 
+
+# Only inert presentation declarations may be lifted out of legacy inline CSS.
+# Reject all other CSS rather than attempting to sanitize arbitrary stylesheets.
+_SVG_COLOR = re.compile(r'(?:#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?|[a-zA-Z]{1,24})\Z')
+_SVG_OPACITY = re.compile(r'(?:0(?:\.[0-9]+)?|1(?:\.0+)?)\Z')
+
+
+def _lift_legacy_svg_styles(root):
+    changed = False
+    for node in root.iter():
+        if not isinstance(node.tag, str) or 'style' not in node.attrib:
+            continue
+        raw = node.attrib['style']
+        declarations = raw.split(';')
+        converted = {}
+        for declaration in declarations:
+            if not declaration.strip():
+                continue
+            if declaration.count(':') != 1:
+                raise ValueError('Stile SVG legacy non supportato.')
+            key, value = (part.strip() for part in declaration.split(':', 1))
+            if key == 'fill' and _SVG_COLOR.fullmatch(value) and value.lower() not in {'url', 'expression'}:
+                pass
+            elif key == 'fill-opacity' and _SVG_OPACITY.fullmatch(value):
+                pass
+            else:
+                raise ValueError('Stile SVG legacy non supportato.')
+            if key in converted or key in node.attrib:
+                raise ValueError('Stile SVG legacy ambiguo.')
+            converted[key] = value
+        del node.attrib['style']
+        node.attrib.update(converted)
+        changed = True
+    return changed
+
+
 def _normalize_legacy_svg(content):
     """Strip inert editor metadata; preserve the original file on disk.
 
@@ -134,7 +170,9 @@ def _normalize_legacy_svg(content):
                         raise ValueError('Metadati SVG con riferimenti o contenuti attivi.')
             parent.remove(child)
             removed = True
-    if not removed:
+    styled = _lift_legacy_svg_styles(root)
+    if not removed and not styled:
+        _validate_svg(content)
         return content
     normalized = SafeElementTree.tostring(root, encoding='utf-8')
     _validate_svg(normalized)

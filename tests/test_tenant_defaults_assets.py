@@ -189,3 +189,36 @@ def test_assets_cleanup_does_not_remove_replaced_file(assets_app):
     path.write_bytes(b'DIFFERENT OWNER')
     db.session.rollback()
     assert path.read_bytes() == b'DIFFERENT OWNER'
+
+
+def test_legacy_svg_static_fill_styles_are_normalized():
+    from app.tenant_defaults_assets import _normalize_legacy_svg, _validate_svg
+    raw = (b'<svg xmlns="http://www.w3.org/2000/svg">'
+           b'<metadata><title>legacy</title></metadata>'
+           b'<path style="fill:#4297b8;fill-opacity:1" d="M0 0"/>'
+           b'<path style="fill:#162d4d;fill-opacity:1" d="M1 1"/>'
+           b'</svg>')
+    normalized = _normalize_legacy_svg(raw)
+    assert b'style=' not in normalized
+    assert b'fill="#4297b8"' in normalized
+    assert b'fill="#162d4d"' in normalized
+    assert b'fill-opacity="1"' in normalized
+    _validate_svg(normalized)
+    assert _normalize_legacy_svg(normalized) == normalized
+
+
+import pytest
+
+@pytest.mark.parametrize('css', [
+    'fill:url(https://evil.test/x)', 'fill:url(#x)',
+    'fill:red;stroke:url(https://evil.test/x)',
+    'fill:#123456;fill:#abcdef', 'fill-opacity:2',
+    'fill:expression(alert(1))', 'fill:#123456!important',
+    'fill:#123456;opacity:0.5', 'fill:#123456;stroke:red',
+])
+def test_legacy_svg_rejects_unapproved_css(css):
+    from app.tenant_defaults_assets import _normalize_legacy_svg
+    raw = ('<svg xmlns="http://www.w3.org/2000/svg"><path style="'
+           + css + '"/></svg>').encode()
+    with pytest.raises(ValueError):
+        _normalize_legacy_svg(raw)
