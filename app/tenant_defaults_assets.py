@@ -92,7 +92,7 @@ def _setting_references(settings):
 # Editor metadata is not part of the rendered logo. Only these exact XML
 # metadata containers may be removed, and only after checking their subtree
 # for active content, references and unexpected elements.
-_LEGACY_SVG_METADATA = {'metadata', 'RDF', 'Work', 'format', 'type', 'namedview'}
+_LEGACY_SVG_METADATA = {'metadata', 'RDF', 'Work', 'format', 'type', 'title', 'namedview'}
 
 
 def _normalize_legacy_svg(content):

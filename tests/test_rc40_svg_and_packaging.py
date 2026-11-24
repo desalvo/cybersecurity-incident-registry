@@ -34,3 +34,25 @@ def test_smoke_mode_is_not_distribution_mode():
     workflow = (root/'.github/workflows/ci-release.yml').read_text()
     assert "CIR_SOURCE_PACKAGE_SMOKE: '1'" in workflow
     assert 'Install verified documentation and package the current source' in workflow
+
+
+def test_legacy_rdf_title_metadata_is_removed_and_graphics_preserved():
+    svg = (b'<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/"'
+           b' xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
+           b'<metadata><rdf:RDF><rdf:Work><dc:format>image/svg+xml</dc:format>'
+           b'<dc:title>INFN</dc:title></rdf:Work></rdf:RDF></metadata>'
+           b'<path d="M0 0 L10 10"/></svg>')
+    result = _normalize_legacy_svg(svg)
+    _validate_svg(result)
+    assert b'INFN' not in result and b'M0 0 L10 10' in result
+
+
+@pytest.mark.parametrize('payload', [
+    '<title onload="alert(1)">bad</title>',
+    '<title><script>alert(1)</script></title>',
+    '<title href="https://evil.test">bad</title>',
+])
+def test_legacy_rdf_title_active_content_still_rejected(payload):
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg"><metadata><RDF><Work>'+payload+'</Work></RDF></metadata></svg>').encode()
+    with pytest.raises(ValueError):
+        _normalize_legacy_svg(svg)
