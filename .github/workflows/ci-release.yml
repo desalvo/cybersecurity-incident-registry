@@ -178,6 +178,8 @@ jobs:
         run: python -m pip_audit -r requirements.txt -r requirements-docs.txt --strict
 
       - name: Build release package as packaging smoke test
+        env:
+          CIR_SOURCE_PACKAGE_SMOKE: '1'
         run: bash ./scripts/package_release.sh "${RUNNER_TEMP}/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
 
       - name: Build verified Helm and OpenShift installation packages
