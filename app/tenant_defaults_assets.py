@@ -89,6 +89,58 @@ def _setting_references(settings):
     return found
 
 
+# Editor metadata is not part of the rendered logo. Only these exact XML
+# metadata containers may be removed, and only after checking their subtree
+# for active content, references and unexpected elements.
+_LEGACY_SVG_METADATA = {'metadata', 'RDF', 'Work', 'format', 'type', 'namedview'}
+
+
+def _normalize_legacy_svg(content):
+    """Strip inert editor metadata; preserve the original file on disk.
+
+    Reject suspicious content even when it occurs inside metadata that would
+    otherwise be discarded. The strict SVG validator runs on the result.
+    """
+    try:
+        text = content.decode('utf-8-sig')
+    except UnicodeDecodeError as exc:
+        raise ValueError('Il logo SVG deve essere codificato in UTF-8.') from exc
+    if '\x00' in text or '<?xml-stylesheet' in text.lower():
+        raise ValueError('Il logo SVG contiene istruzioni o codifica non ammesse.')
+    try:
+        root = SafeElementTree.fromstring(content, forbid_dtd=True, forbid_entities=True, forbid_external=True)
+    except Exception as exc:
+        raise ValueError('Logo SVG non valido o con entità esterne.') from exc
+    if root.tag not in {'svg', '{http://www.w3.org/2000/svg}svg'}:
+        raise ValueError('Il documento non è un logo SVG.')
+    removed = False
+    count = 0
+    for parent in root.iter():
+        for child in list(parent):
+            name = child.tag.rsplit('}', 1)[-1] if isinstance(child.tag, str) else ''
+            if name not in {'metadata', 'namedview'}:
+                continue
+            for node in child.iter():
+                count += 1
+                if count > 5000 or not isinstance(node.tag, str):
+                    raise ValueError('Metadati SVG troppo complessi.')
+                local = node.tag.rsplit('}', 1)[-1]
+                if local not in _LEGACY_SVG_METADATA:
+                    raise ValueError('Metadati SVG con elementi non ammessi.')
+                for attr, value in node.attrib.items():
+                    key = attr.rsplit('}', 1)[-1].lower()
+                    val = value.lower()
+                    if key.startswith('on') or key in {'href', 'style', 'base'} or any(x in val for x in ('javascript:', 'data:', 'file:', '@import', 'url(')) or (('http:' in val or 'https:' in val) and not (local == 'type' and key == 'resource')):
+                        raise ValueError('Metadati SVG con riferimenti o contenuti attivi.')
+            parent.remove(child)
+            removed = True
+    if not removed:
+        return content
+    normalized = SafeElementTree.tostring(root, encoding='utf-8')
+    _validate_svg(normalized)
+    return normalized
+
+
 def _validate_svg(content):
     try:
         text = content.decode('utf-8-sig')
@@ -210,6 +262,8 @@ def export_defaults_assets(settings):
                 content = handle.read(MAX_ASSET_BYTES + 1)
         except OSError as exc:
             raise ValueError('Un logo referenziato non è disponibile nella directory gestita.') from exc
+        if kind == 'sso_logo_path' and filename.lower().endswith('.svg'):
+            content = _normalize_legacy_svg(content)
         _validate_image(content, filename, kind)
         output.append({'kind': kind, 'source_ref': reference, 'filename': filename,
                        'sha256': hashlib.sha256(content).hexdigest(), 'content_base64': base64.b64encode(content).decode('ascii')})

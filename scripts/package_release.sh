@@ -211,6 +211,14 @@ rsync -a --delete \
 else
   python3 "$ROOT_DIR/scripts/copy_release_tree.py" "$ROOT_DIR" "$TMP/$BASE"
 fi
+# A source-only smoke package is not a release artifact. It must not claim
+# that pre-existing CI screenshot receipts match newly regenerated brochures.
+# The distribution packaging path below remains strict and verifies all receipts.
+if [[ "${CIR_SOURCE_PACKAGE_SMOKE:-0}" == "1" ]]; then
+  rm -f "$TMP/$BASE/app/static/help/ui-runtime/manifest.json" \
+        "$TMP/$BASE/docs/UI_SCREENSHOTS_SOURCE.json" \
+        "$TMP/$BASE/docs/UI_SCREENSHOTS_BUILD.json"
+fi
 # Generate the build once for the package, or reuse the workflow-wide value.
 # Only the staging copy is stamped; packaging never modifies the source checkout.
 # A real screenshot/manual batch is bound to its source release identity. A
