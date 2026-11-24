@@ -797,3 +797,13 @@ On a production-impacting merge to main, the same-run verified manuals, brochure
 ## RC36 — CI documentation publication regression
 
 Updated the historical production metadata PR test to validate the renamed production digest **and documentation** PR step, the documentation publication verifier, and the exact staged screenshot/manual/presentation paths. No runtime or security policy changes. CI full suite remains required.
+
+## 0.10.0-1 RC37 — documentation CI regression repair
+
+- Fixed three tests from the 2026-11-24 GitHub PR run (960 passed, 3 failed, 24 skipped).
+- Source presentation media are now checked against the immutable source receipt and approved local assets; the embedded manual preview bytes are verified against the receipt, not unconditionally against potentially regenerated first-page PNG files.
+- Installed CI documentation continues to require the complete validated screenshot, manual and presentation provenance chain via `validate_installed_documentation`.
+- Educational laboratory tests distinguish source placeholder pages from validated CI-generated pages; CI pages must not contain the pending-acquisition placeholder.
+- Source packaging tests use an isolated source-only fixture. Actual release packaging still rejects installed documentation from another build or with invalid checksums.
+- Local focused regression: 77 passed and 52 subtests passed. Full GitHub CI, PostgreSQL and real browser evidence still require a new run.
+- Last user-confirmed Git commit: RC33. RC34–RC37 commit message remains cumulative unless a later commit is confirmed.

@@ -180,7 +180,18 @@ def test_security_context_verifier_and_final_production_digest() -> None:
 
 def test_release_package_has_new_layout_and_excludes_runtime_artifacts(tmp_path: Path) -> None:
     out = tmp_path / "cir-hotfix7-test.zip"
-    r = subprocess.run([str(ROOT / "scripts" / "package_release.sh"), str(out)], cwd=ROOT, text=True, capture_output=True)
+    # Package a source-only fixture, not potentially installed CI evidence
+    # from a prior build. Production packaging still validates all installed
+    # receipts and MUST reject stale or tampered generated documentation.
+    import shutil
+    from scripts.copy_release_tree import copy_release_tree
+    source = tmp_path / 'source'
+    copy_release_tree(ROOT, source)
+    for relative in ('docs/UI_SCREENSHOTS_SOURCE.json', 'docs/UI_SCREENSHOTS_BUILD.json',
+                     'app/static/help/ui-runtime/manifest.json'):
+        (source / relative).unlink(missing_ok=True)
+    r = subprocess.run(['bash', str(source / "scripts" / "package_release.sh"), str(out)],
+                       cwd=source, text=True, capture_output=True)
     assert r.returncode == 0, r.stderr
     assert out.is_file() and Path(str(out) + ".sha256").is_file()
     with zipfile.ZipFile(out) as zf:
