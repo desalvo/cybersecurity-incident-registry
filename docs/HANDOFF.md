@@ -821,3 +821,7 @@ Before Tenants Default initial seeding, `app/legacy_template_cleanup.py` transac
 ## RC41 — Legacy RDF title SVG compatibility
 
 RC40 rejected an otherwise inert editor metadata `<title>` inside RDF/Work in the real INFN SSO SVG. RC41 allows this inert metadata element solely inside removable metadata containers, retains strict rejection of active content, and adds positive/negative regression tests. The original PVC asset remains unchanged. Full CI and the real Kubernetes bootstrap remain pending.
+
+
+## RC42: static SVG style migration
+Legacy SSO SVG logos with strictly validated inline `fill` and `fill-opacity` are normalized to SVG presentation attributes in memory. Arbitrary CSS, active content and external references remain rejected. No PVC writes or DB changes. Real INFN logo bytes not available for local test; verify on Kubernetes before rollout.
