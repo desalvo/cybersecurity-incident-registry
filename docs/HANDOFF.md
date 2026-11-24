@@ -817,3 +817,7 @@ The source-package test now compares staged source-only evidence against the sta
 
 Before Tenants Default initial seeding, `app/legacy_template_cleanup.py` transactionally removes only missing-PDF form configurations without operational references, along with their internal field mappings, and writes an audit event. Referenced configurations are preserved with a warning. The rule is not tied to a filename. No filesystem deletions or independent commits. See `docs/LEGACY_DATA_CLEANUP.md`. Five dedicated tests cover deletion, audit, rollback, reference preservation and idempotency. Real PostgreSQL bootstrap and full CI are still required.
 \n\n## RC40 — Legacy SVG and CI packaging\nSafe in-memory removal of inert SVG editor metadata during defaults export; strict SVG validation remains on import and on normalized export. Source-only packaging smoke now removes stale installed documentation receipts from its staging copy; distribution packaging remains strict. PostgreSQL bootstrap transaction and PVC originals are unchanged.\n
+
+## RC41 — Legacy RDF title SVG compatibility
+
+RC40 rejected an otherwise inert editor metadata `<title>` inside RDF/Work in the real INFN SSO SVG. RC41 allows this inert metadata element solely inside removable metadata containers, retains strict rejection of active content, and adds positive/negative regression tests. The original PVC asset remains unchanged. Full CI and the real Kubernetes bootstrap remain pending.
