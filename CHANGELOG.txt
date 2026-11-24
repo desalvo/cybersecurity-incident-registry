@@ -1696,3 +1696,7 @@ RC32: Prepare non-operative 14-day Debian residual-risk approval draft and exact
 RC35: publish CI-verified screenshots, PDF manuals, brochures and training PPTX to GitHub through production digest metadata PR; prevent recursive rebuilds.
 
 0.10.0-1 RC36: update CI regression test for combined production digest and verified documentation PR; preserve full security gates.
+
+0.10.0-1 RC37
+- Repair documentation packaging, presentation-media provenance and incident-lab tests for source and installed CI-generated documentation without weakening release evidence checks.
+- Preserve strict build/commit/checksum validation for installed documentation and release packages.
