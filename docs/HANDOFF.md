@@ -807,3 +807,8 @@ Updated the historical production metadata PR test to validate the renamed produ
 - Source packaging tests use an isolated source-only fixture. Actual release packaging still rejects installed documentation from another build or with invalid checksums.
 - Local focused regression: 77 passed and 52 subtests passed. Full GitHub CI, PostgreSQL and real browser evidence still require a new run.
 - Last user-confirmed Git commit: RC33. RC34–RC37 commit message remains cumulative unless a later commit is confirmed.
+
+
+## RC38 — documentation regression isolation
+
+The source-package test now compares staged source-only evidence against the staged fixture, not the original checkout. Training tests independently verify PPTX hashes and embedded media against presentation receipts even when the application CI job regenerates brochures for its current BUILD. The strict whole-bundle validator remains mandatory in the real-screenshot documentation job and distribution packaging; checksum mismatches are not suppressed there.
