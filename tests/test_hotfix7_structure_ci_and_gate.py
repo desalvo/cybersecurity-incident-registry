@@ -228,15 +228,20 @@ def test_release_package_has_new_layout_and_excludes_runtime_artifacts(tmp_path:
             assert zf.read(base + "app/static/ui/" + filename) == zf.read(base + "docs/visual-assets/" + filename)
         # CI installs these after evidence validation. They are optional before
         # capture, but packaging must never discard an installed evidence batch.
-        evidence_root = ROOT / "app/static/help/ui-runtime"
+        # Compare against the staged source-only fixture, not the original
+        # checkout: this test deliberately removed installed CI receipts.
+        evidence_root = source / "app/static/help/ui-runtime"
         if evidence_root.is_dir():
             for path in evidence_root.rglob("*"):
                 if path.is_file():
-                    relative = str(path.relative_to(ROOT))
+                    relative = str(path.relative_to(source))
                     assert zf.read(base + relative) == path.read_bytes(), relative
         for relative in ("docs/UI_SCREENSHOTS_SOURCE.json", "docs/UI_SCREENSHOTS_BUILD.json"):
-            if (ROOT / relative).is_file():
-                assert zf.read(base + relative) == (ROOT / relative).read_bytes(), relative
+            if (source / relative).is_file():
+                assert zf.read(base + relative) == (source / relative).read_bytes(), relative
+            else:
+                assert base + relative not in names, relative
+        assert base + "app/static/help/ui-runtime/manifest.json" not in names
     base = "cybersecurity-incident-registry-" + (ROOT / "VERSION").read_text().strip() + "/"
     assert base + "README.md" in names and base + "README_en.md" in names
     assert base + "docs/SECURITY.md" in names and base + "docs/TESTING_AND_PRODUCTION.md" in names
