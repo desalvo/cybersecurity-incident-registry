@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "source_kind": "real-application-browser",
+  "source_commit": "91469d63073594ca4f437c2fbbb8e5ad05387a77",
+  "functional_version": "0.10.0-1",
+  "build": "20261124",
+  "generated_at": "2026-11-24T14:13:20.890837+00:00",
+  "data_provenance": "isolated-synthetic-fixture",
+  "fixture": {
+    "fixture_id": "cir-ui-documentation-v1",
+    "incident_id": 1,
+    "default_tenant_id": 1,
+    "other_tenant_id": 3,
+    "usernames": [
+      "demo-supervisor",
+      "demo-tenant-admin",
+      "demo-reader",
+      "demo-reader-alt"
+    ],
+    "incident_start_utc": "2026-11-24T11:54:00",
+    "timestamp_policy": "synthetic start 2h18m before capture, then one day per scenario",
+    "incident_count": 6,
+    "workflow_step_count": 4
+  },
+  "browser": {
+    "name": "chromium",
+    "version": "159.0.8154.6",
+    "playwright": "1.65.2"
+  },
+  "ai_response_provenance": "deterministic-local-ollama-compatible-http-fixture",
+  "ai_endpoint_exercised": "/ai-chatbot/widget/ask",
+  "provider_request_count": 2,
+  "application_security": {
+    "authentication": "real-login",
+    "csrf": "enabled",
+    "database_context": false,
+    "production_data_used": false
+  },
+  "checks": {
+    "modern_is_fresh_install_default": true,
+    "four_procedural_blocks_rendered": true,
+    "entire_procedural_task_region_activates_real_action_form": true,
+    "cancel_confirmation_prevents_incident_delete_request": true,
+    "assistant_real_csrf_endpoint_and_local_provider": true,
+    "assistant_close_reopen_clear_and_focus": true,
+    "narrow_desktop_assistant_modal": true,
+    "real_tenant_switch_and_assistant_scope_reset": true,
+    "mobile_menu_escape_and_assistant_return": true,
+    "documentation_covers_show_current_identity_and_local_platform_logos": true,
+    "documentation_mobile_first_fold_has_no_horizontal_overflow": true,
+    "tenant_admin_global_switch_forbidden": true,
+    "global_switch_requires_csrf": true,
+    "reader_sees_workflow_without_write_form": true,
+    "disabled_tenant_plugin_hidden": true,
+    "global_switch_applies_to_other_tenants_and_login": true,
+    "classic_roundtrip_preserves_registry": true,
+    "no_browser_errors_or_external_requests": true,
+    "visible_images_loaded_no_page_horizontal_overflow": true,
+    "provider_receives_current_question_only_no_db_snapshot": true
+  },
+  "screenshots": [
+    {
+      "id": "login-desktop",
+      "file": "login-desktop.png",
+      "sha256": "342a8b51aaa78853b9336eb76de8cdb5f7c8855c4a858ebd66aafdc90b297f9f",
+      "route": "/login",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": false,
+      "capture_area": "viewport",
+      "caption_it": "Accesso reale · desktop",
+      "caption_en": "Actual login · desktop"
+    },
+    {
+      "id": "login-mobile",
+      "file": "login-mobile.png",
+      "sha256": "393449f28e0d256745a0f7c35f1ae4fb68df954df456db434e401cb4c22a08a0",
+      "route": "/login",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": false,
+      "capture_area": "full-page",
+      "caption_it": "Accesso reale · mobile",
+      "caption_en": "Actual login · mobile"
+    },
+    {
+      "id": "registry-desktop",
+      "file": "registry-desktop.png",
+      "sha256": "5759745db66f240ea836b14ab2257b9f4ec8bc98c8d68f5f92feb9e531a6936e",
+      "route": "/",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Registro incidenti con dati sintetici",
+      "caption_en": "Incident registry with synthetic records"
+    },
+    {
+      "id": "incident-desktop",
+      "file": "incident-desktop.png",
+      "sha256": "120d95b228d6c95621c77f6df2bb0627860eb9c0d6762d9125fea02f9252d5dc",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Incidente reale di esempio e quattro fasi procedurali",
+      "caption_en": "Actual example incident and four procedural stages"
+    },
+    {
+      "id": "assistant-desktop",
+      "file": "assistant-desktop.png",
+      "sha256": "70a2075fab7ef41f86c166064cbea7a37ebfbb4145b201b181e89c570ec6eb33",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "AlBot nella pagina reale; risposta del provider locale dimostrativo",
+      "caption_en": "AlBot in the actual app; local demonstration provider response"
+    },
+    {
+      "id": "registry-mobile",
+      "file": "registry-mobile.png",
+      "sha256": "07a9d3266039702bfb91e8bf92f09027f895ec4ea8462e99667515bd51451448",
+      "route": "/",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Registro incidenti · mobile",
+      "caption_en": "Incident registry · mobile"
+    },
+    {
+      "id": "registry-mobile-menu",
+      "file": "registry-mobile-menu.png",
+      "sha256": "4cb39de49426489fdb516d95c5358ddc3a2f23b7047661f59852bbead76b7dbe",
+      "route": "/",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Menu operativo aperto · mobile",
+      "caption_en": "Open application menu · mobile"
+    },
+    {
+      "id": "incident-mobile",
+      "file": "incident-mobile.png",
+      "sha256": "cd5bddddfb60c4bfe5cc285d7e485d86a0f16eff684ad2f1945018d390604a08",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Incidente e fasi procedurali · mobile",
+      "caption_en": "Incident and procedural stages · mobile"
+    },
+    {
+      "id": "assistant-mobile",
+      "file": "assistant-mobile.png",
+      "sha256": "2d29999eb7baf6bb33d08f1d87ce0e2ff93d78e5b2cac3d32832926558399778",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Conversazione AlBot a tutta larghezza · risposta dimostrativa",
+      "caption_en": "Full-width AlBot conversation · demonstration response"
+    },
+    {
+      "id": "documentation-user-desktop",
+      "file": "documentation-user-desktop.png",
+      "sha256": "e44a09f53768b565784b04e5872d1fb52c50d6ea270d2f0494b41a9bde89e4d5",
+      "route": "/aiuto",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · user · desktop",
+      "caption_en": "Actual online manual opening · user · desktop"
+    },
+    {
+      "id": "documentation-user-mobile",
+      "file": "documentation-user-mobile.png",
+      "sha256": "6cee20807acadbab9daa0efb2798a31739c549405e5f01b533a555f84d83c45a",
+      "route": "/aiuto",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · user · mobile",
+      "caption_en": "Actual online manual opening · user · mobile"
+    },
+    {
+      "id": "documentation-admin-desktop",
+      "file": "documentation-admin-desktop.png",
+      "sha256": "6317bc2707da0984783c3eb57bd9184e0f7947616c7b5cc914cc336398c8e138",
+      "route": "/aiuto/amministrazione",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · admin · desktop",
+      "caption_en": "Actual online manual opening · admin · desktop"
+    },
+    {
+      "id": "documentation-admin-mobile",
+      "file": "documentation-admin-mobile.png",
+      "sha256": "01084294a9ab0e7578a80d013bbc961efbdb4765580630966bfa3c5b31826bee",
+      "route": "/aiuto/amministrazione",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · admin · mobile",
+      "caption_en": "Actual online manual opening · admin · mobile"
+    },
+    {
+      "id": "admin-modules-desktop",
+      "file": "admin-modules-desktop.png",
+      "sha256": "0f8c66c049aeb069a91074af52aec4f307c354e5fb4742817b01cc47f4d2e588",
+      "route": "/modules/configuration",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Configurazione reale dei moduli",
+      "caption_en": "Actual document template configuration"
+    },
+    {
+      "id": "admin-sso-desktop",
+      "file": "admin-sso-desktop.png",
+      "sha256": "85594fae1f2fc064fc9faf2badca759fe0bad8977dda2c36bfc6af1cd59dfe28",
+      "route": "/admin/sso",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Configurazione SSO fittizia nella pagina reale",
+      "caption_en": "Fictional SSO configuration in the actual settings page"
+    },
+    {
+      "id": "interface-settings-desktop",
+      "file": "interface-settings-desktop.png",
+      "sha256": "cf5aef1083abfb77258fb782898ac0970aa8f4bd3ff72487f53eae75b7984de6",
+      "route": "/admin/interface",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Switch globale dell'interfaccia · super admin",
+      "caption_en": "Global interface switch · super admin"
+    },
+    {
+      "id": "classic-registry-desktop",
+      "file": "classic-registry-desktop.png",
+      "sha256": "87c38e4f210602aa5a9dc2d9aaadfc19d4fa39234cee94366b07b1759403ecd9",
+      "route": "/",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "classic",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Interfaccia classica dopo lo switch globale",
+      "caption_en": "Classic interface after the global switch"
+    }
+  ]
+}

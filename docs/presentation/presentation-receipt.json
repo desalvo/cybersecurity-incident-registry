@@ -1,57 +1,142 @@
 {
   "schema_version": 1,
-  "source_commit": null,
+  "source_commit": "91469d63073594ca4f437c2fbbb8e5ad05387a77",
   "functional_version": "0.10.0-1",
-  "build": "20261122",
-  "real_screenshots": false,
-  "screenshot_manifest_sha256": null,
+  "build": "20261124",
+  "real_screenshots": true,
+  "screenshot_manifest_sha256": "6981c895917006c4b0ab87536359204a0e03922bd942e98f9b281f302026bd4a",
   "file": "CIR_Operational_Training_IT.pptx",
-  "sha256": "60506509b7f6d2c41ab247806fd8ee26f2a30a6f16389e8721512365029f4434",
+  "sha256": "667297ac6b06dd92344cbaf3daf3434420fb950f908d8aaf9ecce0427928c746",
   "editable_text": true,
   "speaker_notes": true,
-  "screenshots": [],
+  "screenshots": [
+    {
+      "id": "admin-modules-desktop",
+      "sha256": "0f8c66c049aeb069a91074af52aec4f307c354e5fb4742817b01cc47f4d2e588",
+      "media_file": "ppt/media/image20.png"
+    },
+    {
+      "id": "admin-sso-desktop",
+      "sha256": "85594fae1f2fc064fc9faf2badca759fe0bad8977dda2c36bfc6af1cd59dfe28",
+      "media_file": "ppt/media/image21.png"
+    },
+    {
+      "id": "assistant-desktop",
+      "sha256": "70a2075fab7ef41f86c166064cbea7a37ebfbb4145b201b181e89c570ec6eb33",
+      "media_file": "ppt/media/image16.png"
+    },
+    {
+      "id": "assistant-mobile",
+      "sha256": "2d29999eb7baf6bb33d08f1d87ce0e2ff93d78e5b2cac3d32832926558399778",
+      "media_file": "ppt/media/image17.png"
+    },
+    {
+      "id": "classic-registry-desktop",
+      "sha256": "87c38e4f210602aa5a9dc2d9aaadfc19d4fa39234cee94366b07b1759403ecd9",
+      "media_file": "ppt/media/image19.png"
+    },
+    {
+      "id": "documentation-admin-desktop",
+      "sha256": "6317bc2707da0984783c3eb57bd9184e0f7947616c7b5cc914cc336398c8e138",
+      "media_file": "ppt/media/image24.png"
+    },
+    {
+      "id": "documentation-admin-mobile",
+      "sha256": "01084294a9ab0e7578a80d013bbc961efbdb4765580630966bfa3c5b31826bee",
+      "media_file": "ppt/media/image25.png"
+    },
+    {
+      "id": "documentation-user-desktop",
+      "sha256": "e44a09f53768b565784b04e5872d1fb52c50d6ea270d2f0494b41a9bde89e4d5",
+      "media_file": "ppt/media/image22.png"
+    },
+    {
+      "id": "documentation-user-mobile",
+      "sha256": "6cee20807acadbab9daa0efb2798a31739c549405e5f01b533a555f84d83c45a",
+      "media_file": "ppt/media/image23.png"
+    },
+    {
+      "id": "incident-desktop",
+      "sha256": "120d95b228d6c95621c77f6df2bb0627860eb9c0d6762d9125fea02f9252d5dc",
+      "media_file": "ppt/media/image14.png"
+    },
+    {
+      "id": "incident-mobile",
+      "sha256": "cd5bddddfb60c4bfe5cc285d7e485d86a0f16eff684ad2f1945018d390604a08",
+      "media_file": "ppt/media/image15.png"
+    },
+    {
+      "id": "interface-settings-desktop",
+      "sha256": "cf5aef1083abfb77258fb782898ac0970aa8f4bd3ff72487f53eae75b7984de6",
+      "media_file": "ppt/media/image18.png"
+    },
+    {
+      "id": "login-desktop",
+      "sha256": "342a8b51aaa78853b9336eb76de8cdb5f7c8855c4a858ebd66aafdc90b297f9f",
+      "media_file": "ppt/media/image9.png"
+    },
+    {
+      "id": "login-mobile",
+      "sha256": "393449f28e0d256745a0f7c35f1ae4fb68df954df456db434e401cb4c22a08a0",
+      "media_file": "ppt/media/image10.png"
+    },
+    {
+      "id": "registry-desktop",
+      "sha256": "5759745db66f240ea836b14ab2257b9f4ec8bc98c8d68f5f92feb9e531a6936e",
+      "media_file": "ppt/media/image11.png"
+    },
+    {
+      "id": "registry-mobile",
+      "sha256": "07a9d3266039702bfb91e8bf92f09027f895ec4ea8462e99667515bd51451448",
+      "media_file": "ppt/media/image12.png"
+    },
+    {
+      "id": "registry-mobile-menu",
+      "sha256": "4cb39de49426489fdb516d95c5358ddc3a2f23b7047661f59852bbead76b7dbe",
+      "media_file": "ppt/media/image13.png"
+    }
+  ],
   "manual_first_pages": [
     {
       "pdf": "documentazione_utente.pdf",
-      "pdf_sha256": "ab78be958237d41e6189c75deea66366996f7082ed9069b223c0bb21a8cc707c",
+      "pdf_sha256": "8d5551be4e6821b4aa70b6e5261f7f96738d7b5711e83a81671d7e6ac619d0fb",
       "png": "manual-first-page-documentazione_utente.png",
-      "png_sha256": "4a1cfafbc6f3444d48bce9e43a08810e0194aa09f11db30214e54db4ac6c1f69",
-      "media_file": "ppt/media/image9.png",
+      "png_sha256": "a193d7d2278af3172db0deee9d60efbdd3d3f203fa4f9c543f89543809da18a9",
+      "media_file": "ppt/media/image26.png",
       "page": 1
     },
     {
       "pdf": "documentazione_amministrativa.pdf",
-      "pdf_sha256": "c1bc9344bacf47b399d86961714388dd7b32164b10186498d22ea3234afb5e71",
+      "pdf_sha256": "5e18d46856c38cb9ffe59664f08351caed40c4acb46937c29d61016ce713e8ac",
       "png": "manual-first-page-documentazione_amministrativa.png",
-      "png_sha256": "741cc91523ae3418edcaf8d1590ad2df0413a39c9da77d409b5f7ce0f31a050c",
-      "media_file": "ppt/media/image10.png",
+      "png_sha256": "a0a18fb7e52339e4108e3a99080c41611d1046c94c0e5bba608743185255ba11",
+      "media_file": "ppt/media/image27.png",
       "page": 1
     },
     {
       "pdf": "user_documentation_en.pdf",
-      "pdf_sha256": "801269f1425736c1ccb5c53b6cef7c4042e7541c3e5c6b0d7a03511c511238d0",
+      "pdf_sha256": "ab8b1d966345cba5ad50af58aae714f13fbbcc90904be985fc85e435f1d95d03",
       "png": "manual-first-page-user_documentation_en.png",
-      "png_sha256": "93b8bb489c6724cbe89e9881da5fad3d3be1aa6cf2d3cf0bfa866ac7fc7f004e",
-      "media_file": "ppt/media/image11.png",
+      "png_sha256": "d8ec365e1c21fe272ee04e9e01b74dc6c0a9b444b354c3a4411f991fcb417536",
+      "media_file": "ppt/media/image28.png",
       "page": 1
     },
     {
       "pdf": "administrator_documentation_en.pdf",
-      "pdf_sha256": "b0d4851dbe3f5bc73586c1a7d7368e1ac414cb87350cebac7a163a255ac76125",
+      "pdf_sha256": "b778cd6b8ceaaf89a7d5adbfa3e05cdcc72af90563a5e741765a3d2a80703dc6",
       "png": "manual-first-page-administrator_documentation_en.png",
-      "png_sha256": "a3fa7364c26cec7ac04facbea854048cd328f46bcd35b165aeda6cfb1dc4e40d",
-      "media_file": "ppt/media/image12.png",
+      "png_sha256": "e6043f3483dea59cdca45999ee4d613f87e5dac47498cd74e961e9355e681d74",
+      "media_file": "ppt/media/image29.png",
       "page": 1
     },
     {
       "pdf": "ADMIN_ALFRESCO.pdf",
-      "pdf_sha256": "9c165132131c72271dc6882bcfe11349a33d218d15e7cfce4ea8d0883f80b0d7",
+      "pdf_sha256": "80adbb331fa6d7e91bc068552cd9532ca02ad148e6ff365716aa0ccf22d1b943",
       "png": "manual-first-page-ADMIN_ALFRESCO.png",
-      "png_sha256": "63261edceacf13668fa3a9a1cdc4ad67fbe95abef1b9253e95e6edbf247f2c8e",
-      "media_file": "ppt/media/image13.png",
+      "png_sha256": "8d237b7938fd4367b35f1fb37a6e329b8a8c7bf9e05618dc5ca8ad132266764c",
+      "media_file": "ppt/media/image30.png",
       "page": 1
     }
   ],
-  "slides": 34,
-  "status": "source-edition-awaiting-verified-ci-screenshots"
+  "slides": 34
 }
