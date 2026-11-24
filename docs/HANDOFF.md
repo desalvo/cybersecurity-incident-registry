@@ -812,3 +812,7 @@ Updated the historical production metadata PR test to validate the renamed produ
 ## RC38 — documentation regression isolation
 
 The source-package test now compares staged source-only evidence against the staged fixture, not the original checkout. Training tests independently verify PPTX hashes and embedded media against presentation receipts even when the application CI job regenerates brochures for its current BUILD. The strict whole-bundle validator remains mandatory in the real-screenshot documentation job and distribution packaging; checksum mismatches are not suppressed there.
+
+## RC39: generalized legacy PDF template cleanup
+
+Before Tenants Default initial seeding, `app/legacy_template_cleanup.py` transactionally removes only missing-PDF form configurations without operational references, along with their internal field mappings, and writes an audit event. Referenced configurations are preserved with a warning. The rule is not tied to a filename. No filesystem deletions or independent commits. See `docs/LEGACY_DATA_CLEANUP.md`. Five dedicated tests cover deletion, audit, rollback, reference preservation and idempotency. Real PostgreSQL bootstrap and full CI are still required.

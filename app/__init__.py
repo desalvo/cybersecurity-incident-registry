@@ -1276,6 +1276,8 @@ def bootstrap(app):
         # The enclosing bootstrap rollback also rolls back this repair on any failure.
         from .legacy_notification_migration import normalize_legacy_notification_kinds
         normalize_legacy_notification_kinds(db.session, logger=app.logger)
+        from .legacy_template_cleanup import cleanup_unused_legacy_templates
+        cleanup_unused_legacy_templates(db.session, logger=app.logger)
         ensure_defaults_tenant(seed_from_default=True)
         sync_defaults_configuration()
         from .workflow_lifecycle import backfill_workflow_states
