@@ -1722,3 +1722,5 @@ RC49: ristrutturazione presentazione didattica in 73 slide con sette sezioni log
 RC51: fixture isolata SPAM a 13 step e screenshot browser obbligatori con provenienza attestata.
 
 RC52: Fix duplicate SPAM documentation category, reconcile 19 screenshot provenance IDs, regenerate authored source presentation, and restore offline release verification.
+
+RC56 (development candidate): optimize real UI browser captures in JPEG quality 90 while retaining PNG provenance compatibility; prepare mapping/Alfresco CI capture fixtures; deliver updated 77-slide visual PPTX and PDF.

@@ -26,6 +26,23 @@ CONFIGURATION_FORMAT = 'cybersecurity-incident-registry.tenant-configuration.v1'
 MAX_CONFIGURATION_ITEMS = 2000
 MAX_CONFIGURATION_BYTES = 4 * 1024 * 1024
 _ORIGIN_SETTING = '__cir_tenant_configuration_origin'
+# Provenance marker for a category that *already belonged to the receiving tenant*.
+# It is stored in the existing replica snapshot; no schema/DDL change required.
+_LOCAL_CATEGORY_MARKER = '__cir_existing_tenant_category'
+
+
+def _locally_owned_category_replica(replica):
+    if not replica or replica.local_type != 'config_label':
+        return False
+    try:
+        return json.loads(replica.snapshot_json).get(_LOCAL_CATEGORY_MARKER) is True
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
+def _category_equivalent(left, right):
+    return ' '.join((left or '').strip().casefold().split()) == ' '.join((right or '').strip().casefold().split())
+
 _MODELS = {
     'config_label': ConfigLabel, 'notification_type': NotificationType,
     'recommendation': Recommendation, 'external_recipient': ExternalRecipient,
@@ -340,6 +357,11 @@ def _alert(session, source, replica, kind, reason):
 def _retire_source(session, source):
     for replica in session.scalars(select(TenantDefaultReplica).where(TenantDefaultReplica.source_id == source.id)).all():
         local = session.get(_MODELS[replica.local_type], replica.local_id, populate_existing=True)
+        if _locally_owned_category_replica(replica):
+            # A category predated publication of Tenants Default. Removing the
+            # shared source must never remove the original tenant category.
+            session.delete(replica)
+            continue
         if local is not None and local.tenant_id == replica.tenant_id:
             reason = configuration_reference_reason(replica.local_type, local, session)
             customized = _json(configuration_record_payload(replica.local_type, local)) != replica.snapshot_json
@@ -359,6 +381,48 @@ def _sync_source_to_tenant(session, source, data, tenant_id):
     local = session.get(model, replica.local_id, populate_existing=True) if replica else None
     if local is not None and local.tenant_id != tenant_id:
         raise ValueError('Provenienza Tenants Default incoerente: tenant destinatario non corrispondente.')
+    if local is not None and source.source_type == 'config_label' and data['kind'] == 'category' and not _locally_owned_category_replica(replica):
+        # Reconcile old [Tenants Default] duplicates if and ONLY if removing
+        # the duplicate is demonstrably safe. Categories already referenced
+        # by incidents, workflows or other settings remain untouched; the
+        # incident picker consolidates their display without erasing history.
+        if local.value != data['value'] and _category_equivalent(
+                re.sub(r'\s*\[Tenants Default(?:\s+\d+)?\]$', '', local.value, flags=re.I), data['value']):
+            target = session.scalar(select(ConfigLabel).where(
+                ConfigLabel.tenant_id == tenant_id, ConfigLabel.kind == 'category',
+                ConfigLabel.value == data['value'], ConfigLabel.id != local.id))
+            if target is not None:
+                claimed = session.scalar(select(TenantDefaultReplica.id).where(
+                    TenantDefaultReplica.local_type == 'config_label',
+                    TenantDefaultReplica.local_id == target.id).limit(1))
+                if claimed is None and not configuration_reference_reason('config_label', local, session):
+                    snapshot = configuration_record_payload('config_label', target)
+                    snapshot[_LOCAL_CATEGORY_MARKER] = True
+                    # Do not destroy local target values; retire only the
+                    # unreferenced former replica. All changes share transaction.
+                    session.delete(local)
+                    session.flush()
+                    replica.local_id = target.id
+                    replica.snapshot_json = _json(snapshot)
+                    return
+                if claimed is None:
+                    # An old duplicate is still referenced by incidents or
+                    # workflows. Neither rename nor detach it: doing so would
+                    # create a third category and orphan semantic provenance.
+                    _alert(session, source, replica, 'legacy_category_in_use',
+                           'categoria legacy ancora utilizzata; consolidamento automatico sospeso per preservare i riferimenti')
+                    return
+    if _locally_owned_category_replica(replica):
+        # Remapping, not replication: never overwrite a pre-existing tenant
+        # category, even if the shared source changes its description/group.
+        # Its ID stays usable by incident categories and workflow conditions.
+        if local is not None and local.kind == 'category' and _category_equivalent(local.value, data['value']):
+            return
+        # A tenant admin renamed/removed the local category: the old semantic
+        # association is gone, so unlink it without deleting tenant data.
+        session.delete(replica)
+        session.flush()
+        replica = local = None
     if replica and local and _json(configuration_record_payload(source.source_type, local)) != replica.snapshot_json:
         _alert(session, source, replica, 'local_customization', 'personalizzazione locale separata dalla configurazione condivisa')
         session.delete(replica)
@@ -370,6 +434,27 @@ def _sync_source_to_tenant(session, source, data, tenant_id):
         replica = None
     defaults = _lock_defaults(session)
     mapped = _replica_data(session, source.source_type, data, tenant_id, defaults.id)
+    if local is None and source.source_type == 'config_label' and data['kind'] == 'category':
+        # Do NOT make 'SPAM [Tenants Default]' when 'SPAM' is already defined
+        # locally. Link the shared UUID to that category and keep its fields,
+        # ownership and workflow references intact. No category row is added.
+        candidates = session.scalars(select(ConfigLabel).where(
+            ConfigLabel.tenant_id == tenant_id, ConfigLabel.kind == 'category').order_by(ConfigLabel.id)).all()
+        for candidate in candidates:
+            if not _category_equivalent(candidate.value, mapped['value']):
+                continue
+            claimed = session.scalar(select(TenantDefaultReplica.id).where(
+                TenantDefaultReplica.local_type == 'config_label',
+                TenantDefaultReplica.local_id == candidate.id).limit(1))
+            if claimed is not None:
+                continue
+            snapshot = configuration_record_payload('config_label', candidate)
+            snapshot[_LOCAL_CATEGORY_MARKER] = True
+            session.add(TenantDefaultReplica(
+                source_id=source.id, tenant_id=tenant_id,
+                local_type='config_label', local_id=candidate.id,
+                snapshot_json=_json(snapshot)))
+            return
     desired = _available_data(session, source.source_type, mapped, tenant_id, excluding_id=local.id if local else None)
     if local is not None and source.source_type == 'notification_type':
         # Code aliases can already occur in document tags and other string
@@ -748,7 +833,9 @@ def inherited_configuration_record(row, session=None):
     kind = next((name for name, model in _MODELS.items() if isinstance(row, model)), None)
     if not kind or not row.id:
         return None
-    return session.scalar(select(TenantDefaultReplica).where(TenantDefaultReplica.local_type == kind, TenantDefaultReplica.local_id == row.id))
+    replica = session.scalar(select(TenantDefaultReplica).where(
+        TenantDefaultReplica.local_type == kind, TenantDefaultReplica.local_id == row.id))
+    return None if _locally_owned_category_replica(replica) else replica
 
 
 def resolve_shared_configuration_record(source_uuid, target_tenant_id, expected_type=None, session=None):

@@ -34,9 +34,11 @@ PLAYWRIGHT_VERSION = "1.65.2"
 DESKTOP = {"width": 1920, "height": 1140}
 MOBILE = {"width": 430, "height": 932}
 REQUIRED_CAPTURES = {
-    "login-desktop", "login-mobile", "registry-desktop", "registry-mobile",
+    "login-desktop", "login-mobile", "registry-desktop", "registry-closed-state", "registry-mobile",
     "registry-mobile-menu", "incident-desktop", "incident-mobile",
     "spam-incident-desktop", "spam-workflow-steps",
+    "pdf-mapping-configuration", "pdf-generated-preview", "alfresco-settings-desktop",
+    "alfresco-incident-documents",
     "assistant-desktop", "assistant-mobile", "interface-settings-desktop",
     "classic-registry-desktop", "admin-modules-desktop", "admin-sso-desktop",
     "documentation-user-desktop", "documentation-user-mobile",
@@ -224,10 +226,15 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
         assert not broken, f"Broken visible image on {capture_id}: {broken!r}"
         overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         assert overflow <= 2, f"Page-level horizontal overflow on {capture_id}: {overflow}"
-        filename = f"screenshots/{capture_id}.png"
+        # JPEG reduces the distributed presentation, PDF and CI artifact sizes.
+        # Quality 90 preserves small UI labels and coloured navigation badges.
+        # Transparent branding and exact-pixel test fixtures remain PNG.
+        filename = f"screenshots/{capture_id}.jpg"
         target = output / filename
-        page.screenshot(path=str(target), full_page=full_page, animations="disabled")
+        page.screenshot(path=str(target), type="jpeg", quality=90,
+                        full_page=full_page, animations="disabled")
         screenshots.append({"id": capture_id, "file": filename,
+                            "image_format": "jpeg", "jpeg_quality": 90,
                             "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
                             "route": urlparse(page.url).path, "viewport": page.viewport_size,
                             "ui_mode": mode, "authenticated": authenticated,
@@ -290,7 +297,16 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             snap(mobile_login, "login-mobile", "Accesso reale · mobile", "Actual login · mobile", False, full_page=True)
 
             login(page, "demo-supervisor")
-            snap(page, "registry-desktop", "Registro incidenti con dati sintetici", "Incident registry with synthetic records")
+            # Closed examples must have no pending workflow tasks: a green
+            # check icon, not only a textual 'chiuso' status in the row.
+            expect(page.locator('.incident-table .procedure-ok-icon')).to_have_count(2)
+            expect(page.locator('.incident-table .procedure-danger-icon')).not_to_have_count(0)
+            snap(page, "registry-desktop", "Registro aperti/chiusi, icone procedurali autentiche",
+                 "Open and closed incidents with authentic procedural state icons")
+            page.locator('.incident-table').scroll_into_view_if_needed()
+            snap(page, "registry-closed-state", "Icone di stato a inizio riga: avviso e chiusura completa",
+                 "Row leading icons: pending warning and complete closure")
+            checks["closed_incidents_have_real_green_workflow_icons"] = True
             expect(page.locator('a[href="/incident/' + str(fixture["incident_id"]) + '"]:visible')).not_to_have_count(0)
             page.locator('a[href="/incident/' + str(fixture["incident_id"]) + '"]:visible').first.click()
             page.wait_for_load_state("networkidle")
@@ -422,6 +438,66 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
 
             go(page, "/modules/configuration")
             snap(page, "admin-modules-desktop", "Configurazione reale dei moduli", "Actual document template configuration")
+            # Inspect three actual AcroForm mapping controls populated by the
+            # disposable database fixture, not a static explanatory graphic.
+            go(page, "/modules/configuration?template=documentation-valutazione")
+            expect(page.locator(".mapping-row")).to_have_count(3)
+            for field, source in (
+                ("RIFERIMENTO", "reference"),
+                ("DESCRIZIONE", "description"),
+                ("DATA_INIZIO", "start_date"),
+            ):
+                expect(page.locator(f'input[name="map__{field}"]')).to_have_value(source)
+            page.locator(".dnd-config-grid").scroll_into_view_if_needed()
+            snap(page, "pdf-mapping-configuration",
+                 "Configurazione reale dei mapping: campi AcroForm e sorgenti incidente",
+                 "Actual PDF mapping controls: AcroForm fields and incident values")
+            checks["pdf_acroform_mapping_fields_populated"] = True
+            # Produce a real PDF using CIR's own form-generation route and
+            # render the application's genuine preview page with its iframe.
+            # No static screenshot or synthetic HTML is substituted here.
+            go(page, f'/incident/{fixture["incident_id"]}')
+            section = page.locator('#incident-forms')
+            if section.get_attribute('open') is None:
+                section.locator(':scope > summary').click()
+            form = section.locator('form.template-card-selection-form')
+            expect(form.locator('input[value="documentation-valutazione"]')).to_have_count(1)
+            form.locator('input[value="documentation-valutazione"]').check()
+            form.get_by_role('button', name='Genera documenti').click()
+            expect(page.locator('.generated-preview-card iframe')).to_have_count(1)
+            expect(page.get_by_role('heading', name='Anteprima PDF generati')).to_be_visible()
+            preview_url = page.locator('.generated-preview-card iframe').get_attribute('src')
+            response = desktop.request.get(base_url + preview_url)
+            assert response.status == 200 and response.body().startswith(b'%PDF-')
+            from pypdf import PdfReader
+            from io import BytesIO
+            generated = PdfReader(BytesIO(response.body()))
+            fields = generated.get_fields() or {}
+            assert 'RIFERIMENTO' in fields and 'DEMO-2026-0048' in str(fields['RIFERIMENTO'].get('/V',''))
+            page.locator('.pdf-preview-frame').scroll_into_view_if_needed()
+            page.wait_for_timeout(900)  # Chromium's built-in PDF plugin paints asynchronously.
+            snap(page, 'pdf-generated-preview',
+                 "Anteprima reale: PDF AcroForm compilato e salvabile dall'incidente",
+                 "Real preview: populated AcroForm PDF from an incident")
+            checks["real_filled_pdf_generated_and_previewed"] = True
+            go(page, "/alfresco/admin/plugins")
+            expect(page.locator('input[name="alfresco_base_url"]')).to_have_value("https://alfresco.example.invalid")
+            expect(page.locator('input[name="alfresco_site"]')).to_have_value("laboratorio")
+            expect(page.locator('input[name="plugin_alfresco_enabled"]')).to_be_checked()
+            snap(page, "alfresco-settings-desktop",
+                 "Configurazione Alfresco per tenant, endpoint fittizio e nessuna connessione remota",
+                 "Tenant Alfresco settings, fictional endpoint with no remote connection")
+            checks["alfresco_fixture_offline_configuration_visible"] = True
+            go(page, f'/incident/{fixture["incident_id"]}')
+            documents = page.locator("#incident-documents")
+            documents.scroll_into_view_if_needed()
+            if documents.get_attribute("open") is None:
+                documents.locator(":scope > summary").click()
+            expect(documents.get_by_text("Alfresco").first).to_be_visible()
+            snap(page, "alfresco-incident-documents",
+                 "Scelta documenti dell'incidente: gestione locale e opzioni Alfresco",
+                 "Incident document controls: local storage and Alfresco options")
+            checks["alfresco_incident_documents_controls_visible"] = True
             go(page, "/admin/sso")
             snap(page, "admin-sso-desktop", "Configurazione SSO fittizia nella pagina reale", "Fictional SSO configuration in the actual settings page")
             go(page, "/admin/interface")

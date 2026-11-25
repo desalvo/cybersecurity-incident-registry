@@ -92,6 +92,18 @@ class ScreenshotIsolationTests(unittest.TestCase):
             self.assertEqual(list(output.iterdir()), [output / "screenshots"])
 
 
+def test_training_fixture_has_real_fillable_pdf_and_isolated_alfresco_configuration():
+    source = (ROOT / "scripts/seed_ui_documentation.py").read_text(encoding="utf-8")
+    assert 'pdf.acroForm.textfield' in source
+    for value in ('RIFERIMENTO', 'DESCRIZIONE', 'DATA_INIZIO'):
+        assert value in source
+    assert 'https://alfresco.example.invalid' in source
+    assert '"alfresco_password"' not in source.split('# Real Alfresco configuration screen', 1)[-1].split('for key, value', 1)[0]
+    for capture_id in ('pdf-mapping-configuration', 'alfresco-settings-desktop', 'alfresco-incident-documents'):
+        assert capture_id in capture.REQUIRED_CAPTURES
+        assert capture_id in evidence.REQUIRED_SCREENSHOTS
+
+
 class ScreenshotEvidenceTests(unittest.TestCase):
     def test_capture_and_manual_builder_require_the_same_views(self):
         self.assertEqual(capture.REQUIRED_CAPTURES, evidence.REQUIRED_SCREENSHOTS)

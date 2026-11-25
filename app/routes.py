@@ -2352,6 +2352,63 @@ def make_notification_mail_pdf(inc, title, subject, body, sender, recipient, cc)
     return path, stored, f'testo-mail-notifica-{inc.id}-{utcnow().strftime("%Y%m%d%H%M%S")}.pdf'
 
 
+def incident_category_choices(tenant_id=None):
+    """Offer one logical category per tenant without losing historical IDs.
+
+    A pre-existing local category adopted by Tenants Default is still locally
+    owned, but its provenance is shown to the user. Legacy imports may contain
+    a suffixed category without a surviving provenance mapping: collapse its
+    *choice* only when a matching unsuffixed category exists. Never rewrite or
+    delete referenced category records just to simplify the selector.
+    """
+    from .tenant_defaults_models import TenantDefaultReplica
+    from .tenant_defaults import _locally_owned_category_replica
+    tid = int(tenant_id if tenant_id is not None else current_tenant_id())
+    rows = ConfigLabel.query.filter_by(tenant_id=tid, kind='category').order_by(
+        ConfigLabel.group, ConfigLabel.value, ConfigLabel.id).all()
+    replicas = TenantDefaultReplica.query.filter_by(tenant_id=tid, local_type='config_label').all()
+    shared_ids = {int(replica.local_id) for replica in replicas
+                  if not _locally_owned_category_replica(replica)}
+    adopted_ids = {int(replica.local_id) for replica in replicas
+                   if _locally_owned_category_replica(replica)}
+    suffix = re.compile(r'\s*\[Tenants Default(?:\s+\d+)?\]$', re.IGNORECASE)
+    key_of = lambda name: ' '.join((name or '').strip().casefold().split())
+    literal_names = {key_of(label.value) for label in rows if not suffix.search(label.value)}
+    active_workflows = {int(row.category_id) for row in IncidentWorkflowStep.query.filter_by(
+        tenant_id=tid).all() if row.category_id is not None}
+    groups = {}
+    for label in rows:
+        is_shared = label.id in shared_ids
+        # Unmapped copies of old [Tenants Default] names can be historical
+        # records. Only combine their UI choice with an existing base label.
+        is_legacy_alias = bool(suffix.search(label.value) and
+                               key_of(suffix.sub('', label.value)) in literal_names)
+        display = suffix.sub('', label.value).strip() if is_shared or is_legacy_alias else label.value.strip()
+        groups.setdefault(key_of(display), []).append((label, is_shared, is_legacy_alias, display))
+    choices = []
+    for equivalents in groups.values():
+        # An active workflow beats an unconfigured alias; prefer an ordinary
+        # local label if both can serve the same current operations.
+        ordered = sorted(equivalents, key=lambda item: (
+            item[0].id not in active_workflows, item[1] or item[2], item[0].id))
+        winner, is_shared, is_legacy_alias, display = ordered[0]
+        winner.ui_choice_name = display
+        if winner.id in adopted_ids:
+            origin = 'Locale (integrata con Tenants Default)'
+        elif is_shared:
+            origin = 'Ereditata da Tenants Default'
+        elif is_legacy_alias:
+            origin = 'Categoria legacy (provenienza da verificare)'
+        elif len(equivalents) > 1:
+            origin = 'Locale (prevale sulle categorie equivalenti)'
+        else:
+            origin = 'Locale'
+        winner.ui_choice_origin = origin
+        choices.append(winner)
+    return sorted(choices, key=lambda row: (
+        (row.group or '').casefold(), row.ui_choice_name.casefold(), row.id))
+
+
 def labels(kind): return tenant_query(ConfigLabel).filter_by(kind=kind).order_by(ConfigLabel.group,ConfigLabel.value).all()
 
 
@@ -4018,7 +4075,7 @@ def incident_template_context(template=None):
         selected_template_people=_objects_by_ids_preserving_order(Person, template.people_id_list()) if template else [],
         selected_template_recommendations=_objects_by_ids_preserving_order(Recommendation, template.recommendation_id_list()) if template else [],
         severities=labels('severity'),
-        categories=labels('category'),
+        categories=incident_category_choices(),
         data_types=labels('data_type'),
         people=tenant_query(Person).order_by(Person.name).all(),
         recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(),
@@ -4155,14 +4212,14 @@ def incident_new():
         if not reference_value:
             flash('Il campo Riferimento è obbligatorio per ogni incidente.', 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=incident_category_choices(),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         recipient_value = (request.form.get('recipient') or '').strip()
         recipient_email_value = (request.form.get('recipient_email') or '').strip()
         recipient_email_error = validate_incident_recipient_email_fields(reference_value, recipient_value, recipient_email_value)
         if recipient_email_error:
             flash(recipient_email_error, 'error')
             now_dt = application_now()
-            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
+            return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=incident_category_choices(),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
         start_at = combine_incident_date_time('start', 'start_at', default_now=True)
         end_at = combine_incident_date_time('end', 'end_at')
         inc=Incident(tenant_id=current_tenant_id(),creator_id=current_user.id,creator_name=current_user.name,creator_email=current_user.email,name=request.form['name'],reference=reference_value,recipient=recipient_value or None,recipient_email=recipient_email_value or None,description=request.form.get('description'),severity_id=request.form.get('severity_id') or None,personal_data=bool(request.form.get('personal_data')),data_subjects_count=request.form.get('data_subjects_count') or None,data_volume=request.form.get('data_volume') or None,start_at=start_at,end_at=end_at,status=request.form.get('status','aperto'),alfresco_auto_report_enabled=bool(alfresco_is_enabled_safe() and alfresco_auto_report_default_enabled()))
@@ -4188,7 +4245,7 @@ def incident_new():
             else:
                 flash(f'Errore durante la creazione dell\'incidente: {exc}', 'error')
     now_dt = application_now()
-    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=labels('category'),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
+    return render_template('incident_form.html',inc=None,severities=labels('severity'),categories=incident_category_choices(),data_types=labels('data_type'),people=tenant_query(Person).order_by(Person.name).all(), recommendations=tenant_query(Recommendation).order_by(Recommendation.text).all(), recommendations_max_per_incident=recommendations_limit(), incident_templates=tenant_query(IncidentTemplate).order_by(IncidentTemplate.name).all(), selected_template=selected_template, incident_template_payloads=incident_template_client_payloads(), default_start_date=now_dt.date().isoformat(), default_start_time=now_dt.strftime('%H:%M'), application_timezone=application_timezone_name(), external_recipients=get_external_recipients(), incident_form_visible_fields=incident_form_visible_fields(), incident_ldap_lookup_enabled=incident_ldap_lookup_enabled())
 @bp.route('/incident/<int:iid>',methods=['GET','POST'])
 @login_required
 def incident_detail(iid):
@@ -4246,7 +4303,7 @@ def incident_detail(iid):
         inc=inc,
         selected_categories=selected_categories,
         severities=labels('severity'),
-        categories=labels('category'),
+        categories=incident_category_choices(),
         data_types=labels('data_type'),
         people=tenant_query(Person).order_by(Person.name).all(),
         action_labels=labels('action_label'),

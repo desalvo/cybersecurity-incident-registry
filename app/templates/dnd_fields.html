@@ -5,7 +5,7 @@
     <div class="palette">
       {% for g,items in categories|groupby('group') %}
         <div class="group-title">{{g}}</div>
-        {% for l in items %}<span class="chip" draggable="true" data-id="{{l.id}}" data-text="{{l.value}}" data-target="categories">{{l.value}}</span>{% endfor %}
+        {% for l in items %}<span class="chip" draggable="true" data-id="{{l.id}}" data-text="{{l.ui_choice_name if l.ui_choice_name is defined else l.value}}" data-target="categories" title="{{ l.ui_choice_origin if l.ui_choice_origin is defined else 'Locale' }}">{{ l.ui_choice_name if l.ui_choice_name is defined else l.value }} <small class="chip-origin">{{ l.ui_choice_origin if l.ui_choice_origin is defined else 'Locale' }}</small></span>{% endfor %}
       {% endfor %}
     </div>
   </div>

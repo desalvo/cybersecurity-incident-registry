@@ -42,6 +42,12 @@ function makeDnd(){
       let d=JSON.parse(e.dataTransfer.getData('text/plain'));
       if(d.target!==zone.dataset.target)return;
       if(zone.querySelector('input[value="'+d.id+'"][name="'+zone.dataset.target+'"]'))return;
+      // A local override and a [Tenants Default] replica may have different
+      // database IDs but represent one choice. Never add both to an incident.
+      if(zone.dataset.target==='categories'){
+        const semantic = value => String(value||'').replace(/\s*\[Tenants Default(?:\s+\d+)?\]$/i,'').replace(/\s*×\s*$/,'').trim().toLocaleLowerCase('it');
+        if(Array.from(zone.querySelectorAll('.chip')).some(chip => semantic(chip.firstChild?.textContent)===semantic(d.text)))return;
+      }
       const maxItems=parseInt(zone.dataset.maxItems||'0',10);
       if(maxItems>0 && zone.querySelectorAll('input[name="'+zone.dataset.target+'"]').length>=maxItems){
         alert('Numero massimo di elementi selezionabili raggiunto: '+maxItems);

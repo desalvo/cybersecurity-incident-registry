@@ -648,3 +648,149 @@ def test_shared_notification_rejects_ambiguous_tagged_legacy_document(defaults_d
         db.session.commit()
     db.session.rollback()
     assert NotificationTemplate.query.count() == 0
+
+
+def test_existing_tenant_category_is_remapped_not_replicated(defaults_db):
+    """Publishing SPAM reuses the tenant category, with its original ID."""
+    from app.models import ConfigLabel, db
+    from app.routes import incident_category_choices
+    from app.tenant_defaults import inherited_configuration_record, sync_defaults_configuration
+    from app.tenant_defaults_models import TenantDefaultReplica, TenantDefaultSource
+    db, defaults_id, operational_id, other_id = defaults_db
+    local = ConfigLabel(tenant_id=operational_id, kind='category', value='SPAM',
+                        description='Locally curated procedure')
+    db.session.add(local)
+    db.session.commit()
+    local_id = local.id
+    published = _publish(defaults_db, kind='category', value='SPAM')
+    shared = TenantDefaultSource.query.filter_by(source_type='config_label',
+                                                 source_id=published.id).one()
+    replica = TenantDefaultReplica.query.filter_by(source_id=shared.id,
+                                                   tenant_id=operational_id).one()
+    assert replica.local_id == local_id
+    assert inherited_configuration_record(local) is None
+    assert ConfigLabel.query.filter_by(tenant_id=operational_id, kind='category').count() == 1
+    assert len(incident_category_choices(operational_id)) == 1
+    assert incident_category_choices(operational_id)[0].ui_choice_name == 'SPAM'
+    assert 'Tenants Default' in incident_category_choices(operational_id)[0].ui_choice_origin
+    assert len(incident_category_choices(other_id)) == 1  # new tenant receives replica
+    published.description = 'Shared text, not an override'
+    db.session.commit()
+    assert db.session.get(ConfigLabel, local_id).description == 'Locally curated procedure'
+    sync_defaults_configuration()
+    db.session.commit()
+    assert ConfigLabel.query.filter_by(tenant_id=operational_id, kind='category').count() == 1
+    assert TenantDefaultReplica.query.filter_by(source_id=shared.id,
+                                                tenant_id=operational_id).one().local_id == local_id
+    # The exported archive must validate the local-ownership marker before
+    # any destructive Full Import begins.
+    from app.routes import _export_tables_payload
+    from app.tenant_defaults_archive import validate_defaults_archive_tables
+    assert validate_defaults_archive_tables(_export_tables_payload()) is True
+    db.session.delete(published)
+    db.session.commit()
+    assert db.session.get(ConfigLabel, local_id) is not None  # never delete local
+    assert db.session.get(ConfigLabel, local_id).description == 'Locally curated procedure'
+
+
+def test_incident_category_picker_shows_inherited_origin_when_no_local_override(defaults_db):
+    from app.routes import incident_category_choices
+    _, _, operational_id, _ = defaults_db
+    published = _publish(defaults_db, kind='category', value='SPAM')
+    inherited = _replica(published, operational_id)
+    choices = incident_category_choices(operational_id)
+    assert len(choices) == 1
+    assert choices[0].id == inherited.id
+    assert choices[0].ui_choice_name == 'SPAM'
+    assert 'Tenants Default' in choices[0].ui_choice_origin
+
+
+def test_incident_category_picker_uses_inherited_workflow_if_local_has_none(defaults_db):
+    """Do not hide the operational workflow behind an unconfigured local alias."""
+    from app.models import ConfigLabel, IncidentWorkflowStep, db
+    from app.routes import incident_category_choices
+    _, _, operational_id, _ = defaults_db
+    local = ConfigLabel(tenant_id=operational_id, kind='category', value='SPAM')
+    action = ConfigLabel(tenant_id=operational_id, kind='action_label', value='Triage')
+    db.session.add_all([local, action]);db.session.commit()
+    published = _publish(defaults_db, kind='category', value='SPAM')
+    inherited = _replica(published, operational_id)
+    assert inherited.id == local.id  # workflow uses original tenant category
+    db.session.add(IncidentWorkflowStep(tenant_id=operational_id, category_id=inherited.id,
+                                        action_label_id=action.id, position=1, description='Analisi'))
+    db.session.commit()
+    choices = incident_category_choices(operational_id)
+    assert len(choices) == 1
+    assert choices[0].id == inherited.id
+    assert choices[0].ui_choice_name == 'SPAM'
+
+
+def test_old_unreferenced_suffix_replica_is_reconciled_to_existing_category(defaults_db):
+    """RC56-era duplicate is retired only when its ID is unused."""
+    from app.models import ConfigLabel, db
+    from app.tenant_defaults import sync_defaults_configuration
+    from app.tenant_defaults_models import TenantDefaultReplica, TenantDefaultSource
+    db, _, operational_id, _ = defaults_db
+    shared = _publish(defaults_db, kind='category', value='SPAM')
+    source = TenantDefaultSource.query.filter_by(source_type='config_label', source_id=shared.id).one()
+    inherited = _replica(shared, operational_id)
+    stale_id = inherited.id
+    db.session.info['cir_defaults_suspended'] = True
+    try:
+        inherited.value = 'SPAM [Tenants Default]'
+        local = ConfigLabel(tenant_id=operational_id, kind='category', value='SPAM')
+        db.session.add(local)
+        db.session.commit()
+    finally:
+        db.session.info.pop('cir_defaults_suspended', None)
+    sync_defaults_configuration()
+    db.session.commit()
+    replica = TenantDefaultReplica.query.filter_by(source_id=source.id, tenant_id=operational_id).one()
+    assert replica.local_id == local.id
+    assert db.session.get(ConfigLabel, stale_id) is None
+    assert ConfigLabel.query.filter_by(tenant_id=operational_id, kind='category').count() == 1
+
+
+def test_old_used_suffix_replica_is_not_deleted_while_incidents_refer_to_it(defaults_db):
+    """Historical categories are retained if an incident still references them."""
+    from app.models import ConfigLabel, Incident, db
+    from app.tenant_defaults import sync_defaults_configuration
+    from app.routes import incident_category_choices
+    from app.timeutils import utcnow
+    db, _, operational_id, _ = defaults_db
+    shared = _publish(defaults_db, kind='category', value='SPAM')
+    inherited = _replica(shared, operational_id)
+    stale_id = inherited.id
+    db.session.info['cir_defaults_suspended'] = True
+    try:
+        inherited.value = 'SPAM [Tenants Default]'
+        local = ConfigLabel(tenant_id=operational_id, kind='category', value='SPAM')
+        incident = Incident(tenant_id=operational_id, name='Historical SPAM incident', reference='TEST-LEGACY-SPAM',
+                            status='aperto', start_date=utcnow().date())
+        incident.categories.append(inherited)
+        db.session.add_all([local, incident])
+        db.session.commit()
+    finally:
+        db.session.info.pop('cir_defaults_suspended', None)
+    sync_defaults_configuration()
+    db.session.commit()
+    assert db.session.get(ConfigLabel, stale_id) is not None
+    assert any(label.id == stale_id for label in db.session.get(Incident, incident.id).categories)
+    assert len(incident_category_choices(operational_id)) == 1
+
+
+def test_legacy_unmapped_suffix_does_not_double_incident_category_choices(defaults_db):
+    """An old export can lack source mappings, but must keep historic IDs."""
+    from app.models import ConfigLabel, db
+    from app.routes import incident_category_choices
+    _, _, tenant_id, _ = defaults_db
+    local = ConfigLabel(tenant_id=tenant_id, kind='category', value='SPAM', group='local')
+    orphan = ConfigLabel(tenant_id=tenant_id, kind='category', value='SPAM [Tenants Default]', group='legacy')
+    db.session.add_all([local, orphan])
+    db.session.commit()
+    existing_ids = {local.id, orphan.id}
+    selected = incident_category_choices(tenant_id)
+    assert len(selected) == 1
+    assert selected[0].id == local.id
+    assert selected[0].ui_choice_name == 'SPAM'
+    assert {x.id for x in ConfigLabel.query.filter_by(tenant_id=tenant_id, kind='category')} == existing_ids

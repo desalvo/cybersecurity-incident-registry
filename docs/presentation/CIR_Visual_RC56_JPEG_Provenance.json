@@ -1,0 +1,211 @@
+{
+  "version": "0.10.0-1",
+  "release_candidate": "RC56",
+  "status": "local-training-artifact; CI source changes not yet browser-tested",
+  "source_screenshot_commit": "919b027403ee55db05b2355cd2f8fbd09c7cf7b4",
+  "source_screenshot_build": "20261124",
+  "original_browser_capture_format": "PNG",
+  "local_presentation_media": "JPEG derivatives at quality 90 of original browser PNG captures; original CI manifest remains immutable",
+  "future_ci_browser_capture": "JPEG quality 90 by Playwright on same-build fixtures; PNG artifacts remain accepted for backwards compatibility",
+  "previous_pptx_bytes": 18576002,
+  "current_pptx_bytes": 6575835,
+  "current_pdf_bytes": 3742948,
+  "slides": 77,
+  "screenshots_in_received_artifact": 19,
+  "new_capture_views_pending_new_ci": [
+    "pdf-mapping-configuration",
+    "alfresco-settings-desktop",
+    "alfresco-incident-documents"
+  ],
+  "evidence_screenshot_png_bytes": 5343975,
+  "converted_screenshot_jpeg_bytes": 3121537,
+  "tests": {
+    "presentation_slide_overflow": "PASS",
+    "targeted_evidence_and_packaging": "116 passed / 51 subtests passed",
+    "live_browser_capture": "NOT RUN: no Flask environment; requires next CI run",
+    "live_postgresql_integration": "NOT RUN"
+  },
+  "files": {
+    "CIR_Operational_Training_Visual_RC56.pptx": {
+      "sha256": "a4fb2d5a32c1a213fc3d39433aebd1421221b088c800bb5b7ceeb3f0cf15e044",
+      "bytes": 6575835
+    },
+    "CIR_Operational_Training_Visual_RC56.pdf": {
+      "sha256": "79d4eec5d20a81bc6625fce61ed8ebc6f10a1be3689209b92c6aa3c514156fcb",
+      "bytes": 3742948
+    }
+  },
+  "screenshots": [
+    {
+      "id": "admin-modules-desktop",
+      "ci_source_file": "admin-modules-desktop.png",
+      "ci_source_sha256": "e9c266eb925d46645f4679ae66dc75eb2533fee3e429ab6adf3182011c05298c",
+      "jpeg_derivative_file": "admin-modules-desktop.jpg",
+      "jpeg_derivative_sha256": "391b7b879cfcfdb287cdaaf212105b656a63c41882b8a14ec39214fc89bf1b1b",
+      "source_bytes": 143491,
+      "jpeg_bytes": 164143
+    },
+    {
+      "id": "admin-sso-desktop",
+      "ci_source_file": "admin-sso-desktop.png",
+      "ci_source_sha256": "3069d00cf093bbaa03d79a4319d432701b7e17f925befa1c66fb2e1aa602a01a",
+      "jpeg_derivative_file": "admin-sso-desktop.jpg",
+      "jpeg_derivative_sha256": "8f1cd3360cd18e2ce6a357ce4c267366b6ece376c951ad29f7534e63665e3e65",
+      "source_bytes": 157066,
+      "jpeg_bytes": 173685
+    },
+    {
+      "id": "assistant-desktop",
+      "ci_source_file": "assistant-desktop.png",
+      "ci_source_sha256": "203c8ab46b72e1f387ae179dab4b467cb1d1351b35467d087849266a9153e675",
+      "jpeg_derivative_file": "assistant-desktop.jpg",
+      "jpeg_derivative_sha256": "4eea83a0d542de32b59fc3561340ebfbefdba599b394e6b1c374449f9c56c439",
+      "source_bytes": 372665,
+      "jpeg_bytes": 281193
+    },
+    {
+      "id": "assistant-mobile",
+      "ci_source_file": "assistant-mobile.png",
+      "ci_source_sha256": "2d29999eb7baf6bb33d08f1d87ce0e2ff93d78e5b2cac3d32832926558399778",
+      "jpeg_derivative_file": "assistant-mobile.jpg",
+      "jpeg_derivative_sha256": "89ab78c6713070fabde4c2f88abf1143fce8f2ca94f6e621644324f406db0e10",
+      "source_bytes": 57891,
+      "jpeg_bytes": 58436
+    },
+    {
+      "id": "classic-registry-desktop",
+      "ci_source_file": "classic-registry-desktop.png",
+      "ci_source_sha256": "42bef5e81e42c3960b2c5b54d8cee383730e5c56d7a770f5a97cbd8022686c64",
+      "jpeg_derivative_file": "classic-registry-desktop.jpg",
+      "jpeg_derivative_sha256": "7286aef0a27e7ac1d6f7369100db87517bef18d9d213b4fb5da2c7fc129f137d",
+      "source_bytes": 180040,
+      "jpeg_bytes": 170913
+    },
+    {
+      "id": "documentation-admin-desktop",
+      "ci_source_file": "documentation-admin-desktop.png",
+      "ci_source_sha256": "6317bc2707da0984783c3eb57bd9184e0f7947616c7b5cc914cc336398c8e138",
+      "jpeg_derivative_file": "documentation-admin-desktop.jpg",
+      "jpeg_derivative_sha256": "95e18d712e1ff3906827860a1717e76da851a1d4a0a56cac50cda2b26841cc20",
+      "source_bytes": 649982,
+      "jpeg_bytes": 224799
+    },
+    {
+      "id": "documentation-admin-mobile",
+      "ci_source_file": "documentation-admin-mobile.png",
+      "ci_source_sha256": "1a0b06baa18aed83b45a6c5a285a3f3bdc2de0d7d359101b1b8fc37353aee048",
+      "jpeg_derivative_file": "documentation-admin-mobile.jpg",
+      "jpeg_derivative_sha256": "e2eec65e2a17d17dfae1ab2be23943de12c59c24226c21f9bbcfa79c610fc7f4",
+      "source_bytes": 187701,
+      "jpeg_bytes": 84951
+    },
+    {
+      "id": "documentation-user-desktop",
+      "ci_source_file": "documentation-user-desktop.png",
+      "ci_source_sha256": "bcd8dda7be65724eaa82f16ed9767f47b4e458be5e296ee45cf734e68fb9758d",
+      "jpeg_derivative_file": "documentation-user-desktop.jpg",
+      "jpeg_derivative_sha256": "e3fa5baaa41112d376dbedf1d784227806e31893466208fc260e8ea24fcb5723",
+      "source_bytes": 644305,
+      "jpeg_bytes": 218973
+    },
+    {
+      "id": "documentation-user-mobile",
+      "ci_source_file": "documentation-user-mobile.png",
+      "ci_source_sha256": "6cee20807acadbab9daa0efb2798a31739c549405e5f01b533a555f84d83c45a",
+      "jpeg_derivative_file": "documentation-user-mobile.jpg",
+      "jpeg_derivative_sha256": "daafddd01af7f8a61b2b554739e483e21a3289f413f356861422d00e129ded92",
+      "source_bytes": 185054,
+      "jpeg_bytes": 81809
+    },
+    {
+      "id": "incident-desktop",
+      "ci_source_file": "incident-desktop.png",
+      "ci_source_sha256": "a6785d76646b3f37fa2e3021301c841d666afe907ba35a328988c8457968e26a",
+      "jpeg_derivative_file": "incident-desktop.jpg",
+      "jpeg_derivative_sha256": "a9afb797ebc03515bfda7113e09e9eabe7ff3ebc360b987eef8afb9605129e74",
+      "source_bytes": 303080,
+      "jpeg_bytes": 226760
+    },
+    {
+      "id": "incident-mobile",
+      "ci_source_file": "incident-mobile.png",
+      "ci_source_sha256": "7d75c56afe678b592dfd6822c7c865eacd775a714e02ae2a4b80d85c4e64d128",
+      "jpeg_derivative_file": "incident-mobile.jpg",
+      "jpeg_derivative_sha256": "4e5781a94c054248f7799d83dfe42a37b015bb66ae692d2c8d968e0cbacca112",
+      "source_bytes": 122808,
+      "jpeg_bytes": 62751
+    },
+    {
+      "id": "interface-settings-desktop",
+      "ci_source_file": "interface-settings-desktop.png",
+      "ci_source_sha256": "cf5aef1083abfb77258fb782898ac0970aa8f4bd3ff72487f53eae75b7984de6",
+      "jpeg_derivative_file": "interface-settings-desktop.jpg",
+      "jpeg_derivative_sha256": "36063504b2527bd8b528571c136204d1d00fe8cb52a3e26bea0c0c5e0a0057ab",
+      "source_bytes": 109631,
+      "jpeg_bytes": 115156
+    },
+    {
+      "id": "login-desktop",
+      "ci_source_file": "login-desktop.png",
+      "ci_source_sha256": "a4a49c87f4a34c8bf49b755894a13fbf98e4823582ec6e0707fd6d94f7462e73",
+      "jpeg_derivative_file": "login-desktop.jpg",
+      "jpeg_derivative_sha256": "f1a83de37a3ea6cc5dae77213b2bff3f0b261f57854910c6c6ce66193cba2dad",
+      "source_bytes": 981459,
+      "jpeg_bytes": 170498
+    },
+    {
+      "id": "login-mobile",
+      "ci_source_file": "login-mobile.png",
+      "ci_source_sha256": "7de520139229b9b982fc45d83ea7f402800509f475e4d1ffaf9bf24b6f2a3832",
+      "jpeg_derivative_file": "login-mobile.jpg",
+      "jpeg_derivative_sha256": "c6d9f28a05c6f8c73573b7c624ef4a9cf5071db74cb7f080d931bd3318a4769d",
+      "source_bytes": 30976,
+      "jpeg_bytes": 28334
+    },
+    {
+      "id": "registry-desktop",
+      "ci_source_file": "registry-desktop.png",
+      "ci_source_sha256": "ed596f555020b13d2b34cdb1afe9ae7202c4db6b1346913b5f4b4923dd436a7b",
+      "jpeg_derivative_file": "registry-desktop.jpg",
+      "jpeg_derivative_sha256": "2ae5becb321feb73b8525d148b8f0134199797ce5ef94ef1fc6bf271e4cbe5c9",
+      "source_bytes": 271799,
+      "jpeg_bytes": 198071
+    },
+    {
+      "id": "registry-mobile-menu",
+      "ci_source_file": "registry-mobile-menu.png",
+      "ci_source_sha256": "4cb39de49426489fdb516d95c5358ddc3a2f23b7047661f59852bbead76b7dbe",
+      "jpeg_derivative_file": "registry-mobile-menu.jpg",
+      "jpeg_derivative_sha256": "8c7074b14618a6e4f9c232cc6d10ab16ec3e7fee1e38e773e2d79df56d792bbf",
+      "source_bytes": 49464,
+      "jpeg_bytes": 31777
+    },
+    {
+      "id": "registry-mobile",
+      "ci_source_file": "registry-mobile.png",
+      "ci_source_sha256": "fb81bf2595d2e3faa91a808c4be46b246c920d06775fd13861c2b0b4c4739e78",
+      "jpeg_derivative_file": "registry-mobile.jpg",
+      "jpeg_derivative_sha256": "48e973fd69bd8e2f74f504a7915c2dc0f7ad5593f24fb470707ac451e245eee3",
+      "source_bytes": 98240,
+      "jpeg_bytes": 56267
+    },
+    {
+      "id": "spam-incident-desktop",
+      "ci_source_file": "spam-incident-desktop.png",
+      "ci_source_sha256": "8fcd3366aa7b573bc86e0a9ebb714131eb977bee0530c4afd608d134eca05322",
+      "jpeg_derivative_file": "spam-incident-desktop.jpg",
+      "jpeg_derivative_sha256": "28d9d33fa01c52a5b842217e0bcaf7d71dce34a8e3d97c4b9f3d1b4b4977d3a5",
+      "source_bytes": 287843,
+      "jpeg_bytes": 234947
+    },
+    {
+      "id": "spam-workflow-steps",
+      "ci_source_file": "spam-workflow-steps.png",
+      "ci_source_sha256": "5da59b8e77c256f88e135ca9502509f67e5d40458d3e89335e62dbe1071ec6fd",
+      "jpeg_derivative_file": "spam-workflow-steps.jpg",
+      "jpeg_derivative_sha256": "81d2241e5da5a4d3dcb193f10b330d1b88c8b4eab04f094dd7976c26e5ac6bde",
+      "source_bytes": 510480,
+      "jpeg_bytes": 538074
+    }
+  ]
+}

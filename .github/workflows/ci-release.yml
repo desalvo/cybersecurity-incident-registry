@@ -111,7 +111,7 @@ jobs:
       - name: Install PDF first-page renderer for documentation regression tests
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils
+          sudo apt-get install -y --no-install-recommends poppler-utils libreoffice-impress
           pdftoppm -v
 
       - name: Generate resolved current-release SBOM
@@ -241,7 +241,7 @@ jobs:
       - name: Install exact-PDF first-page renderer
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils
+          sudo apt-get install -y --no-install-recommends poppler-utils libreoffice-impress
           pdftoppm -v
 
       - name: Install matching Chromium and system dependencies
@@ -276,6 +276,36 @@ jobs:
             --source-commit "${GITHUB_SHA}" \
             --require-real-screenshots
 
+      - name: Set up Node.js to build the detailed visual training deck
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pinned visual presentation dependencies
+        run: |
+          mkdir -p "${RUNNER_TEMP}/cir-visual-build-deps"
+          npm install --prefix "${RUNNER_TEMP}/cir-visual-build-deps" --no-save --no-audit --no-fund \
+            pptxgenjs@4.0.0 image-size@1.2.0
+
+      - name: Build and verify visual training RC58 from this run's screenshots
+        env:
+          CIR_REQUIRE_REAL_SCREENSHOTS: '1'
+        run: |
+          mkdir -p "${RUNNER_TEMP}/cir-ui-evidence/visual-training"
+          export NODE_PATH="${RUNNER_TEMP}/cir-visual-build-deps/node_modules"
+          export CIR_SCREENSHOT_MANIFEST="${RUNNER_TEMP}/cir-ui-evidence/manifest.json"
+          node scripts/build_training_visual_rc58.js \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC58.pptx"
+          libreoffice -env:UserInstallation="file://${RUNNER_TEMP}/lo-cir-rc58" \
+            --headless --convert-to pdf --outdir \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training" \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC58.pptx"
+          python scripts/verify_visual_training_rc58.py \
+            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC58.pptx" \
+            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC58.pdf" \
+            --screenshot-manifest "${CIR_SCREENSHOT_MANIFEST}" \
+            --require-ci-images
+
       - name: Validate and seal complete documentation bundle
         run: |
           python scripts/finalize_documentation_bundle.py \
@@ -289,6 +319,8 @@ jobs:
             --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
             --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
             --source-commit "${GITHUB_SHA}"
+          cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC58.pptx" docs/presentation/
+          cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC58.pdf" docs/presentation/
           bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
 
       - name: Upload real screenshots, manuals and source package
@@ -325,6 +357,7 @@ jobs:
           path: |
             ${{ runner.temp }}/cir-ui-evidence/failure.json
             ${{ runner.temp }}/cir-ui-evidence/screenshots/*.png
+            ${{ runner.temp }}/cir-ui-evidence/screenshots/*.jpg
           if-no-files-found: warn
           retention-days: 7
 
@@ -362,7 +395,7 @@ jobs:
           metadata_only=true
           for path in "${changed[@]}"; do
             case "$path" in
-              PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml|docs/UI_SCREENSHOTS_SOURCE.json|docs/UI_SCREENSHOTS_BUILD.json|docs/*.pdf|docs/presentation/*|app/static/help/ui-runtime/*.png|app/static/help/ui-runtime/manifest.json) ;;
+              PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml|docs/UI_SCREENSHOTS_SOURCE.json|docs/UI_SCREENSHOTS_BUILD.json|docs/*.pdf|docs/presentation/*|app/static/help/ui-runtime/*.png|app/static/help/ui-runtime/*.jpg|app/static/help/ui-runtime/manifest.json) ;;
               *) metadata_only=false ;;
             esac
           done
@@ -584,7 +617,7 @@ jobs:
           git add -f PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml \
             docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json \
             docs/*.pdf docs/presentation/* \
-            app/static/help/ui-runtime/*.png app/static/help/ui-runtime/manifest.json
+            app/static/help/ui-runtime/*.png app/static/help/ui-runtime/*.jpg app/static/help/ui-runtime/manifest.json
           if git diff --cached --quiet; then
             echo "Production digest and documentation already up to date."
             exit 0

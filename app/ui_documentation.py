@@ -26,7 +26,7 @@ def _installed_screenshots(static_folder, manifest_mtime, version, build):
             sid = row.get('id', '')
             filename = row.get('file', '')
             if (not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', sid)
-                    or filename != sid + '.png'):
+                    or filename not in (sid + '.png', sid + '.jpg')):
                 return {}
             path = directory / filename
             if (path.is_symlink() or not path.is_file()
