@@ -510,3 +510,6 @@ label:has(> input[type="checkbox"]) input[type="checkbox"],
 /* RC43: keep scroll-to-top controls in normal flow, never overlay incident text. */
 .incident-section-collapsible>.section-scroll-top-icon{position:static!important;transform:none!important;float:right;margin:.45rem .5rem .4rem .75rem;z-index:1;flex-shrink:0}
 @media(max-width:820px){.incident-section-collapsible>.section-scroll-top-icon{position:static!important;float:right;left:auto!important;top:auto!important;transform:none!important;margin:.5rem .45rem .4rem .65rem}.incident-section-summary{padding-left:1rem!important;min-width:0}}
+
+/* The incident picker displays one choice per logical category, retaining provenance. */
+.chip-origin{display:inline-block;font-size:.68em;font-weight:500;opacity:.78;margin-left:.22rem}

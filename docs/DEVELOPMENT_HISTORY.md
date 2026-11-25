@@ -1,5 +1,58 @@
 # Development history: 0.8.0 to 0.10.0-1
 
+## 0.10.0-1 / RC62 — people-free synthetic training media
+
+Il PowerPoint didattico passa a RC62 mantenendo 79 slide e PDF 79 pagine. Vietate fotografie di persone reali o immagini esterne di provenienza/licenza non verificata. Slide 28, 33, 35, 42 e 43: rimossi gli artwork storici contenenti silhouette umane, sostituiti da una scena tecnologica originale generata con ImageGen senza persone e da diagrammi PowerPoint nativi specifici della rispettiva slide. Slide capitolo 27 e 61: sfondo aggiornato allo stesso asset people-free. Screenshot applicative preesistenti conservate senza dichiararle catture dell'attuale CI.
+
+Aggiunti `visual_rc62_provenance.json`, audit delle sorgenti `check_training_visual_sources_rc62.py`, controllo nel builder di origine e integrità SHA-256 e gate `verify_visual_training_rc62.py` che rifiuta i cinque vecchi compositi e i file estranei alla lista delle fonti. Workflow GitHub Actions aggiornato per costruire RC62 a partire dalle screenshot reali dello stesso run. Verifiche locali: 54 test e 7 subtest superati, 79 slide / 79 pagine, nessun overflow. CI end-to-end remota ancora da eseguire.
+
+## 0.10.0-1 / RC61 — illustrazioni contestuali e scelte tenant deduplicate
+
+Revisione del PowerPoint didattico a 79 slide: 24 nuove illustrazioni fotografiche sintetiche con sovrapposizioni procedurali distinte, esempio di due pagine di un report dimostrativo alla slide 21, mapping PDF via drag & drop da configurazione admin, chiarimenti sul caso SPAM come esempio configurabile, sull'anticipazione delle sue fasi e sull'integrazione Alfresco. Una vecchia screenshot della slide 70 con scelte duplicate è sostituita localmente da un diagramma esplicitamente concettuale; la CI acquisisce la nuova screenshot senza duplicazioni direttamente dalla UI CIR.
+
+Le palette «Categorie disponibili» e «Dati interessati disponibili» ora applicano la stessa deduplicazione logica. Il sistema di sincronizzazione Tenants Default adotta la label dati locali omonima anziché crearne una con suffisso; il riferimento locale rimane protetto. Fixture browser aggiornata con alias di prova e gate per unicità delle scelte; allineati contratto, manifest, presentazione breve e visual training su 25 screenshot. Verifiche locali: 50 test più 7 subtest superati, 79 slide e pagine, validator e layout pass. Suite applicativa e CI remote ancora da eseguire.
+
+## 0.10.0-1 / RC59 — correzione dei due gate CI RC58
+
+Log di PR `logs_123289927725.zip` (25 novembre 2026): nel job
+`Tests, PostgreSQL, SCA and offline gates` 1 test fallito, 1003 passati,
+24 saltati e 182 subtest passati. La regressione e` nel test di collisione
+ID workflow: il test supponeva che anche la categoria omonima venisse
+sempre replicata, contraddicendo la riconciliazione RC58. La verifica distingue
+ora le categorie, che riutilizzano il record preesistente nel tenant con
+provenienza tracciata, dalle altre etichette, che devono restare repliche
+separate anche in presenza di collisioni di ID numerici.
+
+Il job `Real UI screenshots and documentation` falliva per timeout
+Playwright: `locator.check()` agiva sul checkbox deliberatamente trasparente
+mentre il titolo della card intercettava il pointer event. La cattura ora
+clicca la `label.template-select-card` visibile e controlla esplicitamente
+`to_be_checked()` prima di generare il PDF. La struttura della UI resta
+invariata. Verificato localmente in Chromium il comportamento della card con
+il CSS applicativo; suite editoriale Python: 4 test passati. Non attestata
+una nuova esecuzione di CI, ne` la completa suite Flask, non riproducibile
+localmente per dipendenze mancanti e repository PyPI irraggiungibile. Il
+pacchetto RC59 resta un candidato sorgente, non promosso in produzione.
+
+## 0.10.0-1 / RC58 — training visuale con gating di provenienza, categorie
+
+La revisione RC58 (25 novembre 2026) riorganizza la presentazione visiva
+in italiano a 79 slide e rende il generatore PptxGenJS riproducibile con
+asset a percorsi portabili. Approfondisce workflow generali e SPAM (esempio
+non prescrittivo), ruoli, tenant, moduli PDF, mapping, notifiche, RAG AlBot,
+link ai manuali e rilascio EUPL. Integra i controlli di provenienza sulle
+immagini, l'esclusione della vecchia interfaccia, un generatore CI con
+screenshot dal run corrente e verifica SHA-256 delle catture.
+
+Il selettore delle categorie per gli incidenti ora collassa anche le categorie
+legacy con suffisso `[Tenants Default]` equivalente a un nome locale, senza
+cancellare record, cambiare ID né perdere riferimenti workflow/storici. Rimane
+la riconciliazione transazionale e il bootstrap `Tenants Default` per import
+Full di schema storico già presenti in RC57. Test locali: 3 passed per
+l'edizione visuale; suite Flask/SQLAlchemy, CI remota e restore PostgreSQL
+ancora da eseguire. Nessuna promozione in produzione.
+
+
 ## 0.10.0-1 / RC1 — nuova linea di sviluppo
 
 La richiesta dell'utente sposta la versione funzionale in sviluppo a 0.10.0-1,
@@ -1036,3 +1089,46 @@ di packaging senza rsync e test della migrazione SQLite eseguibili con la librer
 standard. I test storici Trivy sono resi indipendenti dal trascorrere del tempo,
 mantenendo un test del CLI reale e la scadenza production. Lo stato della verifica
 completa e le attività di ripresa sono registrati in [HANDOFF.md](HANDOFF.md).
+
+## RC57 — revisione didattica e riconciliazione delle categorie preesistenti
+
+La presentazione didattica in PowerPoint/PDF contiene 79 slide, titoli, apostrofi
+e accenti corretti, esempi di workflow SPAM a 13 step, sintesi, riferimenti ai
+manuali e contatti dell'autore. Sono stati rimossi i capitoli sull'interfaccia
+classica. Le immagini Chromium esistenti sono autentiche e restano associate
+al commit di cattura; le nuove acquisizioni di mapping PDF, anteprima PDF,
+Alfresco e icone di chiusura vengono richieste alla CI, non simulate.
+
+La pubblicazione dei valori di Tenants Default non deve creare una categoria
+omonima in un tenant che la possiede gia': viene registrato il mapping di
+provenienza verso l'ID locale, senza modificarne definizione o riferimenti.
+Il mapping non trasforma il dato preesistente in una replica amministrata dal
+centrale; la cancellazione del catalogo non cancella il dato locale. I duplicati
+legacy non referenziati vengono rimappati; se sono in uso vengono conservati
+e segnalati, senza eliminazioni automatiche. Un Full Import legacy senza
+Tenants Default ricostituisce la sorgente dal tenant `default` e riconcilia
+gli ID. La sincronizzazione ripetuta e' idempotente e non aggiunge nuove
+colonne al database. Le regressioni includono restore legacy via HTTP,
+collisioni, archiviazione e riferimenti a incidenti storici.
+
+
+## RC66 - Screenshot element geometry in documentation CI - 2026-11-25
+
+After the RC65 PR passed 1035 Python tests, 22 PostgreSQL tests and acquired 25 browser screenshots, the documentation builder rejected the valid `spam-incident-config-labels` element JPEG because its pixel width was not the full viewport width. RC66 records the real DOM-element JPEG dimensions and approved selector, validates cropped images separately from viewport/full-page captures, and preserves SHA-256, same-commit, authentication and first-fold controls. Local regression: 133 tests and 55 subtests passed; Chrome/Chromium element-size smoke test passed. CI must be rerun for the actual PR SHA.
+
+## RC67 - Embed authenticated category-palette screenshot in visual training - 2026-11-25
+
+The previous PR (`logs_123409526558.zip`) failed after creating the 79-slide deck because `spam-incident-config-labels` was acquired and verified but not embedded: slide 70's synthetic `photo_art` took precedence in the PowerPoint right-panel renderer. RC67 gives the exact same-run browser evidence precedence over the offline art for slide 70 only, accurately records screenshot provenance in speaker notes, and checks the slide 70 XML/relationships for a SHA-256-verified embedded image rather than accepting unused PPTX media. Regression tests include a tampered-image-link rejection case. See `docs/RC67_TRAINING_SCREENSHOT_EMBEDDING.md`. Full browser/CI integration is still required.
+
+## RC68 - Validate all same-run visual training media - 2026-11-25
+
+The RC67 PR generated 79 slides and acquired its browser screenshots, but the
+final visual QA gate rejected 11 media entries without CIR provenance. The
+verifier allowed only six required screenshot digests, overlooking other
+same-run authenticated browser images embedded by the visual training builder.
+RC68 validates every manifest screenshot ID, safe path and SHA-256 before
+allowlisting it, checks CI commit/build identity, and preserves mandatory
+screenshot embedding, the slide 70 relationship check and rejection of
+untracked media. Added a 25-capture disposable fixture and adversarial
+regressions. See `docs/RC68_VISUAL_TRAINING_MEDIA_PROVENANCE.md`.
+Full GitHub CI verification remains pending.

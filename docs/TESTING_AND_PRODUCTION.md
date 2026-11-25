@@ -292,3 +292,17 @@ Un test distinto esegue il CLI reale e verifica la scadenza effettiva. La policy
 di produzione resta scaduta dal 2026-10-20 e deve bloccare il gate live finché non
 viene effettuata una nuova valutazione. Questa RC non aggiorna dipendenze, SBOM o
 acceptance per simulare l'esito di una scansione non eseguita.
+
+
+## RC57: Full Import legacy e categorie Tenants Default
+
+In caso di Full Import da un export storico senza `Tenants Default`, l'import
+ricrea nella stessa transazione il tenant condiviso dal `default` operativo.
+Le categorie già presenti nei tenant non vengono duplicate: la provenienza
+condivisa viene rimappata agli ID esistenti e i campi personalizzati rimangono
+locali. La ripetizione dell'avvio/sync non ripubblica nuove etichette omonime.
+In presenza di vecchi duplicati già associati a incidenti o workflow CIR
+conserva il record per non alterare lo storico ed emette un avviso; un
+consolidamento amministrativo di quei riferimenti richiede una procedura
+controllata e un backup. Verificare prima del rollout su copia del database
+con casi pre-tenant, replica coincidente, override locale e workflow storico.

@@ -217,6 +217,124 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
         for sid, path in loaded["_paths"].items():
             self.assertEqual(path, self.images / (sid + ".png"))
 
+    def test_jpeg_browser_artifact_uses_image_header_dimensions_and_sha256(self):
+        """Test one JPEG alongside legacy PNGs; the historic archive still loads."""
+        from PIL import Image
+        row = self.manifest["screenshots"][0]
+        old = self.artifact / row['file']
+        name = row['id'] + '.jpg'
+        new = self.images / name
+        Image.new('RGB', (300, 400), (35, 91, 142)).save(new, format='JPEG', quality=90)
+        old.unlink()
+        row.update({'file': 'screenshots/' + name, 'image_format': 'jpeg', 'jpeg_quality': 90,
+                    'sha256': evidence.sha256(new)})
+        self.save_manifest()
+        loaded = self.load()
+        self.assertEqual(loaded['_paths'][row['id']], new)
+        # An attacker cannot assert that arbitrary content was a JPEG, even
+        # after regenerating the manifest hash.
+        new.write_bytes(b'not really a jpeg')
+        row['sha256'] = evidence.sha256(new)
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'JPEG'):
+            self.load()
+
+    def test_jpeg_cannot_fake_a_png_extension_or_viewport(self):
+        from PIL import Image
+        row = self.manifest['screenshots'][0]
+        new = self.images / (row['id'] + '.jpg')
+        Image.new('RGB', (300, 400), (90, 115, 140)).save(new, format='JPEG', quality=90)
+        row.update({'file': 'screenshots/' + new.name, 'image_format': 'png',
+                    'sha256': evidence.sha256(new)})
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'format/extension mismatch'):
+            self.load()
+        row['image_format'] = 'jpeg'
+        row['viewport'] = {'width': 301, 'height': 400}
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'dimensions'):
+            self.load()
+
+    def test_real_element_capture_uses_its_own_bounded_dimensions(self):
+        # The actual browser captures the narrower category/data-type palette,
+        # not a 1920-pixel page screenshot. That geometry must be acceptable.
+        from PIL import Image
+        row = next(item for item in self.manifest['screenshots']
+                   if item['id'] == 'spam-incident-config-labels')
+        target = self.artifact / row['file']
+        Image.new('RGB', (260, 530), (90, 115, 140)).save(target, format='PNG')
+        row['sha256'] = evidence.sha256(target)
+        row['viewport'] = {'width': 1920, 'height': 1140}
+        row['capture_area'] = 'element'
+        row['element_selector'] = '#incident-main .dnd-layout'
+        row['element_size'] = {'width': 260, 'height': 530}
+        self.save_manifest()
+        self.assertIn(row['id'], self.load()['_paths'])
+
+        for key, invalid in (
+            ('element_size', None),
+            ('element_size', {'width': 261, 'height': 530}),
+            ('element_size', {'width': True, 'height': 530}),
+            ('element_selector', '#incident-workflow'),
+        ):
+            with self.subTest(key=key, invalid=invalid):
+                original = row[key]
+                row[key] = invalid
+                self.save_manifest()
+                with self.assertRaises(evidence.EvidenceError):
+                    self.load()
+                row[key] = original
+
+        # An element larger than the viewport is not a valid cropped palette.
+        Image.new('RGB', (2000, 530), (90, 115, 140)).save(target, format='PNG')
+        row['element_size'] = {'width': 2000, 'height': 530}
+        row['sha256'] = evidence.sha256(target)
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'Element screenshot dimensions'):
+            self.load()
+
+    def test_element_capture_cannot_use_unapproved_id(self):
+        row = next(item for item in self.manifest['screenshots']
+                   if item['id'] == 'spam-incident-config-labels')
+        row['capture_area'] = 'element'
+        row['element_selector'] = '#incident-main .dnd-layout'
+        row['element_size'] = {'width': 300, 'height': 400}
+        self.save_manifest()
+        self.assertIn(row['id'], self.load()['_paths'])
+        row['id'] = 'unapproved-crop'
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'Unapproved screenshot element selector'):
+            self.load()
+
+    def test_jpeg_element_capture_accepts_real_dimensions_without_viewport_width(self):
+        from PIL import Image
+        row = next(item for item in self.manifest['screenshots']
+                   if item['id'] == 'spam-incident-config-labels')
+        target = self.artifact / 'screenshots' / (row['id'] + '.jpg')
+        Image.new('RGB', (650, 720), (19, 63, 92)).save(target, 'JPEG', quality=90)
+        row.update({'file': 'screenshots/' + target.name, 'image_format': 'jpeg',
+                    'jpeg_quality': 90, 'sha256': evidence.sha256(target),
+                    'capture_area': 'element', 'viewport': {'width': 1920, 'height': 1140},
+                    'element_selector': '#incident-main .dnd-layout',
+                    'element_size': {'width': 650, 'height': 720}})
+        self.save_manifest()
+        self.assertIn(row['id'], self.load()['_paths'])
+
+    def test_viewport_capture_must_still_use_exact_viewport_height(self):
+        from PIL import Image
+        row = self.manifest['screenshots'][0]
+        target = self.artifact / row['file']
+        Image.new('RGB', (300, 600), (90, 115, 140)).save(target, format='PNG')
+        row['sha256'] = evidence.sha256(target)
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'dimensions do not match viewport'):
+            self.load()
+        row['capture_area'] = 'full-page'
+        self.save_manifest()
+        # Full-page still permits a real scrollable capture of the document.
+        if row['id'] not in evidence.DOCUMENTATION_CAPTURE_ROUTES:
+            self.assertIn(row['id'], self.load()['_paths'])
+
     def test_other_commit_is_rejected(self):
         with self.assertRaisesRegex(evidence.EvidenceError, "commit differs"):
             evidence.load_evidence(self.manifest_path, OTHER_COMMIT)
