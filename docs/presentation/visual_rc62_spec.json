@@ -1,0 +1,1662 @@
+[
+  {
+    "original": 1,
+    "kind": "cover",
+    "title": "CIR",
+    "subtitle": "",
+    "tag": "Cybersecurity Incident Registry",
+    "bullets": [
+      "Cybersecurity Incident Registry",
+      "v0.10.0-1   |   build 20261124",
+      "github.com/desalvo/cybersecurity-incident-registry"
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/12edbd7cde05525a.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          2172,
+          724
+        ]
+      },
+      {
+        "file": "docs/presentation/visual_rc57_media/d9401a1264c2e7f8.png",
+        "x": 1.05,
+        "y": 1.07,
+        "w": 1.05,
+        "h": 1.05,
+        "px": [
+          420,
+          420
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 1. CIR. Cybersecurity Incident Registry v0.10.0-1   |   build 20261124 github.com/desalvo/cybersecurity-incident-registry Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 1
+  },
+  {
+    "original": 2,
+    "kind": "chapter",
+    "title": "01 / Perché CIR",
+    "subtitle": "Dall’evento di sicurezza a un procedimento tracciabile",
+    "tag": "Dall evento di sicurezza a un procedimento tracciabile",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/12edbd7cde05525a.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          2172,
+          724
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 2. 01 / Perché CIR.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 2
+  },
+  {
+    "original": 3,
+    "kind": "content",
+    "title": "Finalità dell’applicazione",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti.",
+      "Collegare responsabilità, documenti e decisioni verificabili.",
+      "Guidare gli operatori con procedure, condizioni e tempi configurabili.",
+      "Rendere disponibili evidenze per audit, report e miglioramento continuo."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 3. Finalità dell’applicazione. Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti. Collegare responsabilità, documenti e decisioni verificabili. Guidare gli operatori con procedure, condizioni e tempi configurabili. Rendere disponibili evidenze per audit, report e miglioramento continuo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 3,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_03.jpg"
+  },
+  {
+    "original": 4,
+    "kind": "content",
+    "title": "Quale problema risolve CIR",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Email e file isolati non permettono di ricostruire facilmente le decisioni.",
+      "Procedure diverse tra sedi generano risposte incoerenti.",
+      "La compilazione manuale aumenta il rischio di errori e omissioni.",
+      "CIR associa ogni evento a una pratica, ai relativi task e alle evidenze."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 4. Quale problema risolve CIR. Email e file isolati non permettono di ricostruire facilmente le decisioni. Procedure diverse tra sedi generano risposte incoerenti. La compilazione manuale aumenta il rischio di errori e omissioni. CIR associa ogni evento a una pratica, ai relativi task e alle evidenze. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 4,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_04.jpg"
+  },
+  {
+    "original": 5,
+    "kind": "content",
+    "title": "Mappa delle funzionalità",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Registro incidenti, ricerca e filtri.",
+      "Workflow configurabili, avvisi e scadenze.",
+      "Notifiche, moduli PDF, report, statistiche e repository documentali.",
+      "Multitenancy, SSO, autorizzazioni, audit e assistente AI opzionale."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 5. Mappa delle funzionalità. Registro incidenti, ricerca e filtri. Workflow configurabili, avvisi e scadenze. Notifiche, moduli PDF, report, statistiche e repository documentali. Multitenancy, SSO, autorizzazioni, audit e assistente AI opzionale. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 5,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_05.jpg"
+  },
+  {
+    "original": 6,
+    "kind": "content",
+    "title": "Architettura logica",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Browser desktop e mobile: interfaccia web operativa.",
+      "Servizi CIR: Flask, autenticazione, workflow e autorizzazioni.",
+      "PostgreSQL: dati strutturati e tracciabilità.",
+      "PVC / object storage / Alfresco: documenti e archiviazione secondo configurazione."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 6. Architettura logica. Browser desktop e mobile: interfaccia web operativa. Servizi CIR: Flask, autenticazione, workflow e autorizzazioni. PostgreSQL: dati strutturati e tracciabilità. PVC / object storage / Alfresco: documenti e archiviazione secondo configurazione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 6,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_06.jpg"
+  },
+  {
+    "original": 7,
+    "kind": "content",
+    "title": "Distribuzione e bootstrap",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Deployment su container e piattaforme orchestrate, anche Kubernetes/OpenShift.",
+      "Configurazione di database, volumi, URL esterna e credenziali prima del primo accesso.",
+      "Migrazioni applicative automatiche e inizializzazione delle definizioni predefinite.",
+      "Verificare il backup prima dei cambi di versione e i log al primo avvio."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 7. Distribuzione e bootstrap. Deployment su container e piattaforme orchestrate, anche Kubernetes/OpenShift. Configurazione di database, volumi, URL esterna e credenziali prima del primo accesso. Migrazioni applicative automatiche e inizializzazione delle definizioni predefinite. Verificare il backup prima dei cambi di versione e i log al primo avvio. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 7,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_07.jpg"
+  },
+  {
+    "original": 8,
+    "kind": "content",
+    "title": "Login",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Logo CIR, nome dell’applicazione e logo personalizzato, se presente.",
+      "Le modalità locali compaiono per prime; se la SSO è configurata, il suo pulsante appare dopo gli altri tipi di login.",
+      "L’eventuale MFA è gestita dal meccanismo di autenticazione abilitato.",
+      "Versione e build sono mostrate nella pagina."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/ae2768744afd1d74.jpg",
+        "x": 6.556,
+        "y": 1.45,
+        "w": 4.838,
+        "h": 4.95,
+        "px": [
+          1080,
+          1105
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 8. Login. Logo CIR, nome dell’applicazione e logo personalizzato, se presente. Le modalità locali compaiono per prime; se la SSO è configurata, il suo pulsante appare dopo gli altri tipi di login. L’eventuale MFA è gestita dal meccanismo di autenticazione abilitato. Versione e build sono mostrate nella pagina. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 8
+  },
+  {
+    "original": 9,
+    "kind": "content",
+    "title": "Login da mobile",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Il form si adatta alla larghezza e all’altezza disponibile.",
+      "I pulsanti SSO compaiono soltanto per i provider configurati.",
+      "Il login autentica l’identità; ruolo e tenant sono autorizzazioni separate."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/c6d9f28a05c6f8c7.jpg",
+        "x": 7.833,
+        "y": 1.45,
+        "w": 2.284,
+        "h": 4.95,
+        "px": [
+          430,
+          932
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 9. Login da mobile. Il form si adatta alla larghezza e all’altezza disponibile. I pulsanti SSO compaiono soltanto per i provider configurati. Il login autentica l’identità; ruolo e tenant sono autorizzazioni separate. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 9
+  },
+  {
+    "original": 10,
+    "kind": "content",
+    "title": "SSO personalizzata e AAI INFN",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Il sistema può integrare provider SSO personalizzati, ad esempio INFN AAI.",
+      "L’amministratore configura endpoint e parametri nel pannello SSO.",
+      "L’eventuale secondo fattore è gestito dal provider d’identità, se previsto.",
+      "Dopo l’autenticazione, CIR applica i propri ruoli e il tenant attivo."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/54cb9774bf8a7ae8.jpg",
+        "x": 5.25,
+        "y": 2.163,
+        "w": 7.45,
+        "h": 3.523,
+        "px": [
+          1660,
+          785
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 10. SSO personalizzata e AAI INFN. Il sistema può integrare provider SSO personalizzati, ad esempio INFN AAI. L’amministratore configura endpoint e parametri nel pannello SSO. L’eventuale secondo fattore è gestito dal provider d’identità, se previsto. Dopo l’autenticazione, CIR applica i propri ruoli e il tenant attivo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 10
+  },
+  {
+    "original": 11,
+    "kind": "content",
+    "title": "Navigazione principale e stato degli incidenti",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "La barra laterale porta a incidenti, statistiche, notifiche e moduli.",
+      "L’icona all’inizio della riga distingue un incidente con attività da completare da uno chiuso senza avvisi.",
+      "L’intestazione riporta identità e tenant attivo; AlBot compare solo quando abilitato.",
+      "La cattura CI successiva documenta due incidenti chiusi con tutte le fasi completate e l’icona ✓ verde."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/2ae5becb321feb73.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 11. Navigazione principale e stato degli incidenti. La barra laterale porta a incidenti, report/statistiche e moduli. L’icona all’inizio di ogni riga distingue le pratiche con avvisi da quelle chiuse e complete. L’intestazione mostra identità e tenant attivo; il bot AI appare solo se abilitato. L’immagine CI aggiornata mostrerà sia incidenti aperti sia casi conclusi con ✓ verde. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 11
+  },
+  {
+    "original": 12,
+    "kind": "content",
+    "title": "Registro incidenti: aperti e chiusi",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "⚠ indica passaggi del workflow ancora da completare, anche su una pratica marcata chiusa.",
+      "✓ verde identifica la chiusura effettiva, senza avvisi procedurali ancora attivi.",
+      "◆ identifica un workflow finalizzato per una pratica non ancora formalmente chiusa.",
+      "Le icone dipendono dai task: nella cattura precedente i casi chiusi hanno ancora avvisi; la nuova CI ne verificherà la correzione."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/6087cc2ff676dd33.jpg",
+        "x": 5.25,
+        "y": 2.235,
+        "w": 7.45,
+        "h": 3.38,
+        "px": [
+          1675,
+          760
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 12. Registro incidenti: aperti e chiusi. ⚠ indica operazioni del workflow ancora da completare. ✓ verde indica incidente chiuso senza avvisi procedurali attivi. ◆ indica workflow finalizzato ma incidente non ancora chiuso. Le icone sono calcolate dai task reali: il solo testo «chiuso» non basta. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 12
+  },
+  {
+    "original": 13,
+    "kind": "content",
+    "title": "Registro su dispositivo mobile",
+    "subtitle": "",
+    "tag": "INTRO",
+    "bullets": [
+      "Il menu si apre e si richiude secondo la larghezza del dispositivo.",
+      "Filtri e colonne si adattano alla vista mobile.",
+      "La selezione porta alla scheda dell’incidente e alle fasi procedurali."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/48e973fd69bd8e2f.jpg",
+        "x": 7.833,
+        "y": 1.45,
+        "w": 2.284,
+        "h": 4.95,
+        "px": [
+          430,
+          932
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 13. Registro su dispositivo mobile. Il menu si apre e si richiude secondo la larghezza del dispositivo. Filtri e colonne si adattano alla vista mobile. La selezione porta alla scheda dell’incidente e alle fasi procedurali. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 13
+  },
+  {
+    "original": 16,
+    "kind": "chapter",
+    "title": "02 / Le funzioni operative",
+    "subtitle": "Dalla segnalazione alla decisione, senza perdere le evidenze",
+    "tag": "Dalla segnalazione alla decisione, senza perdere le evidenze",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/3d47eb7bcf15fd87.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          2172,
+          236
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 16. 02 / Le funzioni operative.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 14
+  },
+  {
+    "original": 17,
+    "kind": "content",
+    "title": "Anatomia di un incidente",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "In alto: riferimento, stato, categoria e gravità.",
+      "I comandi contestuali includono Report PDF e Registra azione.",
+      "Sezioni: Fasi, Avvisi, Dati generali, Documenti, Notifiche.",
+      "Ogni fase può mostrare istruzioni, stato, scadenze e pulsanti operativi."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/3b344311551e0fc2.jpg",
+        "x": 5.25,
+        "y": 3.24,
+        "w": 7.45,
+        "h": 1.37,
+        "px": [
+          1740,
+          320
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 17. Anatomia di un incidente. In alto: riferimento, stato, categoria e gravità. I comandi contestuali includono Report PDF e Registra azione. Sezioni: Fasi, Avvisi, Dati generali, Documenti, Notifiche. Ogni fase può mostrare istruzioni, stato, scadenze e pulsanti operativi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 15
+  },
+  {
+    "original": 18,
+    "kind": "content",
+    "title": "Fasi, avvisi e pulsanti operativi",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Le card mostrano le fasi nell’ordine definito dagli amministratori.",
+      "Gli avvisi indicano task obbligatori o condizioni ancora da soddisfare.",
+      "Registra azione, Update e Percorso guidato aprono funzioni differenti.",
+      "I badge rossi mostrano il numero di elementi presenti nelle sezioni."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/70ac64d9520161d7.jpg",
+        "x": 5.25,
+        "y": 2.912,
+        "w": 7.45,
+        "h": 2.026,
+        "px": [
+          1710,
+          465
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 18. Fasi, avvisi e pulsanti operativi. Le card mostrano le fasi nell’ordine definito dagli amministratori. Gli avvisi indicano task obbligatori o condizioni ancora da soddisfare. Registra azione, Update e Percorso guidato aprono funzioni differenti. I badge rossi mostrano il numero di elementi presenti nelle sezioni. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 16
+  },
+  {
+    "original": 19,
+    "kind": "content",
+    "title": "Come cambia lo stato di un incidente: workflow generale (configurabile)",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Apertura: identificazione, classificazione e informazioni essenziali.",
+      "Analisi: riscontri tecnici, persone e sistemi coinvolti.",
+      "Contenimento e comunicazioni: azioni e notifiche secondo il flusso scelto.",
+      "Evidenze e chiusura: solo dopo le verifiche richieste dal workflow."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 19. Come cambia lo stato di un incidente: workflow generale (configurabile). Apertura: identificazione, classificazione e informazioni essenziali. Analisi: riscontri tecnici, persone e sistemi coinvolti. Contenimento e comunicazioni: azioni e notifiche secondo il flusso scelto. Evidenze e chiusura: solo dopo le verifiche richieste dal workflow. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 17
+  },
+  {
+    "original": 20,
+    "kind": "content",
+    "title": "Dati generali e classificazione",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Nome, categorie, data e ora, persone e gravità descrivono il caso.",
+      "Il campo personal_data può attivare passaggi di valutazione specifici.",
+      "I task Update aprono la sezione con le informazioni da completare.",
+      "Le modifiche sono soggette a ruolo, tenant e stato della pratica."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/2d8da0a91a969e93.jpg",
+        "x": 5.25,
+        "y": 2.173,
+        "w": 7.45,
+        "h": 3.503,
+        "px": [
+          1680,
+          790
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 20. Dati generali e classificazione. Nome, categorie, data e ora, persone e gravità descrivono il caso. Il campo personal_data può attivare passaggi di valutazione specifici. I task Update aprono la sezione con le informazioni da completare. Le modifiche sono soggette a ruolo, tenant e stato della pratica. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 18
+  },
+  {
+    "original": 21,
+    "kind": "content",
+    "title": "Avvisi procedurali",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Derivano dalle fasi obbligatorie e dalle condizioni non ancora soddisfatte.",
+      "Riducono il rischio dell’omissione di attività necessarie.",
+      "Un avviso non significa che sia stata inviata una notifica.",
+      "L’icona del registro rende visibili i task ancora da completare."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/a9afb797ebc03515.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 21. Avvisi procedurali. Derivano dalle fasi obbligatorie e dalle condizioni non ancora soddisfatte. Riducono il rischio dell’omissione di attività necessarie. Un avviso non significa che sia stata inviata una notifica. L’icona del registro rende visibili i task ancora da completare. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 19
+  },
+  {
+    "original": 22,
+    "kind": "content",
+    "title": "Documenti ed evidenze: controlli di sicurezza",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Ogni allegato e documento generato resta collegato al proprio incidente.",
+      "Esempio: un utente privo dei privilegi del tenant non deve poter scaricare un PDF riservato.",
+      "Durante l’upload si applicano i limiti configurati e i controlli sui file.",
+      "Tracciare provenienza, versioni ed eventuale firma esterna del documento."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 22. Documenti ed evidenze: controlli di sicurezza. Ogni allegato e documento generato resta collegato al proprio incidente. Esempio: un utente privo dei privilegi del tenant non deve poter scaricare un PDF riservato. Durante l’upload si applicano i limiti configurati e i controlli sui file. Tracciare provenienza, versioni ed eventuale firma esterna del documento. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 20
+  },
+  {
+    "original": 23,
+    "kind": "content",
+    "title": "Report PDF dell’incidente",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Apri la scheda dell’incidente e premi «Report PDF»; dal registro è disponibile anche l’azione «PDF» sulla riga.",
+      "Il PDF riassume le informazioni della pratica, le attività svolte e le evidenze: a destra un esempio didattico di due pagine.",
+      "Utilità: audit, revisione tecnica e passaggio di consegne.",
+      "È una fotografia dello stato corrente, non esegue automaticamente i task."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/9be0dfe4aaa1a1e3.jpg",
+        "x": 5.25,
+        "y": 3.653,
+        "w": 7.45,
+        "h": 0.545,
+        "px": [
+          1710,
+          125
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 23. Report PDF dell’incidente. Apri la scheda dell’incidente e premi «Report PDF»; dal registro è disponibile anche l’azione «PDF» sulla riga. Il report riassume lo stato della singola pratica, le azioni e le evidenze. Utilità: audit, revisione tecnica e passaggio di consegne. È una fotografia dello stato corrente, non esegue automaticamente i task. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Il report multipagina a destra è un esempio illustrativo con dati sintetici, basato sulle sezioni del report CIR; non è un export dall’applicazione.",
+    "index": 21,
+    "report_pages": [
+      "docs/presentation/visual_rc61_art/example_report_page_1.png",
+      "docs/presentation/visual_rc61_art/example_report_page_2.png"
+    ]
+  },
+  {
+    "original": 24,
+    "kind": "content",
+    "title": "Statistiche: analisi aggregata",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Dal menu principale scegli «Report» → «Statistiche».",
+      "Le statistiche aggregano categorie, tendenze e tempi di gestione.",
+      "Sono utili per analizzare carichi, frequenze e miglioramenti.",
+      "I numeri degli esempi rappresentano esclusivamente dati sintetici."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 24. Statistiche: analisi aggregata. Dal menu principale scegli «Report» → «Statistiche». Le statistiche aggregano categorie, tendenze e tempi di gestione. Sono utili per analizzare carichi, frequenze e miglioramenti. I numeri degli esempi rappresentano esclusivamente dati sintetici. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 22
+  },
+  {
+    "original": 25,
+    "kind": "content",
+    "title": "Notifiche: dalla regola all’invio",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Tipi di notifica e template sono interamente configurabili: gli admin possono aggiungerli o modificarli.",
+      "Esempi: user alert, CSIRT, DPO, comunicazione formale all’utente.",
+      "Il template definisce oggetto, testo, destinatari, CC e variabili sostituibili.",
+      "Uno step può richiedere una notifica e verificarne il completamento."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 25. Notifiche: dalla regola all’invio. Tipi di notifica e template sono interamente configurabili: gli admin possono aggiungerli o modificarli. Esempi: user alert, CSIRT, DPO, comunicazione formale all’utente. Il template definisce oggetto, testo, destinatari, CC e variabili sostituibili. Uno step può richiedere una notifica e verificarne il completamento. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 23
+  },
+  {
+    "original": 26,
+    "kind": "content",
+    "title": "Backup applicativo e database",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Il backup comprende il database PostgreSQL e i file persistenti.",
+      "Definire retention, destinazioni protette e verifiche periodiche del ripristino.",
+      "Prima delle migrazioni generare copie coerenti e testabili.",
+      "Un backup senza una prova di restore non è una garanzia sufficiente."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 26. Backup applicativo e database. Il backup comprende il database PostgreSQL e i file persistenti. Definire retention, destinazioni protette e verifiche periodiche del ripristino. Prima delle migrazioni generare copie coerenti e testabili. Un backup senza una prova di restore non è una garanzia sufficiente. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 24
+  },
+  {
+    "original": 27,
+    "kind": "content",
+    "title": "Disaster recovery: sequenza di ripresa",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Ripristinare database e asset da copie coerenti.",
+      "Ripristinare segreti, URL, storage e provider di identità.",
+      "Eseguire startup, migrazioni e smoke test delle funzioni critiche.",
+      "Verificare integrità di incidenti, documenti, audit e report."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 27. Disaster recovery: sequenza di ripresa. Ripristinare database e asset da copie coerenti. Ripristinare segreti, URL, storage e provider di identità. Eseguire startup, migrazioni e smoke test delle funzioni critiche. Verificare integrità di incidenti, documenti, audit e report. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 25
+  },
+  {
+    "original": 28,
+    "kind": "content",
+    "title": "Sicurezza e tracciabilità dell’applicazione",
+    "subtitle": "",
+    "tag": "FUNZIONI",
+    "bullets": [
+      "Autenticazione, SSO e permessi basati su ruolo e tenant.",
+      "Audit delle azioni e protezione dei documenti associati agli incidenti.",
+      "Controlli CI, analisi delle dipendenze e scansioni container Trivy.",
+      "Separazione dei contesti, protezione dell’identità e gestione del rischio residuo."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 28. Sicurezza e tracciabilità dell’applicazione. Autenticazione, SSO e permessi basati su ruolo e tenant. Audit delle azioni e protezione dei documenti associati agli incidenti. Controlli CI, analisi delle dipendenze e scansioni container Trivy. Separazione dei contesti, protezione dell’identità e gestione del rischio residuo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 26
+  },
+  {
+    "original": 29,
+    "kind": "chapter",
+    "title": "03 / Utenti e tenant",
+    "subtitle": "Un unico servizio, contesti operativi separati",
+    "tag": "Un unico servizio, contesti operativi separati",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/e29492fba583100b.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          1024,
+          1536
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 29. 03 / Utenti e tenant.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 27
+  },
+  {
+    "original": 30,
+    "kind": "content",
+    "title": "Utenti e responsabilità",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "Super amministratore: governance globale, istanza e cataloghi.",
+      "Amministratore tenant: gestione delle configurazioni autorizzate del proprio tenant.",
+      "Operatori: gestione e trattamento degli incidenti secondo il ruolo.",
+      "Lettori: consultazione delle informazioni per cui hanno autorizzazione."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 30. Utenti e responsabilità. Super amministratore: governance globale, istanza e cataloghi. Amministratore tenant: gestione delle configurazioni autorizzate del proprio tenant. Operatori: gestione e trattamento degli incidenti secondo il ruolo. Lettori: consultazione delle informazioni per cui hanno autorizzazione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 28,
+    "synthetic_diagram": "roles"
+  },
+  {
+    "original": 31,
+    "kind": "content",
+    "title": "Cos’è un tenant",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "È un contesto logico che delimita incidenti, utenti e configurazioni.",
+      "Tutti i tipi di utenti possono essere autorizzati a più tenant, secondo il ruolo assegnato in ciascuno.",
+      "Il tenant attivo determina il perimetro delle operazioni e dei dati mostrati.",
+      "L’accesso a un tenant non autorizza automaticamente a un altro."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 31. Cos’è un tenant. È un contesto logico che delimita incidenti, utenti e configurazioni. Tutti i tipi di utenti possono essere autorizzati a più tenant, secondo il ruolo assegnato in ciascuno. Il tenant attivo determina il perimetro delle operazioni e dei dati mostrati. L’accesso a un tenant non autorizza automaticamente a un altro. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 29,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_29.jpg"
+  },
+  {
+    "original": 32,
+    "kind": "content",
+    "title": "Tenants Default: catalogo condiviso",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "Contiene definizioni centrali riutilizzabili nei tenant.",
+      "Gli amministratori autorizzati possono importare procedure e dipendenze.",
+      "Le copie locali possono essere personalizzate senza alterare la sorgente.",
+      "L’eredità deve essere visibile, senza duplicare la scelta della stessa categoria."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 32. Tenants Default: catalogo condiviso. Contiene definizioni centrali riutilizzabili nei tenant. Gli amministratori autorizzati possono importare procedure e dipendenze. Le copie locali possono essere personalizzate senza alterare la sorgente. L’eredità deve essere visibile, senza duplicare la scelta della stessa categoria. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 30,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_30.jpg"
+  },
+  {
+    "original": 33,
+    "kind": "content",
+    "title": "Ereditarietà e override",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "Se una categoria esiste già nel tenant, Tenants Default ne riutilizza l’ID: non crea una voce duplicata.",
+      "La categoria locale conserva descrizione, workflow e riferimenti; la provenienza condivisa viene rimappata.",
+      "I duplicati storici non utilizzati sono riconciliabili; quelli referenziati non vengono cancellati automaticamente.",
+      "Le scelte mostrano una sola categoria logica e indicano l’origine quando disponibile."
+    ],
+    "images": [],
+    "notes": "Tenant Default: le definizioni condivise vengono riconciliate con l’identità già esistente nel tenant. La stessa categoria non deve essere pubblicata due volte. I vecchi duplicati con riferimenti sono conservati per non perdere lo storico; richiedono un consolidamento controllato. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 31,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_31.jpg"
+  },
+  {
+    "original": 34,
+    "kind": "content",
+    "title": "Parametri globali dell’istanza",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "application_external_url: URL pubblica usata per link e notifiche.",
+      "application_timezone: riferimento orario applicativo.",
+      "ssl_enabled, ssl_cert_path, ssl_key_path: TLS e certificati.",
+      "max_upload_size_mb: limite configurabile per file e richieste."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 34. Parametri globali dell’istanza. application_external_url: URL pubblica usata per link e notifiche. application_timezone: riferimento orario applicativo. ssl_enabled, ssl_cert_path, ssl_key_path: TLS e certificati. max_upload_size_mb: limite configurabile per file e richieste. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 32,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_32.jpg"
+  },
+  {
+    "original": 35,
+    "kind": "content",
+    "title": "Parametri specifici del tenant",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "Workflow, categorie e cataloghi operativi: modificabili da admin tenant e super admin.",
+      "Tipi e template di notifica, destinatari e CC: secondo autorizzazioni.",
+      "Modelli PDF, mapping dei campi e integrazioni previste.",
+      "Plugin AI e altri override consentiti nel tenant."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 35. Parametri specifici del tenant. Workflow, categorie e cataloghi operativi: modificabili da admin tenant e super admin. Tipi e template di notifica, destinatari e CC: secondo autorizzazioni. Modelli PDF, mapping dei campi e integrazioni previste. Plugin AI e altri override consentiti nel tenant. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 33,
+    "synthetic_diagram": "tenant_local"
+  },
+  {
+    "original": 36,
+    "kind": "content",
+    "title": "Amministrazione: moduli PDF e template",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "I «moduli» sono PDF compilabili (template) caricati e gestiti dagli amministratori.",
+      "Durante la configurazione, l’admin associa ogni campo PDF (AcroForm) al dato dell’incidente con un’interfaccia drag & drop: trascina il campo e scegli il dato corrispondente.",
+      "Esempio: RIFERIMENTO nel PDF ↔ riferimento dell’incidente; DATA_INIZIO ↔ data di apertura.",
+      "Una volta configurato il mapping, gli operatori autorizzati generano il PDF della singola pratica con i valori compilati."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/7d5d210919bae4d6.jpg",
+        "x": 5.25,
+        "y": 2.074,
+        "w": 7.45,
+        "h": 3.703,
+        "px": [
+          1660,
+          825
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 36. Amministrazione: moduli PDF e template. I «moduli» sono file PDF compilabili, caricati come template dagli amministratori. Ogni campo AcroForm del PDF viene associato a un dato dell’incidente mediante mapping. Durante la generazione, CIR riempie i campi e produce un documento PDF specifico della pratica. Admin tenant e super admin configurano i moduli; gli operatori autorizzati generano i documenti. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Il diagramma sul mapping è concettuale; nella ricostruzione CI viene sostituito dalla screenshot autentica della configurazione AcroForm.",
+    "index": 34,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_34.jpg"
+  },
+  {
+    "original": 37,
+    "kind": "content",
+    "title": "Chi può modificare cosa",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "Super admin: istanza, catalogo centrale e configurazioni dei tenant autorizzati.",
+      "Admin tenant: parametri, workflow, notifiche e moduli del proprio tenant.",
+      "Operatori autorizzati: registrazione, aggiornamento e documenti dei singoli incidenti.",
+      "Lettori: consultazione senza modifiche."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 37. Chi può modificare cosa. Super admin: istanza, catalogo centrale e configurazioni dei tenant autorizzati. Admin tenant: parametri, workflow, notifiche e moduli del proprio tenant. Operatori autorizzati: registrazione, aggiornamento e documenti dei singoli incidenti. Lettori: consultazione senza modifiche. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 35,
+    "synthetic_diagram": "matrix"
+  },
+  {
+    "original": 38,
+    "kind": "content",
+    "title": "Switch tenant e isolamento dei dati",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "Il tenant attivo è visibile nell’intestazione.",
+      "Cambiare tenant non trasferisce automaticamente permessi o contenuti.",
+      "Le ricerche e le funzionalità assistite rispettano il perimetro autorizzato.",
+      "Il passaggio a un altro tenant richiede una membership valida."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/4eea83a0d542de32.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 38. Switch tenant e isolamento dei dati. Il tenant attivo è visibile nell’intestazione. Cambiare tenant non trasferisce automaticamente permessi o contenuti. Le ricerche e le funzionalità assistite rispettano il perimetro autorizzato. Il passaggio a un altro tenant richiede una membership valida. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 36
+  },
+  {
+    "original": 39,
+    "kind": "content",
+    "title": "Configurazione SSO e associazione identità",
+    "subtitle": "",
+    "tag": "TENANT",
+    "bullets": [
+      "I pulsanti dei provider configurati compaiono dopo le altre opzioni di login.",
+      "Il provider verifica le credenziali; CIR associa ruoli e tenant.",
+      "Le impostazioni SSO sono riservate agli amministratori autorizzati.",
+      "L’immagine mostra la pagina amministrativa con valori dimostrativi."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/54cb9774bf8a7ae8.jpg",
+        "x": 5.25,
+        "y": 2.163,
+        "w": 7.45,
+        "h": 3.523,
+        "px": [
+          1660,
+          785
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 39. Configurazione SSO e associazione identità. I pulsanti dei provider configurati compaiono dopo le altre opzioni di login. Il provider verifica le credenziali; CIR associa ruoli e tenant. Le impostazioni SSO sono riservate agli amministratori autorizzati. L’immagine mostra la pagina amministrativa con valori dimostrativi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 37
+  },
+  {
+    "original": 40,
+    "kind": "chapter",
+    "title": "04 / Workflow e cataloghi",
+    "subtitle": "Procedure operative ripetibili e adattabili per sito",
+    "tag": "Procedure operative ripetibili e adattabili per sito",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/12edbd7cde05525a.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          2172,
+          724
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 40. 04 / Workflow e cataloghi.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 38
+  },
+  {
+    "original": 41,
+    "kind": "content",
+    "title": "Workflow: categorie, step, condizioni e dipendenze (esempio SPAM)",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Categoria (esempio): SPAM associa l’incidente al workflow corrispondente; ogni categoria è definibile dagli amministratori.",
+      "Step (esempio): «Blocco account» guida un’azione di contenimento; ordine e contenuti degli step sono configurabili.",
+      "Condizione (esempio): personal_data attiva valutazioni e notifiche aggiuntive solo se necessario; le condizioni sono configurabili.",
+      "Dipendenze (esempi): label «Blocco», notifica «user alert» e modulo DPO; sono risorse modificabili e sostituibili dagli admin."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 41. Workflow: categorie, step, condizioni, dipendenze. Categoria: «SPAM» applica la procedura all’incidente classificato come SPAM. Step: «Analisi preliminare» richiede di registrare riscontri e operazioni. Condizione personal_data: mostra gli step aggiuntivi solo nei casi in cui è attivata. Dipendenze: label azioni, tipi di notifica e modello PDF DPO collegati alle fasi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 39,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_39.jpg"
+  },
+  {
+    "original": 42,
+    "kind": "content",
+    "title": "Workflow: selezione e import dal catalogo",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Selezione workflow: un admin sceglie la definizione condivisa da utilizzare.",
+      "Solo admin tenant e super admin eseguono import e configurazioni.",
+      "Tutti gli utenti autorizzati del tenant usano i workflow resi disponibili.",
+      "Dopo l’import verificare condizioni, dipendenze, ruoli e stato corrente."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 42. Workflow: selezione e import dal catalogo. Selezione workflow: un admin sceglie la definizione condivisa da utilizzare. Solo admin tenant e super admin eseguono import e configurazioni. Tutti gli utenti autorizzati del tenant usano i workflow resi disponibili. Dopo l’import verificare condizioni, dipendenze, ruoli e stato corrente. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 40,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_40.jpg"
+  },
+  {
+    "original": 43,
+    "kind": "content",
+    "title": "Workflow: personalizzazione per tenant",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Per ogni step del workflow, gli admin possono associare istruzioni operative specifiche del tenant.",
+      "Esempio SPAM: link alla procedura locale per bloccare account e conservare le evidenze.",
+      "Adattare le responsabilità e controllare i destinatari delle notifiche.",
+      "Le condizioni e i riferimenti ai moduli vanno verificati prima dell’uso."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 43. Workflow: personalizzazione per tenant. Gli amministratori possono associare istruzioni locali a ogni step di workflow. Esempio: link alla procedura del sito per analizzare SPAM o bloccare un account. Adattare le responsabilità e controllare i destinatari delle notifiche. Le condizioni e i riferimenti ai moduli vanno verificati prima dell’uso. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 41,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_41.jpg"
+  },
+  {
+    "original": 44,
+    "kind": "content",
+    "title": "Workflow: corrente e obsoleto",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "CORRENTE: disponibile per nuovi incidenti e assegnazioni.",
+      "OBSOLETO: non assegnabile a nuovi casi; lo storico resta consultabile.",
+      "Gli incidenti già aperti conservano il workflow associato.",
+      "La riattivazione è un atto amministrativo esplicito."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 44. Workflow: corrente e obsoleto. CORRENTE: disponibile per nuovi incidenti e assegnazioni. OBSOLETO: non assegnabile a nuovi casi; lo storico resta consultabile. Gli incidenti già aperti conservano il workflow associato. La riattivazione è un atto amministrativo esplicito. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 42,
+    "synthetic_diagram": "lifecycle"
+  },
+  {
+    "original": 45,
+    "kind": "content",
+    "title": "Workflow: governance degli stati",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Catalogo Tenants Default: gestione delle sorgenti da super amministrazione.",
+      "Copia locale: admin tenant e super admin autorizzati.",
+      "L’obsolescenza della sorgente si propaga alle copie secondo le regole CIR.",
+      "Una riattivazione del catalogo non riattiva automaticamente le copie."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 45. Workflow: governance degli stati. Catalogo Tenants Default: gestione delle sorgenti da super amministrazione. Copia locale: admin tenant e super admin autorizzati. L’obsolescenza della sorgente si propaga alle copie secondo le regole CIR. Una riattivazione del catalogo non riattiva automaticamente le copie. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 43,
+    "synthetic_diagram": "governance"
+  },
+  {
+    "original": 46,
+    "kind": "content",
+    "title": "Workflow SPAM: adattamento del caso didattico",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Il workflow SPAM è solo un caso didattico: qui ne diamo una panoramica; nelle slide successive verrà discusso in dettaglio, passo dopo passo.",
+      "Gli admin collegano ai passaggi i tipi di notifica: user alert (primo avviso all’utente), CSIRT (segnalazione), DPO (referente privacy).",
+      "personal_data è una condizione booleana: quando attiva, abilita due ulteriori valutazioni/notifiche relative ai dati personali.",
+      "Il PDF DPO è solo una dipendenza di esempio; gli admin possono caricare altri moduli e rimappare i campi."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 46. Workflow SPAM: adattamento del caso didattico. I 13 step coprono presa in carico, analisi, blocco, comunicazioni, documenti e chiusura. Le notifiche richieste vanno associate a template e destinatari: user alert, CSIRT, DPO e utente. personal_data è la condizione collegata al rischio sui dati personali: due fasi sono visibili solo se attiva. Il template PDF DPO è una dipendenza dell’esempio, da verificare e adattare al tenant. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 44,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_44.jpg"
+  },
+  {
+    "original": 47,
+    "kind": "content",
+    "title": "Workflow: azioni e navigazione nell’incidente",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Registration: registra un’attività con descrizione e data nell’area Azioni dell’incidente.",
+      "Execution: avvia il percorso guidato di esecuzione, per esempio una notifica.",
+      "Update: apre l’area dell’incidente da integrare, come Dati generali o Documenti.",
+      "Operation: esegue una funzione specifica, per esempio generare o caricare un PDF."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 47. Workflow: azioni e navigazione nell’incidente. Registration: documenta l’azione svolta nella pratica. Execution: apre il percorso guidato, per esempio una notifica. Update: apre l’area dell’incidente che richiede dati aggiuntivi. Operation: consente operazioni specifiche, per esempio download e upload di documenti. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 45
+  },
+  {
+    "original": 48,
+    "kind": "content",
+    "title": "Workflow: riquadri e avanzamento nella UI",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Le card e le frecce indicano la sequenza configurata.",
+      "Ogni riquadro descrive cosa fare e propone un comando coerente.",
+      "La visibilità di un passo può dipendere dai dati dell’incidente.",
+      "L’avanzamento è verificato dai task obbligatori e dagli avvisi attivi."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/70ac64d9520161d7.jpg",
+        "x": 5.25,
+        "y": 2.912,
+        "w": 7.45,
+        "h": 2.026,
+        "px": [
+          1710,
+          465
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 48. Workflow: riquadri e avanzamento nella UI. Le card e le frecce indicano la sequenza configurata. Ogni riquadro descrive cosa fare e propone un comando coerente. La visibilità di un passo può dipendere dai dati dell’incidente. L’avanzamento è verificato dai task obbligatori e dagli avvisi attivi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 46
+  },
+  {
+    "original": 49,
+    "kind": "content",
+    "title": "Workflow SPAM: notifiche (esempio didattico, dettagli più avanti)",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Nel caso didattico SPAM, che verrà approfondito più avanti, gli step possono prevedere comunicazioni all’utente («user alert») e al CSIRT.",
+      "Altre fasi possono richiedere un documento e una comunicazione al DPO.",
+      "La notifica formale all’utente dipende dalla condizione personal_data.",
+      "Gli amministratori stabiliscono l’ordine di visualizzazione degli step tramite un numero/ID; non è una priorità normativa."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 49. Workflow SPAM: esempio di notifiche. L’esempio SPAM prevede comunicazione all’utente (user alert) e al CSIRT. Altre fasi possono richiedere un documento e una comunicazione al DPO. La notifica formale all’utente dipende dalla condizione personal_data. L’ordine degli step è definito dagli admin con un ID/numero progressivo; non ne determina la priorità normativa. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 47
+  },
+  {
+    "original": 50,
+    "kind": "content",
+    "title": "Workflow: template notifiche e variabili",
+    "subtitle": "",
+    "tag": "WORKFLOW",
+    "bullets": [
+      "Gli admin configurano tipi, testo, destinatari, CC e allegati.",
+      "I segnaposto %NAME%, %REFERENCE%, %START% (e altri) possono essere inseriti nel testo delle notifiche.",
+      "All’uso vengono sostituiti automaticamente con nome, riferimento, data di inizio e dati del contesto dell’incidente.",
+      "Prima dell’invio gli operatori verificano messaggio, destinatari e allegati autorizzati."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 50. Workflow: template notifiche e variabili. Gli admin configurano tipi, testo, destinatari, CC e allegati. Variabili come %NAME%, %REFERENCE% e %START% si possono inserire nel corpo delle notifiche. Al momento dell’uso CIR sostituisce i segnaposto con i valori dell’incidente. Prima dell’invio gli operatori verificano messaggio, destinatari e allegati autorizzati. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 48
+  },
+  {
+    "original": 51,
+    "kind": "chapter",
+    "title": "05 / Documenti, integrazioni e supporto",
+    "subtitle": "Dai dati strutturati a una comunicazione verificabile",
+    "tag": "Dai dati strutturati a una comunicazione verificabile",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/3d47eb7bcf15fd87.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          2172,
+          236
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 51. 05 / Documenti, integrazioni e supporto.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 49
+  },
+  {
+    "original": 52,
+    "kind": "content",
+    "title": "Moduli PDF: configurazione e uso",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Configurazione riservata ad admin tenant e super admin: caricamento del template PDF e mapping dei campi.",
+      "Esempio: campo RIFERIMENTO del modulo ← reference dell’incidente.",
+      "La generazione del PDF per un singolo incidente è disponibile a operatori/admin autorizzati.",
+      "Chi genera il documento deve verificare l’anteprima prima di salvarlo o allegarlo."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 52. Moduli PDF: configurazione e uso. Configurazione riservata ad admin tenant e super admin: caricamento del template PDF e mapping dei campi. Esempio: campo RIFERIMENTO del modulo ← reference dell’incidente. La generazione del PDF per un singolo incidente è disponibile a operatori/admin autorizzati. Chi genera il documento deve verificare l’anteprima prima di salvarlo o allegarlo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 50
+  },
+  {
+    "original": 53,
+    "kind": "content",
+    "title": "Mapping PDF: associazione dei campi",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Configurazione admin: si legge il campo AcroForm e si sceglie la sorgente dati CIR.",
+      "Esempio reale di fixture: RIFERIMENTO ← reference; DESCRIZIONE ← description.",
+      "DATA_INIZIO ← start_date; i valori mancanti vengono segnalati prima della generazione.",
+      "Il template può essere sostituito o aggiornato dagli admin, conservando i controlli del modulo."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 53. Mapping PDF: associazione dei campi. Configurazione admin: si legge il campo AcroForm e si sceglie la sorgente dati CIR. Esempio reale di fixture: RIFERIMENTO ← reference; DESCRIZIONE ← description. DATA_INIZIO ← start_date; i valori mancanti vengono segnalati prima della generazione. Il template può essere sostituito o aggiornato dagli admin, conservando i controlli del modulo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 51
+  },
+  {
+    "original": 54,
+    "kind": "content",
+    "title": "Mapping PDF: schermata di configurazione",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Solo admin tenant e super admin: «Moduli» → «Configurazione», poi scelta del template PDF.",
+      "La screenshot CI mostra la vera interfaccia di caricamento, sostituzione e «Mappatura campi template».",
+      "Per ciascun campo AcroForm si associa una proprietà del database CIR, per esempio RIFERIMENTO → reference.",
+      "La cattura ravvicinata con mapping compilati è richiesta alla prossima CI e sostituirà questa vista generale."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/7d5d210919bae4d6.jpg",
+        "px": [
+          1660,
+          825
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 54. Mapping PDF: schermata di configurazione. Solo admin autorizzati: aprire «Moduli» → «Configurazione». Selezionare un PDF compilabile e associare i campi alle proprietà CIR. Il laboratorio CI acquisirà la schermata reale di mapping, con tre campi AcroForm. L’immagine non disponibile nel run corrente non viene sostituita da un falso screenshot. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.\nLa fotografia a destra è una reale schermata CI precedente della pagina Moduli/Configurazione. Non rappresenta i mapping compilati della prossima CI.",
+    "index": 52
+  },
+  {
+    "original": null,
+    "kind": "preview",
+    "title": "Anteprima PDF generato: esempio di verifica",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Gli operatori autorizzati scelgono un modulo nella scheda dell’incidente e premono «Genera documenti».",
+      "La pagina «Anteprima PDF generati» mostra il documento compilato dai mapping configurati dagli admin.",
+      "Verificare i campi RIFERIMENTO, DESCRIZIONE e DATA_INIZIO, poi accettare o rifiutare.",
+      "La CI acquisirà la schermata effettiva e il PDF generato sull’istanza temporanea di prova."
+    ],
+    "images": [],
+    "notes": "Anteprima PDF generato: esempio di verifica. Gli operatori autorizzati scelgono un modulo nella scheda dell’incidente e premono «Genera documenti». La pagina «Anteprima PDF generati» mostra il documento compilato dai mapping configurati dagli admin. Verificare i campi RIFERIMENTO, DESCRIZIONE e DATA_INIZIO, poi accettare o rifiutare. La CI acquisirà la schermata effettiva e il PDF generato sull’istanza temporanea di prova.. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release.",
+    "index": 53
+  },
+  {
+    "original": 55,
+    "kind": "content",
+    "title": "Documento DPO: esempio nel workflow SPAM",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Il PDF DPO è solo un esempio del workflow SPAM: gli admin possono aggiungere, caricare o sostituire i template PDF.",
+      "Il workflow può prevedere generazione, download, verifica e successivo upload del documento firmato.",
+      "CIR non appone direttamente firme elettroniche: la firma oggi avviene con strumenti esterni.",
+      "Un’integrazione futura con provider di firma è tecnicamente possibile, ma non attualmente implementata."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 55. Documento DPO: esempio nel workflow SPAM. Il documento DPO è un esempio: gli admin possono caricare, aggiungere o sostituire modelli PDF. Il workflow può prevedere generazione, download, verifica e successivo upload del documento firmato. CIR non appone direttamente firme elettroniche: la firma oggi avviene con strumenti esterni. Un’integrazione futura con provider di firma è tecnicamente possibile, ma non attualmente implementata. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 54
+  },
+  {
+    "original": 56,
+    "kind": "content",
+    "title": "Alfresco: configurazione e operazioni",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "L’admin configura Alfresco per il tenant: indirizzo del servizio, sito/repository, credenziali tecniche e regole di archiviazione.",
+      "Nella scheda del singolo incidente, l’operatore o l’admin autorizzato apre «Documenti» e gestisce gli allegati attraverso i comandi disponibili.",
+      "CIR mantiene il collegamento tra documento e incidente; l’accesso effettivo segue i permessi del tenant e del repository.",
+      "Sono due momenti distinti: prima l’admin prepara il collegamento; poi gli utenti autorizzati lo utilizzano nei singoli incidenti. Se l’integrazione non è configurata o mancano i permessi, non si possono eseguire le operazioni corrispondenti."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 56. Alfresco: configurazione e operazioni. Gli admin configurano l’integrazione Alfresco del tenant (endpoint, sito e credenziali). Gli operatori autorizzati gestiscono documenti e report dalla scheda del singolo incidente. Percorsi e permessi rispettano le regole del repository configurato. La prossima CI acquisirà la schermata reale; non vengono usati endpoint di produzione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 55
+  },
+  {
+    "original": 57,
+    "kind": "content",
+    "title": "Report e statistiche: dove trovarli",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro.",
+      "Statistiche: menu principale «Report» → «Statistiche».",
+      "Il report descrive la singola pratica; le statistiche mostrano trend aggregati.",
+      "Le cifre di laboratorio non rappresentano dati reali di produzione."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 57. Report e statistiche: dove trovarli. Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro. Statistiche: menu principale «Report» → «Statistiche». Il report descrive la singola pratica; le statistiche mostrano trend aggregati. Le cifre di laboratorio non rappresentano dati reali di produzione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 56
+  },
+  {
+    "original": 58,
+    "kind": "content",
+    "title": "Documentazione utente e amministrativa",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Manuale utente (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
+      "Manuale amministratore (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
+      "Nell’applicazione: menu «Aiuto» → «Manuale utente» e «Amministrazione» per gli utenti autorizzati.",
+      "Disponibili anche manuali EN, guida Alfresco e brochure."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/e3fa5baaa41112d3.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 58. Documentazione utente e amministrativa. Manuale utente (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf Manuale amministratore (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf In applicazione: «Aiuto» per gli utenti e «Aiuto / Amministrazione» per gli admin. Disponibili anche manuali EN, guida Alfresco e brochure. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 57
+  },
+  {
+    "original": 59,
+    "kind": "content",
+    "title": "Manuale amministratore e piattaforme",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Manuale amministratore: github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
+      "Descrive ruoli, tenant, bootstrap, sicurezza e deployment.",
+      "Nell’applicazione: «Aiuto» → «Amministrazione», se autorizzati.",
+      "Piattaforme: container Docker/Podman, orchestrazione Kubernetes/OpenShift, architetture amd64 e arm64."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/95e18d712e1ff390.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 59. Manuale amministratore e piattaforme. Manuale amministratore: github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf Descrive ruoli, tenant, bootstrap, sicurezza e deployment. Percorso nell’applicazione: «Aiuto» → «Amministrazione». Piattaforme: container Docker/Podman, orchestrazione Kubernetes/OpenShift, architetture amd64 e arm64. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 58
+  },
+  {
+    "original": 60,
+    "kind": "content",
+    "title": "AlBot: AI assistiva con RAG sanitizzato",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "AlBot è opzionale: per default è disabilitato e appare solo se un amministratore abilita il plugin.",
+      "Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity; la scelta richiede configurazione.",
+      "La RAG può usare una rappresentazione sanitizzata/anonimizzata dei dati applicativi, senza esporre informazioni personali.",
+      "Le risposte possono aiutare la collaborazione tra gli utenti autorizzati dello stesso tenant; il perimetro dei permessi rimane vincolante."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/4eea83a0d542de32.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 60. AlBot: AI assistiva con RAG sanitizzato. AlBot è opzionale e disabilitato per impostazione iniziale; compare nell’interfaccia solo se abilitato. Motori disponibili: ChatGPT, Claude, Gemini, Ollama e Perplexity. Il contesto RAG può includere uno snapshot sanitizzato del database del tenant corrente. Il riepilogo può favorire collaborazione nello stesso tenant senza diffondere campi personali o privati. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 59
+  },
+  {
+    "original": 61,
+    "kind": "content",
+    "title": "AI: privacy, permessi e responsabilità",
+    "subtitle": "",
+    "tag": "DOCUMENTI",
+    "bullets": [
+      "Il contesto applicativo è filtrato per tenant ed esclude credenziali, dati personali e testo libero sensibile.",
+      "Le risposte sono suggerimenti, non decisioni automaticamente approvate.",
+      "Le autorizzazioni CIR continuano a governare le azioni operative.",
+      "Le configurazioni AI e la knowledge base sono riservate agli amministratori autorizzati."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/89ab78c6713070fa.jpg",
+        "x": 7.833,
+        "y": 1.45,
+        "w": 2.284,
+        "h": 4.95,
+        "px": [
+          430,
+          932
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 61. AI: privacy, permessi e responsabilità. Il contesto applicativo è filtrato per tenant ed esclude credenziali, dati personali e testo libero sensibile. Le risposte sono suggerimenti, non decisioni automaticamente approvate. Le autorizzazioni CIR continuano a governare le azioni operative. Le configurazioni AI e la knowledge base sono riservate agli amministratori autorizzati. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 60
+  },
+  {
+    "original": 62,
+    "kind": "chapter",
+    "title": "06 / Laboratorio SPAM",
+    "subtitle": "Un incidente sintetico, tredici fasi reali della UI",
+    "tag": "Un incidente sintetico, tredici fasi reali della UI",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/e29492fba583100b.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          1024,
+          1536
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 62. 06 / Laboratorio SPAM.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 61
+  },
+  {
+    "original": 63,
+    "kind": "content",
+    "title": "Caso SPAM didattico: scenario e condizione",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Incidente sintetico: account compromesso e invio non autorizzato di SPAM.",
+      "Riferimento DEMO-SPAM-2026-0001 in un tenant di laboratorio.",
+      "personal_data è il flag relativo al rischio per diritti e libertà degli interessati (dati personali).",
+      "Lo attiviamo per mostrare tutte le 13 fasi, comprese le due condizionali."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/3b344311551e0fc2.jpg",
+        "x": 5.25,
+        "y": 3.24,
+        "w": 7.45,
+        "h": 1.37,
+        "px": [
+          1740,
+          320
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 63. Caso SPAM didattico: scenario e condizione. Incidente sintetico: account compromesso e invio non autorizzato di SPAM. Riferimento DEMO-SPAM-2026-0001 in un tenant di laboratorio. personal_data è il flag relativo al rischio per diritti e libertà degli interessati (dati personali). Lo attiviamo per mostrare tutte le 13 fasi, comprese le due condizionali. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 62
+  },
+  {
+    "original": 64,
+    "kind": "content",
+    "title": "Workflow SPAM: scheda reale dell’incidente",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Il banner superiore mostra identificativo e stato dell’incidente.",
+      "La UI presenta 13 fasi e 12 frecce quando personal_data è attivo.",
+      "I pulsanti corrispondono a operazioni, notifiche e documenti.",
+      "La schermata proviene dalla CI con dati interamente sintetici."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/28d9d33fa01c52a5.jpg",
+        "x": 5.25,
+        "y": 1.713,
+        "w": 7.45,
+        "h": 4.423,
+        "px": [
+          1920,
+          1140
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 64. Workflow SPAM: scheda reale dell’incidente. Il banner superiore mostra identificativo e stato dell’incidente. La UI presenta 13 fasi e 12 frecce quando personal_data è attivo. I pulsanti corrispondono a operazioni, notifiche e documenti. La schermata proviene dalla CI con dati interamente sintetici. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 63
+  },
+  {
+    "original": 65,
+    "kind": "content",
+    "title": "Workflow SPAM: anatomia delle card",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Ogni card mostra nome, descrizione e stato del task.",
+      "Il pulsante inferiore apre l’azione o la sezione appropriata.",
+      "Dove configurato, compare anche un limite temporale.",
+      "I numeri definiscono soltanto l’ordine di visualizzazione."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/70ac64d9520161d7.jpg",
+        "x": 5.25,
+        "y": 2.912,
+        "w": 7.45,
+        "h": 2.026,
+        "px": [
+          1710,
+          465
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 65. Workflow SPAM: anatomia delle card. Ogni card mostra nome, descrizione e stato del task. Il pulsante inferiore apre l’azione o la sezione appropriata. Dove configurato, compare anche un limite temporale. I numeri definiscono soltanto l’ordine di visualizzazione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 64
+  },
+  {
+    "original": 66,
+    "kind": "content",
+    "title": "Workflow SPAM: step 1–3",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Step 1 — Informazione iniziale: registrare presa in carico e segnalazione.",
+      "Step 2 — Analisi preliminare: raccogliere riscontri e account interessati.",
+      "Step 3 — Blocco: documentare il contenimento; end_breach può registrare la fine della violazione.",
+      "Il limite di completamento è configurabile dagli amministratori."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/70ac64d9520161d7.jpg",
+        "x": 5.25,
+        "y": 2.912,
+        "w": 7.45,
+        "h": 2.026,
+        "px": [
+          1710,
+          465
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 66. Workflow SPAM: step 1–3. Step 1 — Informazione iniziale: registrare presa in carico e segnalazione. Step 2 — Analisi preliminare: raccogliere riscontri e account interessati. Step 3 — Blocco: documentare il contenimento; end_breach può registrare la fine della violazione. Il limite di completamento è configurabile dagli amministratori. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 65
+  },
+  {
+    "original": 67,
+    "kind": "content",
+    "title": "Workflow SPAM: step 4–6",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Step 4 — Analisi successiva: usare Update per integrare i dati dell’incidente.",
+      "Step 5 — Comunicazione all’utente: generare ed eseguire user alert.",
+      "Step 6 — Comunicazione al CSIRT: verificare il template e inviare secondo procedura.",
+      "Le comunicazioni restano tracciate nel contesto dell’incidente."
+    ],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/85b25a0da874f087.jpg",
+        "x": 5.25,
+        "y": 1.841,
+        "w": 7.45,
+        "h": 4.168,
+        "px": [
+          1680,
+          940
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 67. Workflow SPAM: step 4–6. Step 4 — Analisi successiva: usare Update per integrare i dati dell’incidente. Step 5 — Comunicazione all’utente: generare ed eseguire user alert. Step 6 — Comunicazione al CSIRT: verificare il template e inviare secondo procedura. Le comunicazioni restano tracciate nel contesto dell’incidente. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 66
+  },
+  {
+    "original": 68,
+    "kind": "content",
+    "title": "Workflow SPAM: step 7–10",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Step 7 — Generare il documento DPO dal template PDF configurato.",
+      "Step 8 — Scaricare e verificare i contenuti del PDF.",
+      "Step 9 — Caricare il file firmato con un’applicazione esterna.",
+      "Step 10 — Comunicare al DPO tramite il template autorizzato."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 68. Workflow SPAM: step 7–10. Step 7 — Generare il documento DPO dal template PDF configurato. Step 8 — Scaricare e verificare i contenuti del PDF. Step 9 — Caricare il file firmato con un’applicazione esterna. Step 10 — Comunicare al DPO tramite il template autorizzato. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 67
+  },
+  {
+    "original": 69,
+    "kind": "content",
+    "title": "Workflow SPAM: step 11–12 e personal_data",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "personal_data indica che l’incidente riguarda dati personali; attiva le fasi condizionate di valutazione e notifica previste dal workflow.",
+      "Step 11 — Comunicazione al Garante: documentare le valutazioni previste.",
+      "Step 12 — Notifica formale all’utente, se la condizione è attiva.",
+      "Con personal_data disattivato, i due step non sono applicabili."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 69. Workflow SPAM: step 11–12 e personal_data. personal_data indica che l’incidente riguarda dati personali; attiva le fasi condizionate di valutazione e notifica previste dal workflow. Step 11 — Comunicazione al Garante: documentare le valutazioni previste. Step 12 — Notifica formale all’utente, se la condizione è attiva. Con personal_data disattivato, i due step non sono applicabili. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 68
+  },
+  {
+    "original": 70,
+    "kind": "content",
+    "title": "Workflow SPAM: step 13 e chiusura",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Step 13 — Conclusione: registrare l’esito e controllare i prerequisiti.",
+      "global_check: esegue una verifica generale della pratica e dei task.",
+      "close_without_warnings: tenta la chiusura soltanto quando non restano avvisi attivi.",
+      "La chiusura non deve aggirare verifiche o notifiche richieste."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 70. Workflow SPAM: step 13 e chiusura. Step 13 — Conclusione: registrare l’esito e controllare i prerequisiti. global_check: esegue una verifica generale della pratica e dei task. close_without_warnings: tenta la chiusura soltanto quando non restano avvisi attivi. La chiusura non deve aggirare verifiche o notifiche richieste. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 69
+  },
+  {
+    "original": 71,
+    "kind": "content",
+    "title": "Workflow SPAM: categorie e dati dell’incidente",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Le palette «Categorie disponibili» e «Dati interessati disponibili» mostrano una sola scelta per ciascun valore logico nel tenant.",
+      "Esempio: SPAM e SPAM [Tenants Default] non devono apparire due volte; lo stesso vale per i dati interessati ereditati.",
+      "Quando esiste una label locale equivalente, CIR ne riutilizza l’ID e indica se è locale oppure integrata con Tenants Default.",
+      "Le associazioni storiche restano conservate; la screenshot aggiornata sarà acquisita e verificata dalla CI su un incidente sintetico."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 71. Workflow SPAM: categorie e dati dell’incidente. La schermata mostra le categorie e i dati della pratica. Nella scelta della categoria la replica di Tenants Default non deve comparire come duplicato. Le categorie locali prevalgono sulle omonime ereditate, con provenienza visibile. I dati sono modificabili soltanto secondo ruoli e autorizzazioni. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 70,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_70.jpg"
+  },
+  {
+    "original": 72,
+    "kind": "content",
+    "title": "Workflow SPAM: mapping e documento DPO",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Un template PDF di prova contiene campi compilabili definibili dagli admin.",
+      "I mapping legano i campi ai dati del singolo incidente.",
+      "L’operatore verifica l’anteprima prima del salvataggio.",
+      "Se prevista, la firma avviene con strumenti esterni e il file rientra come allegato."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 72. Workflow SPAM: mapping e documento DPO. Un template PDF di prova contiene campi compilabili definibili dagli admin. I mapping legano i campi ai dati del singolo incidente. L’operatore verifica l’anteprima prima del salvataggio. Se prevista, la firma avviene con strumenti esterni e il file rientra come allegato. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 71
+  },
+  {
+    "original": 73,
+    "kind": "content",
+    "title": "Workflow SPAM: verifica finale",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "Analisi e contenimento registrati con evidenze.",
+      "Notifiche obbligatorie effettuate e verificate.",
+      "Documenti richiesti disponibili e validati.",
+      "Condizioni personal_data soddisfatte, se applicabili, prima di concludere."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 73. Workflow SPAM: verifica finale. Analisi e contenimento registrati con evidenze. Notifiche obbligatorie effettuate e verificate. Documenti richiesti disponibili e validati. Condizioni personal_data soddisfatte, se applicabili, prima di concludere. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 72
+  },
+  {
+    "original": 74,
+    "kind": "content",
+    "title": "Lezioni del laboratorio SPAM",
+    "subtitle": "",
+    "tag": "SPAM",
+    "bullets": [
+      "È un esempio didattico, non un workflow obbligatorio in tutti i tenant.",
+      "Le istruzioni locali e i moduli possono essere adattati dagli amministratori.",
+      "Le condizioni determinano quali step sono applicabili.",
+      "La UI guida l’operatore ma non ne sostituisce responsabilità e valutazione."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 74. Lezioni del laboratorio SPAM. È un esempio didattico, non un workflow obbligatorio in tutti i tenant. Le istruzioni locali e i moduli possono essere adattati dagli amministratori. Le condizioni determinano quali step sono applicabili. La UI guida l’operatore ma non ne sostituisce responsabilità e valutazione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 73,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_73.jpg"
+  },
+  {
+    "original": 75,
+    "kind": "chapter",
+    "title": "07 / Conclusioni",
+    "subtitle": "Dalla tecnologià a una pratica controllata",
+    "tag": "Dalla tecnologia a una pratica controllata",
+    "bullets": [],
+    "images": [
+      {
+        "file": "docs/presentation/visual_rc57_media/12edbd7cde05525a.jpg",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 13.333,
+        "h": 7.5,
+        "px": [
+          2172,
+          724
+        ]
+      }
+    ],
+    "notes": "CIR – modulo 75. 07 / Conclusioni.  Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "index": 74
+  },
+  {
+    "original": null,
+    "kind": "summary",
+    "title": "CIR in sintesi: cos’è e a chi si rivolge",
+    "subtitle": "",
+    "tag": "FINALE",
+    "bullets": [
+      "CIR è un registro di pratiche con workflow configurabili, evidenze, notifiche e responsabilità.",
+      "È pensato per operatori, amministratori, responsabili e revisori, in un servizio multitenant.",
+      "Il modello è agnostico rispetto all’organizzazione: può gestire procedure anche fuori dalla cybersecurity.",
+      "Il progetto è Open Source, pubblicato con licenza EUPL e adattabile a contesti differenti."
+    ],
+    "images": [],
+    "notes": "CIR in sintesi: cos’è e a chi si rivolge. CIR è un registro di pratiche con workflow configurabili, evidenze, notifiche e responsabilità. È pensato per operatori, amministratori, responsabili e revisori, in un servizio multitenant. Il modello è agnostico rispetto all’organizzazione: può gestire procedure anche fuori dalla cybersecurity. Il progetto è Open Source, pubblicato con licenza EUPL e adattabile a contesti differenti.. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 75,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_75.jpg"
+  },
+  {
+    "original": null,
+    "kind": "summary",
+    "title": "Sommario: tutto il percorso formativo",
+    "subtitle": "",
+    "tag": "FINALE",
+    "bullets": [
+      "Accesso, SSO e navigazione; registro, stati e ruoli.",
+      "Creazione dell’incidente, azioni, evidenze, report, statistiche e sicurezza.",
+      "Tenant e Tenants Default; workflow, condizioni, step e import amministrativi.",
+      "Moduli PDF, mapping, anteprima, firme esterne e integrazione Alfresco.",
+      "AlBot opzionale, laboratorio SPAM a 13 step e passaggio alla gestione operativa."
+    ],
+    "images": [],
+    "notes": "Sommario: tutto il percorso formativo. Accesso, SSO e navigazione; registro, stati e ruoli. Creazione dell’incidente, azioni, evidenze, report, statistiche e sicurezza. Tenant e Tenants Default; workflow, condizioni, step e import amministrativi. Moduli PDF, mapping, anteprima, firme esterne e integrazione Alfresco. AlBot opzionale, laboratorio SPAM a 13 step e passaggio alla gestione operativa.. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 76,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_76.jpg"
+  },
+  {
+    "original": 76,
+    "kind": "content",
+    "title": "Come rendere operativa l’applicazione",
+    "subtitle": "",
+    "tag": "FINALE",
+    "bullets": [
+      "CIR è previsto come servizio centrale comune per tutti i tenant e le sedi: non serve una singola istanza locale per ciascuno.",
+      "Verrà comunicata la URL ufficiale del servizio, accessibile con le credenziali istituzionali attraverso la SSO configurata.",
+      "Gli admin definiranno cataloghi, workflow e parametri locali secondo i privilegi.",
+      "Prima dell’uso operativo: collaudo di notifiche, mapping PDF, backup e restore."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 76. Come rendere operativa l’applicazione. CIR sarà disponibile come servizio centrale generale per tutti i tenant e le sedi. Verrà comunicata la URL di accesso; gli utenti entreranno con le credenziali istituzionali. Gli admin definiranno cataloghi, workflow e parametri locali secondo i privilegi. Prima dell’uso operativo: collaudo di notifiche, mapping PDF, backup e restore. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 77,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_77.jpg"
+  },
+  {
+    "original": 77,
+    "kind": "content",
+    "title": "Documentazione e repository",
+    "subtitle": "",
+    "tag": "FINALE",
+    "bullets": [
+      "Progetto: https://github.com/desalvo/cybersecurity-incident-registry",
+      "Manuale utente IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
+      "Manuale amministratore IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
+      "Disponibili manuali EN, guida Alfresco, brochure e laboratorio."
+    ],
+    "images": [],
+    "notes": "CIR – modulo 77. Documentazione e repository. Progetto: https://github.com/desalvo/cybersecurity-incident-registry Manuale utente IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf Manuale amministratore IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf Disponibili manuali EN, guida Alfresco, brochure e laboratorio. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 78,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_78.jpg"
+  },
+  {
+    "original": null,
+    "kind": "contact",
+    "title": "Creatore e contributi al progetto",
+    "subtitle": "",
+    "tag": "FINALE",
+    "bullets": [
+      "Autore: Alessandro De Salvo",
+      "Contatti: Alessandro.DeSalvo@roma1.infn.it",
+      "Commenti, segnalazioni e suggerimenti di miglioramento sono benvenuti.",
+      "Repository Open Source EUPL: github.com/desalvo/cybersecurity-incident-registry"
+    ],
+    "images": [],
+    "notes": "Creatore e contributi al progetto. Autore: Alessandro De Salvo Contatti: Alessandro.DeSalvo@roma1.infn.it Commenti, segnalazioni e suggerimenti di miglioramento sono benvenuti. Repository Open Source EUPL: github.com/desalvo/cybersecurity-incident-registry. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "index": 79,
+    "conceptual_art": "docs/presentation/visual_rc61_art/visual_79.jpg"
+  }
+]

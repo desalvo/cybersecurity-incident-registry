@@ -1,0 +1,168 @@
+{
+  "source": "Synthetic photorealistic artwork generated specifically for CIR training, then composited with authored technical diagrams; not an application screenshot.",
+  "source_image_sha256": "5ba6144abf3e0be34667828cf5e52f4c19fed0560ba127c939eab11e9663e175",
+  "slides": {
+    "3": {
+      "path": "docs/presentation/visual_rc61_art/visual_03.jpg",
+      "title": "TRACCIABILITÀ",
+      "sha256": "b76fd0f729d9aae202a16ff7ccf50e9711141ac1a5bcfa33c903ac74ae3f22be"
+    },
+    "4": {
+      "path": "docs/presentation/visual_rc61_art/visual_04.jpg",
+      "title": "UN REGISTRO UNICO",
+      "sha256": "ec039eea4128cea6a35c587569248ee492af1939972e46e684680b04eb368bc3"
+    },
+    "5": {
+      "path": "docs/presentation/visual_rc61_art/visual_05.jpg",
+      "title": "FUNZIONI INTEGRATE",
+      "sha256": "18094cee640a727ccdf3d28ea1eef09c13920ab330e623c782b3a55ea049a939"
+    },
+    "6": {
+      "path": "docs/presentation/visual_rc61_art/visual_06.jpg",
+      "title": "ARCHITETTURA",
+      "sha256": "1ab77f3f82df376f2a09b1a1b70dbd3daf2ab920fd668d221fa84d49db8b0bfc"
+    },
+    "7": {
+      "path": "docs/presentation/visual_rc61_art/visual_07.jpg",
+      "title": "DISTRIBUZIONE",
+      "sha256": "787aec87177c1516c8f025fddca1b4f5d4104a9c64ef2b4b5be9bfc96c07a010"
+    },
+    "34": {
+      "path": "docs/presentation/visual_rc61_art/visual_34.jpg",
+      "title": "MAPPING PDF",
+      "sha256": "8b2df3c633777654da96651326637fe783192e33013b61ccdb9ebbd80b3a90d9"
+    },
+    "28": {
+      "path": "docs/presentation/visual_rc61_art/visual_28.jpg",
+      "title": "RUOLI DISTINTI",
+      "sha256": "fe6ba84a3b1af5b648de676d4163534e51a9b3ebf72b600a871ad60ae2268317"
+    },
+    "29": {
+      "path": "docs/presentation/visual_rc61_art/visual_29.jpg",
+      "title": "ISOLAMENTO TENANT",
+      "sha256": "99281024208b8809444d6a2b63a178fe43731f82481053ad2de25d1709b58946"
+    },
+    "30": {
+      "path": "docs/presentation/visual_rc61_art/visual_30.jpg",
+      "title": "CATALOGO CONDIVISO",
+      "sha256": "de9f10826e3d7fd4a9bd17be0ace1189ab28bf2d061cdf8b48c53219ea302dd0"
+    },
+    "31": {
+      "path": "docs/presentation/visual_rc61_art/visual_31.jpg",
+      "title": "EREDITÀ E OVERRIDE",
+      "sha256": "dd52d6e15ca0d41b8dae22e5c8a65e5ad369cfbee0c341804bb3e33f12d7e346"
+    },
+    "32": {
+      "path": "docs/presentation/visual_rc61_art/visual_32.jpg",
+      "title": "PARAMETRI GLOBALI",
+      "sha256": "72f59b7f1376813047ae73334beb590e3dd29744ae79041faaa98bf8869a0e53"
+    },
+    "33": {
+      "path": "docs/presentation/visual_rc61_art/visual_33.jpg",
+      "title": "CONFIGURAZIONE LOCALE",
+      "sha256": "47a93f427cfe01a283ae6e29ed07096c55e0707b743191a2249e63d8201d1177"
+    },
+    "35": {
+      "path": "docs/presentation/visual_rc61_art/visual_35.jpg",
+      "title": "MATRICE DEI PRIVILEGI",
+      "sha256": "c38dc5a06a4c228046699121098c9b824c094b6f0729705a387553e6c9a66f30"
+    },
+    "39": {
+      "path": "docs/presentation/visual_rc61_art/visual_39.jpg",
+      "title": "ESEMPIO DIDATTICO",
+      "sha256": "ac191a36a4a5616c1eb7ebf606296b731fac83805a678817b523e57521535744"
+    },
+    "40": {
+      "path": "docs/presentation/visual_rc61_art/visual_40.jpg",
+      "title": "IMPORT AMMINISTRATIVO",
+      "sha256": "7a37490b09088fedf1ac14e73c381c4ceef7ba6ca977c52572351f286cb334fe"
+    },
+    "41": {
+      "path": "docs/presentation/visual_rc61_art/visual_41.jpg",
+      "title": "ISTRUZIONI LOCALI",
+      "sha256": "7a7d5f54a42b9b48411fcd6a82eec98422a6fac4bc0f82978e77e1b5b218a390"
+    },
+    "42": {
+      "path": "docs/presentation/visual_rc61_art/visual_42.jpg",
+      "title": "CICLO DI VITA",
+      "sha256": "61cbc8e1cf5a9bca7461b012ba0dee8fd901a6d063a14835faa093bb718433b7"
+    },
+    "43": {
+      "path": "docs/presentation/visual_rc61_art/visual_43.jpg",
+      "title": "GOVERNANCE WORKFLOW",
+      "sha256": "cddc3becbcdae50e0a41f66c882756df2e8c606a65d1499c14ecf6b5a5b055e5"
+    },
+    "44": {
+      "path": "docs/presentation/visual_rc61_art/visual_44.jpg",
+      "title": "CASO SPAM DIDATTICO",
+      "sha256": "12bb091036c8a04116ff7336588cae4899afad56a871ddf0c0a89a04aae4af11"
+    },
+    "70": {
+      "path": "docs/presentation/visual_rc61_art/visual_70.jpg",
+      "title": "NESSUNA SCELTA DOPPIA",
+      "sha256": "203fec4a44c07620d45c511b07d803437d9d8e37304b1f924f3f08635099fea9"
+    },
+    "73": {
+      "path": "docs/presentation/visual_rc61_art/visual_73.jpg",
+      "title": "LABORATORIO SPAM",
+      "sha256": "58b47a89e0eaf96c3f5cfa4540aff84dd655e9e3af93d0bdceed883f176fda54"
+    },
+    "75": {
+      "path": "docs/presentation/visual_rc61_art/visual_75.jpg",
+      "title": "CIR IN SINTESI",
+      "sha256": "94372c33d52e440ab0aee9070a76e6dcce38d47ac0a270347aa637bfb12affa0"
+    },
+    "76": {
+      "path": "docs/presentation/visual_rc61_art/visual_76.jpg",
+      "title": "PERCORSO DIDATTICO",
+      "sha256": "6e3c694efc01abce7a6042ed9d9aebec81f5bc43355fa81f11d597cb8c21c46b"
+    },
+    "77": {
+      "path": "docs/presentation/visual_rc61_art/visual_77.jpg",
+      "title": "SERVIZIO CENTRALE",
+      "sha256": "88036a9348c521be11a15c19e92c800f65f08fea3f37885db67985745d0d7139"
+    },
+    "78": {
+      "path": "docs/presentation/visual_rc61_art/visual_78.jpg",
+      "title": "DOCUMENTAZIONE",
+      "sha256": "a0a98128a85d6c60757dd999b96f1e496582748d89098ef851a263e4eb1e3e76"
+    },
+    "79": {
+      "path": "docs/presentation/visual_rc61_art/visual_79.jpg",
+      "title": "CONTRIBUTI",
+      "sha256": "d52543060d1d23d87fe4403330e76c111e97f0e5b4fb8efafdae0167c51525d3"
+    }
+  },
+  "example_report": "Synthetic two-page illustrative report, derived from CIR report section structure but not emitted by the CIR Flask route.",
+  "assets_sha256": {
+    "visual_03.jpg": "b76fd0f729d9aae202a16ff7ccf50e9711141ac1a5bcfa33c903ac74ae3f22be",
+    "visual_04.jpg": "ec039eea4128cea6a35c587569248ee492af1939972e46e684680b04eb368bc3",
+    "visual_05.jpg": "18094cee640a727ccdf3d28ea1eef09c13920ab330e623c782b3a55ea049a939",
+    "visual_06.jpg": "1ab77f3f82df376f2a09b1a1b70dbd3daf2ab920fd668d221fa84d49db8b0bfc",
+    "visual_07.jpg": "787aec87177c1516c8f025fddca1b4f5d4104a9c64ef2b4b5be9bfc96c07a010",
+    "visual_34.jpg": "8b2df3c633777654da96651326637fe783192e33013b61ccdb9ebbd80b3a90d9",
+    "visual_28.jpg": "fe6ba84a3b1af5b648de676d4163534e51a9b3ebf72b600a871ad60ae2268317",
+    "visual_29.jpg": "99281024208b8809444d6a2b63a178fe43731f82481053ad2de25d1709b58946",
+    "visual_30.jpg": "de9f10826e3d7fd4a9bd17be0ace1189ab28bf2d061cdf8b48c53219ea302dd0",
+    "visual_31.jpg": "dd52d6e15ca0d41b8dae22e5c8a65e5ad369cfbee0c341804bb3e33f12d7e346",
+    "visual_32.jpg": "72f59b7f1376813047ae73334beb590e3dd29744ae79041faaa98bf8869a0e53",
+    "visual_33.jpg": "47a93f427cfe01a283ae6e29ed07096c55e0707b743191a2249e63d8201d1177",
+    "visual_35.jpg": "c38dc5a06a4c228046699121098c9b824c094b6f0729705a387553e6c9a66f30",
+    "visual_39.jpg": "ac191a36a4a5616c1eb7ebf606296b731fac83805a678817b523e57521535744",
+    "visual_40.jpg": "7a37490b09088fedf1ac14e73c381c4ceef7ba6ca977c52572351f286cb334fe",
+    "visual_41.jpg": "7a7d5f54a42b9b48411fcd6a82eec98422a6fac4bc0f82978e77e1b5b218a390",
+    "visual_42.jpg": "61cbc8e1cf5a9bca7461b012ba0dee8fd901a6d063a14835faa093bb718433b7",
+    "visual_43.jpg": "cddc3becbcdae50e0a41f66c882756df2e8c606a65d1499c14ecf6b5a5b055e5",
+    "visual_44.jpg": "12bb091036c8a04116ff7336588cae4899afad56a871ddf0c0a89a04aae4af11",
+    "visual_70.jpg": "203fec4a44c07620d45c511b07d803437d9d8e37304b1f924f3f08635099fea9",
+    "visual_73.jpg": "58b47a89e0eaf96c3f5cfa4540aff84dd655e9e3af93d0bdceed883f176fda54",
+    "visual_75.jpg": "94372c33d52e440ab0aee9070a76e6dcce38d47ac0a270347aa637bfb12affa0",
+    "visual_76.jpg": "6e3c694efc01abce7a6042ed9d9aebec81f5bc43355fa81f11d597cb8c21c46b",
+    "visual_77.jpg": "88036a9348c521be11a15c19e92c800f65f08fea3f37885db67985745d0d7139",
+    "visual_78.jpg": "a0a98128a85d6c60757dd999b96f1e496582748d89098ef851a263e4eb1e3e76",
+    "visual_79.jpg": "d52543060d1d23d87fe4403330e76c111e97f0e5b4fb8efafdae0167c51525d3",
+    "example_report_page_1.png": "3be353bd320a68b5a0da4380c4a85f5750b9bbaac723b004a31af903ae06e829",
+    "example_report_page_2.png": "6f2f9d796ca30252dfe2e833f8646836de72f33b0ab68974226ae58fb83fef99",
+    "example_report_synthetic.pdf": "01e9373f717e2218840aa1978d8d1b0b74c463703ec570a0a4454a1398c7528f"
+  }
+}

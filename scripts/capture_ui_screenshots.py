@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import traceback
 from tempfile import TemporaryDirectory
 from threading import Thread
 from urllib.parse import urlparse
@@ -34,9 +35,11 @@ PLAYWRIGHT_VERSION = "1.65.2"
 DESKTOP = {"width": 1920, "height": 1140}
 MOBILE = {"width": 430, "height": 932}
 REQUIRED_CAPTURES = {
-    "login-desktop", "login-mobile", "registry-desktop", "registry-mobile",
+    "login-desktop", "login-mobile", "registry-desktop", "registry-closed-state", "registry-mobile",
     "registry-mobile-menu", "incident-desktop", "incident-mobile",
-    "spam-incident-desktop", "spam-workflow-steps",
+    "spam-incident-desktop", "spam-incident-config-labels", "spam-workflow-steps",
+    "pdf-mapping-configuration", "pdf-generated-preview", "alfresco-settings-desktop",
+    "alfresco-incident-documents",
     "assistant-desktop", "assistant-mobile", "interface-settings-desktop",
     "classic-registry-desktop", "admin-modules-desktop", "admin-sso-desktop",
     "documentation-user-desktop", "documentation-user-mobile",
@@ -159,6 +162,38 @@ def validate_capture_set(entries):
             raise ValueError("Missing screenshot hash")
 
 
+def verify_generated_pdf_final_print(pdf_bytes: bytes, expected_reference: str) -> None:
+    """Validate the *flattened* incident PDF, not the editable source template.
+
+    CIR deliberately paints mapped values into the PDF page and removes the
+    AcroForm widgets. ``PdfReader.get_fields()`` therefore MUST be empty for a
+    generated document. The original template (verified by the fixture) is the
+    only artifact where editable AcroForm field names should still exist.
+    """
+    from io import BytesIO
+    from pypdf import PdfReader
+
+    if not pdf_bytes.startswith(b'%PDF-'):
+        raise AssertionError('Generated document is not a PDF')
+    if not expected_reference:
+        raise AssertionError('Missing expected synthetic incident reference')
+    reader = PdfReader(BytesIO(pdf_bytes))
+    if not reader.pages:
+        raise AssertionError('Generated PDF contains no pages')
+    fields = reader.get_fields() or {}
+    if fields:
+        raise AssertionError('Generated PDF still contains editable AcroForm fields')
+    for page_index, page in enumerate(reader.pages, start=1):
+        for annotation in page.get('/Annots') or []:
+            obj = annotation.get_object() if hasattr(annotation, 'get_object') else annotation
+            if obj.get('/Subtype') == '/Widget':
+                raise AssertionError(f'Generated PDF still has a form widget on page {page_index}')
+    rendered = '\n'.join(page.extract_text() or '' for page in reader.pages)
+    if expected_reference not in rendered:
+        raise AssertionError('Generated PDF does not contain the rendered incident reference')
+
+
+
 def capture_browser(app, fixture, base_url, password, output, commit, provider_calls):
     from playwright.sync_api import expect, sync_playwright
 
@@ -210,7 +245,7 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
         expect(page.locator("body")).to_have_class(re.compile(r"\bcir-modern\b"))
         expect(page.locator("#main-content")).to_be_visible()
 
-    def snap(page, capture_id, caption_it, caption_en, authenticated=True, mode="modern", full_page=False):
+    def snap(page, capture_id, caption_it, caption_en, authenticated=True, mode="modern", full_page=False, element=None):
         page.evaluate("document.fonts.ready")
         # Playwright's string predicate invokes eval and violates the application's
         # strict CSP. Poll through page.evaluate with a callable instead.
@@ -224,14 +259,23 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
         assert not broken, f"Broken visible image on {capture_id}: {broken!r}"
         overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         assert overflow <= 2, f"Page-level horizontal overflow on {capture_id}: {overflow}"
-        filename = f"screenshots/{capture_id}.png"
+        # JPEG reduces the distributed presentation, PDF and CI artifact sizes.
+        # Quality 90 preserves small UI labels and coloured navigation badges.
+        # Transparent branding and exact-pixel test fixtures remain PNG.
+        filename = f"screenshots/{capture_id}.jpg"
         target = output / filename
-        page.screenshot(path=str(target), full_page=full_page, animations="disabled")
+        if element is not None:
+            element.screenshot(path=str(target), type="jpeg", quality=90,
+                               animations="disabled")
+        else:
+            page.screenshot(path=str(target), type="jpeg", quality=90,
+                            full_page=full_page, animations="disabled")
         screenshots.append({"id": capture_id, "file": filename,
+                            "image_format": "jpeg", "jpeg_quality": 90,
                             "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
                             "route": urlparse(page.url).path, "viewport": page.viewport_size,
                             "ui_mode": mode, "authenticated": authenticated,
-                            "capture_area": "full-page" if full_page else "viewport",
+                            "capture_area": "element" if element is not None else ("full-page" if full_page else "viewport"),
                             "caption_it": caption_it, "caption_en": caption_en})
 
     def ask(page):
@@ -290,7 +334,16 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             snap(mobile_login, "login-mobile", "Accesso reale · mobile", "Actual login · mobile", False, full_page=True)
 
             login(page, "demo-supervisor")
-            snap(page, "registry-desktop", "Registro incidenti con dati sintetici", "Incident registry with synthetic records")
+            # Closed examples must have no pending workflow tasks: a green
+            # check icon, not only a textual 'chiuso' status in the row.
+            expect(page.locator('.incident-table .procedure-ok-icon')).to_have_count(2)
+            expect(page.locator('.incident-table .procedure-danger-icon')).not_to_have_count(0)
+            snap(page, "registry-desktop", "Registro aperti/chiusi, icone procedurali autentiche",
+                 "Open and closed incidents with authentic procedural state icons")
+            page.locator('.incident-table').scroll_into_view_if_needed()
+            snap(page, "registry-closed-state", "Icone di stato a inizio riga: avviso e chiusura completa",
+                 "Row leading icons: pending warning and complete closure")
+            checks["closed_incidents_have_real_green_workflow_icons"] = True
             expect(page.locator('a[href="/incident/' + str(fixture["incident_id"]) + '"]:visible')).not_to_have_count(0)
             page.locator('a[href="/incident/' + str(fixture["incident_id"]) + '"]:visible').first.click()
             page.wait_for_load_state("networkidle")
@@ -310,6 +363,23 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             snap(page, "spam-workflow-steps", "Workflow SPAM: 13 fasi, pulsanti e condizioni",
                  "SPAM workflow: 13 stages, controls and conditions", full_page=True)
             checks["spam_real_13_step_workflow_rendered"] = True
+            # Regression for old imported '[Tenants Default]' labels: verify
+            # both available palettes represent each logical choice only once.
+            # This is a real CIR browser capture, never a retouched screenshot.
+            region = page.locator('#incident-main .dnd-layout')
+            expect(region).to_be_visible()
+            for kind in ('categories', 'data_types'):
+                chips = region.locator(f'.palette .chip[data-target="{kind}"]')
+                raw = [chip.get_attribute('data-text') or '' for chip in chips.all()]
+                keys = [re.sub(r'\s*\[Tenants Default(?:\s+\d+)?\]$', '', text.strip(), flags=re.I).casefold() for text in raw]
+                assert len(keys) == len(set(keys)), f'Duplicate {kind} choices rendered by CIR: {raw}'
+            expect(region.locator('.palette .chip[data-target="categories"][data-text="SPAM"]')).to_have_count(1)
+            expect(region.locator('.palette .chip[data-target="data_types"][data-text="E-mail didattica"]')).to_have_count(1)
+            snap(page, "spam-incident-config-labels",
+                 "Categorie e dati interessati senza duplicazioni da Tenants Default",
+                 "Categories and affected data deduplicated from Tenants Default",
+                 element=region)
+            checks["tenant_defaults_category_and_data_type_choices_are_unique"] = True
             go(page, f'/incident/{fixture["incident_id"]}')
 
             task = page.locator("#incident-workflow .workflow-step-action").nth(1)
@@ -422,6 +492,77 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
 
             go(page, "/modules/configuration")
             snap(page, "admin-modules-desktop", "Configurazione reale dei moduli", "Actual document template configuration")
+            # Inspect three actual AcroForm mapping controls populated by the
+            # disposable database fixture, not a static explanatory graphic.
+            go(page, "/modules/configuration?template=documentation-valutazione")
+            expect(page.locator(".mapping-row")).to_have_count(3)
+            for field, source in (
+                ("RIFERIMENTO", "reference"),
+                ("DESCRIZIONE", "description"),
+                ("DATA_INIZIO", "start_date"),
+            ):
+                expect(page.locator(f'input[name="map__{field}"]')).to_have_value(source)
+            page.locator(".dnd-config-grid").scroll_into_view_if_needed()
+            snap(page, "pdf-mapping-configuration",
+                 "Configurazione reale dei mapping: campi AcroForm e sorgenti incidente",
+                 "Actual PDF mapping controls: AcroForm fields and incident values")
+            checks["pdf_acroform_mapping_fields_populated"] = True
+            # Produce a real PDF using CIR's own form-generation route and
+            # render the application's genuine preview page with its iframe.
+            # No static screenshot or synthetic HTML is substituted here.
+            go(page, f'/incident/{fixture["incident_id"]}')
+            section = page.locator('#incident-forms')
+            if section.get_attribute('open') is None:
+                section.locator(':scope > summary').click()
+            form = section.locator('form.template-card-selection-form')
+            expect(form.locator('input[value="documentation-valutazione"]')).to_have_count(1)
+            # The actual UI deliberately hides the native checkbox and
+            # exposes the containing label as a clickable template card.
+            # Click the visible card, exactly as an operator would: calling
+            # locator.check() on the transparent input times out because the
+            # card title intercepts the pointer event.
+            form.locator('label.template-select-card:has(input[value="documentation-valutazione"])').click()
+            expect(form.locator('input[value="documentation-valutazione"]')).to_be_checked()
+            form.get_by_role('button', name='Genera documenti').click()
+            expect(page.locator('.generated-preview-card iframe')).to_have_count(1)
+            expect(page.get_by_role('heading', name='Anteprima PDF generati')).to_be_visible()
+            preview_url = page.locator('.generated-preview-card iframe').get_attribute('src')
+            response = desktop.request.get(base_url + preview_url)
+            assert response.status == 200, f"Generated PDF request returned HTTP {response.status}"
+            verify_generated_pdf_final_print(response.body(), expected_reference=fixture["incident_reference"])
+            page.locator('.pdf-preview-frame').scroll_into_view_if_needed()
+            page.wait_for_timeout(900)  # Chromium's built-in PDF plugin paints asynchronously.
+            snap(page, 'pdf-generated-preview',
+                 "Anteprima reale: PDF AcroForm compilato e salvabile dall'incidente",
+                 "Real preview: populated AcroForm PDF from an incident")
+            checks["real_filled_pdf_generated_and_previewed"] = True
+            go(page, "/alfresco/admin/plugins")
+            expect(page.locator('input[name="alfresco_base_url"]')).to_have_value("https://alfresco.example.invalid")
+            expect(page.locator('input[name="alfresco_site"]')).to_have_value("laboratorio")
+            expect(page.locator('input[name="plugin_alfresco_enabled"]')).to_be_checked()
+            snap(page, "alfresco-settings-desktop",
+                 "Configurazione Alfresco per tenant, endpoint fittizio e nessuna connessione remota",
+                 "Tenant Alfresco settings, fictional endpoint with no remote connection")
+            checks["alfresco_fixture_offline_configuration_visible"] = True
+            go(page, f'/incident/{fixture["incident_id"]}')
+            documents = page.locator("#incident-documents")
+            documents.scroll_into_view_if_needed()
+            if documents.get_attribute("open") is None:
+                documents.locator(":scope > summary").click()
+            # An <option> is not a visible page element in Chromium; locating
+            # the first text match accidentally selected the hidden option.
+            # Verify and operate the visible destination control instead.
+            storage = documents.locator('select#document-storage-mode')
+            expect(storage).to_be_visible()
+            expect(storage.locator('option[value="both"]')).to_have_text('CIR + Alfresco')
+            expect(storage.locator('option[value="alfresco"]')).to_have_text('Solo Alfresco')
+            storage.select_option('both')
+            expect(storage).to_have_value('both')
+            expect(documents.get_by_role('button', name='Sync Alfresco')).to_be_visible()
+            snap(page, "alfresco-incident-documents",
+                 "Scelta documenti dell'incidente: gestione locale e opzioni Alfresco",
+                 "Incident document controls: local storage and Alfresco options")
+            checks["alfresco_incident_documents_controls_visible"] = True
             go(page, "/admin/sso")
             snap(page, "admin-sso-desktop", "Configurazione SSO fittizia nella pagina reale", "Fictional SSO configuration in the actual settings page")
             go(page, "/admin/interface")
@@ -519,11 +660,20 @@ def main(argv=None):
         print(f'Real application screenshots: PASS ({len(manifest["screenshots"])} captures)')
         return 0
     except Exception as exc:
+        # Preserve the failing assertion location without exposing Python locals
+        # or fixture secrets. Previously bare `assert` produced only the string
+        # "AssertionError:" and made the CI artifact unactionable.
         message = f"{type(exc).__name__}: {exc}"
+        diagnostic = traceback.format_exc()
         for secret in redactions:
             message = message.replace(secret, "[REDACTED]")
-        (output / "failure.json").write_text(json.dumps({"status": "FAIL", "source_commit": commit, "error": message}, indent=2) + "\n")
-        print("Real application screenshots: FAIL\n" + message, file=sys.stderr)
+            diagnostic = diagnostic.replace(secret, "[REDACTED]")
+        last_captures = sorted(p.stem for p in (output / "screenshots").glob("*.jpg"))
+        (output / "failure.json").write_text(json.dumps({
+            "status": "FAIL", "source_commit": commit, "error": message,
+            "traceback": diagnostic, "completed_capture_ids": last_captures,
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print("Real application screenshots: FAIL\n" + diagnostic, file=sys.stderr)
         return 1
 
 

@@ -1,3 +1,4 @@
+CIR 0.10.0-1 RC63 - training artwork refresh: replaced all 26 slide-like right-panel composites with brighter original photographic CGI, removed embedded titles and footers, fixed non-cropping contain sizing, added SHA-256 image provenance and CI validation. No application behavior changes.
 RC53: SPAM browser fixture enables personal_data to render both conditional steps (13 total); added regression coverage.
 0.9.0-1 approved interface RC20 - 2026-11-22
 - Implementata la UI responsive approvata: login, lista incidenti, menu desktop/mobile, blocchi procedurali con frecce e pannello AlBot, con fotografie sintetiche cybersecurity senza persone.
@@ -1722,3 +1723,9 @@ RC49: ristrutturazione presentazione didattica in 73 slide con sette sezioni log
 RC51: fixture isolata SPAM a 13 step e screenshot browser obbligatori con provenienza attestata.
 
 RC52: Fix duplicate SPAM documentation category, reconcile 19 screenshot provenance IDs, regenerate authored source presentation, and restore offline release verification.
+
+RC56 (development candidate): optimize real UI browser captures in JPEG quality 90 while retaining PNG provenance compatibility; prepare mapping/Alfresco CI capture fixtures; deliver updated 77-slide visual PPTX and PDF.
+
+0.10.0-1 RC60 (CI capture hotfix): correct the real-UI documentation assertion to verify static rendered incident values in flattened generated PDF pages rather than expect AcroForm fields that are intentionally stripped; reject surviving interactive widgets, preserve original-template AcroForm checks, and provide sanitized full tracebacks and completed-capture IDs on browser CI failures. Add isolated PDF regression coverage. The application PDF generation path and RC58 training content are unchanged.
+\nRC64 (training presentation): explain Tenants Default inheritance and local overrides without implementation details; add an editable tenant diagram below a resized synthetic visual; replace repeated or off-topic right-panel illustrations on slides 33, 41, 42 and 79; remove the implementation bullet from slide 30; align CI validation with the new assets.\n
+RC65 (PR CI fixes): permit type-safe, name-verified provenance of pre-existing tenant affected-data labels in full archive validation; preserve rejection of forged cross-kind/tenant links; align workflow lifecycle assertions with reused category and data-type IDs; validate the visible Alfresco destination selector in Chromium instead of an invisible HTML option; synchronize the frozen training deck's speaker notes with the current source content and refresh its checksum; add offline and full-suite regression coverage.

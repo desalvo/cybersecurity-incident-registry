@@ -384,7 +384,12 @@ class Deck:
     def screenshots(self, slide, item, index):
         self.top(slide, item, index)
         ids = item["screenshots"]
-        if len(ids) == 3:
+        if len(ids) == 4:
+            # Four real images: keep both closed-status evidence and mobile
+            # navigation without truncating the proof set in the CI edition.
+            boxes = [(.62, 2.04, 5.80, 1.74), (6.84, 2.04, 5.80, 1.74),
+                     (.62, 4.49, 5.80, 1.74), (6.84, 4.49, 5.80, 1.74)]
+        elif len(ids) == 3:
             boxes = [(.62, 2.35, 7.75, 3.86), (8.65, 2.35, 1.96, 3.86), (10.83, 2.35, 1.96, 3.86)]
         elif all(sid.endswith("desktop") for sid in ids):
             boxes = [(.62, 2.38, 5.91, 3.68), (6.82, 2.38, 5.91, 3.68)]
