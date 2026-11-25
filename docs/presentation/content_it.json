@@ -149,7 +149,8 @@
       "screenshots": [
         "registry-desktop",
         "registry-mobile",
-        "registry-mobile-menu"
+        "registry-mobile-menu",
+        "registry-closed-state"
       ],
       "notes": "Orientare il partecipante tra registro, ricerca e menu di navigazione. Mostrare la variante mobile e l'apertura del menu. La nuova interfaccia conserva le funzionalità e il tenant attivo; il registro usa dati sintetici preparati per le acquisizioni. Non interpretare i numeri della schermata come statistiche di un'organizzazione reale. Fonti: app/templates, scripts/seed_ui_documentation.py."
     },
@@ -744,7 +745,7 @@
       "notes": "Approfondimento per la formazione CIR. Cataloghi workflow: importazione. SELEZIONE: Scegliere il catalogo e il workflow. ANTEPRIMA: Confrontare differenze e conflitti. IMPORT: Confermare senza sovrascritture implicite. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     },
     {
-      "type": "columns",
+      "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
       "title": "Workflow: fasi e condizioni",
       "items": [
@@ -762,7 +763,10 @@
         ]
       ],
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. Workflow: fasi e condizioni. FASI: Ogni fase rappresenta un compito verificabile. AVVISI: Vincoli e task incompleti segnalati. CHIUSURA: Consentita solo se le condizioni sono soddisfatte. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "notes": "Approfondimento per la formazione CIR. Workflow: fasi e condizioni. FASI: Ogni fase rappresenta un compito verificabile. AVVISI: Vincoli e task incompleti segnalati. CHIUSURA: Consentita solo se le condizioni sono soddisfatte. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione. La cattura aggiuntiva mostra la palette delle categorie e dei dati interessati senza duplicazioni Tenants Default, con dati di laboratorio; viene acquisita dal browser nella stessa CI.",
+      "screenshots": [
+        "spam-incident-config-labels"
+      ]
     },
     {
       "type": "screenshots",
@@ -832,6 +836,16 @@
       ],
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
       "notes": "Approfondimento per la formazione CIR. Laboratorio: comunicazioni e chiusura. NOTIFICHE: Verificare destinatari, contenuti e allegati. REPORT: Generare sintesi finale e cronologia. CHIUSURA: Verificare assenza di avvisi bloccanti. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "DOCUMENTI / ACROFORM",
+      "title": "Mapping dei campi PDF: interfaccia reale",
+      "screenshots": [
+        "pdf-mapping-configuration",
+        "pdf-generated-preview"
+      ],
+      "notes": "Il laboratorio crea un modulo AcroForm reale e associa i tre campi RIFERIMENTO, DESCRIZIONE e DATA_INIZIO alle sorgenti reference, description e start_date. La cattura e ottenuta dalla pagina vera Moduli - Configurazione, dopo autenticazione nella istanza di test. I nomi dei campi dipendono dal PDF caricato: l amministratore tenant puo trascinare i campi database nelle caselle e salvare. Verificare sempre la anteprima prima della generazione. Non sono usati dati personali reali."
     },
     {
       "type": "columns",
@@ -939,6 +953,15 @@
       "notes": "Approfondimento per la formazione CIR. AlBot: assistenza AI. USO: Aiuto alla consultazione e redazione. CONTROLLO: L’operatore verifica sempre il risultato. PRIVACY: Rispettare permessi e policy del provider. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     },
     {
+      "type": "screenshots",
+      "kicker": "ALFRESCO / CONFIGURAZIONE",
+      "title": "Alfresco: impostazioni per il tenant",
+      "screenshots": [
+        "alfresco-settings-desktop"
+      ],
+      "notes": "La schermata autentica mostra Admin - Plugin - Alfresco con un endpoint example.invalid e utenza dimostrativa. Abilitazione, URL, nome utente, site, destinazione, TLS e timeout sono per tenant. La prova non effettua alcuna chiamata HTTP verso Alfresco. In produzione configurare credenziali del tenant e verificare con Salva e testa destinazione, dopo la approvazione amministrativa."
+    },
+    {
       "type": "columns",
       "kicker": "APPROFONDIMENTO OPERATIVO",
       "title": "Alfresco: integrazione documentale",
@@ -958,6 +981,15 @@
       ],
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
       "notes": "Approfondimento per la formazione CIR. Alfresco: integrazione documentale. SETUP: Configurare endpoint e credenziali. UPLOAD: Associare documenti all’incidente. VERIFICA: Controllare esito, autorizzazioni e riferimenti. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+    },
+    {
+      "type": "screenshots",
+      "kicker": "ALFRESCO / OPERATIVITA",
+      "title": "Alfresco: opzioni nella scheda incidente",
+      "screenshots": [
+        "alfresco-incident-documents"
+      ],
+      "notes": "Schermata reale della sezione Documenti per un incidente sintetico con plugin Alfresco abilitato. Illustra il selettore di destinazione locale, entrambi i repository o solo Alfresco, oltre alle azioni disponibili. I bottoni non vengono eseguiti nella fixture perche non esiste un server Alfresco remoto. Per un upload effettivo occorre una integrazione di test locale esplicita e isolata."
     },
     {
       "type": "columns",
@@ -1042,7 +1074,13 @@
     "documentation-admin-desktop": "Manuale amministratore online · desktop",
     "documentation-admin-mobile": "Manuale admin · mobile",
     "spam-incident-desktop": "Scheda reale incidente SPAM di prova",
-    "spam-workflow-steps": "Workflow SPAM: 13 fasi e controlli operativi"
+    "spam-workflow-steps": "Workflow SPAM: 13 fasi e controlli operativi",
+    "pdf-mapping-configuration": "Mapping PDF AcroForm: campi e sorgenti su dati di prova",
+    "alfresco-settings-desktop": "Configurazione Alfresco per tenant: endpoint di laboratorio",
+    "alfresco-incident-documents": "Scheda incidente: controlli e destinazioni Alfresco",
+    "registry-closed-state": "Registro: icone di stato dei casi chiusi e di quelli ancora incompleti",
+    "pdf-generated-preview": "Anteprima di un PDF compilato con i valori dell’incidente di prova",
+    "spam-incident-config-labels": "Palette reali: categorie e dati interessati senza duplicazioni Tenants Default"
   },
   "references": {
     "nis2": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",
