@@ -28,7 +28,13 @@ def install(manifest: Path, documentation_dir: Path, source_commit: str, root: P
         source = evidence['_paths'][row['id']]
         # Install only validated files with deterministic names; no directory
         # or file path from a downloaded artifact controls the destination.
-        name = row['id'] + '.png'
+        name = row['id'] + source.suffix.lower()
+        # Avoid carrying stale variants from a prior production evidence batch.
+        # Never delete files outside the known screenshot IDs.
+        for suffix in ('.png', '.jpg'):
+            stale = static / (row['id'] + suffix)
+            if stale.exists() and stale.is_file() and not stale.is_symlink():
+                stale.unlink()
         shutil.copyfile(source, static / name)
         row['file'] = name
     (static / 'manifest.json').write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + '\n')

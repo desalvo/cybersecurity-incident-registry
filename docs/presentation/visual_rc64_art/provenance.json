@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "release": "CIR 0.10.0-1 RC64",
+  "asset_type": "Original people-free CGI images, generated without reference to any copyrighted photographs",
+  "sources": {
+    "D": {
+      "path": "docs/presentation/visual_rc64_art/original_D.png",
+      "sha256": "23e39a419ec3a394c6f29eaa69e6c7ee4d8d024c0f4ff6eef170c3278390fa93",
+      "origin": "OpenAI ImageGen, new original people-free synthetic four-scene composition for CIR course"
+    },
+    "RC63_31": {
+      "path": "docs/presentation/visual_rc63_art/visual_31.jpg",
+      "sha256": "2a64c6151d0ac0ced964279e609593c2edfde6d1ce5e3530b54b7fa0c6944451",
+      "origin": "Original people-free synthetic ImageGen CIR RC63 asset; panoramic visual adaptation for diagram layout"
+    }
+  },
+  "slides": {
+    "33": {
+      "file": "docs/presentation/visual_rc64_art/visual_33.jpg",
+      "sha256": "5cbf0701c24d4957caa63a28a7aa1ccc32c4bc6ee3644c8665316ac9d0aff9f8",
+      "source": "D0",
+      "real_people": false,
+      "composition": "Independent photographic synthetic scene; no slide chrome, captions or cropped side edges."
+    },
+    "41": {
+      "file": "docs/presentation/visual_rc64_art/visual_41.jpg",
+      "sha256": "3fee7c31890b620f6c820185bc5a5f8d26974e15f7bb9811dbe8011cd64ff55f",
+      "source": "D1",
+      "real_people": false,
+      "composition": "Independent photographic synthetic scene; no slide chrome, captions or cropped side edges."
+    },
+    "42": {
+      "file": "docs/presentation/visual_rc64_art/visual_42.jpg",
+      "sha256": "bc640ab10d6f1c6bea70b602d4f7b0eff60339a9bf1f4a8b7608b1b33a032cac",
+      "source": "D2",
+      "real_people": false,
+      "composition": "Independent photographic synthetic scene; no slide chrome, captions or cropped side edges."
+    },
+    "79": {
+      "file": "docs/presentation/visual_rc64_art/visual_79.jpg",
+      "sha256": "a6da43e9268c104cd63d51df1dc8c18a677332f1e827f1c980c09be40c376063",
+      "source": "D3",
+      "real_people": false,
+      "composition": "Independent photographic synthetic scene; no slide chrome, captions or cropped side edges."
+    },
+    "31": {
+      "file": "docs/presentation/visual_rc64_art/visual_31_panorama.jpg",
+      "sha256": "23a2c71970f00ea970543c05be67ab6485c2e7600cc2fb58aaeea58fe5d07438",
+      "source": "RC63_31",
+      "real_people": false,
+      "composition": "Full original scene centered on synthetic soft background to fit a wide strip without clipping; editable diagram beneath."
+    }
+  }
+}

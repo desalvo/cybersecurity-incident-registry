@@ -303,7 +303,7 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert "scripts/verify_documentation_publication.py" in workflow
     assert "docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json" in workflow
     assert "docs/*.pdf docs/presentation/*" in workflow
-    assert "app/static/help/ui-runtime/*.png app/static/help/ui-runtime/manifest.json" in workflow
+    assert "app/static/help/ui-runtime/*.png app/static/help/ui-runtime/*.jpg app/static/help/ui-runtime/manifest.json" in workflow
     assert "if: github.ref == 'refs/heads/main'" in workflow
     assert "scripts/record_production_digest.py" in workflow
     assert '--digest "${{ steps.published.outputs.digest }}"' in workflow

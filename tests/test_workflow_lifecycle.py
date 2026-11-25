@@ -90,7 +90,16 @@ def test_defaults_workflow_uses_exact_replica_ids_after_numeric_and_name_collisi
         origin = TenantDefaultSource.query.filter_by(source_type='config_label', source_id=row.id).one()
         replica = TenantDefaultReplica.query.filter_by(source_id=origin.id, tenant_id=target.id).one()
         replicas[kind] = db.session.get(ConfigLabel, replica.local_id)
-        assert replica.local_id not in {row.id, unrelated[kind].id}
+        if kind in ('category', 'data_type'):
+            # RC65: category and affected-data labels with equivalent names
+            # keep the tenant's existing IDs; no duplicate picker choices.
+            # Other dependencies retain independent provenance-mapped IDs.
+            assert replica.local_id == unrelated[kind].id
+            assert json.loads(replica.snapshot_json)['__cir_existing_tenant_category'] is True
+        else:
+            assert replica.local_id not in {row.id, unrelated[kind].id}
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category').count() == 1
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='data_type').count() == 1
     installed = import_catalog_workflow(entry.id, target.id, copy_name='First response')
     step = db.session.get(IncidentWorkflowStep, installed['step_ids'][0])
     assert step.action_label_id == replicas['action_label'].id
