@@ -1,7 +1,54 @@
 RC53: SPAM browser fixture enables personal_data to render both conditional steps (13 total); added regression coverage.
 # CIR — Handoff di sviluppo
 
-Ultimo aggiornamento: **2026-11-23** (Europe/Rome). Versione funzionale
+## Stato attuale: 0.10.0-1 RC59 — 25 novembre 2026
+
+La baseline e` RC58. Nel log `logs_123289927725.zip` i due gate falliti
+sono: (1) `tests/test_workflow_lifecycle.py::test_defaults_workflow_uses_exact_replica_ids_after_numeric_and_name_collisions`, che ora verifica il remapping della categoria locale e mantiene le repliche indipendenti per gli altri tipi di label; (2) screenshot browser PDF, in cui il selettore usa ora la card visibile e verifica la selezione. Nessuna modifica al codice applicativo o ai 79 contenuti delle slide RC58: il job CI continua a ricostruire il deck RC58 con evidenze del medesimo run.
+
+Verifiche locali: 4 test di presentazione/catture editoriali superati, sintassi
+Python valida, test isolato Chromium con il CSS reale e checkbox nascosta
+superato. **Da ripetere in PR**: la suite pytest completa e il job
+`ui-documentation` con screenshot reali, seguito dai gate downstream.
+Non dichiarare CI verde finche` GitHub Actions non conferma entrambi i job.
+Il messaggio Git va sempre scritto su **un'unica linea**. L'ultimo commit
+confermato rimane RC55 secondo lo storico disponibile, SHA non comunicato.
+
+## Stato precedente: RC58 — 25 novembre 2026
+
+
+Baseline recuperata: **RC57**; ultimo commit Git confermato nel report
+RC57: **RC55** (SHA non disponibile). La versione funzionale resta
+`0.10.0-1`, con `BUILD=20261124` nei materiali editoriali pre-CI.
+
+- PowerPoint didattico RC58: 79 slide modificabili in
+  `docs/presentation/CIR_Operational_Training_Visual_RC58.pptx`, versione PDF
+  associata e fonte editabile in `visual_rc58_spec.json`. Le correzioni
+  editoriali e la revisione sistematica dei workflow sono descritte in
+  `docs/presentation/RC58_REVIEW_AND_CAPTURE.md`.
+- Sono presenti da RC57 remapping di una categoria omonima già locale nel
+  tenant, recupero di Tenants Default dopo restore legacy e mantenimento degli
+  ID storici. RC58 integra nel picker una deduplicazione anche degli alias
+  legacy `[Tenants Default]` non più mappati, preservando i record esistenti
+  e indicando la provenienza locale/ereditata. Nuovi test regressione aggiunti.
+- La CI browser contiene già la cattura di 24 viste, con incidenti realmente
+  chiusi, PDF generato via CIR, mapping, Alfresco e dati sintetici. **RC58 ora
+  costruisce anche il deck visuale e il PDF dalla stessa acquisizione**, con
+  verifica degli SHA-256 delle cinque immagini obbligatorie, controllo immagini
+  approvate/assenza UI classica, 79 slide/pagine e integrazione nel package.
+- Test locali eseguiti: `tests/test_visual_training_rc58.py` **3 passed**;
+  presentazione overflow **PASS**, parser YAML **PASS** e compilazione dei file
+  Python modificati **PASS**. Non è disponibile l'ambiente Flask/SQLAlchemy:
+  suite backend completa, PostgreSQL reale e Chromium CI **NON eseguiti**.
+  Il package prodotto localmente è **SOURCE SMOKE** e non una release verde.
+- Punto di ripartenza: eseguire il job `ui-documentation` della GitHub Actions
+  sul commit corrente, controllare screenshot e PDF finali; verificare inoltre
+  la suite `tests/test_tenant_defaults_core.py`, i restore di vecchi export e
+  la pipeline completa prima della distribuzione.
+
+## Stato storico RC4 (mantenuto come riferimento, non stato attuale)
+
+Ultimo aggiornamento storico: **2026-11-23** (Europe/Rome). Versione funzionale
 in sviluppo **0.10.0-1**, build generata **20261122**. Candidato cumulativo:
 **0.10.0-1 / RC4 — correzioni preliminari CI (non validata)**.
 
@@ -840,3 +887,6 @@ Presentazione editabile a 80 slide: flusso SPAM a 13 step, import da Tenants Def
 
 ## RC52 — 2026-11-24
 Idempotent SPAM category seeding; 19 capture IDs and corresponding source training slides; regenerated source presentation and provenance receipt; corrected release layout. Browser capture must still be executed in CI.
+
+## RC56 — formazione visuale / JPEG / mapping + Alfresco
+77 slide PPTX/PDF ottimizzate; screenshot CI JPEG q90 con validazione mista PNG/JPEG; nuova fixture offline con PDF AcroForm compilabile e configurazione Alfresco per tre nuove catture browser obbligatorie. Nuova CI completa necessaria.

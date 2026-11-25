@@ -90,7 +90,16 @@ def test_defaults_workflow_uses_exact_replica_ids_after_numeric_and_name_collisi
         origin = TenantDefaultSource.query.filter_by(source_type='config_label', source_id=row.id).one()
         replica = TenantDefaultReplica.query.filter_by(source_id=origin.id, tenant_id=target.id).one()
         replicas[kind] = db.session.get(ConfigLabel, replica.local_id)
-        assert replica.local_id not in {row.id, unrelated[kind].id}
+        if kind == 'category':
+            # RC58: a category with the same logical name must be *mapped* to
+            # the pre-existing tenant row, not copied into a second choice.
+            # Other dependency labels still get independent shared replicas:
+            # numeric refs in the imported catalog cannot capture local rows.
+            assert replica.local_id == unrelated[kind].id
+            assert json.loads(replica.snapshot_json)['__cir_existing_tenant_category'] is True
+        else:
+            assert replica.local_id not in {row.id, unrelated[kind].id}
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category').count() == 1
     installed = import_catalog_workflow(entry.id, target.id, copy_name='First response')
     step = db.session.get(IncidentWorkflowStep, installed['step_ids'][0])
     assert step.action_label_id == replicas['action_label'].id

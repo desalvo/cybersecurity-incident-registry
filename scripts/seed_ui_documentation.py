@@ -75,7 +75,7 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
     from app import create_app
     from app.auth import hash_password
     from app.models import (Action, AIChatbotDocument, ConfigLabel, FormTemplateBinary,
-                            FormTemplateConfig, Incident, IncidentWorkflowStep,
+                            FormTemplateConfig, FormFieldMapping, Incident, IncidentWorkflowStep,
                             NotificationTemplate, NotificationType, Person,
                             Setting, Tenant, User, UserTenantRole, db)
     from app.workflow_lifecycle import ensure_workflow_state
@@ -167,16 +167,59 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
             labels.append(label)
         db.session.flush()
         template = "documentation-valutazione"
-        writer = PdfWriter()
-        writer.add_blank_page(width=595, height=842)
-        writer.add_metadata({"/Title": "Scheda di valutazione · esempio didattico"})
+        # A genuine AcroForm, not a rendered imitation: three fields and their
+        # database mappings are inspected in the live modules/configuration UI.
+        # The fixture never includes real incident identifiers or personal data.
+        from reportlab.pdfgen import canvas
         buffer = io.BytesIO()
-        writer.write(buffer)
+        pdf = canvas.Canvas(buffer, pagesize=(595, 842))
+        pdf.setTitle("Scheda PDF compilabile - laboratorio CIR")
+        pdf.setFont("Helvetica-Bold", 17)
+        pdf.drawString(48, 782, "CIR - Modello PDF di prova")
+        for y, label, field in (
+            (704, "Riferimento incidente", "RIFERIMENTO"),
+            (614, "Descrizione sintetica", "DESCRIZIONE"),
+            (524, "Data di apertura", "DATA_INIZIO"),
+        ):
+            pdf.setFont("Helvetica", 11)
+            pdf.drawString(48, y + 32, label)
+            pdf.acroForm.textfield(name=field, tooltip=label, x=48, y=y,
+                                   width=490, height=25, borderWidth=1,
+                                   fontName="Helvetica", fontSize=10,
+                                   forceBorder=True)
+        pdf.showPage()
+        pdf.save()
         pdf_bytes = buffer.getvalue()
+        from pypdf import PdfReader
+        assert set(PdfReader(io.BytesIO(pdf_bytes)).get_fields()) == {
+            "RIFERIMENTO", "DESCRIZIONE", "DATA_INIZIO"
+        }, "The documentation PDF fixture must contain three real AcroForm fields"
         (Path(app.config["FORM_TEMPLATE_DIR"]) / (template + ".pdf")).write_bytes(pdf_bytes)
         db.session.add(FormTemplateConfig(template_name=template, owner_tenant_id=tenant.id,
                                            notification_tags="documentation-notice"))
         db.session.add(FormTemplateBinary(template_name=template, filename=template + ".pdf", pdf_data=pdf_bytes))
+        for template_field, db_field in (
+            ("RIFERIMENTO", "reference"),
+            ("DESCRIZIONE", "description"),
+            ("DATA_INIZIO", "start_date"),
+        ):
+            db.session.add(FormFieldMapping(
+                template_name=template, template_field=template_field, db_field=db_field
+            ))
+        # Real Alfresco configuration screen with entirely fictional values:
+        # no credential or endpoint is ever contacted by this fixture.
+        for key, value in {
+            "plugin_alfresco_enabled": "1",
+            "alfresco_base_url": "https://alfresco.example.invalid",
+            "alfresco_username": "demo-service-account",
+            "alfresco_site": "laboratorio",
+            "alfresco_parent_node_id": "",
+            "alfresco_target_path": "CIR / Laboratorio / Incidenti",
+            "alfresco_verify_tls": "1",
+            "alfresco_group_by_type": "1",
+            "alfresco_timeout": "30",
+        }.items():
+            setting(key, value)
         db.session.add(NotificationType(tenant_id=tenant.id, code="documentation-notice",
                                          label="Responsabile · esempio", enabled=True))
         db.session.add(NotificationTemplate(tenant_id=tenant.id, kind="documentation-notice",
@@ -226,6 +269,16 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
             db.session.flush()
             db.session.add(Action(incident_id=incident.id, when_at=opened, person_name="Operatore A",
                                   description="Presa in carico registrata nell'esercitazione.", label_id=labels[0].id))
+            if index in {3, 5}:
+                # Complete the real workflow tasks for closed demo cases. A
+                # 'chiuso' status alone still leaves warning icons in the list.
+                # Delivery to external systems is never performed by fixtures.
+                for sequence, task_label in enumerate(labels[1:], 1):
+                    db.session.add(Action(incident_id=incident.id,
+                                          when_at=opened + timedelta(minutes=sequence * 30),
+                                          person_name="Operatore A",
+                                          description="Completamento documentato nel caso sintetico.",
+                                          label_id=task_label.id))
             incidents.append(incident)
         # Independent, anonymized SPAM exercise based on the supplied workflow.
         # Never import source recipients, internal URLs, personal data or PDF bytes.

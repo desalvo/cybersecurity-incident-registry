@@ -1,5 +1,46 @@
 # Development history: 0.8.0 to 0.10.0-1
 
+## 0.10.0-1 / RC59 — correzione dei due gate CI RC58
+
+Log di PR `logs_123289927725.zip` (25 novembre 2026): nel job
+`Tests, PostgreSQL, SCA and offline gates` 1 test fallito, 1003 passati,
+24 saltati e 182 subtest passati. La regressione e` nel test di collisione
+ID workflow: il test supponeva che anche la categoria omonima venisse
+sempre replicata, contraddicendo la riconciliazione RC58. La verifica distingue
+ora le categorie, che riutilizzano il record preesistente nel tenant con
+provenienza tracciata, dalle altre etichette, che devono restare repliche
+separate anche in presenza di collisioni di ID numerici.
+
+Il job `Real UI screenshots and documentation` falliva per timeout
+Playwright: `locator.check()` agiva sul checkbox deliberatamente trasparente
+mentre il titolo della card intercettava il pointer event. La cattura ora
+clicca la `label.template-select-card` visibile e controlla esplicitamente
+`to_be_checked()` prima di generare il PDF. La struttura della UI resta
+invariata. Verificato localmente in Chromium il comportamento della card con
+il CSS applicativo; suite editoriale Python: 4 test passati. Non attestata
+una nuova esecuzione di CI, ne` la completa suite Flask, non riproducibile
+localmente per dipendenze mancanti e repository PyPI irraggiungibile. Il
+pacchetto RC59 resta un candidato sorgente, non promosso in produzione.
+
+## 0.10.0-1 / RC58 — training visuale con gating di provenienza, categorie
+
+La revisione RC58 (25 novembre 2026) riorganizza la presentazione visiva
+in italiano a 79 slide e rende il generatore PptxGenJS riproducibile con
+asset a percorsi portabili. Approfondisce workflow generali e SPAM (esempio
+non prescrittivo), ruoli, tenant, moduli PDF, mapping, notifiche, RAG AlBot,
+link ai manuali e rilascio EUPL. Integra i controlli di provenienza sulle
+immagini, l'esclusione della vecchia interfaccia, un generatore CI con
+screenshot dal run corrente e verifica SHA-256 delle catture.
+
+Il selettore delle categorie per gli incidenti ora collassa anche le categorie
+legacy con suffisso `[Tenants Default]` equivalente a un nome locale, senza
+cancellare record, cambiare ID né perdere riferimenti workflow/storici. Rimane
+la riconciliazione transazionale e il bootstrap `Tenants Default` per import
+Full di schema storico già presenti in RC57. Test locali: 3 passed per
+l'edizione visuale; suite Flask/SQLAlchemy, CI remota e restore PostgreSQL
+ancora da eseguire. Nessuna promozione in produzione.
+
+
 ## 0.10.0-1 / RC1 — nuova linea di sviluppo
 
 La richiesta dell'utente sposta la versione funzionale in sviluppo a 0.10.0-1,
@@ -1036,3 +1077,24 @@ di packaging senza rsync e test della migrazione SQLite eseguibili con la librer
 standard. I test storici Trivy sono resi indipendenti dal trascorrere del tempo,
 mantenendo un test del CLI reale e la scadenza production. Lo stato della verifica
 completa e le attività di ripresa sono registrati in [HANDOFF.md](HANDOFF.md).
+
+## RC57 — revisione didattica e riconciliazione delle categorie preesistenti
+
+La presentazione didattica in PowerPoint/PDF contiene 79 slide, titoli, apostrofi
+e accenti corretti, esempi di workflow SPAM a 13 step, sintesi, riferimenti ai
+manuali e contatti dell'autore. Sono stati rimossi i capitoli sull'interfaccia
+classica. Le immagini Chromium esistenti sono autentiche e restano associate
+al commit di cattura; le nuove acquisizioni di mapping PDF, anteprima PDF,
+Alfresco e icone di chiusura vengono richieste alla CI, non simulate.
+
+La pubblicazione dei valori di Tenants Default non deve creare una categoria
+omonima in un tenant che la possiede gia': viene registrato il mapping di
+provenienza verso l'ID locale, senza modificarne definizione o riferimenti.
+Il mapping non trasforma il dato preesistente in una replica amministrata dal
+centrale; la cancellazione del catalogo non cancella il dato locale. I duplicati
+legacy non referenziati vengono rimappati; se sono in uso vengono conservati
+e segnalati, senza eliminazioni automatiche. Un Full Import legacy senza
+Tenants Default ricostituisce la sorgente dal tenant `default` e riconcilia
+gli ID. La sincronizzazione ripetuta e' idempotente e non aggiunge nuove
+colonne al database. Le regressioni includono restore legacy via HTTP,
+collisioni, archiviazione e riferimenti a incidenti storici.

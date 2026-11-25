@@ -204,7 +204,7 @@ class DocumentationOnlineTests(unittest.TestCase):
         # Mock only the evidence lookup: these are explicit test fixtures and
         # are never written into a screenshot manifest or released as captures.
         with self.app.test_request_context('/aiuto/pdf'):
-            with patch('app.ui_documentation.documentation_screenshot', return_value='/verified-fixture.png'):
+            with patch('app.ui_documentation.documentation_screenshot', side_effect=lambda sid: '/static/help/ui-runtime/' + sid + '.jpg'):
                 converted = runtime_pdf_visuals(originals)
             seen = set()
             rendered = []
@@ -214,7 +214,7 @@ class DocumentationOnlineTests(unittest.TestCase):
                     if caption not in seen:
                         rendered.append(path.name)
                         seen.add(caption)
-            self.assertEqual(rendered, ['registry-desktop.png', 'incident-desktop.png', 'admin-modules-desktop.png'])
+            self.assertEqual(rendered, ['registry-desktop.jpg', 'incident-desktop.jpg', 'admin-modules-desktop.jpg'])
             with patch('app.ui_documentation.documentation_screenshot', return_value=None):
                 self.assertTrue(all(not rows for rows in runtime_pdf_visuals(originals).values()))
 
