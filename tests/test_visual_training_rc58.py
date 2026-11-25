@@ -47,8 +47,8 @@ def test_ci_rebuild_requires_real_browser_images_before_packaging():
     assert 'scripts/build_training_visual_rc64.js' in flow
     assert 'scripts/verify_visual_training_rc64.py' in flow
     assert 'CIR_REQUIRE_REAL_SCREENSHOTS' in flow
-    assert flow.index('Audit synthetic image provenance and build visual training RC64') < flow.index('Validate and seal complete documentation bundle')
-    assert flow.index('cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pptx"') < flow.index('bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/')
+    assert flow.index('Audit synthetic image provenance and build visual training RC71') < flow.index('Validate and seal complete documentation bundle')
+    assert flow.index('cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pptx"') < flow.index('bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/')
 
 
 def test_ci_pdf_capture_activates_visible_template_card_not_hidden_checkbox():

@@ -50,6 +50,6 @@ def test_rc61_real_capture_validates_both_available_palettes():
     assert "for kind in ('categories', 'data_types'):" in capture
     assert "('data_type', 'E-mail didattica')" in seed
     flow = (ROOT / '.github/workflows/ci-release.yml').read_text(encoding='utf8')
-    assert 'Audit synthetic image provenance and build visual training RC64' in flow
+    assert 'Audit synthetic image provenance and build visual training RC71' in flow
     assert 'scripts/build_training_visual_rc64.js' in flow
     assert 'scripts/verify_visual_training_rc64.py' in flow

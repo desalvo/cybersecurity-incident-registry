@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "insert_after_original": 6,
+  "slides": [
+    {
+      "index": 86,
+      "original": 86,
+      "kind": "content",
+      "tag": "01 / ARCHITETTURA · ESTENSIONI",
+      "title": "Plugin disponibili e possibilità di estensione",
+      "bullets": [
+        "AlBot (AI Chatbot): assistente opzionale, disabilitato per default; motori disponibili ChatGPT, Claude, Gemini, Ollama e Perplexity.",
+        "Alfresco: plugin opzionale per collegare CIR a un repository documentale e gestire archiviazione e sincronizzazione dei documenti.",
+        "SSO/OpenID Connect, email e notifiche, PDF/AcroForm e report sono capacità e integrazioni del nucleo, non plugin distinti.",
+        "L’architettura è estendibile: in futuro possono essere sviluppati e integrati nuovi plugin, secondo esigenze e policy dell’ente."
+      ],
+      "arch_visual": "modules",
+      "notes": "Inventario plugin verificato nei sorgenti: app/plugins/ai_chatbot e app/plugins/alfresco; app/__init__.py registra solo questi due. AlBot elenca gli engine ChatGPT, Claude, Gemini, Ollama, Perplexity; è disabilitato per default. SSO, email, PDF e report sono componenti core, non plugin. Le estensioni future sono possibilità architetturali, non funzioni già installate. [Sources] app/__init__.py; app/plugins/ai_chatbot/engines/__init__.py; app/plugins/alfresco/client.py; app/templates/ui/navigation.html."
+    },
+    {
+      "index": 87,
+      "original": 87,
+      "kind": "content",
+      "tag": "01 / ARCHITETTURA · PROCESSI",
+      "title": "Da registro incidenti a workflow manager generico",
+      "bullets": [
+        "CIR permette di definire procedure anche non di cybersicurezza: categorie, step ordinati, diramazioni, condizioni e dipendenze tra attività.",
+        "Ogni step può richiedere informazioni, descrizioni, evidenze, azioni e notifiche obbligatorie secondo il workflow scelto.",
+        "I controlli di congruità possono verificare coerenza tra step, prerequisiti e situazione globale prima della chiusura.",
+        "Le azioni possono avere tempi massimi; scheduler, notifiche periodiche e promemoria programmati gestiscono scadenze e solleciti."
+      ],
+      "arch_visual": "procedures",
+      "notes": "Configurabilità del workflow verificata in IncidentWorkflowStep e ConfigLabel: required, requires_notification, conditions, max_completion_hours e operazioni di verifica globale. Scheduler notifiche: impostazioni di intervallo o cron, promemoria per incidente. Il sistema è utilizzabile per processi procedurali diversi dagli incidenti informatici; regole e policy restano configurate solo da amministratori con privilegi adeguati. [Sources] app/models.py; app/templates/notification_settings.html; app/routes.py; app/__init__.py."
+    }
+  ]
+}

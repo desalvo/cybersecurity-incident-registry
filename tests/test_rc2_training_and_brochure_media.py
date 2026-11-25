@@ -10,6 +10,26 @@ def test_brochure_media_are_local_and_reused_on_all_pages():
     assert result['pages']==8 and result['brochures']==2
     assert all(entry['approved_only'] and entry['embedded_images']==11 for entry in result['files'].values())
 
+def _validate_screenshot_receipt_rows(rows, media, preview_names=()):
+    """Verify every screenshot ID/hash while permitting reuse of an embedded image.
+
+    A PPTX library may deduplicate identical image bytes across multiple slides;
+    repeated *references* must not be mistaken for duplicated/altered evidence.
+    """
+    screenshot_names = {}
+    screenshot_ids = set()
+    for row in rows:
+        ident, name, expected = row['id'], row['media_file'], row['sha256']
+        assert ident not in screenshot_ids, f'duplicate screenshot ID: {ident}'
+        assert name in media and name not in preview_names, f'invalid screenshot member: {ident}'
+        assert media[name] == expected, f'screenshot SHA-256 mismatch: {ident}'
+        if name in screenshot_names:
+            assert screenshot_names[name] == expected, f'conflicting duplicate media: {name}'
+        screenshot_names[name] = expected
+        screenshot_ids.add(ident)
+    return set(screenshot_names)
+
+
 def _verify_embedded_presentation_media():
     """Verify the checked-out deck without trusting mutable PDF build receipts.
 
@@ -42,18 +62,15 @@ def _verify_embedded_presentation_media():
             assert name in media and name not in preview_names
             assert media[name] == row['png_sha256']
             preview_names.add(name)
-        screenshot_names = set()
         if receipt['real_screenshots']:
-            # Every screenshot embedded in the CI deck is bound to its own
-            # immutable receipt, even when PDFs have since been regenerated.
+            # Multiple screenshots may reference one PPTX media member after
+            # content-addressable deduplication. Check every ID and hash.
             assert len(receipt['screenshots']) >= 1
-            for row in receipt['screenshots']:
-                name = row['media_file']
-                assert name in media and name not in screenshot_names
-                assert media[name] == row['sha256']
-                screenshot_names.add(name)
+            screenshot_names = _validate_screenshot_receipt_rows(
+                receipt['screenshots'], media, preview_names)
         else:
             assert receipt['screenshots'] == []
+            screenshot_names = set()
         for name, value in media.items():
             assert name in preview_names or name in screenshot_names or value in approved, name
     return receipt

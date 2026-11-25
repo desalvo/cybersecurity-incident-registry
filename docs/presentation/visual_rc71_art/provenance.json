@@ -1,0 +1,22 @@
+{
+  "version": "RC71",
+  "artwork": [
+    {
+      "kind": "modules",
+      "file": "docs/presentation/visual_rc71_art/modules.jpg",
+      "sha256": "2cb813a88b9be1ba2100810c58c8eeba23627a9a1d1bedeb6f2fb5db99c80635",
+      "real_people": false,
+      "contains_embedded_slide_chrome": false,
+      "source": "synthetic_image_generated_for_CIR_RC71_2026-11-25"
+    },
+    {
+      "kind": "procedures",
+      "file": "docs/presentation/visual_rc71_art/procedures.jpg",
+      "sha256": "8d73b37e004f872d00965658a5804417cb8fe5ef7af58b941e7ef9b02342d30e",
+      "real_people": false,
+      "contains_embedded_slide_chrome": false,
+      "source": "synthetic_image_generated_for_CIR_RC71_2026-11-25"
+    }
+  ],
+  "policy": "Original synthetic photographic CGI; people-free, no external stock; no text, footer or heading baked into image."
+}
