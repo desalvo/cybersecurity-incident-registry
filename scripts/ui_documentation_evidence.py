@@ -22,6 +22,8 @@ REQUIRED_SCREENSHOTS = frozenset({
     'login-desktop', 'login-mobile', 'registry-desktop', 'registry-closed-state', 'registry-mobile',
     'registry-mobile-menu', 'incident-desktop', 'incident-mobile',
     'spam-incident-desktop', 'spam-incident-config-labels', 'spam-workflow-steps',
+    'workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
+    'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel',
     'pdf-mapping-configuration', 'pdf-generated-preview', 'alfresco-settings-desktop',
     'alfresco-incident-documents',
     'assistant-desktop', 'assistant-mobile', 'interface-settings-desktop',
@@ -33,8 +35,15 @@ REQUIRED_SCREENSHOTS = frozenset({
 # Only specifically approved regions may claim element-capture provenance.
 ELEMENT_CAPTURE_SELECTORS = {
     'spam-incident-config-labels': '#incident-main .dnd-layout',
+    'workflow-steps-focused': '#incident-workflow .workflow-steps-ordered',
+    'statistics-desktop': '.stats-card:first-child',
+    'assistant-panel-closeup': '#cir-albot-panel',
+    'tenant-setup-wizard-desktop': '.setup-wizard-shell',
+    'tenant-setup-wizard-panel': '.setup-wizard-panel',
 }
 DOCUMENTATION_CAPTURE_ROUTES = {
+    'tenant-setup-wizard-desktop': '/admin/setup-wizard',
+    'tenant-setup-wizard-panel': '/admin/setup-wizard',
     'documentation-user-desktop': '/aiuto',
     'documentation-user-mobile': '/aiuto',
     'documentation-admin-desktop': '/aiuto/amministrazione',

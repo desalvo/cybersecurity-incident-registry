@@ -296,23 +296,26 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert 'if [[ "$GITHUB_REF" == refs/tags/* ]]' in workflow
     assert "pull-requests: write" in workflow
     assert "actions: write" in workflow
-    # The production PR now publishes the verified same-run documentation as well
-    # as the immutable image digest.  Verify both the step and its inputs.
-    assert "Open production digest and documentation pull request" in workflow
-    assert "Verify repository documentation publication inputs" in workflow
-    assert "scripts/verify_documentation_publication.py" in workflow
-    assert "docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json" in workflow
-    assert "docs/*.pdf docs/presentation/*" in workflow
-    assert "app/static/help/ui-runtime/*.png app/static/help/ui-runtime/*.jpg app/static/help/ui-runtime/manifest.json" in workflow
-    assert "if: github.ref == 'refs/heads/main'" in workflow
-    assert "scripts/record_production_digest.py" in workflow
-    assert '--digest "${{ steps.published.outputs.digest }}"' in workflow
+    # A documentation-only main push must still create a verified publication
+    # PR, but a generated-only merge must not trigger an infinite PR loop.
+    assert 'documentation-publication:' in workflow
+    assert 'needs.release-scope.outputs.documentation_needed' in workflow
+    assert 'scripts/documentation_publication_policy.py' in workflow
+    assert 'Publish only current verified screenshots and training documents' in workflow
+    assert 'scripts/verify_documentation_publication.py' in workflow
+    assert 'scripts/sync_current_documentation.py' in workflow
+    assert 'Open documentation and optional production-digest pull request' in workflow
+    assert 'docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json' in workflow
+    assert 'app/static/help/ui-runtime/' in workflow
+    assert 'scripts/record_production_digest.py' in workflow
+    assert '--digest "$PUBLISHED_DIGEST"' in workflow
     assert "--format '{{json .Manifest}}'" in workflow
     assert 'Structured manifest inspection' in workflow
     assert 'candidate-index.json' in workflow
     assert 'published-index.json' in workflow
     assert 'imagetools inspect --raw' not in workflow
     assert 'scripts/verify_promoted_manifest.py' in workflow
+    assert 'git add -A -f' in workflow
     assert 'git checkout -b "$branch"' in workflow
     assert 'git push origin "HEAD:$branch"' in workflow
     assert 'gh pr create' in workflow
@@ -321,13 +324,10 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' not in workflow
     assert "[skip ci]" not in workflow
 
-    verify_idx = workflow.index("Verify published manifest and report digest")
-    record_idx = workflow.index("Open production digest and documentation pull request")
+    verify_idx = workflow.index('Verify published manifest and report digest')
+    record_idx = workflow.index('Open documentation and optional production-digest pull request')
     assert verify_idx < record_idx
-
-    # Tag releases publish/report only and never mutate main metadata.
-    record_block = workflow[record_idx:]
-    assert "if: github.ref == 'refs/heads/main'" in record_block[:260]
+    assert "github.ref == 'refs/heads/main'" in workflow
 
 
 def test_record_production_digest_script_is_strict_and_deterministic() -> None:

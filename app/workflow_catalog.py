@@ -577,6 +577,40 @@ def _unique_value(original, exists, suffix, limit):
     return candidate
 
 
+
+def _catalog_copy_name(requested, tenant_id):
+    """Reserve one visible name for both a workflow and its category.
+
+    A category is an independent workflow scope, not a severity-like
+    classification to deduplicate. Even a category inherited from Tenants
+    Default must not become the target of a newly imported workflow.
+    """
+    from .workflow_catalog_models import TenantWorkflow
+    existing_categories = (row.value for row in ConfigLabel.query.filter_by(
+        tenant_id=tenant_id, kind='category').all())
+    existing_workflows = (row.name for row in TenantWorkflow.query.filter_by(
+        tenant_id=tenant_id).all())
+    taken = {name.strip().casefold() for name in (*existing_categories, *existing_workflows) if name}
+    if requested.casefold() not in taken:
+        return requested
+    match = re.fullmatch(r'(.+?) v([2-9][0-9]*)', requested, flags=re.IGNORECASE)
+    root, version = (match.group(1), int(match.group(2)) + 1) if match else (requested, 2)
+    for index in range(version, version + 10000):
+        suffix = f' v{index}'
+        candidate = root[:160 - len(suffix)].rstrip() + suffix
+        if candidate.casefold() not in taken:
+            return candidate
+    raise ValueError('Impossibile assegnare un nome univoco al workflow nel tenant.')
+
+
+def _existing_tenant_severity(tenant_id, value):
+    """Keep existing tenant severity IDs and settings, including replicas."""
+    normalized = value.strip().casefold()
+    return next((row for row in ConfigLabel.query.filter_by(
+        tenant_id=tenant_id, kind='severity').order_by(ConfigLabel.id)
+        if row.value.strip().casefold() == normalized), None)
+
+
 def import_catalog_workflow(entry_id, target_tenant_id, *, as_default=False, copy_name=None):
     """Install a new independent copy, even for a previously installed revision."""
     if type(as_default) is not bool:
@@ -607,6 +641,10 @@ def import_catalog_workflow(entry_id, target_tenant_id, *, as_default=False, cop
            for row in payload['dependencies'][kind]):
         from .tenant_defaults import sync_defaults_configuration
         sync_defaults_configuration()
+    # Resolve collisions only after inheriting Tenants Default categories:
+    # workflow name and category label must always remain identical.
+    if not as_default:
+        copy_name = _catalog_copy_name(copy_name, target.id)
     result = _materialize_workflow_payload(payload, target, entry, copy_name, as_default)
     from .workflow_lifecycle import ensure_workflow_state
     state = ensure_workflow_state(target.id, result['category_id'], name=copy_name, source_entry_id=entry.id)
@@ -665,15 +703,28 @@ def _materialize_workflow_payload(payload, target, entry, copy_name, as_default,
         if existing_steps is not None and is_scope:
             label_map[item['ref']] = db.session.get(ConfigLabel, existing_steps[0].category_id)
             continue
-        # A copy's category identifies its independent workflow scope. Other
-        # shared labels use the exact provenance-mapped replica, including
-        # action/condition IDs that differ after destination collisions.
+        # A severity already in the tenant is the same classification: use
+        # its original ID and never replace its locally configured details.
+        # Categories are different: each imported workflow needs its own
+        # independent category with exactly the workflow's visible name.
+        existing_severity = (_existing_tenant_severity(target.id, item['value'])
+                             if item['kind'] == 'severity' else None)
+        if existing_severity is not None:
+            label_map[item['ref']] = existing_severity
+            continue
+        # Other shared parameters keep provenance-based mappings. Avoid
+        # deduplicating action labels/data types that may differ in behavior.
         shared = _resolve_shared_dependency(item, target.id, 'config_label') if use_shared and not is_scope else None
         if shared is not None:
             label_map[item['ref']] = shared
             continue
-        base_value = copy_name if not as_default and item['ref'] == wf['category_ref'] else item['value']
-        value = _unique_value(base_value, lambda v: ConfigLabel.query.filter_by(tenant_id=target.id, kind=item['kind'], value=v).first() is not None, suffix, 255)
+        base_value = copy_name if not as_default and is_scope else item['value']
+        if is_scope:
+            if ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value=base_value).first():
+                raise ValueError('Categoria workflow già presente: ripetere l’importazione per scegliere un altro nome.')
+            value = base_value
+        else:
+            value = _unique_value(base_value, lambda v: ConfigLabel.query.filter_by(tenant_id=target.id, kind=item['kind'], value=v).first() is not None, suffix, 255)
         fields = {key: value for key, value in item.items() if key not in {'ref', 'value', 'shared_source_id'}}
         label = ConfigLabel(tenant_id=target.id, value=value, **fields)
         db.session.add(label)
@@ -684,8 +735,9 @@ def _materialize_workflow_payload(payload, target, entry, copy_name, as_default,
         if wf['category_ref']:
             category = label_map[wf['category_ref']]
         else:
-            name = _unique_value(copy_name, lambda v: ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value=v).first() is not None, suffix, 255)
-            category = ConfigLabel(tenant_id=target.id, kind='category', value=name, group='catalogo workflow', description=entry.description)
+            if ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value=copy_name).first():
+                raise ValueError('Categoria workflow già presente: ripetere l’importazione per scegliere un altro nome.')
+            category = ConfigLabel(tenant_id=target.id, kind='category', value=copy_name, group='catalogo workflow', description=entry.description)
             db.session.add(category)
             db.session.flush()
     for item in deps['notification_types']:

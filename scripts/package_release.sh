@@ -34,6 +34,8 @@ REQUIRED_RELEASE_FILES=(
   "docs/HANDOFF.md"
   "docs/TRAINING.md"
   "docs/presentation/CIR_Operational_Training_IT.pptx"
+  "docs/presentation/CIR_Operational_Training_Visual.pptx"
+  "docs/presentation/CIR_Operational_Training_Visual.pdf"
   "docs/presentation/presentation-receipt.json"
   "docs/presentation/manual-first-page-documentazione_utente.png"
   "docs/presentation/manual-first-page-documentazione_amministrativa.png"

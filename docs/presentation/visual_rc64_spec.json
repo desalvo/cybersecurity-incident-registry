@@ -70,10 +70,10 @@
       "Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti.",
       "Collegare responsabilità, documenti e decisioni verificabili.",
       "Guidare operatori e responsabili con procedure configurabili, anche oltre la cybersecurity.",
-      "Rendere disponibili evidenze per audit, report e miglioramento continuo."
+      "Continuous Improvement: «CI» significa anche miglioramento continuo. Ogni rilascio aggiorna controlli, applicazione e documentazione tramite la pipeline CI."
     ],
     "images": [],
-    "notes": "CIR – modulo 3. Finalità dell’applicazione. Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti. Collegare responsabilità, documenti e decisioni verificabili. Guidare gli operatori con procedure, condizioni e tempi configurabili. Rendere disponibili evidenze per audit, report e miglioramento continuo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 3. Finalità dell’applicazione. Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti. Collegare responsabilità, documenti e decisioni verificabili. Guidare gli operatori con procedure, condizioni e tempi configurabili. Rendere disponibili evidenze per audit, report e miglioramento continuo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nLa sigla CI si legge anche Continuous Improvement, principio di evoluzione verificabile dell’applicazione e della documentazione.",
     "index": 3,
     "photo_art": "docs/presentation/visual_rc63_art/visual_03.jpg"
   },
@@ -104,10 +104,10 @@
       "Registro incidenti: apertura, classificazione, ricerca, filtri, audit e report.",
       "Workflow configurabili: categorie, step, obblighi, condizioni, notifiche e scadenze.",
       "Documenti e moduli PDF, statistiche, gestione evidenze e repository opzionale.",
-      "Multi-tenant, SSO, ruoli, controllo accessi e assistente AI AlBot opzionale."
+      "Plugin AlBot (con la lettera L, non «AIBot»): l’assistente si chiama Alex; disponibile come funzione opzionale. Multi-tenant, SSO e ruoli."
     ],
     "images": [],
-    "notes": "CIR – modulo 5. Mappa delle funzionalità. Registro incidenti, ricerca e filtri. Workflow configurabili, avvisi e scadenze. Notifiche, moduli PDF, report, statistiche e repository documentali. Multitenancy, SSO, autorizzazioni, audit e assistente AI opzionale. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 5. Mappa delle funzionalità. Registro incidenti, ricerca e filtri. Workflow configurabili, avvisi e scadenze. Notifiche, moduli PDF, report, statistiche e repository documentali. Multitenancy, SSO, autorizzazioni, audit e assistente AI opzionale. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nPronuncia e identità: AlBot contiene la lettera L (da Alex), non è il nome AIBot. L’assistente si chiama Alex.",
     "index": 5,
     "photo_art": "docs/presentation/visual_rc63_art/visual_05.jpg"
   },
@@ -124,7 +124,7 @@
       "Plugin opzionali attivabili e configurabili: AlBot e Alfresco; altri plugin possono essere aggiunti in futuro."
     ],
     "images": [],
-    "notes": "Architettura corrente: app/__init__.py registra i plugin ai_chatbot e alfresco; app/models.py definisce workflow e opzioni. La modularità rende possibile estendere il sistema con nuovi plugin. Il repository documentale, la SSO, le notifiche e il motore PDF non vanno presentati tutti come plugin. [Sources] app/__init__.py; app/plugins/; app/models.py; app/templates/ui/navigation.html.",
+    "notes": "Architettura corrente: app/__init__.py registra i plugin ai_chatbot e alfresco; app/models.py definisce workflow e opzioni. La modularità rende possibile estendere il sistema con nuovi plugin. Il repository documentale, la SSO, le notifiche e il motore PDF non vanno presentati tutti come plugin. [Sources] app/__init__.py; app/plugins/; app/models.py; app/templates/ui/navigation.html.\nAlBot, con L, prende il nome dall’assistente Alex; non è AIBot.",
     "index": 6,
     "photo_art": "docs/presentation/visual_rc63_art/visual_06.jpg"
   },
@@ -413,10 +413,10 @@
     "subtitle": "",
     "tag": "FUNZIONI",
     "bullets": [
-      "Nome, categorie, data e ora, persone e gravità descrivono il caso.",
-      "Il campo personal_data può attivare passaggi di valutazione specifici.",
-      "I task Update aprono la sezione con le informazioni da completare.",
-      "Le modifiche sono soggette a ruolo, tenant e stato della pratica."
+      "Nome, categorie, data e ora, persone coinvolte e gravità descrivono e classificano il caso.",
+      "Se si selezionano più categorie, l’ordine è rilevante: un workflow specifico della prima categoria prevale sul workflow di default.",
+      "La presenza di rischi per i diritti e le libertà degli interessati richiede valutazioni privacy e può comportare comunicazioni al Garante, nei casi previsti.",
+      "Una classificazione generale estesa di categorie e gravità è in fase di definizione e sarà resa disponibile prossimamente."
     ],
     "images": [
       {
@@ -431,7 +431,7 @@
         ]
       }
     ],
-    "notes": "CIR – modulo 20. Dati generali e classificazione. Nome, categorie, data e ora, persone e gravità descrivono il caso. Il campo personal_data può attivare passaggi di valutazione specifici. I task Update aprono la sezione con le informazioni da completare. Le modifiche sono soggette a ruolo, tenant e stato della pratica. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 20. Dati generali e classificazione. Nome, categorie, data e ora, persone e gravità descrivono il caso. La presenza di rischi per diritti e libertà può attivare verifiche e comunicazioni al Garante quando previste. I task Update aprono la sezione con le informazioni da completare. Le modifiche sono soggette a ruolo, tenant e stato della pratica. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 18
   },
   {
@@ -643,7 +643,7 @@
       "L’accesso a un tenant non autorizza automaticamente a un altro."
     ],
     "images": [],
-    "notes": "CIR – modulo 31. Cos’è un tenant. È un contesto logico che delimita incidenti, utenti e configurazioni. Tutti i tipi di utenti possono essere autorizzati a più tenant, secondo il ruolo assegnato in ciascuno. Il tenant attivo determina il perimetro delle operazioni e dei dati mostrati. L’accesso a un tenant non autorizza automaticamente a un altro. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 31. Cos’è un tenant. È un contesto logico che delimita incidenti, utenti e configurazioni. Tutti i tipi di utenti possono essere autorizzati a più tenant, secondo il ruolo assegnato in ciascuno. Il tenant attivo determina il perimetro delle operazioni e dei dati mostrati. L’accesso a un tenant non autorizza automaticamente a un altro. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nAll’avvio il tenant dispone di un workflow predefinito generico (Apertura → Analisi → Conclusione), anche se è stato creato copiando un altro tenant; per attivare procedure operative specifiche l’amministratore deve importare uno o più workflow dal catalogo. Nessun workflow di categoria vuoto deve essere copiato dal tenant sorgente. [Sources] app/routes.py:clone_tenant_config, ensure_tenant_generic_default_workflow; app/workflow_catalog.py.",
     "index": 29,
     "photo_art": "docs/presentation/visual_rc63_art/visual_29.jpg"
   },
@@ -705,13 +705,14 @@
     "subtitle": "",
     "tag": "TENANT",
     "bullets": [
-      "Workflow, categorie e cataloghi operativi: modificabili da admin tenant e super admin.",
-      "Tipi e template di notifica, destinatari e CC: secondo autorizzazioni.",
-      "Modelli PDF, mapping dei campi e integrazioni previste.",
-      "Plugin AI e altri override consentiti nel tenant."
+      "1. Configurare il tenant dalle pagine Admin o con «Wizard setup iniziale».",
+      "Il Wizard è disponibile ad admin del tenant e super admin: sezioni salvabili, saltabili, riprendibili e rieseguibili.",
+      "2. Importare workflow: Amministrazione → Workflow e catalogo → Catalogo workflow (UI classica: Admin → Anagrafiche e workflow).",
+      "Scegliere SPAM dal catalogo di Tenants Default e creare la copia locale; il workflow generico di default è già presente.",
+      "3. Verificare step, condizioni, categorie, gravità e notifiche; la creazione di nuovi tenant resta riservata al super admin."
     ],
     "images": [],
-    "notes": "CIR – modulo 35. Parametri specifici del tenant. Workflow, categorie e cataloghi operativi: modificabili da admin tenant e super admin. Tipi e template di notifica, destinatari e CC: secondo autorizzazioni. Modelli PDF, mapping dei campi e integrazioni previste. Plugin AI e altri override consentiti nel tenant. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine sintetica originale, specifica per il tema della slide: nessuna persona reale, nessuna fotografia esterna, nessuna intestazione o footer integrati.",
+    "notes": "CIR – modulo 35. Parametri specifici del tenant. Workflow, categorie e cataloghi operativi: modificabili da admin tenant e super admin. Tipi e template di notifica, destinatari e CC: secondo autorizzazioni. Modelli PDF, mapping dei campi e integrazioni previste. Plugin AI e altri override consentiti nel tenant. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine sintetica originale, specifica per il tema della slide: nessuna persona reale, nessuna fotografia esterna, nessuna intestazione o footer integrati.\nWizard tenant: nel menu Admin è disponibile “Wizard setup iniziale” (route /admin/setup-wizard), utilizzabile da un admin del tenant attivo o da un super admin (can_admin). Si può riavviare, salvare o saltare ogni gruppo: generali, struttura, personale, LDAP, SSO, motori AI/AlBot, Alfresco, documentazione, notifiche/SMTP e sicurezza/audit. La creazione di nuovi tenant, la clonazione di un tenant e il cambio password dell’utente admin locale rimangono riservati ai super admin. L’uso del Wizard non estende i privilegi del chiamante. Fonte: app/routes.py e app/templates/admin_setup_wizard.html.\nPROCEDURA OBBLIGATORIA DI ONBOARDING PER I PROCESSI SPECIFICI: (1) l’admin del tenant o il super admin configura i parametri manualmente o usando il Wizard; (2) importa uno o più workflow specifici dal catalogo Tenants Default, per rendere operativo il tenant sulle procedure di interesse; (3) verifica le dipendenze e abilita l’uso ai ruoli autorizzati. Il tenant nuovo possiede comunque un workflow generico reale predefinito, non un placeholder vuoto: è un fallback minimo e non sostituisce l’import dei workflow procedurali, per esempio SPAM. Clonare il tenant non deve importare workflow di categoria né workflow vuoti. [Sources] app/routes.py:clone_tenant_config, ensure_tenant_generic_default_workflow; app/workflow_catalog.py; app/templates/admin_setup_wizard.html.\nPERCORSO DI IMPORT CONFERMATO: nuova UI Amministrazione → Workflow e catalogo → Catalogo workflow; UI classica Admin → Anagrafiche e workflow → Catalogo workflow. Selezionare il workflow corrente di Tenants Default, scegliere tenant destinatario, premere «Crea una nuova copia nel tenant». [Sources] app/templates/ui/navigation.html; app/templates/base.html; app/templates/admin_workflow_catalog.html.",
     "index": 33,
     "photo_art": "docs/presentation/visual_rc64_art/visual_33.jpg"
   },
@@ -751,13 +752,14 @@
     "subtitle": "",
     "tag": "TENANT",
     "bullets": [
-      "Super admin: massima configurabilità dell’istanza, impostazioni globali, plugin e cataloghi condivisi, con gestione trasversale di tutti i tenant.",
-      "Admin di tenant: personalizza workflow, categorie, modelli PDF, notifiche e impostazioni consentite nel proprio tenant.",
-      "Operatori autorizzati: utilizzano procedure e workflow configurati, aggiornano incidenti e generano documenti; non governano la configurazione globale.",
-      "Lettori: consultano le informazioni permesse dal ruolo; non possono cambiare le regole applicative."
+      "Super admin: governa istanza, impostazioni globali, plugin, cataloghi condivisi e tenant; può crearne nuovi dal Wizard.",
+      "Admin del tenant: personalizza workflow, categorie, documenti, notifiche e impostazioni permesse del tenant attivo.",
+      "Configurazione completa: impostare i parametri manualmente o via Wizard, poi importare dal catalogo uno o più workflow specifici.",
+      "Operatori autorizzati: usano le procedure configurate e aggiornano gli incidenti, senza poteri di amministrazione.",
+      "Lettori: consultano le informazioni permesse dal ruolo e non possono modificare le regole del workflow."
     ],
     "images": [],
-    "notes": "CIR – modulo 37. Chi può modificare cosa. Super admin: istanza, catalogo centrale e configurazioni dei tenant autorizzati. Admin tenant: parametri, workflow, notifiche e moduli del proprio tenant. Operatori autorizzati: registrazione, aggiornamento e documenti dei singoli incidenti. Lettori: consultazione senza modifiche. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 37. Chi può modificare cosa. Super admin: istanza, catalogo centrale e configurazioni dei tenant autorizzati. Admin tenant: parametri, workflow, notifiche e moduli del proprio tenant. Operatori autorizzati: registrazione, aggiornamento e documenti dei singoli incidenti. Lettori: consultazione senza modifiche. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nIl Wizard è accessibile ad admin di tenant e super admin; singole operazioni globali restano riservate ai super admin. Per esempio il Wizard consente soltanto a un super admin la creazione di altri tenant e il cambio della password dell’utente locale admin. Le sezioni già configurate possono essere riviste e salvate nuovamente, mentre quelle non pertinenti si possono saltare.\nL’amministratore del tenant può configurare i propri parametri e importare procedure dal catalogo; il super admin può fare lo stesso per i tenant autorizzati. L’import dei workflow specifici è un passaggio necessario per utilizzare i processi operativi dedicati, mentre il default generico resta utilizzabile come base minima. [Sources] app/workflow_catalog.py, app/routes.py.",
     "index": 35,
     "photo_art": "docs/presentation/visual_rc63_art/visual_35.jpg"
   },
@@ -847,13 +849,13 @@
     "subtitle": "",
     "tag": "WORKFLOW",
     "bullets": [
-      "Categoria (esempio): SPAM associa l’incidente al workflow corrispondente; ogni categoria è definibile dagli amministratori.",
-      "Step (esempio): «Blocco account» guida un’azione di contenimento; ordine e contenuti degli step sono configurabili.",
-      "Condizione (esempio): personal_data attiva valutazioni e notifiche aggiuntive solo se necessario; le condizioni sono configurabili.",
-      "Dipendenze (esempi): label «Blocco», notifica «user alert» e modulo DPO; sono risorse modificabili e sostituibili dagli admin."
+      "Categoria: SPAM associa l’incidente al workflow corrispondente; ogni categoria è definibile dagli amministratori.",
+      "Step: «Blocco account» guida un’azione di contenimento; ordine e contenuti degli step sono configurabili.",
+      "Condizione: se sono presenti rischi per diritti e libertà degli interessati, si attivano ulteriori valutazioni e comunicazioni eventualmente dovute al Garante.",
+      "Dipendenze: label «Blocco», notifica «user alert» e modulo DPO; sono risorse modificabili e sostituibili dagli admin."
     ],
     "images": [],
-    "notes": "CIR – modulo 41. Workflow: categorie, step, condizioni, dipendenze. Categoria: «SPAM» applica la procedura all’incidente classificato come SPAM. Step: «Analisi preliminare» richiede di registrare riscontri e operazioni. Condizione personal_data: mostra gli step aggiuntivi solo nei casi in cui è attivata. Dipendenze: label azioni, tipi di notifica e modello PDF DPO collegati alle fasi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 41. Workflow: categorie, step, condizioni, dipendenze. Categoria: «SPAM» applica la procedura all’incidente classificato come SPAM. Step: «Analisi preliminare» richiede di registrare riscontri e operazioni. Condizione di rischio per i diritti e le libertà: mostra gli step aggiuntivi solo nei casi in cui è attivata. Dipendenze: label azioni, tipi di notifica e modello PDF DPO collegati alle fasi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
     "index": 39,
     "photo_art": "docs/presentation/visual_rc63_art/visual_39.jpg"
   },
@@ -864,13 +866,13 @@
     "subtitle": "",
     "tag": "WORKFLOW",
     "bullets": [
-      "Selezione workflow: un admin sceglie la definizione condivisa da utilizzare.",
-      "Solo admin tenant e super admin eseguono import e configurazioni.",
-      "Tutti gli utenti autorizzati del tenant usano i workflow resi disponibili.",
-      "Dopo l’import verificare condizioni, dipendenze, ruoli e stato corrente."
+      "Aprire Amministrazione → Workflow e catalogo → Catalogo workflow (UI classica: Admin → Anagrafiche e workflow → Catalogo workflow).",
+      "Scegliere SPAM nel catalogo Tenants Default, indicare il tenant e premere «Crea una nuova copia nel tenant».",
+      "Workflow e categoria avranno lo stesso nome (SPAM, poi SPAM v2 se occupato); le gravità esistenti sono riutilizzate.",
+      "Il default generico resta disponibile. Admin tenant e super admin verificano step, condizioni e notifiche prima dell’uso."
     ],
     "images": [],
-    "notes": "CIR – modulo 42. Workflow: selezione e import dal catalogo. Selezione workflow: un admin sceglie la definizione condivisa da utilizzare. Solo admin tenant e super admin eseguono import e configurazioni. Tutti gli utenti autorizzati del tenant usano i workflow resi disponibili. Dopo l’import verificare condizioni, dipendenze, ruoli e stato corrente. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 42. Workflow: selezione e import dal catalogo. Selezione workflow: un admin sceglie la definizione condivisa da utilizzare. Solo admin tenant e super admin eseguono import e configurazioni. Tutti gli utenti autorizzati del tenant usano i workflow resi disponibili. Dopo l’import verificare condizioni, dipendenze, ruoli e stato corrente. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nIMPORTANTE: configurazione parametri e import workflow sono due attività distinte. La presenza del default generico non deve essere descritta come sostitutiva delle procedure specializzate: dopo il Wizard un admin importa SPAM dal catalogo, verifica la categoria SPAM omonima e crea un incidente classificato SPAM. In caso di nomi già presenti, importazione assegna SPAM v2 a workflow e categoria. Le gravità disponibili nel tenant vengono riutilizzate, comprese quelle ereditate. [Sources] app/workflow_catalog.py; app/routes.py.\nPERCORSO DI IMPORT CONFERMATO: nuova UI Amministrazione → Workflow e catalogo → Catalogo workflow; UI classica Admin → Anagrafiche e workflow → Catalogo workflow. Selezionare il workflow corrente di Tenants Default, scegliere tenant destinatario, premere «Crea una nuova copia nel tenant». [Sources] app/templates/ui/navigation.html; app/templates/base.html; app/templates/admin_workflow_catalog.html.",
     "index": 40,
     "photo_art": "docs/presentation/visual_rc63_art/visual_40.jpg"
   },
@@ -932,13 +934,13 @@
     "subtitle": "",
     "tag": "WORKFLOW",
     "bullets": [
-      "Il workflow SPAM è solo un caso didattico: qui ne diamo una panoramica; nelle slide successive verrà discusso in dettaglio, passo dopo passo.",
-      "Gli admin collegano ai passaggi i tipi di notifica: user alert (primo avviso all’utente), CSIRT (segnalazione), DPO (referente privacy).",
-      "personal_data è una condizione booleana: quando attiva, abilita due ulteriori valutazioni/notifiche relative ai dati personali.",
-      "Il PDF DPO è solo una dipendenza di esempio; gli admin possono caricare altri moduli e rimappare i campi."
+      "Il workflow SPAM è un caso didattico: nelle slide successive verrà discusso passo dopo passo.",
+      "Gli admin collegano ai passaggi i tipi di notifica: user alert, CSIRT e DPO (referente privacy).",
+      "La presenza di rischi per diritti e libertà degli interessati abilita due fasi condizionali di valutazione e comunicazione, se applicabili.",
+      "Il PDF DPO è una dipendenza di esempio; gli admin possono caricare altri moduli e rimappare i campi."
     ],
     "images": [],
-    "notes": "CIR – modulo 46. Workflow SPAM: adattamento del caso didattico. I 13 step coprono presa in carico, analisi, blocco, comunicazioni, documenti e chiusura. Le notifiche richieste vanno associate a template e destinatari: user alert, CSIRT, DPO e utente. personal_data è la condizione collegata al rischio sui dati personali: due fasi sono visibili solo se attiva. Il template PDF DPO è una dipendenza dell’esempio, da verificare e adattare al tenant. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 46. Workflow SPAM: adattamento del caso didattico. I 13 step coprono presa in carico, analisi, blocco, comunicazioni, documenti e chiusura. Le notifiche richieste vanno associate a template e destinatari: user alert, CSIRT, DPO e utente. La presenza di rischi per diritti e libertà è la condizione: due fasi sono visibili solo se attiva. Il template PDF DPO è una dipendenza dell’esempio, da verificare e adattare al tenant. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
     "index": 44,
     "photo_art": "docs/presentation/visual_rc63_art/visual_44.jpg"
   },
@@ -993,13 +995,13 @@
     "subtitle": "",
     "tag": "WORKFLOW",
     "bullets": [
-      "Nel caso didattico SPAM, che verrà approfondito più avanti, gli step possono prevedere comunicazioni all’utente («user alert») e al CSIRT.",
+      "Nell’esempio SPAM, gli step possono prevedere comunicazioni all’utente («user alert») e al CSIRT.",
       "Altre fasi possono richiedere un documento e una comunicazione al DPO.",
-      "La notifica formale all’utente dipende dalla condizione personal_data.",
-      "Gli amministratori stabiliscono l’ordine di visualizzazione degli step tramite un numero/ID; non è una priorità normativa."
+      "Eventuali notifiche formali agli interessati e al Garante dipendono dai rischi per diritti e libertà e dagli obblighi applicabili.",
+      "Gli amministratori definiscono l’ordine degli step mediante un numero/ID; non è una priorità normativa."
     ],
     "images": [],
-    "notes": "CIR – modulo 49. Workflow SPAM: esempio di notifiche. L’esempio SPAM prevede comunicazione all’utente (user alert) e al CSIRT. Altre fasi possono richiedere un documento e una comunicazione al DPO. La notifica formale all’utente dipende dalla condizione personal_data. L’ordine degli step è definito dagli admin con un ID/numero progressivo; non ne determina la priorità normativa. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 49. Workflow SPAM: esempio di notifiche. L’esempio SPAM prevede comunicazione all’utente (user alert) e al CSIRT. Altre fasi possono richiedere un documento e una comunicazione al DPO. La notifica formale agli interessati dipende dalla valutazione dei rischi e dagli obblighi applicabili. L’ordine degli step è definito dagli admin con un ID/numero progressivo; non ne determina la priorità normativa. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 47
   },
   {
@@ -1152,10 +1154,10 @@
     "subtitle": "",
     "tag": "DOCUMENTI",
     "bullets": [
-      "Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro.",
-      "Statistiche: menu principale «Report» → «Statistiche».",
-      "Il report descrive la singola pratica; le statistiche mostrano trend aggregati.",
-      "Le cifre di laboratorio non rappresentano dati reali di produzione."
+      "Dal menu principale apri «Statistiche»: CIR mostra risultati reali della pagina /reports/stats, filtrabili per intervallo temporale.",
+      "Le schede presentano il numero di incidenti e la durata media, con grafici per categorie e dati interessati.",
+      "Usa «Aggiorna finestra ricercata» per il periodo e «Scarica PDF statistiche» per esportare il riepilogo.",
+      "Le statistiche della screenshot CI si riferiscono esclusivamente ai dati sintetici del laboratorio."
     ],
     "images": [],
     "notes": "CIR – modulo 57. Report e statistiche: dove trovarli. Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro. Statistiche: menu principale «Report» → «Statistiche». Il report descrive la singola pratica; le statistiche mostrano trend aggregati. Le cifre di laboratorio non rappresentano dati reali di produzione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
@@ -1170,8 +1172,9 @@
     "bullets": [
       "Manuale utente (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
       "Manuale amministratore (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
-      "Nell’applicazione: menu «Aiuto» → «Manuale utente» e «Amministrazione» per gli utenti autorizzati.",
-      "Disponibili anche manuali EN, guida Alfresco e brochure."
+      "Queste slide in PDF: github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/presentation/CIR_Operational_Training_Visual.pdf",
+      "Documentazione generata automaticamente dalla CI e rigenerata integralmente dopo ogni aggiornamento applicativo.",
+      "Nell’app: «Aiuto»; disponibili anche manuali EN, guida Alfresco e brochure."
     ],
     "images": [
       {
@@ -1186,7 +1189,7 @@
         ]
       }
     ],
-    "notes": "CIR – modulo 58. Documentazione utente e amministrativa. Manuale utente (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf Manuale amministratore (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf In applicazione: «Aiuto» per gli utenti e «Aiuto / Amministrazione» per gli admin. Disponibili anche manuali EN, guida Alfresco e brochure. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 58. Documentazione utente e amministrativa. Manuale utente (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf Manuale amministratore (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf In applicazione: «Aiuto» per gli utenti e «Aiuto / Amministrazione» per gli admin. Disponibili anche manuali EN, guida Alfresco e brochure. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.\nLa documentazione e la presentazione sono generate automaticamente dai sorgenti e dalle screenshot reali di CI, verificate prima della pubblicazione sul branch main.",
     "index": 57
   },
   {
@@ -1224,10 +1227,10 @@
     "subtitle": "",
     "tag": "DOCUMENTI",
     "bullets": [
-      "AlBot è opzionale: per default è disabilitato e appare solo se un amministratore abilita il plugin.",
-      "Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity; la scelta richiede configurazione.",
-      "La RAG può usare una rappresentazione sanitizzata/anonimizzata dei dati applicativi, senza esporre informazioni personali.",
-      "Le risposte possono aiutare la collaborazione tra gli utenti autorizzati dello stesso tenant; il perimetro dei permessi rimane vincolante."
+      "AlBot (con la L, non «AIBot»), detto Alex: assistente AI opzionale di CIR. Il suo avatar originale cartoon identifica le risposte.",
+      "È disattivato per impostazione predefinita: compare solo se un amministratore abilita e configura il plugin del tenant.",
+      "Supporta ChatGPT, Claude, Gemini, Ollama e Perplexity; guida gli utenti senza eseguire autonomamente azioni.",
+      "Il contesto RAG è filtrato per tenant e privilegi: verificare sempre le risposte prima di usarle."
     ],
     "images": [
       {
@@ -1276,7 +1279,7 @@
   {
     "original": 62,
     "kind": "chapter",
-    "title": "06 / Laboratorio SPAM",
+    "title": "06 / Laboratorio didattico: esempio di incidente di SPAM",
     "subtitle": "Un incidente sintetico, tredici fasi reali della UI",
     "tag": "Un incidente sintetico, tredici fasi reali della UI",
     "bullets": [],
@@ -1299,14 +1302,14 @@
   {
     "original": 63,
     "kind": "content",
-    "title": "Caso SPAM didattico: scenario e condizione",
+    "title": "Laboratorio Tutorial: apertura di un incidente con workflow SPAM",
     "subtitle": "",
     "tag": "SPAM",
     "bullets": [
-      "Incidente sintetico: account compromesso e invio non autorizzato di SPAM.",
-      "Riferimento DEMO-SPAM-2026-0001 in un tenant di laboratorio.",
-      "personal_data è il flag relativo al rischio per diritti e libertà degli interessati (dati personali).",
-      "Lo attiviamo per mostrare tutte le 13 fasi, comprese le due condizionali."
+      "Nel tenant «Tutorial»: Amministrazione → Workflow e catalogo → Catalogo workflow. Importare SPAM da Tenants Default (UI classica: Admin → Anagrafiche e workflow).",
+      "Dalla pagina principale aprire «Incidenti» → «Nuovo incidente»; scegliere «Nessun modello» oppure un modello con campi precompilati.",
+      "Trascinare la categoria SPAM da «Categorie disponibili» a «Categorie selezionate» e posizionarla per prima; eventuali altre categorie non aggiungono altri workflow.",
+      "Compilare il caso di prova, premere «Crea» e verificare gli step del workflow SPAM corrente. Nell’esempio sono presenti rischi per diritti e libertà, mostrando anche le fasi condizionali."
     ],
     "images": [
       {
@@ -1321,7 +1324,7 @@
         ]
       }
     ],
-    "notes": "CIR – modulo 63. Caso SPAM didattico: scenario e condizione. Incidente sintetico: account compromesso e invio non autorizzato di SPAM. Riferimento DEMO-SPAM-2026-0001 in un tenant di laboratorio. personal_data è il flag relativo al rischio per diritti e libertà degli interessati (dati personali). Lo attiviamo per mostrare tutte le 13 fasi, comprese le due condizionali. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "Apertura guidata nel tenant Tutorial: importare SPAM come copia corrente per la categoria SPAM; con un nuovo incidente (manuale o da modello) selezionare SPAM al primo posto nell ordine delle categorie; confermare con Crea e verificare le card e le frecce. Se la categoria non compare, verificare catalogo, import e scope di associazione nel tenant. Un modello non assegna direttamente il workflow; le altre categorie non aggiungono altri step. Scenario di prova DEMO-SPAM-2026-0001 con valutazione positiva dei rischi per diritti e libertà, per mostrare anche le fasi condizionali. [Sources] app/workflow_lifecycle.py::workflow_scope_for_categories, app/routes.py::workflow_steps_for_incident, app/routes.py::incident_new, app/workflow_catalog.py.\nPERCORSO DI IMPORT CONFERMATO: nuova UI Amministrazione → Workflow e catalogo → Catalogo workflow; UI classica Admin → Anagrafiche e workflow → Catalogo workflow. Selezionare il workflow corrente di Tenants Default, scegliere tenant destinatario, premere «Crea una nuova copia nel tenant». [Sources] app/templates/ui/navigation.html; app/templates/base.html; app/templates/admin_workflow_catalog.html.",
     "index": 62
   },
   {
@@ -1332,7 +1335,7 @@
     "tag": "SPAM",
     "bullets": [
       "Il banner superiore mostra identificativo e stato dell’incidente.",
-      "La UI presenta 13 fasi e 12 frecce quando personal_data è attivo.",
+      "La UI presenta 13 fasi e 12 frecce quando sono presenti rischi per diritti e libertà degli interessati.",
       "I pulsanti corrispondono a operazioni, notifiche e documenti.",
       "La schermata proviene dalla CI con dati interamente sintetici."
     ],
@@ -1349,7 +1352,7 @@
         ]
       }
     ],
-    "notes": "CIR – modulo 64. Workflow SPAM: scheda reale dell’incidente. Il banner superiore mostra identificativo e stato dell’incidente. La UI presenta 13 fasi e 12 frecce quando personal_data è attivo. I pulsanti corrispondono a operazioni, notifiche e documenti. La schermata proviene dalla CI con dati interamente sintetici. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 64. Workflow SPAM: scheda reale dell’incidente. Il banner superiore mostra identificativo e stato dell’incidente. La UI presenta 13 fasi e 12 frecce quando sono presenti rischi per diritti e libertà degli interessati. I pulsanti corrispondono a operazioni, notifiche e documenti. La schermata proviene dalla CI con dati interamente sintetici. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 63
   },
   {
@@ -1455,17 +1458,17 @@
   {
     "original": 69,
     "kind": "content",
-    "title": "Workflow SPAM: step 11–12 e personal_data",
+    "title": "Workflow SPAM: step 11–12 e rischi per diritti e libertà",
     "subtitle": "",
     "tag": "SPAM",
     "bullets": [
-      "personal_data indica che l’incidente riguarda dati personali; attiva le fasi condizionate di valutazione e notifica previste dal workflow.",
-      "Step 11 — Comunicazione al Garante: documentare le valutazioni previste.",
-      "Step 12 — Notifica formale all’utente, se la condizione è attiva.",
-      "Con personal_data disattivato, i due step non sono applicabili."
+      "La presenza di rischi per diritti e libertà degli interessati attiva le valutazioni e le notifiche previste dal workflow.",
+      "Step 11 — Interlocuzione con il Garante: valutare se sussistono gli obblighi di notifica previsti.",
+      "Step 12 — Eventuale comunicazione agli interessati: documentare la decisione e gli adempimenti applicabili.",
+      "In assenza di tali rischi, i due step condizionali non sono richiesti nell’esempio didattico."
     ],
     "images": [],
-    "notes": "CIR – modulo 69. Workflow SPAM: step 11–12 e personal_data. personal_data indica che l’incidente riguarda dati personali; attiva le fasi condizionate di valutazione e notifica previste dal workflow. Step 11 — Comunicazione al Garante: documentare le valutazioni previste. Step 12 — Notifica formale all’utente, se la condizione è attiva. Con personal_data disattivato, i due step non sono applicabili. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 69. Workflow SPAM: step 11–12 e rischio per i diritti e le libertà. La presenza di rischi per diritti e libertà degli interessati attiva le fasi condizionate di valutazione e notifica previste dal workflow. Step 11 — Comunicazione al Garante: documentare le valutazioni previste. Step 12 — Notifica formale all’utente, se la condizione è attiva. In assenza di rischi per diritti e libertà, i due step non sono applicabili. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 68
   },
   {
@@ -1491,13 +1494,13 @@
     "subtitle": "",
     "tag": "SPAM",
     "bullets": [
-      "Le palette «Categorie disponibili» e «Dati interessati disponibili» mostrano una sola scelta per ciascun valore logico nel tenant.",
-      "Esempio: SPAM e SPAM [Tenants Default] non devono apparire due volte; lo stesso vale per i dati interessati ereditati.",
-      "Quando esiste una label locale equivalente, CIR ne riutilizza l’ID e indica se è locale oppure integrata con Tenants Default.",
-      "Le associazioni storiche restano conservate; la screenshot aggiornata sarà acquisita e verificata dalla CI su un incidente sintetico."
+      "Le categorie interessate classificano l’incidente e identificano il contesto della procedura: una pratica può avere più categorie.",
+      "Il workflow operativo è determinato dalla prima categoria selezionata, se vi è associato un workflow specifico; altrimenti si applica quello predefinito del tenant.",
+      "Aggiungere altre categorie NON somma i workflow e non inserisce automaticamente ulteriori step: la prima categoria e il suo ordine sono determinanti.",
+      "È in preparazione una classificazione generale estesa delle categorie e delle gravità degli incidenti, che sarà resa disponibile prossimamente."
     ],
     "images": [],
-    "notes": "CIR – modulo 71. Workflow SPAM: categorie e dati dell’incidente. La schermata mostra le categorie e i dati della pratica. Nella scelta della categoria la replica di Tenants Default non deve comparire come duplicato. Le categorie locali prevalgono sulle omonime ereditate, con provenienza visibile. I dati sono modificabili soltanto secondo ruoli e autorizzazioni. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "Categorie interessate e selezione del workflow: è la prima categoria che può scegliere un workflow specifico del tenant; le ulteriori categorie classificano il caso e non causano unione di procedure. Verificato in app/workflow_lifecycle.py::workflow_scope_for_categories. La classificazione estesa di categorie e gravità è in definizione, non attualmente disponibile.",
     "index": 70,
     "photo_art": "docs/presentation/visual_rc63_art/visual_70.jpg"
   },
@@ -1527,16 +1530,16 @@
       "Analisi e contenimento registrati con evidenze.",
       "Notifiche obbligatorie effettuate e verificate.",
       "Documenti richiesti disponibili e validati.",
-      "Condizioni personal_data soddisfatte, se applicabili, prima di concludere."
+      "Verifica dei rischi per diritti e libertà e delle eventuali comunicazioni al Garante completata prima della chiusura."
     ],
     "images": [],
-    "notes": "CIR – modulo 73. Workflow SPAM: verifica finale. Analisi e contenimento registrati con evidenze. Notifiche obbligatorie effettuate e verificate. Documenti richiesti disponibili e validati. Condizioni personal_data soddisfatte, se applicabili, prima di concludere. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 73. Workflow SPAM: verifica finale. Analisi e contenimento registrati con evidenze. Notifiche obbligatorie effettuate e verificate. Documenti richiesti disponibili e validati. Valutazione dei rischi per diritti e libertà completata, se applicabili, prima di concludere. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 72
   },
   {
     "original": 74,
     "kind": "content",
-    "title": "Lezioni del laboratorio SPAM",
+    "title": "Considerazioni sull’esempio didattico per un incidente di tipo SPAM",
     "subtitle": "",
     "tag": "SPAM",
     "bullets": [
@@ -1635,10 +1638,11 @@
       "Progetto: https://github.com/desalvo/cybersecurity-incident-registry",
       "Manuale utente IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
       "Manuale amministratore IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
-      "Disponibili manuali EN, guida Alfresco, brochure e laboratorio."
+      "Slide didattiche (PDF): https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/presentation/CIR_Operational_Training_Visual.pdf",
+      "Tutti i documenti sono prodotti e rigenerati automaticamente dalla CI a ogni aggiornamento applicativo, verificati e pubblicati su main."
     ],
     "images": [],
-    "notes": "CIR – modulo 77. Documentazione e repository. Progetto: https://github.com/desalvo/cybersecurity-incident-registry Manuale utente IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf Manuale amministratore IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf Disponibili manuali EN, guida Alfresco, brochure e laboratorio. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR – modulo 77. Documentazione e repository. Progetto: https://github.com/desalvo/cybersecurity-incident-registry Manuale utente IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf Manuale amministratore IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf Disponibili manuali EN, guida Alfresco, brochure e laboratorio. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nQuesta è la documentazione corrente, senza suffix RCxx, rigenerata dalla CI a ogni aggiornamento del software o degli asset didattici.",
     "index": 78,
     "photo_art": "docs/presentation/visual_rc63_art/visual_78.jpg"
   },

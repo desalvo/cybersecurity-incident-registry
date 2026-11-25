@@ -21,6 +21,8 @@ CAPTURE_IDS = (
     'login-desktop', 'login-mobile', 'registry-desktop', 'registry-closed-state',
     'registry-mobile', 'registry-mobile-menu', 'incident-desktop', 'incident-mobile',
     'spam-incident-desktop', 'spam-incident-config-labels', 'spam-workflow-steps',
+    'workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
+    'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel',
     'pdf-mapping-configuration', 'pdf-generated-preview', 'alfresco-settings-desktop',
     'alfresco-incident-documents', 'assistant-desktop', 'assistant-mobile',
     'interface-settings-desktop', 'classic-registry-desktop', 'admin-modules-desktop',
@@ -79,13 +81,13 @@ def _verify(pptx, manifest, env):
     )
 
 
-def test_25_ci_captures_all_have_valid_provenance(full_browser_capture):
+def test_current_ci_captures_all_have_valid_provenance(full_browser_capture):
     _, pptx, manifest, env = full_browser_capture
     proc = _verify(pptx, manifest, env)
     assert proc.returncode == 0, proc.stderr
     details = json.loads(proc.stdout)
-    assert details['slides'] == 87
-    assert details['verified_browser_screenshots'] == 25
+    assert details['slides'] == 88 + len(CAPTURE_IDS)
+    assert details['verified_browser_screenshots'] == len(CAPTURE_IDS)
     assert details['mandatory_ci_images_embedded'] is True
 
 

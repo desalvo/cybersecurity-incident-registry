@@ -37,6 +37,9 @@ def test_provenance_preflight_passes_and_rejects_unvetted_images():
 def test_rc62_presentation_and_pdf_reject_retired_people_silhouettes():
     deck=PRES/'CIR_Operational_Training_Visual_RC62.pptx'
     pdf=PRES/'CIR_Operational_Training_Visual_RC62.pdf'
+    if not deck.exists() or not pdf.exists():
+        import pytest
+        pytest.skip('Legacy presentation intentionally removed from the repository')
     verify=ROOT/'scripts/verify_visual_training_rc62.py'
     proc=subprocess.run([sys.executable,str(verify),'--pptx',str(deck),'--pdf',str(pdf)],capture_output=True,text=True)
     assert proc.returncode==0,proc.stderr
@@ -55,4 +58,4 @@ def test_ci_uses_current_rc63_and_real_screenshots():
     assert 'scripts/build_training_visual_rc64.js' in flow
     assert 'scripts/verify_visual_training_rc64.py' in flow
     assert 'CIR_REQUIRE_REAL_SCREENSHOTS' in flow
-    assert 'CIR_Operational_Training_Visual_RC71.pptx' in flow
+    assert 'CIR_Operational_Training_Visual.pptx' in flow

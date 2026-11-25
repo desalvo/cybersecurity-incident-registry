@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% macro t(it,en) %}{{ en if current_language == 'en' else it }}{% endmacro %}
+{% block content %}
+<div class="card">
+  <h2>{{ t('Gestione e cancellazione template di notifica', 'Manage and delete notification templates') }}</h2>
+  <p class="muted">{{ t('Seleziona uno o piu template del tenant attivo e premi Cancella selezionati. Possono eseguire l’operazione gli admin del tenant e i super admin. La cancellazione viene confermata ed eseguita in un’unica transazione.', 'Select one or more templates in the active tenant and click Delete selected. Tenant admins and super admins can perform this operation. Deletion requires confirmation and is processed in a single transaction.') }}</p>
+  {% if is_defaults_tenant %}
+  <p class="warning">{{ t('Attenzione: stai amministrando Tenants Default. La cancellazione di un template condiviso riguarda anche la sua ereditarieta negli altri tenant; gli override locali non vengono modificati.', 'Warning: you are managing Tenants Default. Deleting a shared template also affects inheritance in other tenants, while local overrides are preserved.') }}</p>
+  {% else %}
+  <p class="muted">{{ t('Se cancelli un template locale con lo stesso tipo e nome di uno condiviso da Tenants Default, la versione condivisa torna disponibile automaticamente. Gli override degli altri tenant non sono toccati. I riferimenti ancora utilizzati sono protetti.', 'If you delete a local template with the same type and name as a Tenants Default template, the shared version is restored automatically. Overrides in other tenants are not changed. Templates still referenced by protected records cannot be deleted.') }}</p>
+  {% endif %}
+  <p><a class="button secondary" href="{{ url_for('main.notification_template_new') }}">{{ t('Aggiungi template', 'Add template') }}</a></p>
+</div>
+<div class="card">
+  <h3>{{ t('Template del tenant', 'Tenant templates') }}</h3>
+  <form method="post" action="{{ url_for('main.notification_templates_manage') }}" data-cir-notification-bulk
+        data-cir-empty-selection="{{ t('Selezionare almeno un template da cancellare.', 'Select at least one template to delete.') }}"
+        data-cir-confirm="{{ t('Confermi la cancellazione dei template selezionati? I template condivisi possono essere ripristinati; l’operazione non puo essere annullata.', 'Delete the selected templates? Shared templates may be restored from Tenants Default; this operation cannot be undone.') }}">
+    <div class="table-responsive">
+      <table class="table">
+        <thead><tr>
+          <th><label><input type="checkbox" data-cir-notification-select-all aria-label="{{ t('Seleziona tutti i template', 'Select all templates') }}"> {{ t('Tutti', 'All') }}</label></th>
+          <th>{{ t('Tipo', 'Type') }}</th><th>{{ t('Nome', 'Name') }}</th><th>{{ t('Oggetto', 'Subject') }}</th>
+          <th>{{ t('Provenienza', 'Origin') }}</th><th>{{ t('Predefinito', 'Default') }}</th><th>{{ t('Azioni', 'Actions') }}</th>
+        </tr></thead>
+        <tbody>
+          {% for entry in templates %}
+          <tr>
+            <td><label><input type="checkbox" name="template_ids" value="{{ entry.id }}" data-cir-notification-select aria-label="{{ t('Seleziona', 'Select') }} {{ entry.name }}"> {{ t('Seleziona', 'Select') }}</label></td>
+            <td>{{ kinds.get(entry.kind, entry.kind) }}</td>
+            <td><strong>{{ entry.name }}</strong></td>
+            <td>{{ entry.subject }}</td>
+            <td>{% if is_defaults_tenant %}{{ t('Sorgente Tenants Default', 'Tenants Default source') }}{% elif inherited_sources.get(entry.id) %}{{ t('Ereditato da Tenants Default', 'Inherited from Tenants Default') }}{% else %}{{ t('Locale / override del tenant', 'Local / tenant override') }}{% endif %}</td>
+            <td>{{ t('Si', 'Yes') if entry.is_default else t('No', 'No') }}</td>
+            <td><a class="button secondary" href="{{ url_for('main.notification_template', kind=entry.kind, edit=entry.id) }}">{{ t('Modifica', 'Edit') }}</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="muted">{{ t('Non sono presenti template di notifica per questo tenant.', 'There are no notification templates in this tenant.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p><button class="danger" type="submit" {% if not templates %}disabled{% endif %}>{{ t('Cancella selezionati', 'Delete selected') }}</button></p>
+  </form>
+</div>
+{% endblock %}

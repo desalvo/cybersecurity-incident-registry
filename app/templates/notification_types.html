@@ -2,7 +2,8 @@
 {% block content %}
 <div class="card">
   <h2>Tipi di notifica</h2>
-  <p class="muted">I tipi di notifica determinano i gruppi di template disponibili. Destinatario e CC delle notifiche manuali sono configurati esclusivamente nei singoli template.</p>
+  <p class="muted">I tipi di notifica determinano i gruppi di template disponibili. Destinatario e CC delle notifiche manuali sono configurati nei singoli template.</p>
+  <p class="muted">La cancellazione elimina prima i template di questo tipo e poi il tipo. Se il tipo esiste in Tenants Default, il tipo e i template condivisi saranno ripristinati immediatamente. Gli override degli altri tipi e degli altri tenant restano invariati.</p>
 </div>
 <div class="card">
   <h3>{{ 'Modifica tipo' if editing else 'Aggiungi tipo di notifica' }}</h3>
@@ -25,7 +26,7 @@
     <tr>
       <td><code>{{ t.code }}</code></td><td>{{ t.label }}</td><td>nei template</td><td>{{ 'abilitato' if t.enabled else 'disabilitato' }}</td>
       <td class="button-row"><a class="button secondary" href="{{ url_for('main.notification_types', edit=t.id) }}">Modifica</a>
-        <form method="post" data-cir-confirm="Cancellare questo tipo di notifica?"><input type="hidden" name="type_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit" {% if t.code in ['user','csirt','dpo'] %}disabled{% endif %}>Cancella</button></form>
+        <form method="post" data-cir-confirm="Cancellare il tipo e tutti i suoi template? Se presente in Tenants Default, verrà subito ripristinato con i template condivisi."><input type="hidden" name="type_id" value="{{ t.id }}"><input type="hidden" name="action" value="delete"><button class="danger" type="submit">Cancella</button></form>
       </td>
     </tr>
     {% endfor %}

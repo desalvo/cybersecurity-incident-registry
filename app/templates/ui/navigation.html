@@ -34,6 +34,7 @@
     {% if current_tenant_role in ['admin','superuser'] %}
     <details class="cir-nav-group"><summary>{{ icon('bell') }}<span>{{ label('Notifiche','Notifications') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
       {{ item('main.notification_types','Tipi di notifica','Notification types') }}
+      {{ item('main.notification_templates_manage','Gestisci / cancella template','Manage / delete templates') }}
       {{ item('main.notification_template_new','Aggiungi template','Add template') }}
       {% for nt in notification_menu_types %}<a href="{{ url_for('main.notification_template', kind=nt.code) }}" data-cir-nav-link>Template {{ nt.label }}</a>{% endfor %}
     </div></details>
@@ -54,7 +55,7 @@
     <p class="cir-nav-caption cir-nav-caption-section">{{ label('AMMINISTRAZIONE','ADMINISTRATION') }}</p>
     <details class="cir-nav-group"><summary>{{ icon('workflow') }}<span>{{ label('Workflow e catalogo','Workflows and catalog') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
       {{ item('main.admin_workflow_catalog','Catalogo workflow','Workflow catalog') }}
-      {{ item('main.admin_incident_workflows','Flussi operativi incidenti','Incident workflows') }}
+      {{ item('main.admin_incident_workflows','Workflow incidenti','Incident workflows') }}
       {{ item('main.admin_incident_templates','Modelli incidente','Incident templates') }}
       {{ item('main.admin_incident_form_fields','Layout campi incidenti','Incident field layout') }}
       {{ item('main.admin_incident_button_actions','Azioni automatiche pulsanti','Automatic button actions') }}

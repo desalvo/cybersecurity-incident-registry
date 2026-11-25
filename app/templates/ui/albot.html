@@ -7,7 +7,7 @@
     <header class="cir-albot-header">
       <button id="cir-albot-back" class="cir-albot-back" type="button"><span aria-hidden="true">‹</span> {{ albot_text('Torna all’incidente', 'Back to incident') if albot_on_incident else albot_text('Torna alla pagina', 'Back to page') }}</button>
       <div class="cir-albot-header-row">
-        <div class="cir-albot-identity"><span class="cir-albot-symbol">{{ albot_symbol() }}</span><div><h2 id="cir-albot-title">AlBot</h2><p>{{ albot_text('Guida all’applicazione · anche Alex', 'Application guide · also Alex') }}</p></div></div>
+        <div class="cir-albot-identity"><span class="cir-albot-symbol"><img class="cir-albot-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"></span><div><h2 id="cir-albot-title">AlBot</h2><p>{{ albot_text('Guida all’applicazione · anche Alex', 'Application guide · also Alex') }}</p></div></div>
         <div class="cir-albot-tools">
           <button id="cir-albot-expand" type="button" aria-label="{{ albot_text('Espandi conversazione', 'Expand conversation') }}" aria-pressed="false" title="{{ albot_text('Espandi conversazione', 'Expand conversation') }}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
           <button id="cir-albot-close" type="button" aria-label="{{ albot_text('Chiudi AlBot', 'Close AlBot') }}" title="{{ albot_text('Chiudi AlBot', 'Close AlBot') }}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>

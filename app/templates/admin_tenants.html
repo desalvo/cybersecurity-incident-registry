@@ -3,6 +3,7 @@
 <div class="card">
   <h2>Tenant</h2>
   <p><a href="{{ url_for('main.admin_tenant_defaults') }}">Tenants Default</a> gestisce i parametri comuni. Selezionalo come sorgente per creare un tenant con i soli parametri condivisi. La scelta di un tenant operativo clona anche la sua configurazione, poi aggiunge i defaults senza sostituirla.</p>
+  <p class="muted">Clonando un tenant si copiano le configurazioni, ma non i workflow legati alle categorie: il nuovo tenant riceve un unico workflow predefinito generico (Apertura, Analisi, Conclusione). Gli admin possono importare successivamente i workflow specifici dal catalogo di Tenants Default.</p>
   <p class="muted">I tenant separano utenti, incidenti e configurazioni operative. Le configurazioni dei moduli documento, HTTPS/SSL, URL applicazione e fuso orario applicazione restano condivise.</p>
   <p><strong>Tenant attivo:</strong> {{ active_tenant.name if active_tenant else 'default' }}. Il tenant attivo determina quali configurazioni tenant-specifiche vengono visualizzate e modificate dai superuser.</p>
   <details><summary>Ambito delle configurazioni</summary>

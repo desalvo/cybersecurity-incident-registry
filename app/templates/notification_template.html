@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card">
   <h2>{% if adding %}Aggiungi template di notifica{% else %}Template notifiche {{ title }}{% endif %}</h2>
-  <p class="muted">È possibile aggiungere template solo dalla voce <strong>Notifiche → Aggiungi template</strong>. Da questa pagina si modificano, clonano, cancellano e impostano come predefiniti i template esistenti.</p>
+  <p class="muted">Crea nuovi template da <strong>Notifiche → Aggiungi template</strong>; modifica, clona o imposta il predefinito qui. Per cancellare più template insieme apri <a href="{{ url_for('main.notification_templates_manage') }}">Notifiche → Gestisci / cancella template</a>.</p>
   <h3>Campi disponibili</h3>
   <table class="table compact">
     <tr><th>Campo</th><th>Descrizione</th></tr>
