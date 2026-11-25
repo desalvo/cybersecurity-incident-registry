@@ -1,0 +1,10 @@
+# CIR 0.10.0-1 RC62 — policy per le immagini dei corsi
+
+- **Regola permanente:** nessuna fotografia di persone reali, nessuna fotografia stock o di terzi senza provenienza/diritti verificati. Preferire immagini originali sintetiche senza persone, mani, silhouette o riflessi umani.
+- **Contenuto funzionale:** conservare le screenshot autentiche CIR, distinguendole sempre dalle illustrazioni sintetiche; usare solo dati di test e verificare i checksum delle nuove screenshot provenienti dalla stessa CI.
+- **Asset già esistenti:** le fotografie tecniche e gli artwork della presentazione RC61 provengono da fonti sintetiche CIR con provenienza descritta in `docs/visual-assets/PROVENANCE.json` e in `visual_rc61_art/provenance.json`. Nessuna fotografia stock è stata importata nella RC62.
+- **Sostituzioni RC62:** slide 28, 33, 35, 42, 43: rimossi i compositi precedenti con silhouette umane e sostituiti con una fotografia sintetica originale priva di persone e cinque diagrammi PowerPoint nativi, ciascuno specifico della slide. Slide 27 e 61: sostituiti anche gli sfondi delle aperture di sezione con la stessa origine sintetica senza persone.
+- **Provenienza RC62:** `visual_rc62_provenance.json` include asset e checksum SHA-256; `scripts/check_training_visual_sources_rc62.py` valida tutti i riferimenti e impedisce immagini esterne non dichiarate; `scripts/verify_visual_training_rc62.py` rifiuta i vecchi compositi non più ammessi e media estranei.
+- **Limiti del gate:** il controllo degli hash verifica l'identità dei file, non prova automaticamente l'assenza di figure umane né offre garanzie legali assolute. La verifica visuale e la gestione dei diritti restano obbligatorie per ogni nuovo asset.
+- **Rigenerazione locale:** `node scripts/build_training_visual_rc62.js docs/presentation/CIR_Operational_Training_Visual_RC62.pptx`; esportare il PDF con LibreOffice; controllare con `python scripts/verify_visual_training_rc62.py --pptx ... --pdf ...`.
+- **Stato:** CI end-to-end e screenshot Chromium della build di PR ancora da verificare. Il PowerPoint locale è la revisione editoriale corrente, non un'evidenza della cattura CI in corso.

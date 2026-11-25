@@ -19,14 +19,21 @@ if str(ROOT) not in sys.path:
 from release_metadata import read_release_metadata
 
 REQUIRED_SCREENSHOTS = frozenset({
-    'login-desktop', 'login-mobile', 'registry-desktop', 'registry-mobile',
+    'login-desktop', 'login-mobile', 'registry-desktop', 'registry-closed-state', 'registry-mobile',
     'registry-mobile-menu', 'incident-desktop', 'incident-mobile',
-    'spam-incident-desktop', 'spam-workflow-steps',
+    'spam-incident-desktop', 'spam-incident-config-labels', 'spam-workflow-steps',
+    'pdf-mapping-configuration', 'pdf-generated-preview', 'alfresco-settings-desktop',
+    'alfresco-incident-documents',
     'assistant-desktop', 'assistant-mobile', 'interface-settings-desktop',
     'classic-registry-desktop', 'admin-modules-desktop', 'admin-sso-desktop',
     'documentation-user-desktop', 'documentation-user-mobile',
     'documentation-admin-desktop', 'documentation-admin-mobile',
 })
+# These dedicated browser regions are narrower than the browser viewport.
+# Only specifically approved regions may claim element-capture provenance.
+ELEMENT_CAPTURE_SELECTORS = {
+    'spam-incident-config-labels': '#incident-main .dnd-layout',
+}
 DOCUMENTATION_CAPTURE_ROUTES = {
     'documentation-user-desktop': '/aiuto',
     'documentation-user-mobile': '/aiuto',
@@ -83,6 +90,53 @@ def _read_json(path: Path) -> dict:
     return data
 
 
+def _image_size(path: Path) -> tuple[int, int]:
+    """Read PNG/JPEG dimensions with stdlib only (required by offline CI gates).
+
+    A JPEG must have a Start Of Frame marker, matching its extension, and an
+    End Of Image marker.  We do not trust extensions or checksum alone to claim
+    an image was actually captured by the browser.
+    """
+    data = path.read_bytes()
+    if path.suffix.lower() == '.png':
+        if len(data) < 24 or data[:8] != b'\x89PNG\r\n\x1a\n' or data[12:16] != b'IHDR':
+            raise EvidenceError('Invalid PNG header')
+        return struct.unpack('>II', data[16:24])
+    if path.suffix.lower() != '.jpg' or len(data) < 24 or data[:2] != b'\xff\xd8' or data[-2:] != b'\xff\xd9':
+        raise EvidenceError('Invalid JPEG header or end marker')
+    index, dimensions = 2, None
+    sof_markers = {0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf}
+    while index + 3 < len(data):
+        if data[index] != 0xff:
+            raise EvidenceError('Malformed JPEG segment')
+        while index < len(data) and data[index] == 0xff:
+            index += 1
+        if index >= len(data):
+            break
+        marker = data[index]
+        index += 1
+        if marker in (0x01, *range(0xd0, 0xd9)):
+            continue
+        if marker == 0xda:  # Compressed image data begins after SOS.
+            break
+        if marker == 0xd9:
+            break
+        if index + 2 > len(data):
+            raise EvidenceError('Malformed JPEG segment length')
+        segment = struct.unpack('>H', data[index:index+2])[0]
+        if segment < 2 or index + segment > len(data):
+            raise EvidenceError('Invalid JPEG segment bounds')
+        if marker in sof_markers:
+            if segment < 8 or dimensions is not None:
+                raise EvidenceError('Invalid JPEG frame header')
+            height, width = struct.unpack('>HH', data[index+3:index+7])
+            dimensions = (width, height)
+        index += segment
+    if dimensions is None:
+        raise EvidenceError('JPEG has no valid frame dimensions')
+    return dimensions
+
+
 def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, metadata_root: Path = ROOT) -> dict:
     """Return the validated manifest and local paths under ``_paths``."""
     manifest_path = Path(manifest_path).absolute()
@@ -121,23 +175,53 @@ def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, me
         if not isinstance(sid, str) or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', sid) or sid in paths:
             raise EvidenceError('Invalid or duplicate screenshot ID')
         path = safe_artifact_path(manifest_path.parent, row.get('file'))
-        if path.suffix.lower() != '.png' or path.stat().st_size > 40 * 1024 * 1024:
-            raise EvidenceError('Expected a bounded PNG image')
+        image_format = 'jpeg' if path.suffix.lower() == '.jpg' else 'png'
+        if path.suffix.lower() not in ('.png', '.jpg') or path.stat().st_size > 40 * 1024 * 1024:
+            raise EvidenceError('Expected a bounded PNG or JPEG image')
+        if row.get('image_format', image_format) != image_format:
+            raise EvidenceError('Screenshot format/extension mismatch: ' + sid)
+        if image_format == 'jpeg' and 'jpeg_quality' in row and (type(row['jpeg_quality']) is not int or not 75 <= row['jpeg_quality'] <= 95):
+            raise EvidenceError('Screenshot JPEG quality is outside the permitted range')
         if path in files:
             raise EvidenceError('Each screenshot must have its own file')
         files.add(path)
         if not isinstance(row.get('sha256'), str) or sha256(path) != row['sha256']:
             raise EvidenceError('Screenshot checksum mismatch: ' + sid)
-        header = path.read_bytes()[:24]
-        if len(header) != 24 or header[:8] != b'\x89PNG\r\n\x1a\n' or header[12:16] != b'IHDR':
-            raise EvidenceError('Invalid PNG header: ' + sid)
-        width, height = struct.unpack('>II', header[16:24])
+        width, height = _image_size(path)
         viewport = row.get('viewport')
         if (not isinstance(viewport, dict)
                 or type(viewport.get('width')) is not int or type(viewport.get('height')) is not int
-                or not 300 <= viewport['width'] <= 4000 or not 400 <= viewport['height'] <= 4000
-                or width != viewport['width'] or height < viewport['height'] or height > 40000):
-            raise EvidenceError('PNG dimensions do not match viewport: ' + sid)
+                or not 300 <= viewport['width'] <= 4000 or not 400 <= viewport['height'] <= 4000):
+            raise EvidenceError('Invalid screenshot viewport: ' + sid)
+        area = row.get('capture_area')
+        # Online manual covers must remain exact first-fold screenshots.
+        # Preserve their specific diagnostic even when the capture-area
+        # metadata itself has been corrupted.
+        if sid in DOCUMENTATION_CAPTURE_ROUTES and (area != 'viewport' or height != viewport['height']):
+            raise EvidenceError('Online documentation must show its real route and first viewport: ' + sid)
+        if area == 'element':
+            # Playwright's Locator.screenshot captures a DOM rectangle, NOT the
+            # whole viewport. Validate its native pixel dimensions separately
+            # instead of comparing its width to the viewport width.
+            declared = row.get('element_size')
+            if (row.get('element_selector') != ELEMENT_CAPTURE_SELECTORS.get(sid)
+                    or sid not in ELEMENT_CAPTURE_SELECTORS):
+                raise EvidenceError('Unapproved screenshot element selector: ' + sid)
+            if (not isinstance(declared, dict)
+                    or type(declared.get('width')) is not int
+                    or type(declared.get('height')) is not int
+                    or declared != {'width': width, 'height': height}
+                    or not 200 <= width <= viewport['width']
+                    or not 80 <= height <= 40000):
+                raise EvidenceError('Element screenshot dimensions mismatch: ' + sid)
+        elif area in ('viewport', 'full-page'):
+            if (row.get('element_size') is not None or row.get('element_selector') is not None
+                    or width != viewport['width']
+                    or height < viewport['height'] or height > 40000
+                    or (area == 'viewport' and height != viewport['height'])):
+                raise EvidenceError('Screenshot dimensions do not match viewport: ' + sid)
+        else:
+            raise EvidenceError('Unsupported screenshot capture area: ' + sid)
         expected_mode = 'classic' if sid.startswith('classic-') else 'modern'
         if row.get('ui_mode') != expected_mode:
             raise EvidenceError('Wrong UI mode: ' + sid)
@@ -238,7 +322,7 @@ def validate_installed_documentation(root: Path = ROOT) -> dict:
     rows = original.get('screenshots')
     if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
         raise EvidenceError('Original screenshot manifest has invalid entries')
-    normalized['screenshots'] = [dict(row, file=str(row.get('id', '')) + '.png') for row in rows]
+    normalized['screenshots'] = [dict(row, file=str(row.get('id', '')) + Path(row.get('file', '')).suffix.lower()) for row in rows]
     if normalized != {key: value for key, value in installed.items() if key != '_paths'}:
         raise EvidenceError('Installed screenshots differ from their original artifact manifest')
     receipt = validate_manuals(root / 'docs', commit, sha256(original_path),

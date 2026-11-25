@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "release": "CIR 0.10.0-1 RC63",
+  "asset_type": "original synthetic photorealistic illustrations; no real people or externally sourced photographs",
+  "layout_policy": "Right-panel art contains no presentation title, header, page number or footer. Preserve entire scene without horizontal cropping.",
+  "sources": {
+    "A": {
+      "path": "docs/presentation/visual_rc63_art/original_A.png",
+      "sha256": "6a5bae97f36b60bb8028095ed3bab2d39b21e0f9b6837378954b837ac9201614",
+      "origin": "OpenAI ImageGen, original synthetic commissioned for CIR course; no uploaded reference photographs."
+    },
+    "B": {
+      "path": "docs/presentation/visual_rc63_art/original_B.png",
+      "sha256": "780ffff242cffd854e47b5268ea424c013dcedb1b847a5b203f49febe5718072",
+      "origin": "OpenAI ImageGen, original synthetic commissioned for CIR course; no uploaded reference photographs."
+    },
+    "C": {
+      "path": "docs/presentation/visual_rc63_art/original_C.png",
+      "sha256": "9ad654c70c488e084779b6a3baf283a60a505b4dc67cae759193453ba990e278",
+      "origin": "OpenAI ImageGen, original synthetic commissioned for CIR course; no uploaded reference photographs."
+    }
+  },
+  "slides": {
+    "3": {
+      "file": "docs/presentation/visual_rc63_art/visual_03.jpg",
+      "sha256": "a73be3800ccfcbd05d6c3e83d877c3c4b3bb9480b8b3ad495a9a4e230426792e",
+      "source": "A0",
+      "title": "Finalità dell’applicazione",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "4": {
+      "file": "docs/presentation/visual_rc63_art/visual_04.jpg",
+      "sha256": "eefc749a0c5e40052461e5e4202c87d986d14c73d3ec6888a8f2e60b1f279072",
+      "source": "A1",
+      "title": "Quale problema risolve CIR",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "5": {
+      "file": "docs/presentation/visual_rc63_art/visual_05.jpg",
+      "sha256": "d6385387f0224704e110d80682b3b15a2a2e690a83a7fc865c32270af0028818",
+      "source": "A2",
+      "title": "Mappa delle funzionalità",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "6": {
+      "file": "docs/presentation/visual_rc63_art/visual_06.jpg",
+      "sha256": "9efa6de1d41929779b5bf76a1f9f06144595ff7f9c7c15e2186a68a836eca4b0",
+      "source": "A3",
+      "title": "Architettura logica",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "7": {
+      "file": "docs/presentation/visual_rc63_art/visual_07.jpg",
+      "sha256": "2251083085711fdd057fa15e3991548d2101e692315e34155e04533784923143",
+      "source": "A4",
+      "title": "Distribuzione e bootstrap",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "28": {
+      "file": "docs/presentation/visual_rc63_art/visual_28.jpg",
+      "sha256": "dad8e5c0d44acaaca648a715e8a0b55944bc9041c83001ecf9ea0d960350284e",
+      "source": "A5",
+      "title": "Utenti e responsabilità",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "29": {
+      "file": "docs/presentation/visual_rc63_art/visual_29.jpg",
+      "sha256": "8ffae8290016aff1c4cc5ab69f9b7809ad8cca2490341193abc73d8eebd16fd4",
+      "source": "B3",
+      "title": "Cos’è un tenant",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "30": {
+      "file": "docs/presentation/visual_rc63_art/visual_30.jpg",
+      "sha256": "551da9b53a3afe9534ab2983f1398a10d8404992805937d54998ed9672ac1cf3",
+      "source": "B2",
+      "title": "Tenants Default: catalogo condiviso",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "31": {
+      "file": "docs/presentation/visual_rc63_art/visual_31.jpg",
+      "sha256": "2a64c6151d0ac0ced964279e609593c2edfde6d1ce5e3530b54b7fa0c6944451",
+      "source": "C2",
+      "title": "Ereditarietà e override",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "32": {
+      "file": "docs/presentation/visual_rc63_art/visual_32.jpg",
+      "sha256": "3d684dcad8e00c91e586e7a85595bcfd751936ff685c48c18cf91689f1f76341",
+      "source": "B0",
+      "title": "Parametri globali dell’istanza",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "33": {
+      "file": "docs/presentation/visual_rc63_art/visual_33.jpg",
+      "sha256": "2a64c6151d0ac0ced964279e609593c2edfde6d1ce5e3530b54b7fa0c6944451",
+      "source": "C2",
+      "title": "Parametri specifici del tenant",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "34": {
+      "file": "docs/presentation/visual_rc63_art/visual_34.jpg",
+      "sha256": "e0f7d1730d54c7231546ca2431494fbf5b4246afc25e0227b7914d5ea4a592cd",
+      "source": "B4",
+      "title": "Amministrazione: moduli PDF e template",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "35": {
+      "file": "docs/presentation/visual_rc63_art/visual_35.jpg",
+      "sha256": "dad8e5c0d44acaaca648a715e8a0b55944bc9041c83001ecf9ea0d960350284e",
+      "source": "A5",
+      "title": "Chi può modificare cosa",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "39": {
+      "file": "docs/presentation/visual_rc63_art/visual_39.jpg",
+      "sha256": "2a95299404327d4f3c3eb8264cf32a6305f01c9a3e16cc4cdb1718b094eea3ed",
+      "source": "C1",
+      "title": "Workflow: categorie, step, condizioni e dipendenze (esempio SPAM)",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "40": {
+      "file": "docs/presentation/visual_rc63_art/visual_40.jpg",
+      "sha256": "551da9b53a3afe9534ab2983f1398a10d8404992805937d54998ed9672ac1cf3",
+      "source": "B2",
+      "title": "Workflow: selezione e import dal catalogo",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "41": {
+      "file": "docs/presentation/visual_rc63_art/visual_41.jpg",
+      "sha256": "8ffae8290016aff1c4cc5ab69f9b7809ad8cca2490341193abc73d8eebd16fd4",
+      "source": "B3",
+      "title": "Workflow: personalizzazione per tenant",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "42": {
+      "file": "docs/presentation/visual_rc63_art/visual_42.jpg",
+      "sha256": "a73be3800ccfcbd05d6c3e83d877c3c4b3bb9480b8b3ad495a9a4e230426792e",
+      "source": "A0",
+      "title": "Workflow: corrente e obsoleto",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "43": {
+      "file": "docs/presentation/visual_rc63_art/visual_43.jpg",
+      "sha256": "2a64c6151d0ac0ced964279e609593c2edfde6d1ce5e3530b54b7fa0c6944451",
+      "source": "C2",
+      "title": "Workflow: governance degli stati",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "44": {
+      "file": "docs/presentation/visual_rc63_art/visual_44.jpg",
+      "sha256": "107c2becad5100326e9c2712c893bfcd5c086c3051c18856430423013caef932",
+      "source": "B1",
+      "title": "Workflow SPAM: adattamento del caso didattico",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "70": {
+      "file": "docs/presentation/visual_rc63_art/visual_70.jpg",
+      "sha256": "bf10e4c5c889af5b305792e2e9e22c467946964acb94dfd6aa9822ad2d62e6c1",
+      "source": "C3",
+      "title": "Workflow SPAM: categorie e dati dell’incidente",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "73": {
+      "file": "docs/presentation/visual_rc63_art/visual_73.jpg",
+      "sha256": "2a95299404327d4f3c3eb8264cf32a6305f01c9a3e16cc4cdb1718b094eea3ed",
+      "source": "C1",
+      "title": "Lezioni del laboratorio SPAM",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "75": {
+      "file": "docs/presentation/visual_rc63_art/visual_75.jpg",
+      "sha256": "a26b1d2f3515431930bff573e725151e50803ad4f613b280e0af07fee5f0b142",
+      "source": "C0",
+      "title": "CIR in sintesi: cos’è e a chi si rivolge",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "76": {
+      "file": "docs/presentation/visual_rc63_art/visual_76.jpg",
+      "sha256": "d6385387f0224704e110d80682b3b15a2a2e690a83a7fc865c32270af0028818",
+      "source": "A2",
+      "title": "Sommario: tutto il percorso formativo",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "77": {
+      "file": "docs/presentation/visual_rc63_art/visual_77.jpg",
+      "sha256": "8ffae8290016aff1c4cc5ab69f9b7809ad8cca2490341193abc73d8eebd16fd4",
+      "source": "B3",
+      "title": "Come rendere operativa l’applicazione",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "78": {
+      "file": "docs/presentation/visual_rc63_art/visual_78.jpg",
+      "sha256": "f6f59867ad33d130c4d0d518d222b7b308a697f8ae8b685e9bc9cff7bbd0376a",
+      "source": "C5",
+      "title": "Documentazione e repository",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    },
+    "79": {
+      "file": "docs/presentation/visual_rc63_art/visual_79.jpg",
+      "sha256": "dad8e5c0d44acaaca648a715e8a0b55944bc9041c83001ecf9ea0d960350284e",
+      "source": "A5",
+      "title": "Creatore e contributi al progetto",
+      "composition": "panorama with full scene preserved, no text or footer overlays",
+      "real_people": false
+    }
+  }
+}

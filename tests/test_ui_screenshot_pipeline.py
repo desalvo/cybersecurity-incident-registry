@@ -92,6 +92,51 @@ class ScreenshotIsolationTests(unittest.TestCase):
             self.assertEqual(list(output.iterdir()), [output / "screenshots"])
 
 
+def test_training_fixture_has_real_fillable_pdf_and_isolated_alfresco_configuration():
+    source = (ROOT / "scripts/seed_ui_documentation.py").read_text(encoding="utf-8")
+    assert 'pdf.acroForm.textfield' in source
+    for value in ('RIFERIMENTO', 'DESCRIZIONE', 'DATA_INIZIO'):
+        assert value in source
+    assert 'https://alfresco.example.invalid' in source
+    assert '"alfresco_password"' not in source.split('# Real Alfresco configuration screen', 1)[-1].split('for key, value', 1)[0]
+    for capture_id in ('pdf-mapping-configuration', 'alfresco-settings-desktop', 'alfresco-incident-documents'):
+        assert capture_id in capture.REQUIRED_CAPTURES
+        assert capture_id in evidence.REQUIRED_SCREENSHOTS
+
+
+class GeneratedPdfEvidenceTests(unittest.TestCase):
+    """CI must check flattened page content, not vanished AcroForm widgets."""
+
+    @staticmethod
+    def sample_pdf(reference="DEMO-2026-0048", interactive=False):
+        import io
+        from reportlab.pdfgen import canvas
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=(595, 842))
+        c.drawString(50, 750, "CIR - Modello PDF di prova")
+        c.drawString(50, 700, reference)
+        if interactive:
+            c.acroForm.textfield(name="RIFERIMENTO", x=50, y=640, width=180, height=30)
+        c.save()
+        return buffer.getvalue()
+
+    def test_flattened_document_with_printed_incident_reference_is_valid(self):
+        capture.verify_generated_pdf_final_print(self.sample_pdf(), "DEMO-2026-0048")
+
+    def test_generated_pdf_rejects_missing_printed_incident_reference(self):
+        with self.assertRaisesRegex(AssertionError, "rendered incident reference"):
+            capture.verify_generated_pdf_final_print(self.sample_pdf("NOT-THE-INCIDENT"), "DEMO-2026-0048")
+
+    def test_generated_pdf_rejects_unflattened_interactive_template(self):
+        with self.assertRaisesRegex(AssertionError, "editable AcroForm"):
+            capture.verify_generated_pdf_final_print(self.sample_pdf(interactive=True), "DEMO-2026-0048")
+
+    def test_generated_pdf_rejects_non_pdf_payload(self):
+        with self.assertRaisesRegex(AssertionError, "not a PDF"):
+            capture.verify_generated_pdf_final_print(b"not a pdf", "DEMO-2026-0048")
+
+
+
 class ScreenshotEvidenceTests(unittest.TestCase):
     def test_capture_and_manual_builder_require_the_same_views(self):
         self.assertEqual(capture.REQUIRED_CAPTURES, evidence.REQUIRED_SCREENSHOTS)
