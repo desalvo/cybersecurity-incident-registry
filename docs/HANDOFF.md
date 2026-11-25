@@ -1,5 +1,13 @@
 # CIR — Handoff di sviluppo
 
+## Stato attuale: 0.10.0-1 RC69 — 25 novembre 2026
+
+La PR della RC68 risulta **committata e integrata con CI verde**, come confermato dall'utente; il precedente riferimento all'ultimo commit RC55 è storico e non è più la baseline per i nuovi messaggi Git. Il run automatico successivo (`logs_123590726294.zip`) passa 1.039 test, ma fallisce due asserzioni nello stesso helper `tests/test_rc2_training_and_brochure_media.py`: più screenshot possono riferirsi allo stesso media PPTX de-duplicato. RC69 verifica ogni coppia ID/hash e consente lo stesso percorso soltanto se SHA-256 coincide; screenshot assenti o alterate restano vietate.
+
+Il corso visivo passa da 79 a 85 slide: sei nuove pagine dopo la sezione 02 spiegano apertura dalla home, inserimento manuale, selezione di un modello, contenuti dei modelli, autorizzazioni, operazioni CRUD e creazione da incidente esistente. Il primo esempio usa la screenshot autentica del registro, oppure la cattura Chromium corrente in CI; gli altri usano schemi modificabili e un'immagine sintetica tracciata tramite hash. La screenshot delle palette del precedente modulo 70 è ora fisicamente nella slide 76, con associazione XML e hash ancora verificati. La CI completa RC69 richiede nuovo run.
+
+Messaggi Git sempre in inglese e su un'unica linea; il prossimo commit contiene **solo** modifiche successive al merge RC68 confermato.
+
 ## Stato attuale: 0.10.0-1 RC66 — 25 novembre 2026
 
 Log CI `logs_123402907608.zip`: la suite Python (1035 passati, 24 saltati, 182 subtest) e i 22 test PostgreSQL sono verdi; Playwright ha acquisito tutte le 25 immagini autentiche. Il fallimento e` nel successivo validatore offline: `spam-incident-config-labels` e` uno screenshot del solo elemento DOM `#incident-main .dnd-layout`, piu` stretto del viewport, che il validatore trattava impropriamente come cattura a pagina intera. RC66 distingue `viewport`, `full-page` ed `element`, registrando le dimensioni pixel del ritaglio e l'esatto selettore autorizzato, mantenendo intatti hash, provenienza, controlli sulle copertine e legame al commit. Test locali: 133 passati e 55 subtest; Chromium reale conferma il formato dell'immagine elemento. Nessuna modifica applicativa o grafica. Nuovo run CI richiesto prima della produzione. Dettagli: `docs/RC66_UI_EVIDENCE_GEOMETRY.md`. Messaggi Git sempre in inglese, su singola linea.
@@ -945,3 +953,18 @@ manifest rows, preserves the slide 70 relationship test and rejects untracked
 media. Added `tests/test_visual_training_rc68.py`; see
 `docs/RC68_VISUAL_TRAINING_MEDIA_PROVENANCE.md`. Complete GitHub CI is not run
 in this environment; do not mark the PR green until rerun.
+
+### RC71 — Modular architecture and general workflow manager training (2026-11-25)
+The 87-slide didactic deck expands CIR on the cover, clarifies modular architecture, registers AlBot and Alfresco as the currently implemented optional plugins, explains configurable cross-step/global checks and deadline/reminder scheduling, and distinguishes global super-admin authority from tenant-admin scope. Original people-free synthetic art and editable vector diagrams are audited by SHA-256. No application runtime behavior changed. Source: docs/presentation/RC71_MODULAR_ARCHITECTURE_TRAINING.md.
+
+### RC72 - GitHub CI plugin inventory test fix (2026-11-25)
+
+A PR based on the RC71 cumulative source failed only
+`test_available_plugins_not_confused_with_core_features`: Python generated a
+`__pycache__` directory under `app/plugins`, which the test's unfiltered
+folder enumeration treated as an extra plugin. The test now requires a plugin
+package `__init__.py` and has a regression with a real cache folder and a
+new dummy plugin package. All other application code and the 87-slide/PDF
+training assets are unchanged. See `docs/RC72_CI_PLUGIN_DISCOVERY.md`. The user
+last confirmed commit+merge through RC68; RC69-RC72 changes remain cumulative
+unless a later Git commit is confirmed. Remote CI still must be rerun.

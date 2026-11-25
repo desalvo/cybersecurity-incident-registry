@@ -287,7 +287,7 @@ jobs:
           npm install --prefix "${RUNNER_TEMP}/cir-visual-build-deps" --no-save --no-audit --no-fund \
             pptxgenjs@4.0.0 image-size@1.2.0
 
-      - name: Audit synthetic image provenance and build visual training RC64
+      - name: Audit synthetic image provenance and build visual training RC71
         env:
           CIR_REQUIRE_REAL_SCREENSHOTS: '1'
         run: |
@@ -296,14 +296,14 @@ jobs:
           export CIR_SCREENSHOT_MANIFEST="${RUNNER_TEMP}/cir-ui-evidence/manifest.json"
           python scripts/check_training_visual_sources_rc64.py
           node scripts/build_training_visual_rc64.js \
-            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pptx"
-          libreoffice -env:UserInstallation="file://${RUNNER_TEMP}/lo-cir-rc64" \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pptx"
+          libreoffice -env:UserInstallation="file://${RUNNER_TEMP}/lo-cir-rc70" \
             --headless --convert-to pdf --outdir \
             "${RUNNER_TEMP}/cir-ui-evidence/visual-training" \
-            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pptx"
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pptx"
           python scripts/verify_visual_training_rc64.py \
-            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pptx" \
-            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pdf" \
+            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pptx" \
+            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pdf" \
             --screenshot-manifest "${CIR_SCREENSHOT_MANIFEST}" \
             --require-ci-images
 
@@ -320,8 +320,8 @@ jobs:
             --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
             --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
             --source-commit "${GITHUB_SHA}"
-          cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pptx" docs/presentation/
-          cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC64.pdf" docs/presentation/
+          cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pptx" docs/presentation/
+          cp "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_RC71.pdf" docs/presentation/
           bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
 
       - name: Upload real screenshots, manuals and source package

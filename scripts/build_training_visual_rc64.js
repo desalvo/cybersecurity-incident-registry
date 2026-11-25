@@ -19,8 +19,28 @@ try {
 }
 const root=process.env.CIR_REPO_ROOT||path.resolve(__dirname,'..');
 const specFile=process.env.CIR_SPEC||path.join(root,'docs/presentation/visual_rc64_spec.json');
-const out=process.argv[2]||'/mnt/data/CIR_Operational_Training_Visual_RC64.pptx';
-const data=JSON.parse(fs.readFileSync(specFile,'utf8'));
+const out=process.argv[2]||'/mnt/data/CIR_Operational_Training_Visual_RC71.pptx';
+const originalData=JSON.parse(fs.readFileSync(specFile,'utf8'));
+const addendumPath=path.join(root,'docs/presentation/visual_rc69_addendum.json');
+const addendum=JSON.parse(fs.readFileSync(addendumPath,'utf8'));
+const archAddendum=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc71_architecture_addendum.json'),'utf8'));
+if(archAddendum.insert_after_original!==6 || archAddendum.slides.length!==2 ||
+   archAddendum.slides.some((row,i)=>row.index!==86+i || row.original!==86+i || !['modules','procedures'].includes(row.arch_visual)))
+  throw new Error('Invalid modular architecture chapter addendum');
+if(addendum.insert_after_original!==14 || addendum.slides.length!==6)
+  throw new Error('Invalid incident-opening instructional addendum');
+const expectedTeachingSequence = ['incident-entry', 'incident-blank', 'incident-model',
+  'incident-admin', 'incident-from-existing', 'incident-template'];
+if(addendum.slides.some((item,i)=>item.training_flow!==expectedTeachingSequence[i] ||
+  item.index!==80+i || item.original!==80+i))
+  throw new Error('The incident-opening chapter must explain manual entry, templates administration, then template-based entry');
+const data=[];
+for(const item of originalData){
+ data.push(item);
+ if(item.index===6)data.push(...archAddendum.slides);
+ if(item.index===14)data.push(...addendum.slides);
+}
+if(data.length!==87)throw new Error('Expected 87 instructional slides');
 for (const d of data) for(const media of (d.images||[])){
  const filename=String(media.file||'');
  if(!/^docs\/presentation\/visual_rc57_media\/[A-Za-z0-9._-]+$/.test(filename))throw new Error('External media disallowed: '+filename);
@@ -73,7 +93,7 @@ function realUiImage(d){
   const id=d.kind==='preview'?'pdf-generated-preview':ciViewByOldSlide[d.original];
   return id&&ciById.get(id)?{id,path:ciById.get(id)}:null;
 }
-const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title='CIR — Presentazione didattica RC64';pptx.company='Cybersecurity Incident Registry';pptx.lang='it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'it-IT'};
+const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title='CIR — Presentazione didattica RC71';pptx.company='Cybersecurity Incident Registry';pptx.lang='it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'it-IT'};
 const W=13.33333,H=7.5;
 const C={bg:'F4F8FA',white:'FFFFFF',navy:'12324A',muted:'60798A',cyan:'00A8BE',teal:'147E8F',blue:'326C92',violet:'6264A3',green:'23896B',gold:'F6A23A',pink:'D46C75',line:'D9E5EB',ink:'143044',shadow:'EDF3F6',pale:'EAF6F8'};
 function rgb(hex){return '#'+hex;}
@@ -90,26 +110,39 @@ function notes(slide,d){
  const ids = paletteCI?['spam-incident-config-labels']:(d.photo_art?[]:(d.original===56 && ciById.has('alfresco-incident-documents')
    ? ['alfresco-settings-desktop','alfresco-incident-documents']
    : (realUiImage(d)?[realUiImage(d).id]:[])));
+ if(d.arch_visual)n+='Illustrazione sintetica originale e diagramma nativo PowerPoint, senza persone, senza testo incorporato. Immagine verificata SHA-256.\n';
  if(d.photo_art && !ids.length)n+='Immagine sintetica fotografica originale, senza persone reali, senza titolo e footer; non e una schermata dell applicazione.\n';
 
  if([27,61].includes(d.index))n+='Sfondo sintetico originale senza persone, nessuna foto stock.\n';
  if(d.report_pages)n+='Pagine di report dimostrativo sintetico; non si tratta di un export dall app.\n';
+ if(d.training_flow==='incident-entry' && ciById.has('registry-desktop'))
+   n+='Schermata autentica CIR catturata dal browser della build corrente: registry-desktop.\n';
+ if(d.training_flow && d.training_flow!=='incident-entry')
+   n+='Schemi didattici originali con forme PowerPoint modificabili.\n';
  if(ids.length){
    n+='Schermata/e autentica/e CIR della CI corrente '+ciCommit+': '+ids.join(', ')+'. Manifest Chromium firmato da SHA-256.\n';
  }else if((d.images||[]).length){
    n+='Media editoriale della precedente presentazione CIR, derivato da evidenze CI con dati fittizi. Nessuna cattura attuale rivendicata.\n';
  }
- n+='Sorgente CIR 0.10.0-1 RC64. I dati sono di esempio; diagrammi e schemi non rappresentano screenshot dell’applicazione.\n';
+ n+='Sorgente CIR 0.10.0-1 RC71. I dati sono di esempio; diagrammi e schemi non rappresentano screenshot dell’applicazione.\n';
  if(!ciManifest)n+='Le screenshot mancanti (chiusura completa, mapping, anteprima PDF, Alfresco) saranno acquisite da CI su interfaccia reale.\n';
  slide.addNotes(n);
 }
-function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,'v0.10.0-1 · materiale didattico RC64',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${data.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
+function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,'v0.10.0-1 · materiale didattico RC71',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${data.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
 function bgBase(slide,section){slide.background={color:C.bg};rect(slide,.0,.0,W,.12,section);rect(slide,.5,.48,.055,.68,section);}
 function safeBullets(d){return (d.bullets||[]).map(s=>String(s).replace(/\\\s*$/,'').trim()).filter(Boolean)}
 // Photographic artwork is independent of slide chrome: no title, labels or footer.
 // Validate image provenance hashes at generation time, then insert the whole scene.
 const photoProvenance=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc63_art/provenance.json'),'utf8'));
 const newPhotoProvenance=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc64_art/provenance.json'),'utf8'));
+const modularArtProv=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc71_art/provenance.json'),'utf8'));
+const modularArtByKind=new Map(modularArtProv.artwork.map(x=>[x.kind,x]));
+const incidentArtProv=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc69_art/provenance.json'),'utf8'));
+const incidentArtRecord=incidentArtProv.artwork[0];
+const incidentArtPath=path.join(root,incidentArtRecord.file);
+if(incidentArtRecord.human_people!==false ||
+   crypto.createHash('sha256').update(fs.readFileSync(incidentArtPath)).digest('hex')!==incidentArtRecord.sha256)
+ throw new Error('Invalid incident opening illustration provenance');
 function photoPanel(slide,d,box={x:6.37,y:1.55,w:6.28,h:5.08}){
  const record=(d.photo_art.includes('/visual_rc64_art/')?newPhotoProvenance:photoProvenance).slides[String(d.index)];
  if(!record || record.file!==d.photo_art || record.real_people!==false)
@@ -139,7 +172,93 @@ function tenantInheritanceDiagram(slide){
  boxNode(slide,'Override locale:\ncontatti della sede',9.64,5.54,2.64,.63,'E8F6EF',C.navy,11.5);
  addText(slide,'La personalizzazione resta nel tenant e non cambia il valore comune.',{x:6.61,y:6.38,w:5.85,h:.24,fontSize:9.5,color:C.muted,italic:true,align:'center',margin:0});
 }
+function incidentTrainingRight(slide,d,accent){
+ const kind=d.training_flow;
+ const x=6.40, y=1.58, w=6.21;
+ function label(value,xx,yy,ww,hh,fill='E9F3FA',fs=12.5){boxNode(slide,value,xx,yy,ww,hh,fill,C.navy,fs)}
+ function link(y0){arrow(slide,9.16,y0,.63,'right',accent)}
+ if(kind==='incident-entry'){
+  // Use this run's real browser screenshot if available. The older vetted
+  // editorial screenshot is a clearly labelled fallback, never a simulation.
+  const current=ciById.get('registry-desktop');
+  const source=current||path.join(root,'docs/presentation/visual_rc57_media/2ae5becb321feb73.jpg');
+  slide.addImage({path:source,...imageSizingContain(source,x+0.06,y+0.07,w-.12,3.65)});
+  label('REGISTRO INCIDENTI',x+.19,5.37,2.58,.43,'E6F0F9',11.6);
+  arrow(slide,9.23,5.43,.62,'right',accent);
+  label('Nuovo incidente',x+3.49,5.37,2.47,.43,'E7F6EF',12.1);
+  addText(slide,current?'Schermata autentica CIR della build CI corrente':'Schermata autentica CIR archiviata · dati di laboratorio',
+   {x:x+.10,y:6.16,w:6.02,h:.24,fontSize:9.0,color:C.muted,align:'center',margin:0});
+  return;
+ }
+ if(kind==='incident-blank'){
+   label('NUOVO INCIDENTE · ESEMPIO DI CAMPI',x+.18,y+.14,5.86,.48,'DFEDF8',13.4);
+   [['Nome *','Segnalazione phishing · esempio'],['Riferimento *','utenza.lab@example.invalid'],
+    ['Categoria / gravità','Phishing / Media'],['Dati interessati','Account, credenziali'],
+    ['Data e ora di inizio','Impostate al momento corrente']].forEach(([a,b],i)=>{
+       const yy=2.35+i*.70;label(a,x+.25,yy,2.02,.53,'E9F1F7',11.7);
+       label(b,x+2.37,yy,3.60,.53,'FFFFFF',11.5);
+    });
+   label('Crea  →  dettagli e workflow dell’incidente',x+.38,6.10,5.55,.48,'E3F4E8',12.2);
+ } else if(kind==='incident-template'){
+   slide.addImage({path:incidentArtPath,...imageSizingContain(incidentArtPath,x+.13,y+.08,5.98,2.15)});
+   const boxes=[['1 · Scegli il modello','F2F6FB'],['2 · Campi precompilati','E5F3FA'],
+    ['3 · Verifica e aggiorna','FDF4DF'],['4 · Premi «Crea»','E5F6EB']];
+   boxes.forEach(([txt,color],i)=>{
+    label(txt,x+.34,3.94+i*.64,5.41,.52,color,13.2);
+    if(i!==3)addText(slide,'↓',{x:8.99,y:4.43+i*.64,w:.52,h:.16,fontSize:13,color:accent,align:'center',margin:0});
+   });
+ } else if(kind==='incident-model'){
+   label('MODELLO = DATI INIZIALI RIUTILIZZABILI',x+.21,1.90,5.83,.58,'DFEDF8',13.5);
+   label('Campi · Classificazione · Destinatari',x+.45,2.80,5.36,.70,'E6F2FA',13.0);
+   label('Nuovo incidente con i valori già proposti',x+.45,3.87,5.36,.70,'E6F5EB',12.9);
+   label('Utilizzo: writer · admin · superuser',x+.42,5.15,5.39,.48,'F8F0DA',12.4);
+   label('Gestione: admin · superuser',x+.42,5.77,5.39,.48,'EEE8F9',12.4);
+ } else if(kind==='incident-admin'){
+   label('ADMIN → MODELLI INCIDENTE',x+.22,1.95,5.75,.65,'E6F0F9',13.3);
+   [['CREA','Definisci i campi → Salva modello'],['MODIFICA','Seleziona il modello → Salva'],
+    ['CANCELLA','Seleziona → Conferma eliminazione']].forEach(([a,b],i)=>{
+      const yy=3.13+i*1.02;
+      label(a,x+.20,yy,1.57,.77,['E8F4EB','E7F2FB','FBEBE6'][i],14);
+      label(b,x+1.89,yy,4.13,.77,'F8FAFC',12.4);
+   });
+ } else if(kind==='incident-from-existing'){
+   label('CASO REGISTRATO',x+.63,2.05,4.95,.74,'E6F0F9',15);
+   addText(slide,'↓',{x:8.90,y:2.94,w:.75,h:.34,fontSize:23,color:accent,align:'center',margin:0});
+   label('Admin → Crea modello da incidente esistente',x+.36,3.42,5.59,.72,'E7F6EE',12.4);
+   addText(slide,'↓',{x:8.9,y:4.24,w:.75,h:.34,fontSize:23,color:accent,align:'center',margin:0});
+   label('Solo dati iniziali · senza azioni/documenti',x+.33,4.77,5.63,.83,'FBF2E7',12.8);
+   label('MODELLO RIUTILIZZABILE NEL TENANT',x+.34,5.92,5.62,.49,'E5F3FA',11.8);
+ }
+ addText(slide,'Diagramma didattico modificabile · non è una screenshot dell’applicazione',
+   {x:x+.12,y:6.56,w:5.97,h:.20,fontSize:8.6,italic:true,color:C.muted,align:'center',margin:0});
+}
+function modularArchitecturePanel(slide,d,accent){
+ const row=modularArtByKind.get(d.arch_visual);
+ if(!row || row.real_people!==false || row.contains_embedded_slide_chrome!==false)throw new Error('Untrusted modular artwork');
+ const img=path.join(root,row.file);
+ if(!fs.existsSync(img) || crypto.createHash('sha256').update(fs.readFileSync(img)).digest('hex')!==row.sha256)
+    throw new Error('Modular artwork SHA-256 mismatch');
+ slide.addImage({path:img,...imageSizingContain(img,6.43,1.55,6.14,2.74)});
+ line(slide,6.58,4.38,5.77,0,C.line,1.1);
+ if(d.arch_visual==='modules'){
+   boxNode(slide,'PLUGIN 1  ·  AlBot (AI)',6.58,4.60,2.77,.72,'E4F2FA',C.navy,13.0);
+   boxNode(slide,'PLUGIN 2  ·  Alfresco',9.57,4.60,2.77,.72,'E6F5ED',C.navy,13.0);
+   boxNode(slide,'CORE  ·  SSO  |  email  |  PDF  |  report',6.58,5.43,5.76,.52,'EDF3F8',C.navy,11.2);
+   addText(slide,'Moduli attuali · ulteriori plugin estendibili in futuro', {x:6.70,y:6.15,w:5.54,h:.26,fontSize:10.0,color:C.teal,bold:true,align:'center',margin:0});
+ }else{
+   const items=[['STEP','EAF3F9'],['CONDIZIONI','E9F4F4'],['VERIFICHE','EBF5ED']];
+   items.forEach(([label,color],i)=>{
+     const xx=6.59+i*1.96;
+     boxNode(slide,label,xx,4.60,1.65,.59,color,C.navy,11.0);
+     if(i!==2)arrow(slide,xx+1.70,4.74,.22,'right',accent);
+   });
+   boxNode(slide,'Campi obbligatori  ·  scadenze  ·  reminder pianificati',6.67,5.55,5.54,.63,'EDF3F8',C.navy,11.0);
+   addText(slide,'Regole operative configurabili da super admin e admin autorizzati', {x:6.63,y:6.38,w:5.68,h:.18,fontSize:9.2,color:C.teal,italic:true,align:'center',margin:0});
+ }
+}
 function rightPanel(slide,d,accent){rect(slide,6.27,1.46,6.47,5.32,C.white,C.line);
+ if(d.arch_visual){modularArchitecturePanel(slide,d,accent);return;}
+ if(d.training_flow){incidentTrainingRight(slide,d,accent);return;}
  // Slide 70 documents tenant-specific category/data-type choices. In a CI
  // build, the authenticated browser capture MUST take precedence over the
  // editorial photo. Otherwise an attractive fallback silently hides evidence
@@ -266,10 +385,11 @@ function makeChapter(slide,d,index){slide.background={color:C.navy};const first=
 function makeCover(slide,d,index){slide.background={color:C.navy};const img=imagePath(d.images[0]);if(fs.existsSync(img))slide.addImage({path:img,...imageSizingCrop(img,0,0,W,H)});slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:W,h:H,fill:{color:C.navy,transparency:19},line:{color:C.navy,transparency:100}});
  const logo=imagePath(d.images[1]);if(fs.existsSync(logo))slide.addImage({path:logo,...imageSizingContain(logo,.88,1.02,1.18,1.18)});
  addText(slide,'CYBERSECURITY INCIDENT REGISTRY',{x:2.33,y:1.24,w:9.9,h:.43,fontSize:19,color:'BCE7F0',bold:true,margin:0,charSpacing:1.7});
- addText(slide,'CIR',{x:.98,y:2.29,w:7.2,h:1.55,fontSize:90,bold:true,color:'FFFFFF',margin:0});
+ addText(slide,'CIR',{x:.98,y:2.29,w:3.00,h:1.55,fontSize:90,bold:true,color:'FFFFFF',margin:0});
+ addText(slide,'Cybersecurity\nIncident Registry',{x:4.16,y:2.62,w:7.35,h:1.04,fontSize:31.0,bold:true,color:'F8C66A',margin:0,breakLine:false,fit:'shrink',valign:'mid'});
  addText(slide,'Gestione degli incidenti e dei workflow procedurali',{x:1.01,y:4.18,w:10.95,h:.88,fontSize:28,bold:true,color:'FFFFFF',margin:0,fit:'shrink'});
- addText(slide,'Corso didattico · interfaccia reale · laboratorio SPAM',{x:1.04,y:5.28,w:10.9,h:.38,fontSize:17.1,color:'D7F4FC',margin:0});
- rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,`VERSIONE 0.10.0-1     |     RC64     |     SCHERMATE CI ${ciCommit.slice(0,8)} / BUILD ${ciBuild}`,{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
+ addText(slide,'Corso didattico · interfaccia reale · laboratorio didattico di esempio',{x:1.04,y:5.28,w:10.9,h:.38,fontSize:17.1,color:'D7F4FC',margin:0});
+ rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,`VERSIONE 0.10.0-1     |     RC71     |     SCHERMATE CI ${ciCommit.slice(0,8)} / BUILD ${ciBuild}`,{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
 }
-for(const d of data){let slide=pptx.addSlide();if(d.kind==='cover')makeCover(slide,d,d.index);else if(d.kind==='chapter')makeChapter(slide,d,d.index);else makeContent(slide,d,d.index)}
+data.forEach((d,i)=>{let slide=pptx.addSlide();const n=i+1;if(d.kind==='cover')makeCover(slide,d,n);else if(d.kind==='chapter')makeChapter(slide,d,n);else makeContent(slide,d,n)});
 fs.mkdirSync(path.dirname(out),{recursive:true});pptx.writeFile({fileName:out}).then(()=>console.log('Created '+out+' slides='+data.length)).catch(e=>{console.error(e);process.exit(1)});
