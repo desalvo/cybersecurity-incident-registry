@@ -217,7 +217,23 @@ def validate_defaults_archive_tables(tables):
         local = config[local_type].get(local_id)
         if tenant_id not in operational_ids or local is None or local.get('tenant_id') != tenant_id:
             _fail('replica riferita a un tenant/record locale diverso.')
-        _validate_data(local_type, _json(replica.get('snapshot_json'), 'replica.snapshot_json', dict))
+        snapshot = _json(replica.get('snapshot_json'), 'replica.snapshot_json', dict)
+        # A category that existed locally before defaults publication can be
+        # linked by provenance without becoming owned by Tenants Default.
+        from .tenant_defaults import _LOCAL_CATEGORY_MARKER
+        adopted = snapshot.pop(_LOCAL_CATEGORY_MARKER, False)
+        if adopted is not False:
+            if adopted is not True or local_type != 'config_label' or local.get('kind') != 'category':
+                _fail('provenienza locale consentita solo per categorie preesistenti.')
+            if source.get('source_id') is not None:
+                shared = config['config_label'].get(source['source_id'])
+                if shared is None or shared.get('kind') != 'category':
+                    _fail('categoria locale collegata a una sorgente di tipo errato.')
+                def semantic(name):
+                    return ' '.join((name or '').strip().casefold().split())
+                if semantic(local.get('value')) != semantic(shared.get('value')):
+                    _fail('categoria locale non corrispondente alla sorgente condivisa.')
+        _validate_data(local_type, snapshot)
         _unique(replica_pairs, (source['id'], tenant_id), 'replica.source_tenant')
         _unique(local_records, (local_type, local_id), 'replica.local_record')
 

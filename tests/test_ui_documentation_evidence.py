@@ -217,6 +217,44 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
         for sid, path in loaded["_paths"].items():
             self.assertEqual(path, self.images / (sid + ".png"))
 
+    def test_jpeg_browser_artifact_uses_image_header_dimensions_and_sha256(self):
+        """Test one JPEG alongside legacy PNGs; the historic archive still loads."""
+        from PIL import Image
+        row = self.manifest["screenshots"][0]
+        old = self.artifact / row['file']
+        name = row['id'] + '.jpg'
+        new = self.images / name
+        Image.new('RGB', (300, 400), (35, 91, 142)).save(new, format='JPEG', quality=90)
+        old.unlink()
+        row.update({'file': 'screenshots/' + name, 'image_format': 'jpeg', 'jpeg_quality': 90,
+                    'sha256': evidence.sha256(new)})
+        self.save_manifest()
+        loaded = self.load()
+        self.assertEqual(loaded['_paths'][row['id']], new)
+        # An attacker cannot assert that arbitrary content was a JPEG, even
+        # after regenerating the manifest hash.
+        new.write_bytes(b'not really a jpeg')
+        row['sha256'] = evidence.sha256(new)
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'JPEG'):
+            self.load()
+
+    def test_jpeg_cannot_fake_a_png_extension_or_viewport(self):
+        from PIL import Image
+        row = self.manifest['screenshots'][0]
+        new = self.images / (row['id'] + '.jpg')
+        Image.new('RGB', (300, 400), (90, 115, 140)).save(new, format='JPEG', quality=90)
+        row.update({'file': 'screenshots/' + new.name, 'image_format': 'png',
+                    'sha256': evidence.sha256(new)})
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'format/extension mismatch'):
+            self.load()
+        row['image_format'] = 'jpeg'
+        row['viewport'] = {'width': 301, 'height': 400}
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'dimensions'):
+            self.load()
+
     def test_other_commit_is_rejected(self):
         with self.assertRaisesRegex(evidence.EvidenceError, "commit differs"):
             evidence.load_evidence(self.manifest_path, OTHER_COMMIT)

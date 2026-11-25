@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "release": "0.10.0-1 RC62",
+  "policy": "Never use photographs of real people, non-cleared third-party imagery, or realistic human silhouettes in training slides. Authentic application screenshots must be clearly distinguished from generated artwork.",
+  "background": {
+    "path": "docs/presentation/visual_rc62_art/synthetic_cir_no_people.png",
+    "sha256": "09e421bf351da57a91854a59f1f4588a4554c9f0cfd231c6fcfbf8cd21dce5d3",
+    "origin": "Original synthetic image generated with OpenAI ImageGen specifically for CIR training, without any supplied external photograph",
+    "contains_real_people": false,
+    "contains_human_silhouettes": false,
+    "is_real_application_screenshot": false,
+    "visual_review": "No persons, faces, hands, portraits or silhouettes visible."
+  },
+  "replaced_illustrations": [
+    28,
+    33,
+    35,
+    42,
+    43
+  ],
+  "replaced_chapter_backgrounds": [
+    27,
+    61
+  ],
+  "reference_sets": {
+    "visual_rc61_art": "docs/presentation/visual_rc61_art/provenance.json",
+    "base_site_visuals": "docs/visual-assets/PROVENANCE.json"
+  },
+  "other_editorial_assets": "Existing photographs in UI and old deck originate from documented synthetic CIR imagery; screenshots are from prior CIR application runs with test data, not stock photography. Future browser snapshots must pass same-run checksum validation.",
+  "rights_limitations": "Original generated artwork and project UI are used; no stock or real-person photographs were intentionally added. This is a provenance record, not a legal guarantee of unencumbered rights."
+}

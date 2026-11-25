@@ -1,0 +1,9 @@
+{
+  "name": "cir-visual-training-builder",
+  "private": true,
+  "description": "Optional reproducible editable 79-slide teaching deck (RC57)",
+  "dependencies": {
+    "pptxgenjs": "4.0.0",
+    "image-size": "1.2.0"
+  }
+}

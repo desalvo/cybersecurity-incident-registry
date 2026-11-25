@@ -1,7 +1,88 @@
 RC53: SPAM browser fixture enables personal_data to render both conditional steps (13 total); added regression coverage.
 # CIR — Handoff di sviluppo
 
-Ultimo aggiornamento: **2026-11-23** (Europe/Rome). Versione funzionale
+## Stato attuale: 0.10.0-1 RC62 — 25 novembre 2026
+
+Baseline RC61: solo revisione didattica/media; logica applicativa Tenants Default invariata. Asset fotograficamente realistici ma originali/sintetici, nessuna persona reale e nessuna fotografia stock aggiunta. Sostituiti cinque visual con silhouette (slide 28/33/35/42/43) mediante immagine generata senza persone e diagrammi PowerPoint nativi; aggiornati sfondi delle aperture sezione 27 e 61. Prove locali: 54 test e 7 subtest passati, deck 79 slide e PDF 79 pagine, nessun overflow; nuovi SHA-256 e gate di provenienza aggiunti alla CI. Screenshot dell'applicazione da CI autentica vanno ancora rigenerate. La CI completa GitHub Actions NON e` stata eseguita in questa consegna. Dettagli: `docs/presentation/RC62_IMAGE_POLICY.md`.
+
+Messaggi Git: sempre in inglese, su una sola linea e cumulativi dall'ultimo commit confermato. Ultimo commit confermato negli appunti di lavoro: RC55 (SHA ignoto).
+
+## Stato precedente: 0.10.0-1 RC61 — 25 novembre 2026
+
+Baseline RC60. Il corso visuale ora contiene 24 illustrazioni contestuali distinte nelle slide richieste, un esempio didattico di report PDF su due pagine alla slide 21, e le correzioni alle slide 34/39/44/47/55. La slide 70 **non** presenta più una vecchia screenshot con categorie duplicate: viene usata un'illustrazione concettuale fino al gate di screenshot reali in CI.
+
+Riconciliazione Tenants Default estesa alle label `data_type`, non soltanto `category`, nella sincronizzazione e nelle palette degli incidenti. Le etichette semanticamente uguali compaiono una sola volta; gli ID e i riferimenti storici non vengono distrutti. La CI crea alias legacy sintetici in entrambe le palette e verifica nel browser che le scelte siano uniche, acquisendo la nuova vista `spam-incident-config-labels`. Il contratto di documentazione passa da 24 a 25 acquisizioni; il deck lungo è rigenerato sullo stesso commit e verificato con SHA-256.
+
+QA locale: 50 test statici di presentazione/evidenza/screenshot e 7 subtest superati; 79 slide, 79 pagine, nessun overflow. Non eseguiti: suite Flask/PostgreSQL, acquisizione browser dell'app e job remoti GitHub Actions. La RC61 è un candidato sorgente, non un artefatto di CI verde. Dettagli in `docs/presentation/RC61_REVIEW_AND_CAPTURE.md`. Messaggi di commit solo **in inglese e su singola linea**. Ultimo commit confermato in archivio: RC55 (SHA ignoto).
+
+## Stato precedente: RC60 — 25 novembre 2026
+
+Baseline RC59. Nuova PR, log `logs_123309413943.zip`: job di qualita'
+`1005 passed, 24 skipped, 182 subtests passed`; fallisce soltanto il gate
+`Real UI screenshots and documentation` con `AssertionError:` senza traceback.
+Il controllo browser RC59 si aspettava erroneamente che il PDF generato
+conservasse i campi AcroForm `RIFERIMENTO`, ma la generazione corretta CIR
+appiattisce i campi e li sostituisce con testo statico sulle pagine. RC60
+verifica invece PDF statico senza widget e valore incidente stampato,
+ricavato dalla fixture stessa. Sono stati aggiunti quattro test isolati e
+traceback sanitizzato in `failure.json`/log CI per ogni futura anomalia.
+Nessuna modifica al motore PDF, alla UI o alle 79 slide RC58: la CI deve
+ancora produrre tutte le screenshot reali. Dettagli in
+`docs/RC60_UI_CAPTURE_CI.md`. I job applicativi e di rilascio non vanno
+considerati verdi fino alla verifica effettiva su GitHub Actions.
+Messaggio commit sempre su una sola linea. Ultimo commit confermato nello
+storico in archivio: RC55, SHA non disponibile; verificare la storia Git
+prima di comporre commit cumulativi.
+
+## Stato precedente: RC59 — 25 novembre 2026
+
+
+La baseline e` RC58. Nel log `logs_123289927725.zip` i due gate falliti
+sono: (1) `tests/test_workflow_lifecycle.py::test_defaults_workflow_uses_exact_replica_ids_after_numeric_and_name_collisions`, che ora verifica il remapping della categoria locale e mantiene le repliche indipendenti per gli altri tipi di label; (2) screenshot browser PDF, in cui il selettore usa ora la card visibile e verifica la selezione. Nessuna modifica al codice applicativo o ai 79 contenuti delle slide RC58: il job CI continua a ricostruire il deck RC58 con evidenze del medesimo run.
+
+Verifiche locali: 4 test di presentazione/catture editoriali superati, sintassi
+Python valida, test isolato Chromium con il CSS reale e checkbox nascosta
+superato. **Da ripetere in PR**: la suite pytest completa e il job
+`ui-documentation` con screenshot reali, seguito dai gate downstream.
+Non dichiarare CI verde finche` GitHub Actions non conferma entrambi i job.
+Il messaggio Git va sempre scritto su **un'unica linea**. L'ultimo commit
+confermato rimane RC55 secondo lo storico disponibile, SHA non comunicato.
+
+## Stato precedente: RC58 — 25 novembre 2026
+
+
+Baseline recuperata: **RC57**; ultimo commit Git confermato nel report
+RC57: **RC55** (SHA non disponibile). La versione funzionale resta
+`0.10.0-1`, con `BUILD=20261124` nei materiali editoriali pre-CI.
+
+- PowerPoint didattico RC58: 79 slide modificabili in
+  `docs/presentation/CIR_Operational_Training_Visual_RC58.pptx`, versione PDF
+  associata e fonte editabile in `visual_rc58_spec.json`. Le correzioni
+  editoriali e la revisione sistematica dei workflow sono descritte in
+  `docs/presentation/RC58_REVIEW_AND_CAPTURE.md`.
+- Sono presenti da RC57 remapping di una categoria omonima già locale nel
+  tenant, recupero di Tenants Default dopo restore legacy e mantenimento degli
+  ID storici. RC58 integra nel picker una deduplicazione anche degli alias
+  legacy `[Tenants Default]` non più mappati, preservando i record esistenti
+  e indicando la provenienza locale/ereditata. Nuovi test regressione aggiunti.
+- La CI browser contiene già la cattura di 24 viste, con incidenti realmente
+  chiusi, PDF generato via CIR, mapping, Alfresco e dati sintetici. **RC58 ora
+  costruisce anche il deck visuale e il PDF dalla stessa acquisizione**, con
+  verifica degli SHA-256 delle cinque immagini obbligatorie, controllo immagini
+  approvate/assenza UI classica, 79 slide/pagine e integrazione nel package.
+- Test locali eseguiti: `tests/test_visual_training_rc58.py` **3 passed**;
+  presentazione overflow **PASS**, parser YAML **PASS** e compilazione dei file
+  Python modificati **PASS**. Non è disponibile l'ambiente Flask/SQLAlchemy:
+  suite backend completa, PostgreSQL reale e Chromium CI **NON eseguiti**.
+  Il package prodotto localmente è **SOURCE SMOKE** e non una release verde.
+- Punto di ripartenza: eseguire il job `ui-documentation` della GitHub Actions
+  sul commit corrente, controllare screenshot e PDF finali; verificare inoltre
+  la suite `tests/test_tenant_defaults_core.py`, i restore di vecchi export e
+  la pipeline completa prima della distribuzione.
+
+## Stato storico RC4 (mantenuto come riferimento, non stato attuale)
+
+Ultimo aggiornamento storico: **2026-11-23** (Europe/Rome). Versione funzionale
 in sviluppo **0.10.0-1**, build generata **20261122**. Candidato cumulativo:
 **0.10.0-1 / RC4 — correzioni preliminari CI (non validata)**.
 
@@ -840,3 +921,6 @@ Presentazione editabile a 80 slide: flusso SPAM a 13 step, import da Tenants Def
 
 ## RC52 — 2026-11-24
 Idempotent SPAM category seeding; 19 capture IDs and corresponding source training slides; regenerated source presentation and provenance receipt; corrected release layout. Browser capture must still be executed in CI.
+
+## RC56 — formazione visuale / JPEG / mapping + Alfresco
+77 slide PPTX/PDF ottimizzate; screenshot CI JPEG q90 con validazione mista PNG/JPEG; nuova fixture offline con PDF AcroForm compilabile e configurazione Alfresco per tre nuove catture browser obbligatorie. Nuova CI completa necessaria.

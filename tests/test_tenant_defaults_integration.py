@@ -772,3 +772,68 @@ def test_scoped_full_import_rolls_back_on_invalid_typed_label_references(default
     with defaults_app.app_context():
         assert ConfigLabel.query.filter_by(id=before, tenant_id=ids['operational'], value='OWN-TENANT-CONFIG-MARKER').count() == 1
         assert IncidentWorkflowStep.query.filter_by(tenant_id=ids['operational'], description='Scoped import remapped step').count() == 0
+
+
+def test_existing_local_category_and_affected_data_reused_by_tenants_default(defaults_app):
+    """RC61: two distinct kinds must reconcile without replacing private IDs."""
+    from app.models import ConfigLabel, db
+    from app.tenant_defaults_models import TenantDefaultReplica, TenantDefaultSource
+    ids = defaults_app.config['TEST_DEFAULTS_IDS']
+    data = [('category', 'RC61 SPAM sample'), ('data_type', 'RC61 Mail data')]
+    with defaults_app.app_context():
+        local_ids = {}
+        for kind, value in data:
+            row = ConfigLabel(tenant_id=ids['operational'], kind=kind, value=value,
+                              group='integration', description='Private original')
+            db.session.add(row)
+            db.session.flush()
+            local_ids[kind] = row.id
+        db.session.commit()
+        for kind, value in data:
+            db.session.add(ConfigLabel(tenant_id=ids['shared'], kind=kind, value=value,
+                                       group='integration', description='Shared original'))
+        db.session.commit()
+        for kind, value in data:
+            source_label = ConfigLabel.query.filter_by(tenant_id=ids['shared'],
+                kind=kind, value=value).one()
+            source = TenantDefaultSource.query.filter_by(source_type='config_label',
+                source_id=source_label.id).one()
+            replica = TenantDefaultReplica.query.filter_by(source_id=source.id,
+                tenant_id=ids['operational']).one()
+            assert replica.local_id == local_ids[kind]
+            assert ConfigLabel.query.filter_by(tenant_id=ids['operational'],
+                kind=kind, value=value).count() == 1
+        # Reproduce two old exported aliases, which must not be deleted merely
+        # to clean up the interface. Their historical IDs remain addressable.
+        for kind, value in data:
+            alias = ConfigLabel(tenant_id=ids['operational'], kind=kind,
+                value=value + ' [Tenants Default]', group='legacy')
+            db.session.add(alias)
+        db.session.commit()
+        from app.routes import incident_category_choices, incident_data_type_choices
+        from flask import session
+        with defaults_app.test_request_context('/'):
+            session['active_tenant_id'] = ids['operational']
+            session['active_tenant_scope_enabled'] = True
+            for kind, value, chooser in [
+                ('category', data[0][1], incident_category_choices),
+                ('data_type', data[1][1], incident_data_type_choices),
+            ]:
+                choices = [row for row in chooser() if row.ui_choice_name == value]
+                assert len(choices) == 1, (kind, [r.value for r in chooser()])
+                assert choices[0].id == local_ids[kind]
+            assert all(ConfigLabel.query.filter_by(tenant_id=ids['operational'],
+                kind=kind, value=value + ' [Tenants Default]').count() == 1
+                for kind, value in data)
+
+
+def test_affected_data_drag_palette_uses_deduplicated_choice_helper(defaults_app):
+    """The editing palette must not accidentally bypass normalized choices."""
+    import re
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    routes = (root / 'app/routes.py').read_text(encoding='utf8')
+    palette = (root / 'app/templates/dnd_fields.html').read_text(encoding='utf8')
+    assert re.search(r"def labels\(kind\):\s+if kind == 'data_type':\s+return incident_data_type_choices\(\)", routes)
+    assert 'data-text="{{l.ui_choice_name if l.ui_choice_name is defined else l.value}}" data-target="data_types"' in palette
+    assert 'ui_choice_origin' in palette

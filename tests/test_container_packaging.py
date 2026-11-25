@@ -88,7 +88,7 @@ def test_browser_capture_tooling_is_excluded_without_removing_runtime_ui_or_manu
     retained = (
         "app/ui_settings.py", "app/ui_documentation.py", "app/static/ui/ui.css",
         "app/templates/ui/login_modern.html", "app/static/help/ui-runtime/manifest.json",
-        "app/static/help/ui-runtime/login-desktop.png", "docs/documentazione_utente.pdf",
+        "app/static/help/ui-runtime/login-desktop.jpg", "docs/documentazione_utente.pdf",
         "docs/documentazione_amministrativa.pdf", "docs/user_documentation_en.pdf",
         "docs/administrator_documentation_en.pdf", "docs/CIR_UI_Screenshots.pdf",
         "docs/UI_SCREENSHOTS_SOURCE.json", "docs/UI_SCREENSHOTS_BUILD.json",

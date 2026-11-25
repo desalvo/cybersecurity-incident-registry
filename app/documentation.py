@@ -116,11 +116,16 @@ def runtime_pdf_visuals(legacy_visuals):
                 result[chapter].append((label, path))
                 continue
             shot = mappings.get(path.name)
-            if shot and documentation_screenshot(shot):
+            shot_url = documentation_screenshot(shot) if shot else None
+            if shot_url:
                 caption = titles[shot][1 if english else 0] + ' — ' + (
                     'Real CI screenshot; isolated synthetic data.' if english
                     else 'Screenshot reale CI; dati dimostrativi isolati.')
-                result[chapter].append((caption, Path(current_app.static_folder) / 'help/ui-runtime' / (shot + '.png')))
+                # Match the filename from the already verified runtime manifest.
+                # Both historical PNG and current compact JPEG captures work.
+                from urllib.parse import urlsplit
+                image_name = Path(urlsplit(shot_url).path).name
+                result[chapter].append((caption, Path(current_app.static_folder) / 'help/ui-runtime' / image_name))
     return result
 
 
