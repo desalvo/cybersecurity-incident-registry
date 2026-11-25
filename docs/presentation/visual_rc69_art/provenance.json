@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "artwork": [
+    {
+      "file": "docs/presentation/visual_rc69_art/incident_template_paths.png",
+      "sha256": "c68a34ba259efbb0614e05b950d5bcceafd4ba7e9f40e28cb419d545085e20fb",
+      "origin": "OpenAI ImageGen; originally created for CIR training in this conversation",
+      "human_people": false,
+      "source_type": "original_synthetic_photographic_CGI",
+      "contains_embedded_slide_chrome": false,
+      "purpose": "Two entry paths: blank incident and predefined incident template"
+    }
+  ]
+}

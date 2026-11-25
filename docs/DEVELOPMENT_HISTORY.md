@@ -1132,3 +1132,15 @@ screenshot embedding, the slide 70 relationship check and rejection of
 untracked media. Added a 25-capture disposable fixture and adversarial
 regressions. See `docs/RC68_VISUAL_TRAINING_MEDIA_PROVENANCE.md`.
 Full GitHub CI verification remains pending.
+
+
+## RC69 - Fix automatic PR media reuse and incident-opening training - 2026-11-25
+
+RC68 was committed and merged with successful CI. A subsequent automatic PR failed two tests because multiple screenshot receipts legitimately referenced one identical PPTX media member. RC69 accepts repeated media references only when each distinct screenshot ID is bound to the same SHA-256 digest, while retaining checks against missing or tampered images. Six new editable slides detail opening incidents from the registry with manual or template-prefilled data, what templates contain, their role restrictions, administrative creation/edit/delete and derivation from an existing case. The visual deck has 85 slides, with incident configuration browser evidence moved to physical slide 76 and provenance checks preserved. See docs/RC69_PR_CI_AND_INCIDENT_TEMPLATE_TRAINING.md.
+
+### RC71 — Modular architecture and general workflow manager training (2026-11-25)
+The 87-slide didactic deck expands CIR on the cover, clarifies modular architecture, registers AlBot and Alfresco as the currently implemented optional plugins, explains configurable cross-step/global checks and deadline/reminder scheduling, and distinguishes global super-admin authority from tenant-admin scope. Original people-free synthetic art and editable vector diagrams are audited by SHA-256. No application runtime behavior changed. Source: docs/presentation/RC71_MODULAR_ARCHITECTURE_TRAINING.md.
+
+### RC71 — Cumulative training cover correction (2026-11-25)
+
+Updated the Italian training cover from "laboratorio SPAM" to "laboratorio didattico di esempio". The generated PowerPoint (87 slides), PDF (87 pages), and PptxGenJS generator all use the new wording. A regression assertion ensures future builds keep the generic description. No application behavior changed.

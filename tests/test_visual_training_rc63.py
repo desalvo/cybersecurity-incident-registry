@@ -23,7 +23,7 @@ def test_rc63_audit_script_runs_and_ci_builds_current_deck():
     run=subprocess.run([sys.executable,str(ROOT/'scripts/check_training_visual_sources_rc63.py')],capture_output=True,text=True)
     assert run.returncode==0,run.stderr
     flow=(ROOT/'.github/workflows/ci-release.yml').read_text(encoding='utf8')
-    for name in ('check_training_visual_sources_rc64.py','build_training_visual_rc64.js','verify_visual_training_rc64.py','CIR_Operational_Training_Visual_RC64.pptx'):
+    for name in ('check_training_visual_sources_rc64.py','build_training_visual_rc64.js','verify_visual_training_rc64.py','CIR_Operational_Training_Visual_RC71.pptx'):
         assert name in flow
     js=(ROOT/'scripts/build_training_visual_rc63.js').read_text(encoding='utf8')
     assert 'imageSizingContain(img,6.37,1.55,6.28,5.08)' in js

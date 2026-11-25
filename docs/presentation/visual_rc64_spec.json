@@ -69,7 +69,7 @@
     "bullets": [
       "Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti.",
       "Collegare responsabilità, documenti e decisioni verificabili.",
-      "Guidare gli operatori con procedure, condizioni e tempi configurabili.",
+      "Guidare operatori e responsabili con procedure configurabili, anche oltre la cybersecurity.",
       "Rendere disponibili evidenze per audit, report e miglioramento continuo."
     ],
     "images": [],
@@ -97,14 +97,14 @@
   {
     "original": 5,
     "kind": "content",
-    "title": "Mappa delle funzionalità",
+    "title": "Funzionalità principali: registro e processi",
     "subtitle": "",
     "tag": "INTRO",
     "bullets": [
-      "Registro incidenti, ricerca e filtri.",
-      "Workflow configurabili, avvisi e scadenze.",
-      "Notifiche, moduli PDF, report, statistiche e repository documentali.",
-      "Multitenancy, SSO, autorizzazioni, audit e assistente AI opzionale."
+      "Registro incidenti: apertura, classificazione, ricerca, filtri, audit e report.",
+      "Workflow configurabili: categorie, step, obblighi, condizioni, notifiche e scadenze.",
+      "Documenti e moduli PDF, statistiche, gestione evidenze e repository opzionale.",
+      "Multi-tenant, SSO, ruoli, controllo accessi e assistente AI AlBot opzionale."
     ],
     "images": [],
     "notes": "CIR – modulo 5. Mappa delle funzionalità. Registro incidenti, ricerca e filtri. Workflow configurabili, avvisi e scadenze. Notifiche, moduli PDF, report, statistiche e repository documentali. Multitenancy, SSO, autorizzazioni, audit e assistente AI opzionale. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
@@ -114,17 +114,17 @@
   {
     "original": 6,
     "kind": "content",
-    "title": "Architettura logica",
+    "title": "Architettura modulare e configurabile di CIR",
     "subtitle": "",
     "tag": "INTRO",
     "bullets": [
-      "Browser desktop e mobile: interfaccia web operativa.",
-      "Servizi CIR: Flask, autenticazione, workflow e autorizzazioni.",
-      "PostgreSQL: dati strutturati e tracciabilità.",
-      "PVC / object storage / Alfresco: documenti e archiviazione secondo configurazione."
+      "Interfaccia web desktop/mobile e servizi CIR: utenti, identità, tenant, workflow e autorizzazioni.",
+      "Nucleo applicativo configurabile: categorie, step, condizioni, cataloghi, notifiche, moduli e audit.",
+      "Dati e documenti separati: PostgreSQL, volumi persistenti e archiviazione integrabile.",
+      "Plugin opzionali attivabili e configurabili: AlBot e Alfresco; altri plugin possono essere aggiunti in futuro."
     ],
     "images": [],
-    "notes": "CIR – modulo 6. Architettura logica. Browser desktop e mobile: interfaccia web operativa. Servizi CIR: Flask, autenticazione, workflow e autorizzazioni. PostgreSQL: dati strutturati e tracciabilità. PVC / object storage / Alfresco: documenti e archiviazione secondo configurazione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "Architettura corrente: app/__init__.py registra i plugin ai_chatbot e alfresco; app/models.py definisce workflow e opzioni. La modularità rende possibile estendere il sistema con nuovi plugin. Il repository documentale, la SSO, le notifiche e il motore PDF non vanno presentati tutti come plugin. [Sources] app/__init__.py; app/plugins/; app/models.py; app/templates/ui/navigation.html.",
     "index": 6,
     "photo_art": "docs/presentation/visual_rc63_art/visual_06.jpg"
   },
@@ -747,14 +747,14 @@
   {
     "original": 37,
     "kind": "content",
-    "title": "Chi può modificare cosa",
+    "title": "Chi può configurare CIR: ruoli e responsabilità",
     "subtitle": "",
     "tag": "TENANT",
     "bullets": [
-      "Super admin: istanza, catalogo centrale e configurazioni dei tenant autorizzati.",
-      "Admin tenant: parametri, workflow, notifiche e moduli del proprio tenant.",
-      "Operatori autorizzati: registrazione, aggiornamento e documenti dei singoli incidenti.",
-      "Lettori: consultazione senza modifiche."
+      "Super admin: massima configurabilità dell’istanza, impostazioni globali, plugin e cataloghi condivisi, con gestione trasversale di tutti i tenant.",
+      "Admin di tenant: personalizza workflow, categorie, modelli PDF, notifiche e impostazioni consentite nel proprio tenant.",
+      "Operatori autorizzati: utilizzano procedure e workflow configurati, aggiornano incidenti e generano documenti; non governano la configurazione globale.",
+      "Lettori: consultano le informazioni permesse dal ruolo; non possono cambiare le regole applicative."
     ],
     "images": [],
     "notes": "CIR – modulo 37. Chi può modificare cosa. Super admin: istanza, catalogo centrale e configurazioni dei tenant autorizzati. Admin tenant: parametri, workflow, notifiche e moduli del proprio tenant. Operatori autorizzati: registrazione, aggiornamento e documenti dei singoli incidenti. Lettori: consultazione senza modifiche. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",

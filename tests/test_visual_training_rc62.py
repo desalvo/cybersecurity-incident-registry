@@ -55,4 +55,4 @@ def test_ci_uses_current_rc63_and_real_screenshots():
     assert 'scripts/build_training_visual_rc64.js' in flow
     assert 'scripts/verify_visual_training_rc64.py' in flow
     assert 'CIR_REQUIRE_REAL_SCREENSHOTS' in flow
-    assert 'CIR_Operational_Training_Visual_RC64.pptx' in flow
+    assert 'CIR_Operational_Training_Visual_RC71.pptx' in flow

@@ -34,9 +34,9 @@ def test_browser_palette_has_precedence_over_the_original_photo():
 
 def test_validator_proves_actual_linkage_to_slide70():
     src = VERIFIER.read_text(encoding='utf8')
-    assert 'linked_slide_image_digests(archive, 70)' in src
+    assert 'linked_slide_image_digests(archive, PALETTE_SLIDE)' in src
     assert "checksum not in slide70_digests" in src
-    assert 'Screenshot CI non collegata alla slide 70' in src
+    assert 'Screenshot CI non collegata alla slide ' in src
 
 
 def _can_run_builder():
@@ -75,12 +75,12 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                               '--screenshot-manifest', str(manifest), '--require-ci-images'],
                              cwd=ROOT, capture_output=True, text=True)
     assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)['slides'] == 79
+    assert json.loads(checked.stdout)['slides'] == 87
 
     # Prove that the validator will reject an image that is still in the PPTX
     # media pool but is no longer referenced by the intended slide.
     tampered = tmp_path / 'unlinked_palette_test_only.pptx'
-    slide_name = 'ppt/slides/slide70.xml'
+    slide_name = 'ppt/slides/slide78.xml'
     with ZipFile(deck) as source, ZipFile(tampered, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -97,4 +97,4 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                                '--screenshot-manifest', str(manifest), '--require-ci-images'],
                               cwd=ROOT, capture_output=True, text=True)
     assert rejected.returncode != 0
-    assert 'Screenshot CI non collegata alla slide 70' in rejected.stderr
+    assert 'Screenshot CI non collegata alla slide ' in rejected.stderr

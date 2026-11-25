@@ -84,7 +84,7 @@ def test_25_ci_captures_all_have_valid_provenance(full_browser_capture):
     proc = _verify(pptx, manifest, env)
     assert proc.returncode == 0, proc.stderr
     details = json.loads(proc.stdout)
-    assert details['slides'] == 79
+    assert details['slides'] == 87
     assert details['verified_browser_screenshots'] == 25
     assert details['mandatory_ci_images_embedded'] is True
 
