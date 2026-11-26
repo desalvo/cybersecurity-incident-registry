@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "source_commit": "1e7189fbe461e1641dd591c84cafa30c1d6ef72a",
+  "build": "20261126",
+  "screenshot_manifest_sha256": "04825ffae9c48587db59b10ee9da27942912f1f0cc8c58f81de4cd3f02df40ef",
+  "screenshots": [
+    {
+      "id": "login-desktop",
+      "sha256": "b95a7d9d821c5163d3978adde38af8480092634d136477def36cb8717a698377"
+    },
+    {
+      "id": "login-mobile",
+      "sha256": "e9c00b68613e341a5bbb1ff892231549f2a4064d5c3b7fc79cd214411d2c0b5b"
+    },
+    {
+      "id": "registry-desktop",
+      "sha256": "ba48edca40aa55aff4dab717704dcbd3a39703aa2743a7bd722c651814c17544"
+    },
+    {
+      "id": "registry-closed-state",
+      "sha256": "ba48edca40aa55aff4dab717704dcbd3a39703aa2743a7bd722c651814c17544"
+    },
+    {
+      "id": "statistics-desktop",
+      "sha256": "c6332513aed0563f8fde0e74438cc32d260ebedb431bd6904c87ca22b7b08c4d"
+    },
+    {
+      "id": "incident-desktop",
+      "sha256": "d3264ea085beabead30c58e0af0fc3f10bea648972ac569004823d4894ffafc7"
+    },
+    {
+      "id": "spam-incident-desktop",
+      "sha256": "500b078167413f5d5cda1efb4231ae68fb1dfa28bec8afcbfac2583a0cd2f523"
+    },
+    {
+      "id": "spam-workflow-steps",
+      "sha256": "46bcb4397aacb34aec99b64bd5222902117d86824d4dd08159e20b1028d2d40b"
+    },
+    {
+      "id": "workflow-steps-focused",
+      "sha256": "dc0964d364c6924ce460b4b115bc82e2e7d446199447c5a9c07dd2365cf6c2d7"
+    },
+    {
+      "id": "spam-incident-config-labels",
+      "sha256": "421301d8ebaa6d3b8ff352387f77345b78758c01fe0b8342e6bc07246558a759"
+    },
+    {
+      "id": "assistant-desktop",
+      "sha256": "b947f86c7a598d153a49672ab4c138221bc2476aec23a873996ae8991799dba4"
+    },
+    {
+      "id": "assistant-panel-closeup",
+      "sha256": "962ab43230226dd15995d042a73c6bfcf298191ee4aaa864ac89348aa2d6d5e3"
+    },
+    {
+      "id": "registry-mobile",
+      "sha256": "5f07c78485fe4fd0921a0b9539e0f0ff1846a8182626ea3c56a343f39948dd5a"
+    },
+    {
+      "id": "registry-mobile-menu",
+      "sha256": "813a21a02eec7d573d139bfd3454a7a1cc30cbe35519679bcadd08f266aca223"
+    },
+    {
+      "id": "incident-mobile",
+      "sha256": "009b522c9ca48018d94747514033ea5458423c5fa92b32433fc8d683709d2e85"
+    },
+    {
+      "id": "assistant-mobile",
+      "sha256": "1b4e37865b1cf8f5631fbdb399bba08a8fecd5a59af5e33ebc333884cfa90218"
+    },
+    {
+      "id": "documentation-user-desktop",
+      "sha256": "3787f81a69adf7e6c78007398c8835299ad7e89cee3550513dcdf3d96dfa614e"
+    },
+    {
+      "id": "documentation-user-mobile",
+      "sha256": "7b11613cd44f3ff918ed944909688d912b25fd80e406a2ebf6bc31f19956a702"
+    },
+    {
+      "id": "documentation-admin-desktop",
+      "sha256": "4f5eadd028d536c7d7dd79ba7861d2f12ab4c79d27eef3a2335017734c350918"
+    },
+    {
+      "id": "documentation-admin-mobile",
+      "sha256": "fd23399fcb3048aee2f43b87465771eac7bd95107d3b3867aaea79c52d9a5831"
+    },
+    {
+      "id": "admin-modules-desktop",
+      "sha256": "3f8ffcbedfd1132465179011cccca461617a66a037d0c1d972c95d993725f512"
+    },
+    {
+      "id": "pdf-mapping-configuration",
+      "sha256": "7ce0cd6e598f1e2db8d59ccd7588165ebcfe753f695a2651da8d91f5ce4888de"
+    },
+    {
+      "id": "pdf-generated-preview",
+      "sha256": "5a0801ad2f568d5568f3b361e8a369fe6e60531d773d9df8479d2f6363147aad"
+    },
+    {
+      "id": "notification-preview",
+      "sha256": "436f4214f5529abdc57a2c2e7756a5d3e2dab6df59f22635f0eae749433530fa"
+    },
+    {
+      "id": "alfresco-settings-desktop",
+      "sha256": "19f6fe321f9f8805fac0fe900d8e687f0b3d15f610767bb3acc4575b8303b6a2"
+    },
+    {
+      "id": "alfresco-incident-documents",
+      "sha256": "28f37b1fc3a428d40bdf915a5535830db55af3010a1957ffd0922ec39ac194ec"
+    },
+    {
+      "id": "admin-sso-desktop",
+      "sha256": "b023e409b7f756e4815d3747825017d0286f30eea4b5ef71d266df838d6c5b45"
+    },
+    {
+      "id": "interface-settings-desktop",
+      "sha256": "3d636c776d4ba24b69b0b3376dd344191b27d86d04f3ec11db0eb874d723f506"
+    },
+    {
+      "id": "tenant-setup-wizard-desktop",
+      "sha256": "10c8077c0a6626df17d7b7d0c1803960fca460dce1290d93fda8d94e0e8d5c49"
+    },
+    {
+      "id": "tenant-setup-wizard-panel",
+      "sha256": "5c6e7883b082e022eeca67e30ce56384fff332daceac3672c30eefd81c99de52"
+    },
+    {
+      "id": "tenant-wizard-next-step",
+      "sha256": "1332055d7802bf2104a4fa5680a561572b69627317182a5676e6bd47a0c16be6"
+    },
+    {
+      "id": "classic-registry-desktop",
+      "sha256": "f9731b45d2b9909367ee13ebb669e8edcd8b9d45f2334ca1ff5beed739d6e45a"
+    }
+  ],
+  "pptx_file": "CIR_Operational_Training_Visual.pptx",
+  "pptx_sha256": "ac9d7586771d10970ef3b47382250563e6aebdcb6be3c289e2f52802b78a9536",
+  "pdf_file": "CIR_Operational_Training_Visual.pdf",
+  "pdf_sha256": "7d44a523a7cc4ac0115f535238d3e2d90173631f831b88458c98682f20524779",
+  "slide_count": 128,
+  "pdf_pages": 128,
+  "pdf_screenshots_visually_verified": 31,
+  "screenshot_gallery_first_slide": 96
+}
