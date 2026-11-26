@@ -80,6 +80,8 @@ def load_content(root: Path, metadata):
     for item in slides:
         if not isinstance(item, dict) or not item.get("title") or len(item.get("notes", "")) < 40:
             raise EvidenceError("Each authored slide needs a title and substantive speaker notes")
+        if item.get("screenshots") and item.get("type") != "screenshots":
+            raise EvidenceError("A mandatory browser screenshot must be on a rendered screenshot slide")
         screenshot_ids.extend(item.get("screenshots", []))
         manuals.extend(item.get("manuals", []))
     if set(screenshot_ids) != REQUIRED_SCREENSHOTS or len(screenshot_ids) != len(REQUIRED_SCREENSHOTS):

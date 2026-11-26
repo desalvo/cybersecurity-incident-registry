@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 
 
-def verify(pdf: Path, screenshot_paths: list[Path], *, base_slides: int = 88) -> int:
+def verify(pdf: Path, screenshot_paths: list[Path], *, base_slides: int = 91) -> int:
     from PIL import Image, ImageChops, ImageStat
     if not screenshot_paths:
         raise ValueError('No screenshots to verify in PDF')

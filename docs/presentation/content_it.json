@@ -706,10 +706,11 @@
       "type": "screenshots",
       "kicker": "AMMINISTRAZIONE DEL TENANT",
       "title": "Wizard di setup iniziale del tenant: riprendere o rieseguire",
-      "notes": "Il wizard di setup iniziale di CIR è una procedura guidata reale disponibile dal menu Admin per il tenant attivo. Sia admin del tenant sia super admin possono accedervi secondo i rispettivi privilegi. Le schermate visibili sono acquisite dalla CI tramite login autentica, con dati isolati di prova: la prima presenta sezioni, progresso e campo di configurazione; la seconda ingrandisce il pannello e i pulsanti. Per ogni sezione si può scegliere Salva e continua oppure Salta questo gruppo; dopo una pausa, il progress salvato o saltato rimane disponibile al rientro e le sezioni si possono rileggere. Il pulsante Riesegui da capo azzera il progresso e permette di ripetere il percorso anche più volte senza creare un nuovo tenant. Il super admin può creare o clonare altri tenant e modificare la password dell’admin globale; queste azioni restano vietate al solo admin di tenant. Il wizard non concede nuovi privilegi. Il flusso è verificato dalla CI con Chromium.",
+      "notes": "Il wizard di setup iniziale di CIR è una procedura guidata reale disponibile dal menu Admin per il tenant attivo. Sia admin del tenant sia super admin possono accedervi secondo i rispettivi privilegi. Le schermate visibili sono acquisite dalla CI tramite login autentica, con dati isolati di prova: la prima presenta sezioni, progresso e campo di configurazione; la seconda ingrandisce il pannello e i pulsanti. Per ogni sezione si può scegliere Salva e continua oppure Salta questo gruppo; dopo una pausa, il progress salvato o saltato rimane disponibile al rientro e le sezioni si possono rileggere. Il pulsante Riesegui da capo azzera il progresso e permette di ripetere il percorso anche più volte senza creare un nuovo tenant. Il super admin può creare o clonare altri tenant e modificare la password dell’admin globale; queste azioni restano vietate al solo admin di tenant. Il wizard non concede nuovi privilegi. Il flusso è verificato dalla CI con Chromium. La cattura tenant-wizard-next-step è uno screenshot reale della sequenza dopo «Salta questo gruppo», separata dalla prima schermata e dal pannello iniziale.",
       "screenshots": [
         "tenant-setup-wizard-desktop",
-        "tenant-setup-wizard-panel"
+        "tenant-setup-wizard-panel",
+        "tenant-wizard-next-step"
       ]
     },
     {
@@ -859,7 +860,7 @@
       "notes": "Approfondimento per la formazione CIR. Modelli documentali e mapping. MODELLO: Associare un PDF o un DOCX valido. CAMPI: Mappare dati incidente verso segnaposto. OUTPUT: Generare, verificare e allegare il documento. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     },
     {
-      "type": "columns",
+      "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
       "title": "Notifiche: configurazione",
       "items": [
@@ -877,7 +878,10 @@
         ]
       ],
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. Notifiche: configurazione. TIPI: Definire codici, destinatari e permessi. TEMPLATE: Oggetto, corpo e campi dinamici. ALLEGATI: Documenti generati o selezionati, secondo policy. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "notes": "Approfondimento per la formazione CIR. Notifiche: configurazione. TIPI: Definire codici, destinatari e permessi. TEMPLATE: Oggetto, corpo e campi dinamici. ALLEGATI: Documenti generati o selezionati, secondo policy. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione. La screenshot notification-preview documenta l’anteprima reale della notifica con dati sintetici, prima dell’invio, nella CI della build corrente.",
+      "screenshots": [
+        "notification-preview"
+      ]
     },
     {
       "type": "columns",
@@ -898,13 +902,13 @@
         ]
       ],
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. Report operativi. DOVE: Sezioni di report ed esportazione autorizzate. COME: Filtrare periodo, tenant e stato. PERCHÉ: Audit, passaggi di consegne e governance. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "notes": "Approfondimento per la formazione CIR. Report operativi. DOVE: Sezioni di report ed esportazione autorizzate. COME: Filtrare periodo, tenant e stato. PERCHÉ: Audit, passaggi di consegne e governance. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione. Le statistiche supportano export PDF, CSV, JSON; i connettori verso altri sistemi possono essere sviluppati ad hoc. Per il super admin esistono viste globali e per tenant."
     },
     {
       "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
-      "title": "Statistiche: indicatori reali del tenant",
-      "notes": "Approfondimento per la formazione CIR. Statistiche e indicatori. METRICHE: Incidenti aperti, chiusi e tempi. FILTRI: Confrontare periodi e categorie. LIMITI: Le metriche dipendono dalla qualità dei dati. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione.\nCattura autenticata obbligatoria dal browser della CI: statistics-desktop. La pagina raffigura solo dati di prova.",
+      "title": "Statistiche: tenant, cross-tenant e globale",
+      "notes": "Statistiche operative: il tenant attivo mostra solo il proprio perimetro; il super admin può scegliere vista globale (tutti i tenant) oppure cross-tenant con aggregazioni distinte per tenant. Filtri temporali; categorie, dati interessati e durata media. Export PDF, CSV e JSON aggregati; connettori ad hoc per BI o sistemi esterni ove necessario, con autorizzazioni appropriate. Fonte: app/routes.py, app/reports.py, app/templates/stats.html. Schermata autenticata della CI: statistics-desktop con dati sintetici isolati.",
       "screenshots": [
         "statistics-desktop"
       ]
@@ -1051,7 +1055,9 @@
     "tenant-setup-wizard-panel": "Wizard setup iniziale: pulsanti Salva, Salta e Termina",
     "workflow-steps-focused": "Workflow SPAM in viewport ridotta: card e frecce più leggibili",
     "statistics-desktop": "Statistiche reali del tenant e indicatori",
-    "assistant-panel-closeup": "Pannello reale AlBot, assistente Alex, con risposta di prova"
+    "assistant-panel-closeup": "Pannello reale AlBot, assistente Alex, con risposta di prova",
+    "tenant-wizard-next-step": "Wizard tenant: avanzamento e step successivo della sequenza reale",
+    "notification-preview": "Anteprima notifica: contenuto e destinatari prima dell’invio"
   },
   "references": {
     "nis2": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",

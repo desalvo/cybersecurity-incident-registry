@@ -32,9 +32,25 @@ def test_generated_deck_has_catalog_import_navigation_when_available():
     deck = ROOT / 'docs/presentation/CIR_Operational_Training_Visual.pptx'
     if not deck.exists():
         return
-    # 88-slide editorial presentation: originals 35,42,63 map to slides 42,49,71.
+    # Source 'index' is the stable logical slide ID; 'original' identifies an
+    # earlier media/spec lineage. Map logical IDs through the current chapter
+    # insertions instead of relying on the obsolete 88-slide page numbers.
+    from scripts.verify_visual_training_rc64 import (
+        ARCH_AFTER, ARCH_SLIDES, INSERT_AFTER, ADDED_SLIDES,
+        WORKFLOW_AFTER, WORKFLOW_INTRO_SLIDES,
+    )
+    def presentation_number(index):
+        return (index + (ARCH_SLIDES if index > ARCH_AFTER else 0)
+                + (ADDED_SLIDES if index > INSERT_AFTER else 0)
+                + (WORKFLOW_INTRO_SLIDES if index > WORKFLOW_AFTER else 0))
+
+    spec = json.loads((ROOT / 'docs/presentation/visual_rc64_spec.json').read_text(encoding='utf-8'))
+    affected = [next(row for row in spec if row.get('original') == original)
+                for original in (35, 42, 63)]
     with ZipFile(deck) as archive:
-        for number in (42, 49, 71):
+        for row in affected:
+            number = presentation_number(row['index'])
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             text = ' '.join(node.text or '' for node in page.iter(DRAW_TEXT))
+            assert row['title'] in text, (number, row['title'], text[:150])
             assert 'Catalogo workflow' in text, (number, text[:150])

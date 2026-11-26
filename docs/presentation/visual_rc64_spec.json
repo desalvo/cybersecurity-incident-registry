@@ -70,10 +70,10 @@
       "Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti.",
       "Collegare responsabilità, documenti e decisioni verificabili.",
       "Guidare operatori e responsabili con procedure configurabili, anche oltre la cybersecurity.",
-      "Continuous Improvement: «CI» significa anche miglioramento continuo. Ogni rilascio aggiorna controlli, applicazione e documentazione tramite la pipeline CI."
+      "Una nuova chiave di lettura: «CI» potrebbe anche essere interpretato come «Continuous Improvement» (miglioramento continuo), per l’evoluzione progressiva dell’applicazione, dei controlli e della documentazione."
     ],
     "images": [],
-    "notes": "CIR – modulo 3. Finalità dell’applicazione. Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti. Collegare responsabilità, documenti e decisioni verificabili. Guidare gli operatori con procedure, condizioni e tempi configurabili. Rendere disponibili evidenze per audit, report e miglioramento continuo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nLa sigla CI si legge anche Continuous Improvement, principio di evoluzione verificabile dell’applicazione e della documentazione.",
+    "notes": "CIR – modulo 3. Finalità dell’applicazione. Unificare la registrazione, l’analisi, il trattamento e la chiusura degli incidenti. Collegare responsabilità, documenti e decisioni verificabili. Guidare gli operatori con procedure, condizioni e tempi configurabili. Rendere disponibili evidenze per audit, report e miglioramento continuo. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.\nUna nuova interpretazione possibile della sigla «CI» nel nome CIR è «Continuous Improvement» (miglioramento continuo): non è il significato originario dell’acronimo. Va tenuta distinta dalla sigla CI della pipeline tecnica, che indica «Continuous Integration».",
     "index": 3,
     "photo_art": "docs/presentation/visual_rc63_art/visual_03.jpg"
   },
@@ -513,17 +513,17 @@
   {
     "original": 24,
     "kind": "content",
-    "title": "Statistiche: analisi aggregata",
+    "title": "Statistiche: per tenant, cross-tenant e globali",
     "subtitle": "",
     "tag": "FUNZIONI",
     "bullets": [
-      "Dal menu principale scegli «Report» → «Statistiche».",
-      "Le statistiche aggregano categorie, tendenze e tempi di gestione.",
-      "Sono utili per analizzare carichi, frequenze e miglioramenti.",
-      "I numeri degli esempi rappresentano esclusivamente dati sintetici."
+      "Tenant attivo: indicatori di incidenti, categorie, dati interessati e tempi, sempre nel perimetro autorizzato.",
+      "Super admin: vista cross-tenant con aggregazioni per tenant e confronto fra organizzazioni.",
+      "Super admin: vista globale, con indicatori consolidati su tutti i tenant.",
+      "Esportazione PDF, CSV e JSON: integrazione con piattaforme esterne e connettori ad hoc, se necessari."
     ],
     "images": [],
-    "notes": "CIR – modulo 24. Statistiche: analisi aggregata. Dal menu principale scegli «Report» → «Statistiche». Le statistiche aggregano categorie, tendenze e tempi di gestione. Sono utili per analizzare carichi, frequenze e miglioramenti. I numeri degli esempi rappresentano esclusivamente dati sintetici. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "Statistiche CIR: distinguere il tenant attivo (ambito predefinito), la vista globale e la ripartizione cross-tenant per tenant. Le due viste sovra-tenant sono riservate a global superuser; i normali utenti non ottengono accesso ad altri tenant. Percorsi: /reports/stats, /reports/stats.pdf, /reports/stats.csv, /reports/stats.json. CSV e JSON contengono indicatori aggregati, non record grezzi di incidenti; possono alimentare BI o connettori dedicati previa autorizzazione. Le catture CI mostrano soltanto dati sintetici. Fonti: app/routes.py, app/templates/stats.html, app/reports.py.",
     "index": 22
   },
   {
@@ -845,19 +845,20 @@
   {
     "original": 41,
     "kind": "content",
-    "title": "Workflow: categorie, step, condizioni e dipendenze (esempio SPAM)",
+    "title": "Esempio: dal workflow SPAM all’incidente",
     "subtitle": "",
     "tag": "WORKFLOW",
     "bullets": [
-      "Categoria: SPAM associa l’incidente al workflow corrispondente; ogni categoria è definibile dagli amministratori.",
-      "Step: «Blocco account» guida un’azione di contenimento; ordine e contenuti degli step sono configurabili.",
-      "Condizione: se sono presenti rischi per diritti e libertà degli interessati, si attivano ulteriori valutazioni e comunicazioni eventualmente dovute al Garante.",
-      "Dipendenze: label «Blocco», notifica «user alert» e modulo DPO; sono risorse modificabili e sostituibili dagli admin."
+      "Nel catalogo del tenant si configura o importa un workflow dedicato alla categoria SPAM: la categoria e il workflow dell’esempio hanno lo stesso nome.",
+      "All’apertura dell’incidente si seleziona SPAM come prima categoria: CIR applica il workflow SPAM corrente associato a quella categoria.",
+      "Le eventuali altre categorie servono a classificare meglio l’incidente; non aggiungono i passaggi di ulteriori workflow.",
+      "Il workflow SPAM include step operativi, condizioni facoltative e dipendenze configurate (notifiche, label, moduli PDF)."
     ],
     "images": [],
-    "notes": "CIR – modulo 41. Workflow: categorie, step, condizioni, dipendenze. Categoria: «SPAM» applica la procedura all’incidente classificato come SPAM. Step: «Analisi preliminare» richiede di registrare riscontri e operazioni. Condizione di rischio per i diritti e le libertà: mostra gli step aggiuntivi solo nei casi in cui è attivata. Dipendenze: label azioni, tipi di notifica e modello PDF DPO collegati alle fasi. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "Esempio, solo dopo la definizione dei concetti. Un admin importa SPAM nel tenant e associa gli step a una categoria SPAM (identità del record). In apertura incidente, SPAM deve essere prima nell’ordine delle categorie; CIR sceglie gli step di quella categoria se presenti, altrimenti il default. Il nome SPAM è una convenzione leggibile per l’operatore: la selezione reale avviene tramite l’identità della categoria e il tenant. Altre categorie sono classificazioni e non combinano automaticamente workflow. Nel caso didattico, il rischio per diritti e libertà abilita fasi condizionali; dipendenze comprendono label, notifica user alert, modulo DPO. [Sources] app/workflow_lifecycle.py::workflow_scope_for_categories, app/models.py::IncidentWorkflowStep, docs/presentation/RC76_INCIDENT_WORKFLOW_SELECTION.md.",
     "index": 39,
-    "photo_art": "docs/presentation/visual_rc63_art/visual_39.jpg"
+    "photo_art": "docs/presentation/visual_rc63_art/visual_39.jpg",
+    "spam_intro_case": true
   },
   {
     "original": 42,
@@ -1154,13 +1155,13 @@
     "subtitle": "",
     "tag": "DOCUMENTI",
     "bullets": [
-      "Dal menu principale apri «Statistiche»: CIR mostra risultati reali della pagina /reports/stats, filtrabili per intervallo temporale.",
-      "Le schede presentano il numero di incidenti e la durata media, con grafici per categorie e dati interessati.",
-      "Usa «Aggiorna finestra ricercata» per il periodo e «Scarica PDF statistiche» per esportare il riepilogo.",
-      "Le statistiche della screenshot CI si riferiscono esclusivamente ai dati sintetici del laboratorio."
+      "«Report» → «Statistiche»: filtro per periodo e ambito (tenant attivo; per il super admin anche globale e cross-tenant).",
+      "Cross-tenant: confronto delle metriche aggregate per tenant; globale: consolidato di tutti i tenant.",
+      "Esporta PDF, CSV o JSON per audit, dashboard esterne e connector ad hoc con autorizzazione.",
+      "La CI usa esclusivamente dati sintetici; i permessi non consentono ai normali utenti export sovra-tenant."
     ],
     "images": [],
-    "notes": "CIR – modulo 57. Report e statistiche: dove trovarli. Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro. Statistiche: menu principale «Report» → «Statistiche». Il report descrive la singola pratica; le statistiche mostrano trend aggregati. Le cifre di laboratorio non rappresentano dati reali di produzione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "Percorso statistiche: /reports/stats. Scelta ambito tenant, globale, cross-tenant con dettaglio per tenant, questi ultimi solo per global superuser. Esportazioni PDF, CSV e JSON di soli dati aggregati utilizzabili per reporting esterno o connettori su misura. Gli indicatori comprendono conteggi, categorie, dati interessati, durata media e finestre temporali; protezione tenant verificata server-side. Fonti: app/routes.py, app/templates/stats.html, app/reports.py.",
     "index": 56
   },
   {

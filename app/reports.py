@@ -1,3 +1,4 @@
+from xml.sax.saxutils import escape
 import tempfile, os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -402,13 +403,16 @@ def _period_statistics(name, incidents, start=None, end=None):
     }
 
 
-def statistics_pdf(periods):
+def statistics_pdf(periods, scope_label=None):
     fd, path = tempfile.mkstemp(suffix='.pdf')
     os.close(fd)
     styles = getSampleStyleSheet()
     small = ParagraphStyle('stats-small', parent=styles['BodyText'], fontSize=7, leading=8)
     body = ParagraphStyle('stats-body', parent=styles['BodyText'], fontSize=9, leading=11)
     story = [Paragraph('Report statistiche incidenti', styles['Title']), Spacer(1, 0.25*cm)]
+    if scope_label:
+        story.append(Paragraph('Ambito: ' + escape(str(scope_label)), body))
+        story.append(Spacer(1, 0.15*cm))
     story.append(Paragraph('Il report aggrega gli incidenti per finestra temporale e usa categorie, dati interessati, gravità, stato, rischio per diritti e libertà, compilatore, azioni, documenti e durata dove disponibili.', body))
     story.append(Spacer(1, 0.35*cm))
     summary_rows = [['Finestra', 'Incidenti', 'Durata media (ore)', 'Azioni', 'Documenti']]
@@ -418,6 +422,15 @@ def statistics_pdf(periods):
 
     for p in periods:
         story.append(Paragraph(p['name'], styles['Heading1']))
+        if p.get('tenant_breakdown'):
+            story.append(Paragraph('Ripartizione cross-tenant', styles['Heading2']))
+            breakdown_rows = [['Tenant', 'Incidenti', 'Durata media (ore)']]
+            for entry in p['tenant_breakdown']:
+                breakdown_rows.append([entry['tenant'], entry['count'],
+                                       f"{entry['avg_duration']:.2f}"])
+            story.append(_wrap_stats_table(breakdown_rows, small,
+                           widths=[9*cm, 3*cm, 5*cm]))
+            story.append(Spacer(1, 0.25*cm))
         period_desc = []
         if p.get('start'):
             period_desc.append(f"dal {p['start']}")

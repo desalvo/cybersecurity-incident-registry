@@ -513,17 +513,17 @@
   {
     "original": 24,
     "kind": "content",
-    "title": "Statistiche: analisi aggregata",
+    "title": "Statistiche: per tenant, cross-tenant e globali",
     "subtitle": "",
     "tag": "FUNZIONI",
     "bullets": [
-      "Dal menu principale scegli «Report» → «Statistiche».",
-      "Le statistiche aggregano categorie, tendenze e tempi di gestione.",
-      "Sono utili per analizzare carichi, frequenze e miglioramenti.",
-      "I numeri degli esempi rappresentano esclusivamente dati sintetici."
+      "Tenant attivo: incidenti, categorie, tendenze e tempi nel perimetro autorizzato.",
+      "Super admin: confronto cross-tenant con aggregazioni per tenant.",
+      "Super admin: indicatori globali su tutti i tenant.",
+      "Export PDF, CSV e JSON verso dashboard esterne e connettori ad hoc."
     ],
     "images": [],
-    "notes": "CIR – modulo 24. Statistiche: analisi aggregata. Dal menu principale scegli «Report» → «Statistiche». Le statistiche aggregano categorie, tendenze e tempi di gestione. Sono utili per analizzare carichi, frequenze e miglioramenti. I numeri degli esempi rappresentano esclusivamente dati sintetici. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "Statistiche del tenant attivo per impostazione predefinita. Global superuser: vista cross-tenant per tenant e vista globale. I formati PDF, CSV e JSON esportano dati aggregati; possono essere utilizzati da connettori su misura, previa autorizzazione. La CI impiega soltanto dati sintetici. Fonti: app/routes.py, app/templates/stats.html, app/reports.py.",
     "index": 22
   },
   {
@@ -1152,13 +1152,13 @@
     "subtitle": "",
     "tag": "DOCUMENTI",
     "bullets": [
-      "Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro.",
-      "Statistiche: menu principale «Report» → «Statistiche».",
-      "Il report descrive la singola pratica; le statistiche mostrano trend aggregati.",
-      "Le cifre di laboratorio non rappresentano dati reali di produzione."
+      "Apri «Report» → «Statistiche» e filtra il periodo.",
+      "Scegli il tenant attivo oppure, come super admin, aggregazioni per tenant o globali.",
+      "Esporta PDF, CSV o JSON per audit, report esterni e connettori dedicati.",
+      "Le screenshot CI mostrano solo dati di laboratorio, non informazioni di produzione."
     ],
     "images": [],
-    "notes": "CIR – modulo 57. Report e statistiche: dove trovarli. Report di un incidente: «Report PDF» nella scheda o pulsante «PDF» nella riga del registro. Statistiche: menu principale «Report» → «Statistiche». Il report descrive la singola pratica; le statistiche mostrano trend aggregati. Le cifre di laboratorio non rappresentano dati reali di produzione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "Statistiche per tenant attivo, vista cross-tenant aggregata per tenant e vista globale riservate al super admin. Export PDF, CSV e JSON per fonti esterne e connettori ad hoc. Protezione tenant server-side. Fonte: app/routes.py e app/templates/stats.html.",
     "index": 56
   },
   {

@@ -58,8 +58,9 @@ def verify(root: Path, commit: str) -> None:
             raise ValueError('Published document changed since same-run verification: ' + file.name)
     manifest_hashes = {item['id']: item['sha256'] for item in runtime['screenshots']}
     from scripts.verify_visual_training_rc64 import linked_slide_image_digests
+    from scripts.published_visual_training import HIDDEN_GALLERY_IDS
     with ZipFile(pptx) as presentation_zip:
-        for index, row in enumerate(screenshots):
+        for index, row in enumerate(row for row in screenshots if row.get('id') not in HIDDEN_GALLERY_IDS):
             if manifest_hashes.get(row.get('id')) != row.get('sha256'):
                 raise ValueError('Screenshot provenance differs from published manifest')
             slide = visual_receipt['screenshot_gallery_first_slide'] + index
@@ -81,7 +82,7 @@ def verify(root: Path, commit: str) -> None:
             checksum = manifest_hashes.get(row['id'])
             if checksum != row['sha256'] or checksum not in visible_hashes:
                 raise ValueError('Operational PowerPoint screenshot not visible: ' + row['id'])
-    if visual_receipt['pdf_screenshots_visually_verified'] != len(screenshots):
+    if visual_receipt['pdf_screenshots_visually_verified'] != sum(row.get('id') not in HIDDEN_GALLERY_IDS for row in screenshots):
         raise ValueError('PDF has not been visually verified against all screenshots')
     # Bind publication to current commit using the validated receipt.
     evidence_text = json.dumps(build, ensure_ascii=False) + json.dumps(source, ensure_ascii=False)

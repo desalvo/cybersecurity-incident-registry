@@ -48,11 +48,13 @@ def test_tenant_wizard_is_captured_from_authenticated_browser_and_embedded():
     # The wizard is rendered by the shared RC83 provenance-preserving zoom
     # helper, rather than by a wizard-specific addImage call. Verify the
     # conditional dispatch and its use of one screenshot for both views.
-    assert "if(wizard?.id==='tenant-setup-wizard-panel')" in builder
-    assert 'addCiZoom(slide,wizard);' in builder
+    assert "wizard?.id==='tenant-setup-wizard-desktop'" in builder
+    assert 'SEQUENZA DEGLI STEP DEL WIZARD' in builder
     assert 'slide.addImage({path:shot.path,...p})' in builder
     assert 'imageSizingCrop(shot.path' in builder
-    assert "(42, 'tenant-setup-wizard-panel')" in verifier
+    assert "(62 + WORKFLOW_INTRO_SLIDES, 'pdf-mapping-configuration')" in verifier
+    assert "'tenant-wizard-next-step': '.setup-wizard-shell'" in evidence
+    assert "'tenant-wizard-next-step': '/admin/setup-wizard'" in evidence
     assert 'linked_slide_image_digests(rich_archive, slide)' in verifier
 
 
@@ -73,6 +75,6 @@ def test_operational_deck_has_tenant_wizard_screenshot_chapter():
     chapter = slides[43]
     assert chapter["type"] == "screenshots"
     assert "Wizard di setup iniziale" in chapter["title"]
-    assert chapter["screenshots"] == ["tenant-setup-wizard-desktop", "tenant-setup-wizard-panel"]
+    assert chapter["screenshots"] == ["tenant-setup-wizard-desktop", "tenant-setup-wizard-panel", "tenant-wizard-next-step"]
     assert "Riesegui da capo" in chapter["notes"]
     assert "Salta questo gruppo" in chapter["notes"]
