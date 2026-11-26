@@ -23,7 +23,7 @@ function makeDnd(){
   const makeSelectedRemovable=()=>document.querySelectorAll('.dropzone .chip').forEach(chip=>{
     if(chip.dataset.removeReady==='true')return;
     chip.dataset.removeReady='true';
-    chip.title='Clic per rimuovere dalla selezione';
+    chip.title=chip.title ? chip.title+' — Clic per rimuovere dalla selezione' : 'Clic per rimuovere dalla selezione';
     chip.addEventListener('click',ev=>{
       if(ev.target && ['INPUT','A','BUTTON','SELECT','TEXTAREA'].includes(ev.target.tagName))return;
       chip.remove();
@@ -55,6 +55,13 @@ function makeDnd(){
       }
       let s=document.createElement('span');
       s.className='chip';
+      if(zone.dataset.target==='categories'){
+        const source=document.querySelector('.palette .chip[data-target="categories"][data-id="'+d.id+'"]');
+        if(source && source.dataset.hasWorkflow==='false'){
+          s.classList.add('category-chip-no-workflow');
+          s.title=source.title;
+        }
+      }
       s.textContent=d.text+' ×';
       let i=document.createElement('input');
       i.type='hidden';i.name=zone.dataset.target;i.value=d.id;if(zone.dataset.formId)i.setAttribute('form',zone.dataset.formId);

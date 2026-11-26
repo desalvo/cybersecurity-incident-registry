@@ -29,9 +29,11 @@ INSERT_AFTER = 14
 ARCH_SLIDES = 4  # three architecture diagrams plus the alert chapter
 ARCH_AFTER = 6
 APPENDIX_PREVIEWS = 2
+APPENDIX_BANNER_SLIDES = 1
 WORKFLOW_INTRO_SLIDES = 5
 WORKFLOW_AFTER = 38
-EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + APPENDIX_PREVIEWS
+EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + APPENDIX_BANNER_SLIDES + APPENDIX_PREVIEWS
+GALLERY_FIRST_SLIDE = EXPECTED_SLIDES - APPENDIX_PREVIEWS + 1
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
 PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES
 LAB_SPAM_OPENING_SLIDE = 62 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES
@@ -167,6 +169,21 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         # for each visible application-browser capture; editorial builds have 91.
         if len(slides) < EXPECTED_SLIDES:
             raise ValueError(f'Numero slide inatteso: {len(slides)} (base {EXPECTED_SLIDES})')
+        def visible_slide_text(number):
+            slide = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
+            return ' '.join(node.text or '' for node in slide.iter(NS + 't'))
+        if ('08' not in visible_slide_text(GALLERY_FIRST_SLIDE - 1) or
+                'Appendici' not in visible_slide_text(GALLERY_FIRST_SLIDE - 1)):
+            raise ValueError('Missing section 08 Appendici divider before screenshot gallery')
+        if ('Documento PDF compilato' not in visible_slide_text(len(slides)-1) or
+                'Notifica prima dell' not in visible_slide_text(len(slides))):
+            raise ValueError('Dedicated PDF and notification previews must close the appendix')
+        visible_gallery_size = len(slides) - EXPECTED_SLIDES
+        expected_first = 'Schermata '+str(visible_gallery_size+1)
+        expected_last = 'Schermata '+str(visible_gallery_size+2)
+        if (expected_first not in visible_slide_text(len(slides)-1) or
+                expected_last not in visible_slide_text(len(slides))):
+            raise ValueError('Terminal preview screenshot numbers do not follow the full gallery')
         # Offline editorials intentionally restore every available historical
         # screenshot as a provenance-labelled gallery. Strict CI always uses
         # the entire sealed browser manifest instead.
@@ -176,7 +193,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
             expected_editorial = EXPECTED_SLIDES+len(archived_rows)
             if len(slides)!=expected_editorial:
                 raise ValueError(f'Incomplete editorial gallery: {len(slides)} instead of {expected_editorial}')
-            for idx,img in enumerate(archived_rows,start=EXPECTED_SLIDES+1):
+            for idx,img in enumerate(archived_rows,start=GALLERY_FIRST_SLIDE):
                 if digest(img) not in linked_slide_image_digests(archive,idx):
                     raise ValueError('Missing historical application screenshot from slide '+str(idx)+': '+img.name)
         for original_number, title in REQUIRED_SLIDE_TITLES.items():
@@ -449,10 +466,10 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
                 raise ValueError('Generated PDF preview source is not a PDF')
             allowed.add(preview['png_sha256'])
             with ZipFile(pptx) as linked_archive:
-                if preview['png_sha256'] not in linked_slide_image_digests(linked_archive, EXPECTED_SLIDES - 1):
+                if preview['png_sha256'] not in linked_slide_image_digests(linked_archive, EXPECTED_SLIDES + len([r for r in records if r['id'] not in HIDDEN_GALLERY_IDS]) - 1):
                     raise ValueError('Generated PDF preview not visible on its dedicated appendix page')
                 notify = lookup.get('notification-preview')
-                if notify and notify['sha256'] not in linked_slide_image_digests(linked_archive, EXPECTED_SLIDES):
+                if notify and notify['sha256'] not in linked_slide_image_digests(linked_archive, EXPECTED_SLIDES + len([r for r in records if r['id'] not in HIDDEN_GALLERY_IDS])):
                     raise ValueError('Notification preview not visible on its dedicated appendix page')
         screenshot_count = len(records)
         visible_records = [row for row in records if row['id'] not in HIDDEN_GALLERY_IDS]
@@ -462,7 +479,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         if strict_images:
             with ZipFile(pptx) as linked_archive:
                 for offset, row in enumerate(visible_records):
-                    n = EXPECTED_SLIDES + offset + 1
+                    n = GALLERY_FIRST_SLIDE + offset
                     if row['sha256'] not in linked_slide_image_digests(linked_archive, n):
                         raise ValueError(f'Screenshot CI non visibile nella slide {n}: {row["id"]}')
         if strict_images:
@@ -508,7 +525,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         except ModuleNotFoundError:  # direct script execution without project on sys.path
             from verify_pdf_screenshot_gallery import verify
         pdf_verified = verify(Path(pdf), [manifest_path.parent / row['file'] for row in visible_records],
-                              base_slides=EXPECTED_SLIDES)
+                              base_slides=GALLERY_FIRST_SLIDE - 1)
     summary = {'pdf_screenshots_visually_verified': pdf_verified, 'slides': len(slides), 'pdf_pages': pdf_pages,
                'verified_browser_screenshots': screenshot_count,
                'mandatory_ci_images_embedded': strict_images, 'status': 'PASS'}

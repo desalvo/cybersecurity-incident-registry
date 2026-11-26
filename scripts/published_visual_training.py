@@ -15,7 +15,8 @@ import re
 from pathlib import Path
 from pathlib import PurePosixPath
 
-BASE_SLIDES = 96
+BASE_SLIDES = 97  # 94 content + 1 appendix divider + 2 terminal previews
+GALLERY_FIRST_SLIDE = 96  # gallery starts immediately after slide 95 divider
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
 MAX_SCREENSHOTS = 80
 
@@ -119,7 +120,7 @@ def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, r
         if not image.is_file() or image.is_symlink() or sha256(image) != row['sha256']:
             raise ValueError('Published screenshot bytes differ from sealed capture: ' + ident)
     expected = BASE_SLIDES + sum(ident not in HIDDEN_GALLERY_IDS for ident, _ in installed_rows)
-    if (seal.get('screenshot_gallery_first_slide') != BASE_SLIDES + 1 or
+    if (seal.get('screenshot_gallery_first_slide') != GALLERY_FIRST_SLIDE or
             seal.get('slide_count') != expected or seal.get('pdf_pages') != expected or
             seal.get('pdf_screenshots_visually_verified') != expected - BASE_SLIDES):
         raise ValueError('Published visual-training gallery has incorrect slide/page coverage')
@@ -133,7 +134,7 @@ def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, r
 
 
 def expected_visual_slides(root: Path, pptx: Path, pdf: Path) -> int:
-    """Allow 96 source-edition slides, or strictly receipt-sealed CI appendix."""
+    """Allow 97 fixed slides (with divider/previews), plus a sealed screenshot gallery."""
     receipt = root / 'docs/presentation/visual-training-receipt.json'
     manifest = root / 'app/static/help/ui-runtime/manifest.json'
     if not receipt.exists() and not manifest.exists():

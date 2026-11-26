@@ -641,6 +641,8 @@ def import_catalog_workflow(entry_id, target_tenant_id, *, as_default=False, cop
            for row in payload['dependencies'][kind]):
         from .tenant_defaults import sync_defaults_configuration
         sync_defaults_configuration()
+    from .workflow_lifecycle import prune_empty_workflows
+    prune_empty_workflows(target.id)
     # Resolve collisions only after inheriting Tenants Default categories:
     # workflow name and category label must always remain identical.
     if not as_default:

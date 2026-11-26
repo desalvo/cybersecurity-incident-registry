@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.published_visual_training import (BASE_SLIDES, check_published_receipt,
+from scripts.published_visual_training import (BASE_SLIDES, GALLERY_FIRST_SLIDE, check_published_receipt,
                                                expected_visual_slides, sha256)
 
 
@@ -59,7 +59,7 @@ def published(tmp_path):
         'pdf_file': pdf.name, 'pdf_sha256': sha256(pdf),
         'slide_count': BASE_SLIDES + 1, 'pdf_pages': BASE_SLIDES + 1,
         'pdf_screenshots_visually_verified': 1,
-        'screenshot_gallery_first_slide': BASE_SLIDES + 1,
+        'screenshot_gallery_first_slide': GALLERY_FIRST_SLIDE,
     })
     return root, pptx, pdf, manifest_path, receipt_path
 
@@ -97,7 +97,7 @@ def test_published_gallery_rejects_inconsistent_or_tampered_evidence(published, 
     elif mutation == 'wrong_slide_count':
         data['slide_count'] = BASE_SLIDES
     elif mutation == 'wrong_gallery_start':
-        data['screenshot_gallery_first_slide'] = BASE_SLIDES
+        data['screenshot_gallery_first_slide'] = GALLERY_FIRST_SLIDE - 1
     elif mutation == 'wrong_pdf_coverage':
         data['pdf_screenshots_visually_verified'] = 0
     elif mutation == 'wrong_receipt_source':

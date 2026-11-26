@@ -85,8 +85,11 @@ def test_large_workflow_import_uses_server_side_preview_token(monkeypatch, tmp_p
     payload = {
         'format': 'cybersecurity-incident-registry.workflow.v1',
         'workflow': {
-            'scope': 'default',
-            'category': None,
+            # The operational default is inherited from Tenants Default and
+            # cannot be replaced by a tenant-local import. Exercise the large
+            # preview-token path using a real category-specific workflow.
+            'scope': 'category',
+            'category': {'kind': 'category', 'group': 'workflow-large', 'value': 'Workflow import grande'},
             'steps': [{
                 'position': 12345,
                 'action_label': {'kind': 'action_label', 'group': 'workflow-large', 'value': 'Azione import grande'},
@@ -99,6 +102,10 @@ def test_large_workflow_import_uses_server_side_preview_token(monkeypatch, tmp_p
         },
         'dependencies': {
             'labels': [{
+                'kind': 'category', 'group': 'workflow-large',
+                'value': 'Workflow import grande', 'description': 'Categoria del workflow importato',
+                'max_completion_hours': 0, 'default_exportable': True, 'automatic_operations': '',
+            }, {
                 'kind': 'action_label',
                 'group': 'workflow-large',
                 'value': 'Azione import grande',
@@ -141,7 +148,10 @@ def test_large_workflow_import_uses_server_side_preview_token(monkeypatch, tmp_p
         from app.models import Tenant
         tenant_id = Tenant.query.filter_by(name='default', is_system_defaults=False).one().id
         label = ConfigLabel.query.filter_by(tenant_id=tenant_id, kind='action_label', value='Azione import grande').one()
-        step = IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id, position=12345, action_label_id=label.id).one()
+        category = ConfigLabel.query.filter_by(tenant_id=tenant_id, kind='category', value='Workflow import grande').one()
+        step = IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id, category_id=category.id,
+                                                    position=12345, action_label_id=label.id).one()
+        assert IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id, category_id=None, position=12345).count() == 0
         assert step.description.startswith('Descrizione workflow grande.')
 
 def test_index_uses_incident_reference_instead_of_compiler_column(monkeypatch, tmp_path):

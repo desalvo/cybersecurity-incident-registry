@@ -95,6 +95,18 @@
       <button>Clona tra tenant</button>
     </form>
     {% endif %}
+    <form method="post">
+      <input type="hidden" name="action" value="rename_workflow">
+      <h4>Rinomina workflow</h4>
+      <p class="muted">Rinomina insieme workflow e prima categoria; il nome deve essere libero nel tenant. ID, step e incidenti restano associati.</p>
+      <label>Workflow da rinominare</label>
+      <select name="rename_scope" required>
+        {% for opt in workflow_scope_options if opt.has_workflow and opt.value != 'default' %}<option value="{{ opt.value }}">{{ opt.label }}</option>{% endfor %}
+      </select>
+      <label>Nuovo nome</label>
+      <input type="text" name="rename_name" maxlength="160" required autocomplete="off">
+      <button>Rinomina workflow</button>
+    </form>
     <form method="post" data-workflow-delete-form>
       <input type="hidden" name="action" value="delete_workflow">
       <h4>Elimina workflow</h4>
