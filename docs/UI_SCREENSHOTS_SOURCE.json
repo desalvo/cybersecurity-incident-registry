@@ -1,0 +1,616 @@
+{
+  "schema_version": 1,
+  "source_kind": "real-application-browser",
+  "source_commit": "b80040190557ebec7ab2aa847b59bf43be9aad57",
+  "functional_version": "0.10.0-1",
+  "build": "20261126",
+  "generated_at": "2026-11-26T07:08:27.408441+00:00",
+  "data_provenance": "isolated-synthetic-fixture",
+  "fixture": {
+    "fixture_id": "cir-ui-documentation-v1",
+    "incident_id": 1,
+    "incident_reference": "DEMO-2026-0048",
+    "default_tenant_id": 1,
+    "other_tenant_id": 3,
+    "usernames": [
+      "demo-supervisor",
+      "demo-tenant-admin",
+      "demo-reader",
+      "demo-reader-alt"
+    ],
+    "incident_start_utc": "2026-11-26T04:49:00",
+    "timestamp_policy": "synthetic start 2h18m before capture, then one day per scenario",
+    "incident_count": 6,
+    "workflow_step_count": 4,
+    "spam_incident_id": 7,
+    "spam_workflow_step_count": 13
+  },
+  "browser": {
+    "name": "chromium",
+    "version": "159.0.8154.6",
+    "playwright": "1.65.2"
+  },
+  "ai_response_provenance": "deterministic-local-ollama-compatible-http-fixture",
+  "ai_endpoint_exercised": "/ai-chatbot/widget/ask",
+  "provider_request_count": 2,
+  "application_security": {
+    "authentication": "real-login",
+    "csrf": "enabled",
+    "database_context": false,
+    "production_data_used": false
+  },
+  "checks": {
+    "modern_is_fresh_install_default": true,
+    "closed_incidents_have_real_green_workflow_icons": true,
+    "real_statistics_charts_rendered": true,
+    "four_procedural_blocks_rendered": true,
+    "spam_real_13_step_workflow_rendered": true,
+    "reduced_viewport_workflow_cards_captured": true,
+    "tenant_defaults_category_and_data_type_choices_are_unique": true,
+    "entire_procedural_task_region_activates_real_action_form": true,
+    "cancel_confirmation_prevents_incident_delete_request": true,
+    "assistant_real_csrf_endpoint_and_local_provider": true,
+    "assistant_close_reopen_clear_and_focus": true,
+    "narrow_desktop_assistant_modal": true,
+    "real_tenant_switch_and_assistant_scope_reset": true,
+    "mobile_menu_escape_and_assistant_return": true,
+    "documentation_covers_show_current_identity_and_local_platform_logos": true,
+    "documentation_mobile_first_fold_has_no_horizontal_overflow": true,
+    "pdf_acroform_mapping_fields_populated": true,
+    "real_filled_pdf_generated_and_previewed": true,
+    "alfresco_fixture_offline_configuration_visible": true,
+    "alfresco_incident_documents_controls_visible": true,
+    "tenant_wizard_resume_and_restart_verified": true,
+    "tenant_admin_global_switch_forbidden": true,
+    "global_switch_requires_csrf": true,
+    "reader_sees_workflow_without_write_form": true,
+    "disabled_tenant_plugin_hidden": true,
+    "global_switch_applies_to_other_tenants_and_login": true,
+    "classic_roundtrip_preserves_registry": true,
+    "no_browser_errors_or_external_requests": true,
+    "visible_images_loaded_no_page_horizontal_overflow": true,
+    "provider_receives_current_question_only_no_db_snapshot": true
+  },
+  "screenshots": [
+    {
+      "id": "login-desktop",
+      "file": "screenshots/login-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "b95a7d9d821c5163d3978adde38af8480092634d136477def36cb8717a698377",
+      "route": "/login",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": false,
+      "capture_area": "viewport",
+      "caption_it": "Accesso reale · desktop",
+      "caption_en": "Actual login · desktop"
+    },
+    {
+      "id": "login-mobile",
+      "file": "screenshots/login-mobile.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "e9c00b68613e341a5bbb1ff892231549f2a4064d5c3b7fc79cd214411d2c0b5b",
+      "route": "/login",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": false,
+      "capture_area": "full-page",
+      "caption_it": "Accesso reale · mobile",
+      "caption_en": "Actual login · mobile"
+    },
+    {
+      "id": "registry-desktop",
+      "file": "screenshots/registry-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "f59c6776b38dc1485f41f53cff151c185ad0a876a7dc3d857ee61aea75ab521b",
+      "route": "/",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Registro aperti/chiusi, icone procedurali autentiche",
+      "caption_en": "Open and closed incidents with authentic procedural state icons"
+    },
+    {
+      "id": "registry-closed-state",
+      "file": "screenshots/registry-closed-state.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "f59c6776b38dc1485f41f53cff151c185ad0a876a7dc3d857ee61aea75ab521b",
+      "route": "/",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Icone di stato a inizio riga: avviso e chiusura completa",
+      "caption_en": "Row leading icons: pending warning and complete closure"
+    },
+    {
+      "id": "statistics-desktop",
+      "file": "screenshots/statistics-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "c6332513aed0563f8fde0e74438cc32d260ebedb431bd6904c87ca22b7b08c4d",
+      "route": "/reports/stats",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "element",
+      "caption_it": "Statistiche reali: indicatori e grafici del tenant di laboratorio",
+      "caption_en": "Actual statistics: demo tenant indicators and charts",
+      "element_selector": ".stats-card:first-child",
+      "element_size": {
+        "width": 970,
+        "height": 258
+      }
+    },
+    {
+      "id": "incident-desktop",
+      "file": "screenshots/incident-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "f31a62df2a6a7ec395798f66b53687747fc600283ebe1f213ed6e568240a1ccd",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Incidente reale di esempio e quattro fasi procedurali",
+      "caption_en": "Actual example incident and four procedural stages"
+    },
+    {
+      "id": "spam-incident-desktop",
+      "file": "screenshots/spam-incident-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "b940eee1246e7f597fefc818f7c4e4753ebf9b83a9d795575cd48feef7c6c0c5",
+      "route": "/incident/7",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Incidente SPAM sintetico: interfaccia CIR autentica",
+      "caption_en": "Synthetic SPAM incident: authentic CIR interface"
+    },
+    {
+      "id": "spam-workflow-steps",
+      "file": "screenshots/spam-workflow-steps.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "92d9f6356ef1dbefd5d0ebb70d99dcd2c5c37ec56cb0b481f66e84444a24262d",
+      "route": "/incident/7",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "full-page",
+      "caption_it": "Workflow SPAM: 13 fasi, pulsanti e condizioni",
+      "caption_en": "SPAM workflow: 13 stages, controls and conditions"
+    },
+    {
+      "id": "workflow-steps-focused",
+      "file": "screenshots/workflow-steps-focused.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "004e8395b5034796e47125bec2acf3a7c5327c8c526a5e8087666b7c70fc0d0a",
+      "route": "/incident/7",
+      "viewport": {
+        "width": 1100,
+        "height": 850
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "element",
+      "caption_it": "Workflow SPAM: primi passi leggibili in viewport ridotta",
+      "caption_en": "SPAM workflow: readable first steps in a narrower viewport",
+      "element_selector": "#incident-workflow .workflow-steps-ordered",
+      "element_size": {
+        "width": 808,
+        "height": 426
+      }
+    },
+    {
+      "id": "spam-incident-config-labels",
+      "file": "screenshots/spam-incident-config-labels.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "beeea53ed5ed44e52a78102c59a3fff4dc6c79eca42b7d4661c07b916cfd2ca0",
+      "route": "/incident/7",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "element",
+      "caption_it": "Categorie e dati interessati senza duplicazioni da Tenants Default",
+      "caption_en": "Categories and affected data deduplicated from Tenants Default",
+      "element_selector": "#incident-main .dnd-layout",
+      "element_size": {
+        "width": 1568,
+        "height": 851
+      }
+    },
+    {
+      "id": "assistant-desktop",
+      "file": "screenshots/assistant-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "16f5c009b87eea5869422e0aebf083fd756bf0398ef623fb5caafdc582d11bbe",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "AlBot nella pagina reale; risposta del provider locale dimostrativo",
+      "caption_en": "AlBot in the actual app; local demonstration provider response"
+    },
+    {
+      "id": "assistant-panel-closeup",
+      "file": "screenshots/assistant-panel-closeup.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "962ab43230226dd15995d042a73c6bfcf298191ee4aaa864ac89348aa2d6d5e3",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "element",
+      "caption_it": "AlBot: pannello autentico e risposta del provider locale di test",
+      "caption_en": "AlBot: real panel and the local test provider response",
+      "element_selector": "#cir-albot-panel",
+      "element_size": {
+        "width": 360,
+        "height": 1140
+      }
+    },
+    {
+      "id": "registry-mobile",
+      "file": "screenshots/registry-mobile.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "2a5e9fb749d75a3c33b8487a2289af5782d8fb3b4eca906e811b662e9ee3cd26",
+      "route": "/",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Registro incidenti · mobile",
+      "caption_en": "Incident registry · mobile"
+    },
+    {
+      "id": "registry-mobile-menu",
+      "file": "screenshots/registry-mobile-menu.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "813a21a02eec7d573d139bfd3454a7a1cc30cbe35519679bcadd08f266aca223",
+      "route": "/",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Menu operativo aperto · mobile",
+      "caption_en": "Open application menu · mobile"
+    },
+    {
+      "id": "incident-mobile",
+      "file": "screenshots/incident-mobile.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "1a500f6fbce792563eed984da242cf0ab68aef75afc9f83d2e2bfe0618db3d80",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Incidente e fasi procedurali · mobile",
+      "caption_en": "Incident and procedural stages · mobile"
+    },
+    {
+      "id": "assistant-mobile",
+      "file": "screenshots/assistant-mobile.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "1b4e37865b1cf8f5631fbdb399bba08a8fecd5a59af5e33ebc333884cfa90218",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Conversazione AlBot a tutta larghezza · risposta dimostrativa",
+      "caption_en": "Full-width AlBot conversation · demonstration response"
+    },
+    {
+      "id": "documentation-user-desktop",
+      "file": "screenshots/documentation-user-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "3787f81a69adf7e6c78007398c8835299ad7e89cee3550513dcdf3d96dfa614e",
+      "route": "/aiuto",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · user · desktop",
+      "caption_en": "Actual online manual opening · user · desktop"
+    },
+    {
+      "id": "documentation-user-mobile",
+      "file": "screenshots/documentation-user-mobile.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "7b11613cd44f3ff918ed944909688d912b25fd80e406a2ebf6bc31f19956a702",
+      "route": "/aiuto",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · user · mobile",
+      "caption_en": "Actual online manual opening · user · mobile"
+    },
+    {
+      "id": "documentation-admin-desktop",
+      "file": "screenshots/documentation-admin-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "4f5eadd028d536c7d7dd79ba7861d2f12ab4c79d27eef3a2335017734c350918",
+      "route": "/aiuto/amministrazione",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · admin · desktop",
+      "caption_en": "Actual online manual opening · admin · desktop"
+    },
+    {
+      "id": "documentation-admin-mobile",
+      "file": "screenshots/documentation-admin-mobile.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "fd23399fcb3048aee2f43b87465771eac7bd95107d3b3867aaea79c52d9a5831",
+      "route": "/aiuto/amministrazione",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Apertura reale del manuale online · admin · mobile",
+      "caption_en": "Actual online manual opening · admin · mobile"
+    },
+    {
+      "id": "admin-modules-desktop",
+      "file": "screenshots/admin-modules-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "3f8ffcbedfd1132465179011cccca461617a66a037d0c1d972c95d993725f512",
+      "route": "/modules/configuration",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Configurazione reale dei moduli",
+      "caption_en": "Actual document template configuration"
+    },
+    {
+      "id": "pdf-mapping-configuration",
+      "file": "screenshots/pdf-mapping-configuration.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "7ce0cd6e598f1e2db8d59ccd7588165ebcfe753f695a2651da8d91f5ce4888de",
+      "route": "/modules/configuration",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Configurazione reale dei mapping: campi AcroForm e sorgenti incidente",
+      "caption_en": "Actual PDF mapping controls: AcroForm fields and incident values"
+    },
+    {
+      "id": "pdf-generated-preview",
+      "file": "screenshots/pdf-generated-preview.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "5a0801ad2f568d5568f3b361e8a369fe6e60531d773d9df8479d2f6363147aad",
+      "route": "/incident/1/forms/generate",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Anteprima reale: PDF AcroForm compilato e salvabile dall'incidente",
+      "caption_en": "Real preview: populated AcroForm PDF from an incident"
+    },
+    {
+      "id": "alfresco-settings-desktop",
+      "file": "screenshots/alfresco-settings-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "19f6fe321f9f8805fac0fe900d8e687f0b3d15f610767bb3acc4575b8303b6a2",
+      "route": "/alfresco/admin/plugins",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Configurazione Alfresco per tenant, endpoint fittizio e nessuna connessione remota",
+      "caption_en": "Tenant Alfresco settings, fictional endpoint with no remote connection"
+    },
+    {
+      "id": "alfresco-incident-documents",
+      "file": "screenshots/alfresco-incident-documents.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "7c02a2bde2d7b4eed55b741d5bba67b2ed4c0b8fe25963ece15081b970f8ba1e",
+      "route": "/incident/1",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Scelta documenti dell'incidente: gestione locale e opzioni Alfresco",
+      "caption_en": "Incident document controls: local storage and Alfresco options"
+    },
+    {
+      "id": "admin-sso-desktop",
+      "file": "screenshots/admin-sso-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "7744f9d139dc02af70bf6615ea7cf853938a18f5aaf37c3d5b8be3b87b033666",
+      "route": "/admin/sso",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Configurazione SSO fittizia nella pagina reale",
+      "caption_en": "Fictional SSO configuration in the actual settings page"
+    },
+    {
+      "id": "interface-settings-desktop",
+      "file": "screenshots/interface-settings-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "3d636c776d4ba24b69b0b3376dd344191b27d86d04f3ec11db0eb874d723f506",
+      "route": "/admin/interface",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Switch globale dell'interfaccia · super admin",
+      "caption_en": "Global interface switch · super admin"
+    },
+    {
+      "id": "tenant-setup-wizard-desktop",
+      "file": "screenshots/tenant-setup-wizard-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "10c8077c0a6626df17d7b7d0c1803960fca460dce1290d93fda8d94e0e8d5c49",
+      "route": "/admin/setup-wizard",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "element",
+      "caption_it": "Wizard iniziale del tenant: navigazione dei passi e configurazione guidata",
+      "caption_en": "Tenant setup wizard: step navigation and configuration form",
+      "element_selector": ".setup-wizard-shell",
+      "element_size": {
+        "width": 1610,
+        "height": 955
+      }
+    },
+    {
+      "id": "tenant-setup-wizard-panel",
+      "file": "screenshots/tenant-setup-wizard-panel.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "5c6e7883b082e022eeca67e30ce56384fff332daceac3672c30eefd81c99de52",
+      "route": "/admin/setup-wizard",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "modern",
+      "authenticated": true,
+      "capture_area": "element",
+      "caption_it": "Wizard iniziale del tenant: campi e comandi in primo piano",
+      "caption_en": "Tenant setup wizard: readable form fields and controls",
+      "element_selector": ".setup-wizard-panel",
+      "element_size": {
+        "width": 1210,
+        "height": 355
+      }
+    },
+    {
+      "id": "classic-registry-desktop",
+      "file": "screenshots/classic-registry-desktop.jpg",
+      "image_format": "jpeg",
+      "jpeg_quality": 90,
+      "sha256": "089af497405b11cc1125a5fb4b4279c90b81cf08f023de0c3e2b2ddba9bd0d92",
+      "route": "/",
+      "viewport": {
+        "width": 1920,
+        "height": 1140
+      },
+      "ui_mode": "classic",
+      "authenticated": true,
+      "capture_area": "viewport",
+      "caption_it": "Interfaccia classica dopo lo switch globale",
+      "caption_en": "Classic interface after the global switch"
+    }
+  ]
+}
