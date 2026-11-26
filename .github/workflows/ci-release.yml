@@ -408,6 +408,7 @@ jobs:
           fi
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             echo "production_changed=true" >> "$GITHUB_OUTPUT"
+            echo "documentation_needed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           before="$BEFORE_SHA"
@@ -436,6 +437,21 @@ jobs:
           else
             echo "production_changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Never silently skip a documentation PR because the policy script did
+      # not emit the exact output key consumed by documentation-publication.
+      # This makes a broken handoff a failing CI run, not a green/skipped job.
+      - name: Require an explicit release and documentation decision
+        env:
+          PRODUCTION_CHANGED: ${{ steps.diff.outputs.production_changed }}
+          DOCUMENTATION_NEEDED: ${{ steps.diff.outputs.documentation_needed }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$PRODUCTION_CHANGED" in true|false) ;; *) echo "Missing production_changed output" >&2; exit 1;; esac
+          case "$DOCUMENTATION_NEEDED" in true|false) ;; *) echo "Missing documentation_needed output" >&2; exit 1;; esac
+          echo "Production image required: $PRODUCTION_CHANGED" >> "$GITHUB_STEP_SUMMARY"
+          echo "Documentation PR required: $DOCUMENTATION_NEEDED" >> "$GITHUB_STEP_SUMMARY"
 
   docker-release:
     name: Build, scan and promote multi-arch image
@@ -632,6 +648,8 @@ jobs:
   documentation-publication:
     name: Publish only current verified screenshots and training documents
     needs: [release-metadata, quality-gates, ui-documentation, release-scope, docker-release]
+    outputs:
+      result: ${{ steps.publish.outputs.result }}
     if: >-
       ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' &&
           needs.quality-gates.result == 'success' && needs.ui-documentation.result == 'success' &&
@@ -676,6 +694,7 @@ jobs:
             --receipt "${RUNNER_TEMP}/cir-ui-evidence/visual-training/visual-training-receipt.json"
           python scripts/verify_documentation_publication.py --root . --source-commit "$GITHUB_SHA"
       - name: Open documentation and optional production-digest pull request
+        id: publish
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -696,7 +715,8 @@ jobs:
             docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json \
             docs/ app/static/help/ui-runtime/
           if git diff --cached --quiet; then
-            echo "Current documentation already matches the verified run."
+            echo "result=already-current" >> "$GITHUB_OUTPUT"
+            echo "Current documentation already matches the verified run." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           branch="automation/publish-documentation-${GITHUB_SHA:0:12}"
@@ -711,5 +731,57 @@ jobs:
           else
             echo "Documentation publication PR already open: #$existing"
           fi
+          echo "result=pr-opened" >> "$GITHUB_OUTPUT"
+          echo "Documentation publication branch: $branch" >> "$GITHUB_STEP_SUMMARY"
+          echo "Documentation publication PR created or already open." >> "$GITHUB_STEP_SUMMARY"
           # GITHUB_TOKEN-created branches/PRs do not recurse automatically.
           gh workflow run ci-release.yml --ref "$branch"
+
+  documentation-publication-accountability:
+    name: Enforce documentation publication result on main
+    # A skipped publication job must NEVER make main CI silently green when
+    # this run is required to publish refreshed screenshots/documentation.
+    needs: [release-scope, quality-gates, ui-documentation, docker-release, documentation-publication]
+    if: >-
+      ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+          github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Check same-run PR publication contract
+        shell: bash
+        env:
+          PUBLICATION_REQUIRED: ${{ needs.release-scope.outputs.documentation_needed }}
+          PUBLICATION_JOB: ${{ needs.documentation-publication.result }}
+          PUBLICATION_RESULT: ${{ needs.documentation-publication.outputs.result }}
+          CAPTURE_JOB: ${{ needs.ui-documentation.result }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### Documentation publication accountability"
+            echo "- Publication required: $PUBLICATION_REQUIRED"
+            echo "- Browser evidence job: $CAPTURE_JOB"
+            echo "- Publication job: $PUBLICATION_JOB"
+            echo "- Publication outcome: ${PUBLICATION_RESULT:-none}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          case "$PUBLICATION_REQUIRED" in
+            true)
+              if [[ "$CAPTURE_JOB" != success || "$PUBLICATION_JOB" != success ]]; then
+                echo "Required documentation publication was skipped or failed" >&2
+                exit 1
+              fi
+              case "$PUBLICATION_RESULT" in
+                pr-opened|already-current) ;;
+                *) echo "Publication job did not report a verified outcome" >&2; exit 1 ;;
+              esac
+              ;;
+            false)
+              if [[ "$PUBLICATION_JOB" != skipped ]]; then
+                echo "Generated-only commit unexpectedly started publication" >&2
+                exit 1
+              fi
+              ;;
+            *) echo "release-scope failed to declare a documentation policy" >&2; exit 1 ;;
+          esac

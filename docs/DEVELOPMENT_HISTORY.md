@@ -1212,3 +1212,13 @@ Validated same-tenant notification override provenance in full restore
 archives, separated Wizard element captures from full-viewport online manual
 screenshots, and reconciled legacy tests with same-code tenant override and
 updated training slide navigation. See `docs/RC81_CI_RECOVERY.md`.
+
+## RC82 - Fix skipped automatic documentation publication
+
+After the RC81 merge, main-branch CI could complete without creating the documentation PR because the publication policy wrote `publication_needed` while the workflow expected `documentation_needed`. RC82 aligns the output key, fails the release-scope gate on missing decisions, and prevents strict CI PowerPoint builds with unresolved screenshot placeholders from being published. Added tests for actual CLI output and the workflow handshake. See `docs/RC82_DOCUMENTATION_PR_RECOVERY.md`.
+
+## RC83 — zoom autentici delle screenshot e controllo PR documentale
+
+- Introdotti callout nativi con evidenziazione, collegamento e ritaglio ingrandito della stessa screenshot SHA-256 proveniente dal manifest Chromium della build corrente; corretto il crop in ambiente CI senza helper locali.
+- Rimosse promesse testuali di screenshot nella prossima CI e rese esplicite le differenze tra edizione editoriale e pubblicazione autenticata.
+- Imposto un esito verificabile del job di pubblicazione e aggiunto un job di accountability che impedisce una CI verde con job documentazione erroneamente skipped. Aggiornati test e istruzioni operative in `docs/RC83_CI_SCREENSHOT_FOCUS_AND_PUBLICATION.md`.
