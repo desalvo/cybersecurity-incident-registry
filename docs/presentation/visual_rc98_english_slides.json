@@ -1,0 +1,728 @@
+{
+  "schema": 1,
+  "slides": {
+    "3": [
+      "Purpose of the application",
+      "Unify incident registration, analysis, response and closure.",
+      "Connect responsibilities, documents and verifiable decisions.",
+      "Guide operators and managers through configurable procedures, including beyond cybersecurity.",
+      "A new interpretation: “CI” could also stand for “Continuous Improvement”, highlighting the ongoing evolution of the application, its controls and documentation."
+    ],
+    "4": [
+      "Which problem does CIR solve?",
+      "Scattered emails and files make decisions difficult to reconstruct.",
+      "Different procedures across sites lead to inconsistent responses.",
+      "Manual completion increases the risk of errors and omissions.",
+      "CIR links each event to a case, its tasks and supporting evidence."
+    ],
+    "5": [
+      "Key features: incident registry and processes",
+      "Incident registry: opening, classification, search, filters, audit and reporting.",
+      "Configurable workflows: categories, steps, requirements, conditions, notifications and deadlines.",
+      "Documents and PDF forms, statistics, evidence management and optional repository.",
+      "AlBot plugin (with the letter L, not “AIBot”): the assistant is called Alex and is optional. Multi-tenancy, SSO and roles."
+    ],
+    "6": [
+      "CIR's modular, configurable architecture",
+      "Desktop/mobile web interface and CIR services: users, identity, tenants, workflows and permissions.",
+      "Configurable application core: categories, steps, conditions, catalogs, notifications, forms and audit.",
+      "Separate data and documents: PostgreSQL, persistent volumes and pluggable archival storage.",
+      "Optional configurable plugins: AlBot and Alfresco; additional plugins can be added later."
+    ],
+    "7": [
+      "Available plugins and extensibility",
+      "AlBot (AI Chatbot): optional assistant, disabled by default; available engines include ChatGPT, Claude, Gemini, Ollama and Perplexity.",
+      "Alfresco: optional plugin linking CIR to a document repository for archival and document synchronization.",
+      "SSO/OpenID Connect, email and notifications, PDF/AcroForm and reporting are built-in core capabilities, not separate plugins.",
+      "The architecture can be extended with new plugins as organizational needs and policies evolve."
+    ],
+    "8": [
+      "From incident registry to general workflow manager",
+      "CIR can define procedures beyond cybersecurity: categories, ordered steps, branches, conditions and task dependencies.",
+      "A step may require information, descriptions, evidence, actions and mandatory notifications under the selected workflow.",
+      "Consistency checks can verify steps, prerequisites and overall case status before closure.",
+      "Actions may have deadlines; the scheduler, recurring notifications and planned reminders manage due dates and follow-ups."
+    ],
+    "9": [
+      "CIR architecture: components, platforms and capabilities",
+      "Python/Flask and Gunicorn web core: desktop/mobile UI, access control and tenants; PostgreSQL persistence and documents on protected volumes.",
+      "Configurable procedural engine: categories, workflows, checks, audit, notifications, deadlines, statistics and PDF reports.",
+      "Modular integrations: AlBot (AI) and Alfresco plugins; SSO/MFA and email are integrated services. More plugins may be added.",
+      "Linux deployment on Docker/Podman (Compose), Kubernetes and OpenShift via Helm; multiarchitecture amd64 and arm64 images."
+    ],
+    "10": [
+      "Alerts, deadlines and operational reminders",
+      "Open incidents: periodic alerts and summaries keep pending cases visible; general digests are a potential configurable extension.",
+      "Incomplete steps: mandatory tasks, prerequisites, deadlines and automatic scheduler reminders.",
+      "Custom reminders: per-incident deadlines, scheduled sends and outcome history.",
+      "System health: scheduler errors, process warnings and critical anomalies available to authorized administrators."
+    ],
+    "11": [
+      "Deployment and bootstrap",
+      "Deploy using containers and orchestrated platforms, including Kubernetes/OpenShift.",
+      "Configure the database, volumes, external URL and credentials before first access.",
+      "Automatic application migrations and initialization of default definitions.",
+      "Check backups before version upgrades and inspect logs on first startup."
+    ],
+    "12": [
+      "Login",
+      "CIR logo, application name and custom logo, when configured.",
+      "Local login options appear first; if SSO is configured, its button appears after other login methods.",
+      "Optional MFA is handled by the enabled authentication method.",
+      "Version and build are shown on the page."
+    ],
+    "13": [
+      "Mobile login",
+      "The form adapts to the device's available width and height.",
+      "SSO buttons are displayed only for configured providers.",
+      "Login authenticates identity; role and tenant are separate authorization concepts."
+    ],
+    "14": [
+      "Custom SSO and INFN AAI",
+      "The system can integrate custom SSO providers, such as INFN AAI.",
+      "Administrators configure endpoints and parameters in the SSO panel.",
+      "A second factor, when required, is managed by the identity provider.",
+      "After authentication, CIR applies its own roles and active tenant."
+    ],
+    "15": [
+      "Main navigation and incident status",
+      "The sidebar links to incidents, statistics, notifications and forms.",
+      "The icon at the start of each row distinguishes a case with outstanding actions from a closed case without warnings.",
+      "The header displays the user's identity and active tenant; AlBot appears only when enabled.",
+      "The screenshot shows two closed incidents with all stages completed and a green ✓ icon."
+    ],
+    "16": [
+      "Incident registry: open and closed cases",
+      "⚠ indicates unfinished workflow stages: an incident in this state should not be considered closed.",
+      "A green ✓ denotes effective closure without active procedural warnings.",
+      "◆ marks a completed workflow for a case that has not yet been formally closed.",
+      "Icons reflect task status: closed incidents should never have active warnings."
+    ],
+    "17": [
+      "Incident registry on mobile",
+      "The menu opens and collapses according to device width.",
+      "Filters and columns adapt to mobile view.",
+      "Selecting an entry opens the incident details and procedural stages."
+    ],
+    "19": [
+      "Open an incident from the home page",
+      "Select the correct tenant on the home page, open “Incidents” and click “New incident” (roles with write access).",
+      "To start from scratch choose “No template”; alternatively a template suggests editable initial values.",
+      "Place the desired workflow's category first under “Selected categories”, e.g. SPAM in the Tutorial tenant.",
+      "Click “Create” and review the steps: CIR uses the first category's workflow when configured; otherwise it falls back to the tenant default."
+    ],
+    "20": [
+      "Create an incident from scratch: manual entry",
+      "Under “Incidents” → “New incident”, select “No template” and fill in Name, Reference, severity and required details.",
+      "Drag the desired category from “Available categories” to “Selected categories” and move it to the first position (e.g. SPAM in Tutorial).",
+      "If the first category has specific steps, its workflow applies; otherwise the tenant's default workflow applies. Other categories add no steps.",
+      "Check the start date/time, select “Create”, open the incident and review the resulting workflow cards and actions."
+    ],
+    "21": [
+      "Incident templates: purpose, usage and permissions",
+      "An incident template is a reusable configuration of initial values: name, description, recipients, severity, categories and affected data.",
+      "It also prepopulates categories in order, but does not include an independent workflow: the first category determines the new incident's workflow.",
+      "Authorized writers, admins and superusers can use available templates when creating an incident.",
+      "Only admins and superusers can create, modify or delete tenant templates; completed actions and documents are never copied."
+    ],
+    "22": [
+      "Manage templates: create, edit and delete",
+      "Open “Admin” → “Definitions and workflows” → “Incident templates” (tenant admin or superuser).",
+      "To create a template, enter its name and default fields, then select “Save template”.",
+      "To edit, choose “Edit” from the “Configured templates” table, update values and save.",
+      "To delete, select “Delete” on the template row and confirm; shared-configuration safeguards apply."
+    ],
+    "23": [
+      "Create a template from an existing incident",
+      "An administrator can start from a documented case: open “Admin” → “Incident templates”.",
+      "Under “Create template from existing incident”, select the source case and provide a name and description.",
+      "Select “Create from incident”: CIR copies reusable initial data only, not completed actions or documents.",
+      "The resulting template can be used for further incidents in the same tenant; administration remains restricted."
+    ],
+    "24": [
+      "Open an incident using a template",
+      "Under “Incidents” → “New incident”, choose “Use a predefined template?” and select one available in the tenant.",
+      "CIR suggests the name, reference, severity and categories; ensure the first category matches the intended workflow (e.g. SPAM).",
+      "You can change or reorder categories: only the first one selects a specific workflow, if it has steps; otherwise the default applies. Workflows are not combined.",
+      "Verify other fields and updated date/time, click “Create” and review the incident's resulting stages."
+    ],
+    "25": [
+      "Anatomy of an incident",
+      "Top area: reference, status, category and severity.",
+      "Context actions include PDF Report and Record action.",
+      "Sections include Stages, Warnings, General data, Documents and Notifications.",
+      "Each stage can show instructions, status, deadlines and action buttons."
+    ],
+    "26": [
+      "Stages, warnings and action buttons",
+      "Cards display stages in the order set by administrators.",
+      "Warnings flag mandatory tasks or conditions that are not yet satisfied.",
+      "Record action, Update and Guided execution open different functions.",
+      "Red badges show the number of items in each section."
+    ],
+    "27": [
+      "How incident status changes: a general configurable workflow",
+      "Opening: identification, classification and essential information.",
+      "Analysis: technical findings, people and systems involved.",
+      "Containment and communications: actions and notifications under the chosen procedure.",
+      "Evidence and closure: only after the checks required by the workflow."
+    ],
+    "28": [
+      "General information and classification",
+      "Name, categories, date/time, people involved and severity describe and classify a case.",
+      "When several categories are selected, their order matters: the first category's workflow takes precedence over the default.",
+      "Risks to individuals' rights and freedoms require privacy assessment and may require notification to the data protection authority where applicable.",
+      "A more comprehensive classification of incident categories and severity levels is under development."
+    ],
+    "29": [
+      "Procedural warnings",
+      "Warnings arise from mandatory stages and unmet conditions.",
+      "They reduce the risk of omitting necessary activities.",
+      "A warning does not mean a notification has been sent.",
+      "The registry icon highlights tasks that are still outstanding."
+    ],
+    "30": [
+      "Documents and evidence: security safeguards",
+      "Every attachment and generated document remains linked to its incident.",
+      "Example: a user without tenant privileges must not be able to download a restricted PDF.",
+      "Configured limits and file checks apply during uploads.",
+      "Track document provenance, versions and any external signatures."
+    ],
+    "31": [
+      "Incident PDF report",
+      "Open the incident page and click “PDF Report”; the registry row also offers a “PDF” action.",
+      "The report summarizes case information, completed actions and evidence: a two-page teaching example appears on the right.",
+      "Useful for auditing, technical review and handovers.",
+      "It captures the current state; generating a report does not perform workflow tasks."
+    ],
+    "32": [
+      "Statistics: tenant, cross-tenant and global views",
+      "Active tenant: statistics and exports remain within the authorized tenant scope.",
+      "Super admin: 3D bubble charts by tenant, global category, or tenant + category (30 bubbles by default; configurable limit).",
+      "Complete table view and cross-tenant comparison; bubble size indicates incident volume for each group.",
+      "JSON, XML or CSV exports, optionally password-encrypted (AES-256-GCM), for external analytics and connectors."
+    ],
+    "33": [
+      "Notifications: from rules to delivery",
+      "Notification types and templates are fully configurable: admins can add or edit them.",
+      "Examples include user alerts, CSIRT, DPO and formal notices to affected users.",
+      "A template defines subject, body, recipients, CC and replaceable variables.",
+      "A workflow step may require a notification and check its completion."
+    ],
+    "34": [
+      "Application and database backups",
+      "Back up both the PostgreSQL database and persistent files.",
+      "Define retention, protected destinations and periodic restore testing.",
+      "Before migrations, create consistent and testable backups.",
+      "A backup without a tested restore is not sufficient assurance."
+    ],
+    "35": [
+      "Disaster recovery: recovery sequence",
+      "Restore the database and assets from consistent backup sets.",
+      "Restore secrets, URLs, storage and identity providers.",
+      "Perform startup, migrations and smoke tests for critical functions.",
+      "Verify the integrity of incidents, documents, audit trails and reports."
+    ],
+    "36": [
+      "Application security and traceability",
+      "Authentication, SSO and role- and tenant-based authorization.",
+      "Action audit trails and protection of incident-related documents.",
+      "CI gates, dependency analysis and Trivy container scanning.",
+      "Context isolation, identity protection and residual-risk management."
+    ],
+    "38": [
+      "Users and responsibilities",
+      "Super administrator: global governance, instance and catalogs.",
+      "Tenant administrator: management of permitted configurations within their tenant.",
+      "Operators: handling and responding to incidents according to their roles.",
+      "Readers: viewing only the information they are authorized to access."
+    ],
+    "39": [
+      "What is a tenant?",
+      "A tenant is a logical context that separates incidents, users and configurations.",
+      "Any user type may be authorized for multiple tenants, according to the role assigned in each.",
+      "The active tenant determines which operations and data are visible.",
+      "Access to one tenant does not automatically grant access to another."
+    ],
+    "40": [
+      "Tenants Default: shared catalog",
+      "Contains central definitions reusable in individual tenants.",
+      "Authorized administrators can import procedures and their dependencies.",
+      "Local copies can be customized without modifying the source."
+    ],
+    "41": [
+      "Inheritance and local overrides",
+      "Tenants Default provides settings and definitions shared among sites and tenants.",
+      "Where no local customization exists, the tenant uses the applicable shared value.",
+      "An authorized admin may set a local override: it takes precedence in that tenant without changing other tenants.",
+      "Example: standard recipients for SPAM notifications; a site can configure its own operational contacts."
+    ],
+    "42": [
+      "Global instance parameters",
+      "application_external_url: public URL used for links and notifications.",
+      "application_timezone: application time zone.",
+      "ssl_enabled, ssl_cert_path, ssl_key_path: TLS and certificates.",
+      "max_upload_size_mb: configurable limit on uploaded files and requests."
+    ],
+    "43": [
+      "Tenant-specific settings",
+      "1. Configure the tenant in the Admin pages or using the “Initial setup wizard”.",
+      "The wizard is available to tenant and super admins: sections can be saved, skipped, resumed and rerun.",
+      "2. Import workflows: Administration → Workflows and catalog → Workflow catalog (classic UI: Admin → Definitions and workflows).",
+      "Choose SPAM from Tenants Default and create a local copy; the default workflow already exists in the tenant.",
+      "3. Review steps, conditions, categories, severity and notifications; only super admins can create new tenants."
+    ],
+    "44": [
+      "Administration: PDF forms and templates",
+      "“Forms” are fillable PDF templates uploaded and managed by administrators.",
+      "During setup, the admin maps each PDF (AcroForm) field to CIR incident data using drag and drop: drag a field and select the corresponding source.",
+      "Example: REFERENCE in the PDF ↔ incident reference; START_DATE ↔ incident opening date.",
+      "Once mapping is configured, authorized operators generate completed PDFs for individual cases."
+    ],
+    "45": [
+      "Who can configure CIR: roles and responsibilities",
+      "Super admin: manages instance settings, global plugins, shared catalogs and tenants; can create tenants and use the initial setup wizard.",
+      "Tenant admin: customizes workflows, categories, documents, notifications and permitted settings for the active tenant.",
+      "Full configuration: set parameters manually or with the wizard, then import one or more specific workflows from the catalog.",
+      "Authorized operators: use configured procedures and update incidents without administrative privileges.",
+      "Readers: view information permitted by their role and cannot modify workflow rules."
+    ],
+    "46": [
+      "Switching tenants and data isolation",
+      "The active tenant is shown in the header.",
+      "Switching tenants does not automatically transfer content or privileges.",
+      "Search and assisted features respect authorization boundaries.",
+      "Moving to another tenant requires valid membership."
+    ],
+    "47": [
+      "SSO configuration and identity mapping",
+      "Buttons for configured providers appear after other login options.",
+      "The provider verifies credentials; CIR assigns roles and tenant access.",
+      "SSO settings are restricted to authorized administrators.",
+      "The screenshot shows the admin page with demonstration values."
+    ],
+    "49": [
+      "What is a workflow?",
+      "A workflow is a configurable procedure describing how to handle a type of incident from opening to closure.",
+      "It defines an ordered sequence of tasks, responsibilities, conditions and checks before completing a case.",
+      "Admins configure the workflow within a tenant; operators follow it and record their actions.",
+      "CIR uses a category-specific workflow where available, or the tenant's default workflow otherwise."
+    ],
+    "50": [
+      "Categories: how an incident is classified",
+      "A category is a configurable label describing an incident type, such as SPAM or phishing.",
+      "An incident may have several categories, but selection order matters: the first determines workflow selection.",
+      "If the first category has a dedicated workflow, CIR uses it; otherwise the default workflow applies.",
+      "Additional categories improve classification, searching and reporting; they do not automatically combine workflows."
+    ],
+    "51": [
+      "Steps: operational stages in a workflow",
+      "A step is one task within a procedure: logging analysis, blocking an account, sending a notification or generating a document.",
+      "Each step has an ordered position and may be mandatory or optional depending on configuration.",
+      "Instructions and required information may vary; actions, evidence and communications remain traceable within the incident.",
+      "Completing the workflow requires checking applicable steps, not merely changing the incident status."
+    ],
+    "52": [
+      "Conditions: when a stage becomes applicable",
+      "A condition is a configured rule specifying whether a step should appear and be performed for a given case.",
+      "Example: when an incident poses risks to individuals' rights and freedoms, additional assessments or communications may apply.",
+      "If a condition is not met, its conditional step does not apply and should not be treated as missing work.",
+      "Conditions govern the selected workflow; they do not create a separate workflow."
+    ],
+    "53": [
+      "Dependencies: workflow resources and prerequisites",
+      "A dependency links a step to resources or requirements needed to perform it correctly.",
+      "Examples: action labels, notification type or template, PDF forms, required fields or contextual information.",
+      "Admins configure and verify the tenant's resources before activating a workflow.",
+      "Do not confuse dependencies with conditions: dependencies say what is needed; conditions say when a step applies."
+    ],
+    "54": [
+      "Example: from the SPAM workflow to an incident",
+      "The tenant catalog configures or imports a dedicated SPAM workflow: in this example the category and workflow share the same name.",
+      "When creating an incident, select SPAM as the first category: CIR applies the current SPAM workflow associated with it.",
+      "Any further categories classify the incident without adding steps from other workflows.",
+      "The SPAM workflow includes operational steps, optional conditions and configured dependencies (notifications, labels, PDF forms)."
+    ],
+    "55": [
+      "Workflows: selecting and importing from the catalog",
+      "Open Administration → Workflows and catalog → Workflow catalog (classic UI: Admin → Definitions and workflows → Workflow catalog).",
+      "Select SPAM in the Tenants Default catalog, choose a target tenant and click “Create a new copy in tenant”.",
+      "Workflow and category share a name (SPAM, then SPAM v2 if a workflow with that name exists); existing severity definitions are reused.",
+      "The default workflow remains available. Tenant and super admins review steps, conditions and notifications before use."
+    ],
+    "56": [
+      "Workflows: tenant-specific customization",
+      "For each workflow step, admins can attach tenant-specific operating instructions.",
+      "SPAM example: a link to local procedures for blocking accounts and preserving evidence.",
+      "Adapt responsibilities and review notification recipients.",
+      "Check conditions and references to forms before use."
+    ],
+    "57": [
+      "Workflows: current and obsolete",
+      "CURRENT: available for new incidents and assignments.",
+      "OBSOLETE: cannot be assigned to new cases; historical cases remain accessible.",
+      "Existing open incidents retain their associated workflow.",
+      "Reactivation requires an explicit administrative action."
+    ],
+    "58": [
+      "Workflow status governance",
+      "Tenants Default catalog: source definitions managed by super admins.",
+      "Local copies: controlled by authorized tenant and super admins.",
+      "Obsolescence of a source propagates to copies under CIR rules.",
+      "Reactivating a catalog entry does not automatically reactivate its copies."
+    ],
+    "59": [
+      "SPAM workflow: adapting the training case",
+      "The SPAM workflow is a teaching example, explained step by step in the following slides.",
+      "Admins link notification types to steps: user alert, CSIRT and DPO (privacy contact).",
+      "Risks to individuals' rights and freedoms make two additional assessment and notification stages applicable when required.",
+      "The DPO PDF is an example dependency; admins may upload other forms and remap their fields."
+    ],
+    "60": [
+      "Workflow: actions and incident navigation",
+      "Registration: records an action with a description and date in the incident's Actions area.",
+      "Execution: launches a guided action, such as sending a notification.",
+      "Update: opens the incident section to be updated, such as General data or Documents.",
+      "Operation: runs a specific function, such as generating or uploading a PDF."
+    ],
+    "61": [
+      "Workflow: step cards and progress in the UI",
+      "Six complete workflow cards: heading, instructions and final action",
+      "Each card is cropped separately from authentic screenshot pixels.",
+      "Card geometry is measured from the browser where available.",
+      "The workflow can wrap across rows without squeezing the cards."
+    ],
+    "62": [
+      "SPAM workflow: notifications (training example; details later)",
+      "In the SPAM example, steps may require messages to the user (“user alert”) and CSIRT.",
+      "Other stages may require a document and a notification to the DPO.",
+      "Formal notices to data subjects and the supervisory authority depend on risks to rights and freedoms and applicable duties.",
+      "Admins define step order using a number/ID; this does not imply a legal priority."
+    ],
+    "63": [
+      "Workflow: notification templates and variables",
+      "Admins configure notification types, body text, recipients, CC and attachments.",
+      "Placeholders such as %NAME%, %REFERENCE% and %START% can be embedded in notification text.",
+      "These are only a few examples: CIR provides many more variables, described in the manual, for use in templates.",
+      "At runtime, variables are replaced with the incident name, reference, start date and contextual data.",
+      "Before sending, operators verify the message, recipients and authorized attachments."
+    ],
+    "65": [
+      "PDF forms: configuration and use",
+      "Configuration is restricted to tenant and super admins: upload a PDF template and map its fields.",
+      "Example: the form's REFERENCE field ← the incident's reference.",
+      "Authorized operators/admins can generate a completed PDF for a specific incident.",
+      "Anyone generating a document should review its preview before saving or attaching it."
+    ],
+    "66": [
+      "PDF mapping: linking fields to data",
+      "Admin configuration: read an AcroForm field and select its CIR data source.",
+      "Real fixture example: REFERENCE ← reference; DESCRIPTION ← description.",
+      "START_DATE ← start_date; missing values are flagged before document generation.",
+      "Admins can replace or update templates while retaining form checks."
+    ],
+    "67": [
+      "PDF mapping: configuration screen",
+      "Tenant and super admins only: “Forms” → “Configuration”, then select a PDF template.",
+      "The CI screenshot shows the real upload/replacement interface and “Template field mapping”.",
+      "Each AcroForm field is linked to a CIR database property, e.g. REFERENCE → reference.",
+      "Inspect the AcroForm fields and matching CIR properties in the screenshot; the zoom shows operational detail."
+    ],
+    "68": [
+      "Generated PDF preview: verification example",
+      "Authorized operators select a form on the incident page and click “Generate documents”.",
+      "The “Generated PDF preview” page shows the document filled according to mappings configured by admins.",
+      "Check REFERENCE, DESCRIPTION and START_DATE fields, then accept or reject the document.",
+      "The verification pipeline captures the real application screen and generated PDF in an isolated test instance."
+    ],
+    "69": [
+      "DPO document: example in the SPAM workflow",
+      "The DPO PDF is just one SPAM workflow example: admins may add, upload or replace PDF templates.",
+      "The workflow can include generation, download, review and later upload of an externally signed document.",
+      "CIR does not currently apply electronic signatures itself: signing uses external tools.",
+      "Future integration with signature providers is technically possible but is not implemented."
+    ],
+    "70": [
+      "Alfresco: configuration and operations",
+      "Admins configure Alfresco for a tenant: service address, site/repository, technical credentials and archival rules.",
+      "Authorized operators/admins open “Documents” on an incident and manage attachments using the available actions.",
+      "CIR maintains the document-to-incident link; effective access follows both tenant and repository permissions.",
+      "These are separate phases: admins establish the link first; authorized users then work with documents. If integration is not configured or permissions are missing, those operations are unavailable."
+    ],
+    "71": [
+      "Reports and statistics: where to find them",
+      "“Reports” → “Statistics”: filter by period and scope (active tenant; super admins also have global and cross-tenant views).",
+      "Cross-tenant compares metrics aggregated by tenant; global consolidates all tenants.",
+      "Export PDF, CSV or JSON for audit, external dashboards or authorized custom connectors.",
+      "The CI uses only synthetic data; ordinary users cannot export across tenant boundaries."
+    ],
+    "72": [
+      "User and administrator documentation",
+      "User manual (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
+      "Administrator manual (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
+      "This presentation in PDF: github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual_EN.pdf",
+      "Documentation is generated by CI and completely rebuilt after each application update.",
+      "In the app: “Help”; English manuals, Alfresco guide and brochures are also available."
+    ],
+    "73": [
+      "Administrator manual and supported platforms",
+      "Administrator manual: github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
+      "Describes roles, tenants, bootstrap, security and deployment.",
+      "In the application: “Help” → “Administration”, when authorized.",
+      "Platforms: Docker/Podman containers, Kubernetes/OpenShift orchestration, amd64 and arm64 architectures."
+    ],
+    "74": [
+      "AlBot: create and update workflows with approval",
+      "AlBot (Alex) is also specifically designed to create or update workflows from natural-language instructions.",
+      "It defines names and steps, requirements, prerequisites, conditions, notifications and documents within the tenant permission boundary.",
+      "An admin reviews the draft and confirms the import; a super admin can also manage Tenants Default.",
+      "Alternatively, export portable JSON. CIR makes no workflow changes without explicit confirmation."
+    ],
+    "75": [
+      "AI: privacy, authorization and responsibility",
+      "Application context is filtered by tenant, excluding credentials, personal data and sensitive free text.",
+      "AI responses are suggestions, not automatically approved decisions.",
+      "CIR permissions still govern operational actions.",
+      "AI configuration and the knowledge base are restricted to authorized administrators."
+    ],
+    "77": [
+      "Tutorial lab: open an incident using the SPAM workflow",
+      "In the “Tutorial” tenant: Administration → Workflows and catalog → Workflow catalog. Import SPAM from Tenants Default (classic UI: Admin → Definitions and workflows).",
+      "On the home page select “Incidents” → “New incident”; choose “No template” or a template with predefined fields.",
+      "Drag SPAM from “Available categories” to “Selected categories” and put it first; further categories do not add other workflows.",
+      "Fill in a test case, click “Create” and review the current SPAM workflow steps. The example includes risks to individuals' rights and freedoms, showing the conditional steps."
+    ],
+    "78": [
+      "SPAM workflow: real incident screen",
+      "The top banner shows the incident identifier and status.",
+      "The UI displays 13 stages and 12 arrows where risks to data subjects' rights and freedoms are present.",
+      "Buttons correspond to operations, notifications and documents.",
+      "The screenshot comes from CI using entirely synthetic test data."
+    ],
+    "79": [
+      "SPAM workflow: anatomy of step cards",
+      "Each card shows the task name, description and status.",
+      "The bottom button opens the appropriate action or section.",
+      "A time limit may also appear when configured.",
+      "Numbers only determine display order."
+    ],
+    "80": [
+      "SPAM workflow: steps 1–3",
+      "Step 1 — Initial information: record receipt of the report and initial handling.",
+      "Step 2 — Preliminary analysis: collect findings and affected accounts.",
+      "Step 3 — Blocking: document containment; end_breach can record when the breach ended.",
+      "Administrators can configure completion deadlines."
+    ],
+    "81": [
+      "SPAM workflow: steps 4–6",
+      "Step 4 — Follow-up analysis: use Update to complete incident details.",
+      "Step 5 — User communication: generate and send the user alert.",
+      "Step 6 — CSIRT communication: review the template and send according to procedure.",
+      "Communications remain traceable within the incident."
+    ],
+    "82": [
+      "SPAM workflow: steps 7–10",
+      "Step 7 — Generate the DPO document from the configured PDF template.",
+      "Step 8 — Download the PDF and check its contents.",
+      "Step 9 — Upload the file signed using an external application.",
+      "Step 10 — Notify the DPO using the authorized template."
+    ],
+    "83": [
+      "SPAM workflow: steps 11–12 and risks to rights and freedoms",
+      "Risks to data subjects' rights and freedoms activate the assessments and notifications defined by the workflow.",
+      "Step 11 — Contact with the supervisory authority: assess whether notification obligations apply.",
+      "Step 12 — Possible notice to data subjects: document the decision and applicable duties.",
+      "When those risks are absent, these two conditional steps are not required in the teaching example."
+    ],
+    "84": [
+      "SPAM workflow: step 13 and closure",
+      "Step 13 — Conclusion: record the outcome and check prerequisites.",
+      "global_check: performs an overall validation of the case and its tasks.",
+      "close_without_warnings: attempts closure only when there are no active warnings.",
+      "Closure must not bypass required checks or notifications."
+    ],
+    "85": [
+      "SPAM workflow: incident categories and affected data",
+      "The first category selects the workflow; the others classify the case.",
+      "Available versus selected categories are shown separately.",
+      "Affected data and personnel remain tenant scoped.",
+      "All enlarged regions come from the original captured UI pixels."
+    ],
+    "86": [
+      "SPAM workflow: PDF mapping and DPO document",
+      "A sample PDF template contains fillable fields configured by administrators.",
+      "Mappings link PDF fields to the individual incident's data.",
+      "The operator checks the preview before saving.",
+      "If signing is required, it takes place in external tools and the signed file returns as an attachment."
+    ],
+    "87": [
+      "SPAM workflow: final checks",
+      "Analysis and containment have been logged with supporting evidence.",
+      "Mandatory notifications have been delivered and verified.",
+      "Required documents are available and validated.",
+      "Assessments of risks to rights and freedoms, and any supervisory authority communication, are complete before closure."
+    ],
+    "88": [
+      "Lessons from the SPAM training incident",
+      "This is a teaching example, not a mandatory workflow for all tenants.",
+      "Admins can adapt local instructions and forms.",
+      "Conditions determine which steps are applicable.",
+      "The UI guides the operator without replacing professional responsibility and judgment."
+    ],
+    "90": [
+      "CIR at a glance: what it is and who uses it",
+      "CIR is a case registry with configurable workflows, evidence, notifications and accountability.",
+      "It supports operators, administrators, managers and reviewers in a multitenant service.",
+      "Its model is organization-agnostic and can handle procedures beyond cybersecurity.",
+      "The project is open source, distributed under the EUPL license and adaptable to different contexts."
+    ],
+    "91": [
+      "Summary: the entire learning journey",
+      "Access, SSO and navigation; registry, states and roles.",
+      "Creating an incident; actions, evidence, reports, statistics and security.",
+      "Tenants and Tenants Default; workflows, conditions, steps and administrative imports.",
+      "PDF forms, mapping, previews, external signing and Alfresco integration.",
+      "Optional AlBot, the 13-step SPAM lab and transition to operational use."
+    ],
+    "92": [
+      "Putting CIR into production",
+      "CIR is designed as a shared central service for all tenants and sites; no separate local instance is needed for each.",
+      "The official service URL will be announced, accessible with institutional credentials through configured SSO.",
+      "Admins will set up catalogs, workflows and local parameters according to their permissions.",
+      "Before production use: test notifications, PDF mappings, backups and restore procedures."
+    ],
+    "93": [
+      "Documentation and repository",
+      "Project: https://github.com/desalvo/cybersecurity-incident-registry",
+      "User manual (EN): https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/user_documentation_en.pdf",
+      "Administrator manual (EN): https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/administrator_documentation_en.pdf",
+      "Training slides (PDF): https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual_EN.pdf",
+      "All documents are automatically generated, verified and republished from CI to main whenever the application changes."
+    ],
+    "94": [
+      "Creator and project contributors",
+      "Author: Alessandro De Salvo",
+      "Contact: Alessandro.DeSalvo@roma1.infn.it",
+      "Comments, issue reports and improvement suggestions are welcome.",
+      "EUPL open-source repository: github.com/desalvo/cybersecurity-incident-registry"
+    ],
+    "2": [
+      "Why CIR?"
+    ],
+    "18": [
+      "Operational features"
+    ],
+    "37": [
+      "Users and tenants"
+    ],
+    "48": [
+      "Workflows and catalogs"
+    ],
+    "64": [
+      "Documents, integrations and support"
+    ],
+    "76": [
+      "Training lab: a SPAM incident example"
+    ],
+    "89": [
+      "Conclusions"
+    ]
+  },
+  "source_locale": "it",
+  "italian_master_fingerprints": {
+    "1": "f0c7dac86c45868c641a4a32d878068e10196bb2b6ff092e1bf0809390d95013",
+    "2": "cd599528b9d60f94a0c365514cecd1c01620bdc3e426eea3784b7e3a4edff326",
+    "3": "8b8b842ee871825775ab6d55e6f3b568cc596905c58d139c396754c563c4866c",
+    "4": "c85a84e55f6e6d7919a21cb4382da13646497dc8b3ec61251cb55fbb6141baeb",
+    "5": "33a452a56900b7b10db7137296a603393bc74250c4729e4c5e2a80bc2a526179",
+    "6": "06ae74ddbd3920381c534b9d604f666ebad41983515e291c7e55b846638dcce2",
+    "7": "c743fcc28349b1fb89fe86bb63d116e8d1cd61f9c4ff0b7ff87c01ec7ca13a66",
+    "8": "f9aca6a52757a2404767f93465e0b571f60cc720a9bd28ed2ce22f1777a2a45e",
+    "9": "30ada5ccfbaf625e13ccbe391386166056c801261ab0f0e22bc25268d604d03d",
+    "10": "e21ddd2b63d7ba996d1dfb7e9462a6a1760fa9c34ee812719f23ccd932e69833",
+    "11": "1941e8589ee13eb579f77f8b79a93dba1aded0a003f37427060f7c665f39d6fc",
+    "12": "d5a71873edbe176fc55eacbfe44fb9cb3df086882a6b0b188818867c85a8f5e2",
+    "13": "1b03f5b8049b9396323216f7489a3bfee6852d0c97db8deb41b92b6005b714f8",
+    "14": "192e6d4cfedb35e2f045254278caf4e827079b8af2cfe8fd904c88c7c427d9e4",
+    "15": "e869d26f3389b151c4cfa7253697c6f4f8da3ac266eab320677b6f07150d4bd7",
+    "16": "dbff0066a5c52405299b69772a4b537c962eb75206bd2e5c992723718bbc59c7",
+    "17": "7e052984b30285254ef96ca14371290e9ace39a11cd06a3a2f1bf79f83c2d069",
+    "18": "e37a822f5ccf556d5ef3227a5fb0987ca80108b92c4ee240841c364d10b5cb46",
+    "19": "0b3d61fe653cf55b22c670c487b6f648e28452342334c9b7549e000d5b7984d3",
+    "20": "544a24ee7361c7eb5033d2a5a9eb6e293141dbcdeb2a930d2df6469aa1822f43",
+    "21": "1b1212faf8e1ecb6738928fe272339b17759de6b1d51c26991ca910ce78e62ae",
+    "22": "388fbe61e4b4a63276fa8395e4872262ef7b7007c7e44b8927aad1584fa85b01",
+    "23": "1eaa09fc2edfd413462168468df80479b72884f5784778860674d6db4e7b2131",
+    "24": "d287f82482283069f59a3a82d77a43b3756f282f05523697f7039397e6f64d05",
+    "25": "bd04762dd51921732bce853ff04a0389b91759a7d81150c65de3c32d0c6c74f2",
+    "26": "2833629bfa056caf197d6307ca7e606f304ba093d5bdeee0cf0b9b947892e2b6",
+    "27": "74d763702bac198f4e435268a5acf55c3fac652b3f41900d121d6965a0196edd",
+    "28": "611a381512408f6801bf093e0cc228839be693813a5bda098981f4f2c3515c60",
+    "29": "5378d9bdcbc8cdc9c92c51318ef9211d9e26bf7cd649c15af4b0b3f120786d03",
+    "30": "5588d8597a0591e39ca16e74147de4a5fbd1fb644b8f072d56049facb8d6906e",
+    "31": "72f24369607795791956062f40516b12d3df6f5afaf79aa7d14f921512b01391",
+    "32": "393a6a29b173c4cdcc121da31cc9ffa4bcc5c2ad2c95a57e5bef7d0581203bf8",
+    "33": "f655ed87860b6f906ff2eb9a03122cc72b5173b3f3942134f77b0d7f814f48a5",
+    "34": "87387d11dceb0e3fd7c825cbd99a664570b4fd423ed95ca9771ee64cc0c3f64d",
+    "35": "b76ab5e7e7fe5bedb1a31c25813d5fa4d483573ebfc93a3e4425cef8507de693",
+    "36": "b02c886950249dc84db41f71e2b8db732a9a75da9e93d48db944209f67ffc208",
+    "37": "8d7401df90b1acf62072a90ce8c70e326620b87c695d80ceef42a4b706c49a77",
+    "38": "ed3ebbc00eac4a45ef0a8776cace1e408eaec8d0ba87cb04d65daad392298bba",
+    "39": "54b25d502bd222c3f5a1f83858ab824e55a4cbdfd56308623d5239bc4a96bbfe",
+    "40": "bd6967b86e9fbdeab29cd1804951bb0f143c11ce05d2c4ca5ffdc2dce20a494d",
+    "41": "713e600d88ea029a79bd3c0018846acc5cc940b7f672aab049abedaded722d21",
+    "42": "dc6b48cfdd9070848ea4dac4e67ac17125d55dcb4a8875e933bc2e4bd80ee6e5",
+    "43": "c7c860a6e12101c144633c189af3c57db619dae0de902cfcdd2c9250413b6a04",
+    "44": "833bdb25c6c268ed052b6c14f997afcdce81c36c6343d4b1b662a3a43839b078",
+    "45": "4d0bf90a4c342c2c3f28cd648b0bbc02d9dd7c1ce76b1d335ae295a3cad7b392",
+    "46": "62dc2f76bdc0c0b254d883835163ee4ccf8cd056c6f7e8f7b3b527f2e36bfcb1",
+    "47": "6feb6f394750637c13277186475e3e216680f0b643d9967bd6ff54ba0975c63e",
+    "48": "45d724736886bcf1bebccbb3f9cf548dafd33ab92d693ba9e13add10cbef14bd",
+    "49": "161c5b16b97c741116f0e502528d8c3d289e387045e983669cafd492ccf91a94",
+    "50": "a0f4285a0d80429583b3af71f61465d51457c10c2e78fca6d7fd14b3dae2510d",
+    "51": "b400eb8e0b9e531a61abe58b837fd2e7b55aad8b64f13a58c98f6d7e02e30ab5",
+    "52": "ba1baa3636a262cb424c7bc52c473eef3409b83b31dd1aa4fb37e70296c10023",
+    "53": "4aeae089759b807b11ad4f72bd27230358d3d6cc758e789e8d9675d824db9188",
+    "54": "764514f5c21b6b2edb9d953fb2327cf68306d5d85abc248c68896465459619cb",
+    "55": "32fc09927fa35fd9a69debb82f0a3d715e05d2842c2f44954a623c09f7bd70ff",
+    "56": "6fcb01a48aa214dbf2b19658beaa65e3849c4a9bc861ef59c11b51d158d0ae51",
+    "57": "e4430854e539d5b3b53ff26bfeb012f1e78f904f4fe0d5aafbc62791bf9fccbd",
+    "58": "6f7a38582be11323e97cf8bafbc8b4a3cdf0ca13cbd407533366f1ef0e8f2adf",
+    "59": "a11d2255f73e77ba7f24ce8985062be571c8b7f4a67e9ba8a557d7877bc534a6",
+    "60": "a969b3b40fce26a6bfcb26468de744df3acb82b670904e79b35367ad0aca21ee",
+    "61": "8396d19c91b1b4ed625ed7d646f691d7a0d8999a9b7a5a7502c7736a9ce8a0a0",
+    "62": "f6dce2e935f7142eeb3f0bb1b05dfe0079617ee51f04207e8abb2577549322cf",
+    "63": "a14695e42f6cb933e469d384448302ca3435d44bb981dbf73e55e278380bb1d9",
+    "64": "66163e8d2b232d5ba54465b7e188f9bb6838fa4113b0515774baba207f320dcf",
+    "65": "12ca3cd768d508d52682c5f307a0f7d6554bd6f5305601b981209b78937151c4",
+    "66": "92c6a16864360150b156225ddf723f990d1dea14590f603e0c6ea68eabace068",
+    "67": "0359c8874643b7552ff96fee4601a64d33fc8317487e774e66b80903a7ed6e81",
+    "68": "44aaa8b6d66a20107991d77a133a805f2d8997ce24ab39245395612f49028475",
+    "69": "d1c6ea5f12c8a5227c1df8c8790956846f6498db849725e82870c2006a2c2885",
+    "70": "6a385fd7fd8eef2fdfd6bac48cdc4b406f2fd351647705cc7f2b00c8e1f53a24",
+    "71": "9269829587b890dc09e15f4384087d74d9ea916ca8c56eac70c8e82d16c4e17a",
+    "72": "05e7167e7c5ebdb7e72528ff969ac805c465fccfd3335f9b5c69b4058cb115e7",
+    "73": "889833ba53372046ac4e3b177ed9777bc642d5991e03ffb46208f129a7d10a31",
+    "74": "efedcef2cd9b56bfc41589b01f7a855919ce226b88edabb285fd70af9d9f2bca",
+    "75": "ed83f0cd1f3b6cf5f2e54387f50ca57cc668cb67418c97ab7ad1b6e7bd10a21a",
+    "76": "1d099fcb80508b445afdc3efff44f8d2c76ef10ad4d98a0a883f0abf84b5f12a",
+    "77": "cf75e90471e0636d25b9dfe0bf9a76174e992710609c5b258f48c1001ec25940",
+    "78": "516fcbaa89f91a95639cb1891ff70276cc37a601cbb0a65e93a36f749f9f0eac",
+    "79": "e29108bf3abc1c8a2e8c8da31879ff799f894afa681061dadb99f8607e13acba",
+    "80": "a585eb7223639369b8ae170b91d156589bf29cd49f3701c9ac24c67fba07ac9b",
+    "81": "c9bb776a6bafa590c9021e54b7f6d489564c3c1342b7fec4049225948a56264e",
+    "82": "da824727c4615cc89881c94f18ae3e9407c27082dfd532a289615778bf5243df",
+    "83": "9c25a686903c8e11f423a94b1318b6bb73bd11578d2ebf0e516afd27780c340c",
+    "84": "a8280fb11b0bb1ee54d8eb3bd3380a4a8e6d06cc6c7edcd5e3eeee3a36156c9e",
+    "85": "71880e79647e17f595af8488263cad5c9adff933fcf04bfc033b244da433554f",
+    "86": "c8ba2f53ccda468dfa9263901ef6ce8b7fc3b6a166a11cac5e17f28d8ad65976",
+    "87": "d049b939e19a0d7e8486708777cbea76f872be7db24a8d476b7400a7fc89fdb3",
+    "88": "255da008d3324c216e647b6d83a16c37271c05569486f47e8c3e8f112c47790c",
+    "89": "6b91f7bdc95e52d7695539eef57175cdbf600cb2c20a72a249e02d8cad8988b9",
+    "90": "7cc2dbc2273a178291b729c634938de53400a1d5089f3af18951158dffb10174",
+    "91": "2fa330e75521eed8503fc52c4fccdff103294087e8859ef26c44109a5d10f6d9",
+    "92": "aad480774a5c32e4c40649779c96ad4d32479684bfaedd0bf4f56bd68ff2b0fa",
+    "93": "7adee339e9b41ea8d78eff4a87ffb44222e8dc7349639c554a26401107af263b",
+    "94": "475f0d1c623dc1f60817fbba705e6e64c42feae6f23618c7d2e9731614119c61"
+  }
+}

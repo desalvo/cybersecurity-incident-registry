@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% macro tx(it, en) -%}{{ en if current_language == 'en' else it }}{%- endmacro %}
+{% block content %}
+<section class="card" aria-labelledby="wf-title">
+  <h2 id="wf-title">AlBot · {{ tx('Esportazione JSON', 'JSON export') if draft.export_only else tx('Anteprima workflow', 'Workflow preview') }}</h2>
+  <p><strong>{{ draft.name }}</strong> · Tenant: <strong>{{ draft.tenant_name }}</strong> ·
+    {{ tx('Aggiornamento', 'Update') if draft.operation == 'update' else tx('Nuovo workflow', 'New workflow') }}</p>
+  {% if draft.operation == 'update' %}
+  <p class="muted">{{ tx('Workflow da aggiornare:', 'Existing workflow:') }} <strong>{{ draft.existing_name }}</strong>.
+    {{ tx('Gli incidenti già presenti impediscono una modifica distruttiva.', 'Workflows assigned to existing incidents cannot be destructively changed.') }}</p>
+  {% endif %}
+  <p class="muted">{{ tx('Le condizioni controllano l’applicabilità degli step; le dipendenze richiedono il completamento delle azioni precedenti. Nessun dato è stato ancora importato.', 'Conditions determine step applicability; prerequisites require the earlier actions to be recorded. No configuration has been changed yet.') }}</p>
+  <div style="overflow-x:auto">
+  <table class="table" aria-label="{{ tx('Anteprima step workflow', 'Workflow step preview') }}">
+    <thead><tr><th>#</th><th>Step</th><th>{{ tx('Tipo', 'Type') }}</th><th>{{ tx('Descrizione', 'Description') }}</th><th>{{ tx('Obbligatorio', 'Required') }}</th><th>{{ tx('Dipende da', 'Depends on') }}</th><th>{{ tx('Condizioni', 'Conditions') }}</th><th>{{ tx('Ore limite', 'Deadline (hours)') }}</th><th>{{ tx('Descrizione obbligatoria', 'Description required') }}</th><th>{{ tx('Notifica', 'Notification') }}</th><th>PDF</th><th>{{ tx('Sezione', 'Section') }}</th></tr></thead>
+    <tbody>{% for step in draft.steps %}
+      <tr><td>{{ loop.index }}</td><td>{{ step.name }}</td><td>{{ step.step_type }}</td><td>{{ step.description }}</td>
+        <td>{{ tx('Sì', 'Yes') if step.required else tx('No', 'No') }}</td>
+        <td>{{ step.depends_on_names|join(', ') if step.depends_on_names else '—' }}</td>
+        <td>{{ step.condition_labels|join(', ') if step.condition_labels else '—' }}</td>
+        <td>{{ step.max_completion_hours }}</td><td>{{ tx('Sì', 'Yes') if step.description_required else tx('No', 'No') }}</td>
+        <td>{{ step.required_notification_type if step.requires_notification else '—' }}</td>
+        <td>{{ step.document_template_name if step.document_generation_enabled else '—' }}</td>
+        <td>{{ step.section_target or '—' }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <div class="stacked-form">
+    <p><a class="btn" href="{{ url_for('ai_chatbot.workflow_download', token=token) }}">{{ tx('Scarica JSON portabile', 'Download portable JSON') }}</a></p>
+    {% if not draft.export_only %}
+    <form method="post" action="{{ url_for('ai_chatbot.workflow_apply', token=token) }}">
+      <label><input type="checkbox" name="confirm" value="yes" required>
+        {{ tx('Confermo la modifica del workflow', 'I confirm changes to workflow') }} <strong>{{ draft.name }}</strong>
+        {{ tx('esclusivamente nel tenant', 'exclusively within tenant') }} <strong>{{ draft.tenant_name }}</strong>.</label>
+      <button type="submit" class="btn primary">{{ tx('Conferma e aggiorna workflow', 'Confirm and update workflow') if draft.operation == 'update' else tx('Conferma e crea workflow', 'Confirm and create workflow') }}</button>
+    </form>
+    {% else %}<p>{{ tx('Solo esportazione: il salvataggio in CIR non è disponibile per questa proposta.', 'Export only: this proposal cannot be imported directly into CIR.') }}</p>{% endif %}
+  </div>
+  <p><a href="{{ url_for('ai_chatbot.chat') }}">{{ tx('Torna ad AlBot', 'Back to AlBot') }}</a></p>
+</section>
+{% endblock %}

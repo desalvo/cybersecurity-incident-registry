@@ -90,10 +90,10 @@ def test_browser_capture_tooling_is_excluded_without_removing_runtime_ui_or_manu
         "app/templates/ui/login_modern.html", "app/static/help/ui-runtime/manifest.json",
         "app/static/help/ui-runtime/login-desktop.jpg", "docs/documentazione_utente.pdf",
         "docs/documentazione_amministrativa.pdf", "docs/user_documentation_en.pdf",
-        "docs/administrator_documentation_en.pdf", "docs/CIR_UI_Screenshots.pdf",
+        "docs/administrator_documentation_en.pdf",
         "docs/UI_SCREENSHOTS_SOURCE.json", "docs/UI_SCREENSHOTS_BUILD.json",
         "docs/ADMIN_ALFRESCO.pdf", "docs/brochure_cybersecurity_incident_registry.pdf",
-        "docs/presentation/CIR_Operational_Training_IT.pptx", "docs/presentation/presentation-receipt.json",
+        
         "docs/presentation/manual-first-page-documentazione_utente.png", "application_identity.py",
         "app/static/branding/platforms/manifest.json", "app/static/branding/platforms/docker.png",
         "app/templates/documentation/cover.html", "app/static/ui/documentation.css",

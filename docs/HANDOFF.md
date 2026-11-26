@@ -1,3 +1,7 @@
+## RC102 — current training artifacts and CI publication (source of truth)
+
+**Italian master; English derived.** Generated visual PPTX/PDF pairs, the operational PPTX and screenshot gallery PDF are now **GitHub Release assets**, not files tracked in `main` or included in cumulative source TAR.ZST. Never reintroduce them into the checkout. The main CI validates real screenshots and receipts and publishes training directly to a commit-specific `training-<SHA>` GitHub Release; `latest/download` gives stable user links. A separate digest-only PR may still be opened when a new Docker image is promoted; merging it does not rerun browser captures. See `docs/RC102_TRAINING_RELEASE_ARCHITECTURE.md` for the exact architecture, links, recovery commands and code paths. In both languages the PDF link *inside* the PowerPoint points to the GitHub Release asset. Flask offline packages remain at the Library root in `cir-wheels-py313.zip`.
+
 # CIR — Handoff di sviluppo
 
 
@@ -1076,3 +1080,90 @@ new `main` CI after RC85 merge.
 - Public stats now distinguish the tenant-active default from global and per-tenant aggregation available to the super admin, with PDF/CSV/JSON exports. Dedicated connectors can consume these exports with appropriate authorization; do not imply a connector is shipped if it is not.
 - Python 3.13 dependencies are available in the root of the ChatGPT Library as `cir-wheels-py313.zip` (preferred), with `cir-python-wheels(1).zip` and `cir-python-wheels.zip` as alternatives. The primary wheel archive includes Flask 3.1.3, Flask-SQLAlchemy 3.1.1, PyYAML, python-pptx and supporting packages. Reuse an offline venv before claiming Flask is unavailable.
 - RC87 targeted regression: 51 tests passed, 4 SQLAlchemy deprecation warnings. The full local pytest suite exceeded the execution limit, and the slide-layout all-pages test also exceeded its limit; neither is certified as passed. The 91-page editorial PDF and slide/content verifier passed. Real GitHub CI documentation publication remains to be verified.
+
+## RC95: document preview and Gravatar
+
+- The approved anonymized notification image used in the presentation is
+  `docs/presentation/rc95_user_supplied/data_breach_notification_anonymized.png`;
+  its SHA-256 is pinned in both the PptxGenJS builder and the visual verifier.
+  It is a teaching sample, **not** an authenticated CI screenshot. The real
+  generated-PDF proof remains mandatory and visibly linked in the CI edition.
+- Installation-wide Gravatar setting: `global_gravatar_enabled` (`1` by default
+  if absent; `0` disables), available to super admins at `/admin/interface`.
+  The browser uses HTTPS `secure.gravatar.com`, the normalized email's MD5
+  identifier and `d=404` to retain the initials on missing avatars; the
+  setting has an audit event and applies to both the modern and classic header.
+  External lookup shares an email-derived hash and browser IP; disable it
+  wherever privacy requirements disallow the call.
+- Rebuild training with `node scripts/build_training_visual_rc64.js` and run
+  `scripts/verify_visual_training_rc64.py`; do not replace the real CI preview
+  with the anonymized teaching illustration without preserving the manifest
+  validation and source notes.
+
+## RC96: existing unassigned category reused during catalog import
+
+- **Cause fixed:** RC95 treated *all* tenant category values as occupied workflow
+  names. An inherited `SPAM` category without steps therefore forced imported
+  `SPAM` to become `SPAM v2`. The importer now distinguishes classification
+  labels from installed workflow scopes.
+- With exactly one matching unused category, including a Tenants Default replica,
+  import preserves its ID, configuration, shared-source mapping and incident
+  category associations. Import again after installing SPAM yields `SPAM v2`.
+- A real workflow (step rows or lifecycle state) still reserves the category
+  name. Ambiguous casefold duplicate categories are not reused.
+- Only categories created by the importer are marked `catalogo workflow` and
+  eligible for automatic deletion with their workflow. Local/inherited labels
+  are kept on deletion; old unmarked labels are retained conservatively but
+  do not force an unnecessary `v2` when unassigned.
+- See `docs/RC96_CATALOG_CATEGORY_REUSE.md`. No schema migration is needed.
+- For tests use the Python 3.13 wheelhouse `cir-wheels-py313.zip` at the root
+  of the ChatGPT Library, as documented in this HANDOFF.
+
+
+## Training presentations: Italian master and derived English (RC98)
+
+Only **Italian** is authoritative for slide ordering, slide content, speaker
+notes, screenshots, and the eight cartoon banners. Work on the Italian slide
+specification first. The English presentation is generated automatically from
+those Italian sources with translations in
+`docs/presentation/visual_rc98_english_slides.json` and
+`docs/presentation/visual_rc98_english_labels.json`. Never separately edit an
+English PPTX/PDF. Source fingerprints are mandatory: after an Italian change,
+review the English translation and update its pinned Italian SHA-256 references.
+The English build must fail rather than silently publish an outdated
+translation. Both languages are generated from the same verified browser
+manifest by `.github/workflows/ci-release.yml`, with paired PPTX/PDF and
+separately sealed receipts. See `docs/presentation/RC98_BILINGUAL_TRAINING.md`.
+
+Use the offline Python 3.13 wheelhouse `cir-wheels-py313.zip` from the root of
+the ChatGPT Library when Flask is missing (Flask 3.1.3 and
+Flask-SQLAlchemy 3.1.1 are bundled). A prepared environment may also exist at
+`/mnt/data/cir-rc95-work/venv/bin/python`, but it is transient and cannot be
+assumed in later sessions.
+
+
+## RC99: bilingual cartoon artwork and speaker attribution
+
+Italian chapter cartoons are the sole canonical visual source: `docs/presentation/rc97_cartoon/` and `provenance.json`. The slide 18 CIR shield says the second line about the 112 steps; the incident asks the opening question. On slide 37, Tenant A requests the SPAM workflow and Tenant B gives the second response. The paired original language images are updated and checksum-pinned.
+
+The English chapter cartoons are stored in `docs/presentation/rc99_cartoon_en/` and pinned by `provenance.json` against the Italian artwork SHA-256. Their speech balloons are localized INSIDE the image; the final sign reads `Thank you!`. Run `python scripts/localize_cartoon_en.py` before the English PptxGenJS build. This re-generates the English artwork from the pinned Italian source wherever possible and preserves the manually curated, paired scene for slide 37. CI runs the localization step automatically.
+
+The Italian presentation remains the master. The English generator blocks on stale Italian slide text or cartoon image provenance. Only the nine localized cartoons may differ between IT and EN images. Authentic app screenshots, demo documents, and every other non-cartoon image must remain SHA-256 identical. Run `python scripts/verify_visual_training_en.py --pptx docs/presentation/CIR_Operational_Training_Visual_EN.pptx --pdf docs/presentation/CIR_Operational_Training_Visual_EN.pdf --italian-pptx docs/presentation/CIR_Operational_Training_Visual.pptx` before release.
+
+### RC100 · statistiche multi-tenant a bolle ed export cifrati
+
+La slide italiana sulle statistiche (`docs/presentation/visual_rc64_spec.json`,
+original 24) è il master; aggiornare la traduzione corrispondente in
+`visual_rc98_english_slides.json` e i suoi fingerprint se cambia.
+`app/statistics_visuals.py` produce gli aggregati autorizzati e l'export
+JSON/XML/CSV; la cifratura opzionale è AES-256-GCM con password non persistita.
+La UI del super admin usa `app/static/stats_bubbles.js` e CSS locale.
+La documentazione tecnica e i comandi di decrittazione sono in
+`docs/RC100_STATISTICS_BUBBLES_EXPORTS.md`.
+Continuare a usare Flask e Flask-SQLAlchemy dalle wheel offline della Libreria
+(`cir-wheels-py313.zip` alla radice) e a non includere mai `.git` negli archivi.
+
+### Cumulative TAR archive packaging (RC101 onward)
+
+Use `python scripts/package_cumulative.py --source . --output ../cybersecurity-incident-registry-0.10.0-1-rcNN-cumulative.tar.zst --compression zstd --level 19`.
+The TAR top-level directory MUST be `cybersecurity-incident-registry-0.10.0-1/`, independently of the temporary checkout path. The script rejects symlinks, omits `.git` and development caches, produces reproducible tar metadata, and reads back the archive to verify **every file byte** and path. `--compression xz --level 6` is also supported but generally trades substantially slower extraction for size; check measured output sizes before switching. Preserve `.github`, which is part of the project.

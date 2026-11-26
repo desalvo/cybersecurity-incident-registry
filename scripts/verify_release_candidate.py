@@ -232,7 +232,6 @@ def check_source_tree() -> list[str]:
         "docs/TESTING_AND_PRODUCTION.md",
         "docs/HANDOFF.md",
         "docs/TRAINING.md",
-        "docs/presentation/CIR_Operational_Training_IT.pptx",
         "docs/presentation/content_it.json",
         "docs/presentation/build.mjs",
         "docs/presentation/assets/sources.json",

@@ -1,4 +1,4 @@
-{% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
+{% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}
 {% macro albot_text(it, en) -%}{{ en if current_language == 'en' else it }}{%- endmacro %}
 {% macro albot_symbol() -%}<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-7l-5 3v-3a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>{%- endmacro %}
 {% set albot_on_incident = request.endpoint == 'main.incident_detail' %}
@@ -32,6 +32,7 @@
         <p>{{ albot_text('Altre domande', 'Other questions') }}</p>
         {% if albot_on_incident %}<button type="button" data-cir-albot-question="{{ albot_text('Come registro la conservazione delle evidenze?', 'How do I record evidence preservation?') }}">{{ albot_text('Registrare un’azione', 'Record an action') }}</button>{% else %}<button type="button" data-cir-albot-question="{{ albot_text('Come trovo un incidente già registrato?', 'How do I find an existing incident?') }}">{{ albot_text('Cercare un incidente', 'Find an incident') }}</button>{% endif %}
         <button type="button" data-cir-albot-question="{{ albot_text('Come gestisco i documenti di un incidente?', 'How do I manage incident documents?') }}">{{ albot_text('Gestire i documenti', 'Manage documents') }}</button>
+        {% if current_tenant_role in ['admin','superuser'] %}<button type="button" data-cir-albot-question="{{ albot_text('Crea un workflow chiamato Verifica avviso con tre step: ricezione, analisi (dopo ricezione), chiusura (dopo analisi). Mostra anteprima prima di importare.', 'Create a workflow named Alert Review with three steps: intake, analysis (after intake), closure (after analysis). Show a preview before importing.') }}">{{ albot_text('Crea o aggiorna workflow', 'Create or update workflows') }}</button>{% endif %>
       </div>
     </div>
     <form id="cir-albot-form" class="cir-albot-composer" method="post" action="{{ url_for('ai_chatbot.widget_ask') }}">

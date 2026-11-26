@@ -84,7 +84,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                               '--screenshot-manifest', str(manifest), '--require-ci-images'],
                              cwd=ROOT, capture_output=True, text=True)
     assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)['slides'] == 97 + len(REQUIRED)
+    assert json.loads(checked.stdout)['slides'] == 98 + len(REQUIRED)
 
     # Prove that the validator will reject an image that is still in the PPTX
     # media pool but is no longer referenced by the intended slide.

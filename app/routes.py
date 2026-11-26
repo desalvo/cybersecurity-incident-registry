@@ -466,7 +466,7 @@ def _remap_config_label_condition_tokens(raw, label_id_map):
         negated = token.startswith('!')
         base = token[1:] if negated else token
         mapped_base = base
-        if base.startswith('severity:') or base.startswith('data_type:'):
+        if base.startswith('severity:') or base.startswith('data_type:') or base.startswith('step_completed:'):
             prefix, raw_id = base.split(':', 1)
             try:
                 mapped_base = f'{prefix}:{int(label_id_map.get(int(raw_id), int(raw_id)))}'
@@ -2478,6 +2478,12 @@ def workflow_condition_token_label(token):
             return prefix + (f"Gravità: {lab.value}" if lab else f"Gravità #{base.split(':',1)[1]}")
         except Exception:
             return prefix + 'Gravità non valida'
+    if base.startswith('step_completed:'):
+        try:
+            lab=db.session.get(ConfigLabel, int(base.split(':',1)[1]))
+            return prefix + (f'Dopo il completamento di: {lab.value}' if lab else f'Step #{base.split(":",1)[1]}')
+        except Exception:
+            return prefix + 'Dipendenza step non valida'
     if base.startswith('data_type:'):
         try:
             lab=db.session.get(ConfigLabel, int(base.split(':',1)[1]))
@@ -2510,7 +2516,7 @@ def workflow_update_section_target_from_form(field_name):
     allowed = {code for code, _label in INCIDENT_DETAIL_SECTIONS}
     return value if value in allowed else None
 
-def workflow_step_condition_status(step, inc):
+def workflow_step_condition_status(step, inc, *, include_prerequisites=True):
     tokens = step.condition_tokens() if hasattr(step, 'condition_tokens') else []
     if not tokens:
         return True, []
@@ -2518,6 +2524,8 @@ def workflow_step_condition_status(step, inc):
     details=[]
     ok=True
     for token in tokens:
+        if token.lstrip('!').startswith('step_completed:') and not include_prerequisites:
+            continue
         negated = token.startswith('!')
         base = token[1:] if negated else token
         passed=False
@@ -2528,6 +2536,15 @@ def workflow_step_condition_status(step, inc):
                 passed=int(base.split(':',1)[1]) == int(inc.severity_id or 0)
             except Exception:
                 passed=False
+        elif base.startswith('step_completed:'):
+            try:
+                required_label_id = int(base.split(':', 1)[1])
+                required_label = db.session.get(ConfigLabel, required_label_id)
+                required_identity = _workflow_action_identity(required_label_id, required_label)
+                passed = any(_workflow_action_identity(action.label_id, getattr(action, 'label', None)) == required_identity
+                             for action in incident_workflow_actions(inc))
+            except (ValueError, TypeError):
+                passed = False
         elif base.startswith('data_type:'):
             try:
                 passed=int(base.split(':',1)[1]) in incident_data_type_ids
@@ -2621,7 +2638,7 @@ def workflow_steps_for_incident(inc):
     seen = set()
     deduped = []
     for row in rows:
-        conditions_ok, _condition_details = workflow_step_condition_status(row, inc)
+        conditions_ok, _condition_details = workflow_step_condition_status(row, inc, include_prerequisites=False)
         if not conditions_ok:
             continue
         key = workflow_step_key(row)
@@ -2984,7 +3001,7 @@ def _map_workflow_condition_tokens_to_tenant(tokens, target_tenant_id):
         negated = raw.startswith('!')
         base = raw[1:] if negated else raw
         mapped_base = base
-        if base.startswith('severity:') or base.startswith('data_type:'):
+        if base.startswith('severity:') or base.startswith('data_type:') or base.startswith('step_completed:'):
             prefix, raw_id = base.split(':', 1)
             try:
                 source_label = db.session.get(ConfigLabel, int(raw_id))
@@ -3162,7 +3179,10 @@ def incident_workflow_status(inc):
         first_incomplete = (not done and not first_missing_found)
         if first_incomplete:
             first_missing_found = True
+        prerequisite_ok, prerequisite_details = workflow_step_condition_status(step, inc)
         items.append({
+            'prerequisites_satisfied': prerequisite_ok,
+            'prerequisites': [x['label'] for x in prerequisite_details if x['token'].startswith('step_completed:')],
             'id': step.id,
             'action_label_id': label_id,
             'label': (label.description or label.value) if label else '',
@@ -4682,6 +4702,32 @@ def workflow_global_check_blocking_message(inc, label_id):
         missing_text += ', ...'
     return 'Impossibile inserire questa azione: la label richiede il controllo globale e gli step procedurali precedenti non sono ancora stati completati: ' + missing_text + '.'
 
+def workflow_dependency_blocking_message(inc, label_id):
+    """Reject manual execution until all declared prerequisite actions exist."""
+    if inc is None or not label_id:
+        return ''
+    identity = _workflow_action_identity(label_id)
+    for step in workflow_steps_for_incident(inc):
+        if _workflow_action_identity(step.action_label_id, step.action_label) != identity:
+            continue
+        pending = []
+        for token in step.condition_tokens():
+            if not token.startswith('step_completed:'):
+                continue
+            try:
+                previous = int(token.split(':', 1)[1])
+            except ValueError:
+                pending.append('dipendenza non valida')
+                continue
+            required_identity = _workflow_action_identity(previous)
+            if not any(_workflow_action_identity(a.label_id, getattr(a, 'label', None)) == required_identity
+                       for a in incident_workflow_actions(inc)):
+                pending.append(workflow_condition_token_label(token))
+        if pending:
+            return 'Completare prima gli step richiesti: ' + '; '.join(pending)
+    return ''
+
+
 def create_manual_action_safely(iid):
     """Crea una nuova azione manuale senza assegnare ID espliciti.
 
@@ -4694,7 +4740,9 @@ def create_manual_action_safely(iid):
     label_id = request.form.get('label_id') or None
     label = db.session.get(ConfigLabel, label_id) if label_id else None
     inc = db.session.get(Incident, iid)
-    blocking = workflow_notification_blocking_message(inc, label_id) if inc else ''
+    blocking = workflow_dependency_blocking_message(inc, label_id) if inc else ''
+    if not blocking and inc:
+        blocking = workflow_notification_blocking_message(inc, label_id)
     if not blocking and inc:
         blocking = workflow_global_check_blocking_message(inc, label_id)
     if blocking:
@@ -5178,7 +5226,7 @@ def build_workflow_export_payload(category_id=None):
             base_token = token[1:] if str(token).startswith('!') else token
             if ':' in base_token:
                 kind, sid = base_token.split(':', 1)
-                if kind in {'severity', 'data_type'}:
+                if kind in {'severity', 'data_type', 'step_completed'}:
                     lab = tenant_query(ConfigLabel).filter(ConfigLabel.id == int(sid)).first() if sid.isdigit() else None
                     add_label(lab)
         nt = tenant_query(NotificationType).filter_by(code=step.required_notification_type).first() if step.required_notification_type else None
@@ -5780,6 +5828,8 @@ def admin_incident_workflows():
                 else:
                     step.section_target = None
                 condition_tokens = workflow_condition_tokens_from_form(f'conditions_{sid}')
+                # The classic editor has no prerequisite selector: preserve AlBot-authored dependencies.
+                condition_tokens = [t for t in step.condition_tokens() if t.startswith('step_completed:')] + condition_tokens
                 step.set_condition_tokens(condition_tokens)
                 step.required = bool(request.form.get(f'required_{sid}'))
                 step.requires_notification = bool(request.form.get(f'requires_notification_{sid}'))
@@ -13569,9 +13619,9 @@ def _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files
                     continue
                 negated = token.startswith('!')
                 base = token[1:] if negated else token
-                if base.startswith(('severity:', 'data_type:')):
+                if base.startswith(('severity:', 'data_type:', 'step_completed:')):
                     kind, value = base.split(':', 1)
-                    base = f'{kind}:{mapped_label_id(value, kind)}'
+                    base = f'{kind}:{mapped_label_id(value, "action_label" if kind == "step_completed" else kind)}'
                 mapped_conditions.append(('!' if negated else '') + base)
             r['conditions'] = ','.join(mapped_conditions)
             r['document_template_name'] = form_names.get(r.get('document_template_name'), r.get('document_template_name'))
@@ -14070,6 +14120,35 @@ def _build_stats_rows(include_search=True, *, scope='tenant'):
     return rows, pdf_periods
 
 
+# RC100 bubble summaries are always based on server-side, permission-scoped incidents.
+# The full table is not truncated when the chart shows only the top N bubbles.
+def _statistics_aggregate_payload(scope, mode):
+    from .statistics_visuals import BUBBLE_MODES, incident_aggregates
+    if mode not in BUBBLE_MODES:
+        abort(400, description='Aggregazione statistiche non valida.')
+    start_text = request.values.get('start', '').strip()
+    end_text = request.values.get('end', '').strip()
+    try:
+        start = datetime.fromisoformat(start_text) if start_text else None
+        end = datetime.fromisoformat(end_text) if end_text else None
+    except ValueError:
+        abort(400, description='Intervallo date non valido.')
+    if start and end and start > end:
+        abort(400, description='Intervallo date invertito.')
+    # No tenant-wide data can be read before the scope has been authorized.
+    incidents = _stats_incidents_for_range(start, end, scope=scope)
+    if scope == 'tenant' and mode == 'tenant':
+        # This simply yields the current tenant (not all accessible tenants).
+        pass
+    tenants = {row.id: row.name for row in Tenant.query.filter(
+        Tenant.id.in_({incident.tenant_id for incident in incidents if incident.tenant_id is not None})
+    ).all()} if incidents else {}
+    rows = incident_aggregates(incidents, tenants, mode)
+    return {'schema_version': 1, 'generated_at': utcnow().isoformat(),
+            'scope': scope, 'mode': mode, 'start': start_text, 'end': end_text,
+            'total_incidents': len(incidents), 'rows': rows}
+
+
 def _statistics_response_cache_control(response):
     response.headers['Cache-Control'] = 'private, no-store, max-age=0'
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -14081,8 +14160,25 @@ def _statistics_response_cache_control(response):
 def stats():
     scope = _statistics_scope()
     rows, _ = _build_stats_rows(scope=scope)
+    bubble_rows = []
+    bubble_mode = 'tenant_category'
+    bubble_count = 30
+    if is_superuser():
+        from .statistics_visuals import BUBBLE_MODES, bubble_limit
+        bubble_mode = request.args.get('bubble_mode', 'tenant_category').strip()
+        if bubble_mode not in BUBBLE_MODES:
+            abort(400, description='Tipo grafico a bolle non valido.')
+        try:
+            bubble_count = bubble_limit(request.args.get('bubble_limit', '30'))
+        except ValueError as exc:
+            abort(400, description=str(exc))
+        # Bubble views are cross-tenant for super admins independently of the
+        # legacy summary scope; the selector clearly labels their coverage.
+        bubble_rows = _statistics_aggregate_payload('all', bubble_mode)['rows']
     return _statistics_response_cache_control(Response(
         render_template('stats.html', rows=rows, scope=scope,
+                        bubble_rows=bubble_rows, bubble_mode=bubble_mode,
+                        bubble_limit=bubble_count,
                         is_stats_superuser=is_superuser()), mimetype='text/html'))
 
 
@@ -14146,6 +14242,62 @@ def stats_csv():
                 json.dumps(item['data_types'], ensure_ascii=False)))
     response = Response(output.getvalue(), mimetype='text/csv; charset=utf-8')
     response.headers['Content-Disposition'] = 'attachment; filename="statistiche-incidenti.csv"'
+    return _statistics_response_cache_control(response)
+
+
+@bp.route('/reports/stats.xml')
+@login_required
+def stats_xml():
+    """Aggregate-only XML export, scoped to the currently authorized tenant."""
+    from .statistics_visuals import export_bytes
+    scope = _statistics_scope()
+    mode = request.args.get('mode', 'tenant_category').strip()
+    data, mime = export_bytes(_statistics_aggregate_payload(scope, mode), 'xml')
+    response = Response(data, content_type=mime)
+    response.headers['Content-Disposition'] = 'attachment; filename="cir-incident-statistics.xml"'
+    return _statistics_response_cache_control(response)
+
+
+@bp.route('/reports/stats.aggregates.json')
+@login_required
+def stats_aggregates_json():
+    scope = _statistics_scope()
+    mode = request.args.get('mode', 'tenant_category').strip()
+    return _statistics_response_cache_control(jsonify(_statistics_aggregate_payload(scope, mode)))
+
+
+@bp.route('/reports/stats.export', methods=['POST'])
+@login_required
+def stats_export():
+    """Structured JSON/XML/CSV export, optionally AES-GCM encrypted with a user password.
+
+    Passwords are never accepted in URL parameters, logged, persisted or returned.
+    Mutating POST is checked by CIR's standard CSRF middleware.
+    """
+    from .statistics_visuals import EXPORT_FORMATS, export_bytes, encrypt_export
+    scope = request.form.get('scope', 'tenant').strip()
+    if scope not in {'tenant', 'all', 'per_tenant'}:
+        abort(400)
+    if scope != 'tenant' and not is_superuser():
+        abort(403)
+    fmt = request.form.get('format', 'json').strip().lower()
+    if fmt not in EXPORT_FORMATS:
+        abort(400, description='Formato export non valido.')
+    mode = request.form.get('mode', 'tenant_category').strip()
+    payload = _statistics_aggregate_payload(scope, mode)
+    data, mime = export_bytes(payload, fmt)
+    encrypted = request.form.get('encrypt') == '1'
+    if encrypted:
+        password = request.form.get('password', '')
+        try:
+            data = encrypt_export(data, password)
+        except ValueError as exc:
+            abort(400, description=str(exc))
+        mime, name = 'application/vnd.cir.statistics-encrypted+json', f'cir-statistics-{fmt}.enc.json'
+    else:
+        name = f'cir-statistics.{fmt}'
+    response = Response(data, content_type=mime)
+    response.headers['Content-Disposition'] = f'attachment; filename="{name}"'
     return _statistics_response_cache_control(response)
 
 
@@ -14417,6 +14569,10 @@ def workflow_step_generate_document(iid, sid):
     step = db.session.get(IncidentWorkflowStep, sid)
     if not step or step not in workflow_steps_for_incident(inc):
         section_flash('Step workflow non applicabile a questo incidente.', 'incident-workflow', 'error')
+        return incident_detail_redirect(iid, 'incident-workflow')
+    blocker = workflow_dependency_blocking_message(inc, step.action_label_id)
+    if blocker:
+        section_flash(blocker, 'incident-workflow', 'warning')
         return incident_detail_redirect(iid, 'incident-workflow')
     if not getattr(step, 'document_generation_enabled', False) or not (step.document_template_name or '').strip():
         section_flash('Lo step selezionato non è configurato per la generazione documento.', 'incident-workflow', 'error')

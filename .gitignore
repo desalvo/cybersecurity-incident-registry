@@ -33,3 +33,9 @@ app/uploads/*
 .DS_Store
 .idea/
 .vscode/
+
+# CI-published training assets live in GitHub Releases, not Git.
+/docs/presentation/CIR_Operational_Training_IT.pptx
+/docs/presentation/CIR_Operational_Training_Visual*.pptx
+/docs/presentation/CIR_Operational_Training_Visual*.pdf
+/docs/CIR_UI_Screenshots.pdf

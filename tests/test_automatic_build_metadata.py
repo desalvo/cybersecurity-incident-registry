@@ -165,7 +165,10 @@ class AutomaticBuildMetadataTests(unittest.TestCase):
             self.assertIn(base + "/release_metadata.py", archive.namelist())
             from scripts.presentation_evidence import PRESENTATION_ARTIFACTS
             for name in PRESENTATION_ARTIFACTS:
-                self.assertIn(base + "/docs/presentation/" + name, archive.namelist())
+                if name == 'CIR_Operational_Training_IT.pptx':
+                    self.assertNotIn(base + "/docs/presentation/" + name, archive.namelist())
+                else:
+                    self.assertIn(base + "/docs/presentation/" + name, archive.namelist())
         self.assertEqual((source / "BUILD").read_bytes(), source_build)
 
     def test_package_rejects_partial_installed_evidence_before_creating_archive(self):
@@ -187,8 +190,8 @@ class AutomaticBuildMetadataTests(unittest.TestCase):
         # covers the known cross-job midnight/image-evidence mismatch regression.
         text = (ROOT / ".github/workflows/ci-release.yml").read_text()
         self.assertEqual(text.count("--github-output \"$GITHUB_OUTPUT\""), 1)
-        self.assertEqual(text.count('CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}'), 4)
-        self.assertEqual(text.count('--expected-version "$CIR_RELEASE_VERSION" --write'), 4)
+        self.assertEqual(text.count('CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}'), 3)
+        self.assertEqual(text.count('--expected-version "$CIR_RELEASE_VERSION" --write'), 3)
         self.assertIn('CIR_RELEASE_BUILD=${{ needs.release-metadata.outputs.build }}', text)
         self.assertIn('needs: [release-metadata, quality-gates, ui-documentation, release-scope]', text)
         self.assertIn('io.cir.build=${{ needs.release-metadata.outputs.build }}', text)

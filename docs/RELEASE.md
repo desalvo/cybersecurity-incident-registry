@@ -1,5 +1,25 @@
 # Release and Hotfix lifecycle
 
+## 0.10.0-1 / RC103: AlBot workflow authoring
+
+AlBot now prepares new tenant workflows and safe updates to existing workflows from
+step-by-step natural-language specifications, including required steps, completion
+prerequisites, severity/data/risk conditions and linked configured documents and
+notifications. Tenant admins may create a workflow in their active tenant; super admins
+can also manage **Tenants Default**. The interface offers a portable JSON download
+or an editable preview that requires explicit confirmation before a transactional
+write. Existing-incident workflows cannot be destructively changed.
+
+Updated both source-driven 116-slide PowerPoint decks and exported the matching
+116-page PDF training documents, which remain **outside** the main Git source
+history, consistent with the RC102 GitHub Releases publication design. See
+`docs/RC103_ALBOT_WORKFLOW_AUTHORING.md` for operations and security policy.
+
+**Validation:** Python compile checks and bilingual slide/PDF generation pass
+locally. Full Flask/PostgreSQL integration tests and remote GitHub CI require the
+project runtime and have not yet been executed for RC103.
+
+
 <a id="0100-1--rc1-linea-di-sviluppo-corrente"></a>
 
 ## 0.10.0-1 / RC1: linea di sviluppo corrente

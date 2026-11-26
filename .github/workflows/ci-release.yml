@@ -7,6 +7,7 @@ on:
       - main
     tags:
       - '**'
+      - '!training-*'  # Creating a documentation release must not start another CI
   workflow_dispatch:
 
 permissions:
@@ -22,12 +23,13 @@ env:
 
 jobs:
   ci-mode:
-    name: Select full CI or temporary security-only mode
+    name: Select full CI, digest-only CI or temporary security-only mode
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       security_only: ${{ steps.mode.outputs.security_only }}
+      digest_only: ${{ steps.mode.outputs.digest_only }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -42,6 +44,26 @@ jobs:
         run: |
           set -euo pipefail
           echo 'security_only=false' >> "$GITHUB_OUTPUT"
+          echo 'digest_only=false' >> "$GITHUB_OUTPUT"
+          # The bot's GITHUB_TOKEN needs manual dispatch to exercise checks on
+          # its digest-only branch. This optimization skips ONLY expensive
+          # browser/docs generation; quality-gates remain mandatory. Never
+          # allow a branch with any third file change to take the fast lane.
+          if [[ "$EVENT_NAME" == workflow_dispatch && "$REF_NAME" == refs/heads/automation/record-production-digest-* ]]; then
+            mapfile -t digest_paths < <(git diff --name-only HEAD^ HEAD)
+            digest_only=true
+            if [[ ${#digest_paths[@]} -eq 0 ]]; then digest_only=false; fi
+            for digest_path in "${digest_paths[@]}"; do
+              case "$digest_path" in
+                PRODUCTION_IMAGE_DIGEST|k8s/kustomization.yaml) ;;
+                *) digest_only=false ;;
+              esac
+            done
+            if [[ "$digest_only" == true ]]; then
+              echo 'digest_only=true' >> "$GITHUB_OUTPUT"
+              echo 'Verified digest-only branch: tests run, browser/documentation excluded.' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
           # Never bypass full CI for main, tags or explicit manual releases.
           if [[ "$EVENT_NAME" != pull_request && "$EVENT_NAME" != push ]]; then exit 0; fi
           if [[ "$REF_NAME" == refs/heads/main || "$REF_NAME" == refs/tags/* ]]; then exit 0; fi
@@ -204,8 +226,15 @@ jobs:
 
   ui-documentation:
     name: Real UI screenshots and documentation
-    needs: [ci-mode, release-metadata]
-    if: needs.ci-mode.outputs.security_only != 'true'
+    needs: [ci-mode, release-metadata, release-scope]
+    # A digest-only merge needs quality gates, but not another browser capture,
+    # LibreOffice export or training release. PRs still capture real evidence.
+    # always() allows the job when release-scope is intentionally skipped on PRs.
+    if: >-
+      ${{ always() && needs.ci-mode.outputs.security_only != 'true' && needs.ci-mode.outputs.digest_only != 'true' && needs.release-metadata.result == 'success' &&
+          (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') ||
+           needs.release-scope.outputs.documentation_needed == 'true' ||
+           needs.release-scope.outputs.production_changed == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -318,6 +347,37 @@ jobs:
             --verification "${RUNNER_TEMP}/cir-ui-evidence/visual-training/verification.json" \
             --output "${RUNNER_TEMP}/cir-ui-evidence/visual-training/visual-training-receipt.json"
 
+      - name: Build, validate and seal English visual training from the same screenshots
+        shell: bash
+        env:
+          CIR_REQUIRE_REAL_SCREENSHOTS: '1'
+          CIR_TRAINING_LOCALE: 'en'
+        run: |
+          set -euo pipefail
+          export NODE_PATH="${RUNNER_TEMP}/cir-visual-build-deps/node_modules"
+          export CIR_SCREENSHOT_MANIFEST="${RUNNER_TEMP}/cir-ui-evidence/manifest.json"
+          # Always derive English cartoon dialogue from the canonical Italian artwork.
+          python scripts/localize_cartoon_en.py
+          node scripts/build_training_visual_rc64.js \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_EN.pptx"
+          libreoffice -env:UserInstallation="file://${RUNNER_TEMP}/lo-cir-training-en" \
+            --headless --convert-to pdf --outdir \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training" \
+            "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_EN.pptx"
+          python scripts/verify_visual_training_en.py \
+            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_EN.pptx" \
+            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_EN.pdf" \
+            --italian-pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pptx" \
+            --screenshot-manifest "${CIR_SCREENSHOT_MANIFEST}" \
+            --require-ci-images | tee "${RUNNER_TEMP}/cir-ui-evidence/visual-training/verification-en.json"
+          python scripts/seal_visual_training.py \
+            --locale en \
+            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_EN.pptx" \
+            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual_EN.pdf" \
+            --manifest "${CIR_SCREENSHOT_MANIFEST}" \
+            --verification "${RUNNER_TEMP}/cir-ui-evidence/visual-training/verification-en.json" \
+            --output "${RUNNER_TEMP}/cir-ui-evidence/visual-training/visual-training-en-receipt.json"
+
       - name: Validate and seal complete documentation bundle
         run: |
           python scripts/finalize_documentation_bundle.py \
@@ -325,20 +385,7 @@ jobs:
             --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
             --source-commit "${GITHUB_SHA}"
 
-      - name: Install verified documentation and package the current source
-        run: |
-          python scripts/install_ui_documentation.py \
-            --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
-            --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
-            --source-commit "${GITHUB_SHA}"
-          python scripts/sync_current_documentation.py \
-            --root . \
-            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pptx" \
-            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pdf" \
-            --receipt "${RUNNER_TEMP}/cir-ui-evidence/visual-training/visual-training-receipt.json"
-          bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/cybersecurity-incident-registry-${GITHUB_SHA}.zip"
-
-      - name: Upload real screenshots, manuals and source package
+      - name: Upload verified real screenshots, manuals and presentations
         id: ui-artifact
         uses: actions/upload-artifact@v7
         with:
@@ -361,7 +408,7 @@ jobs:
               out.write(f"{len(data['screenshots'])} real Chromium captures; isolated synthetic data; CSRF enabled.\n\n")
               out.write('Five manuals, two brochures, screenshot gallery, editable PowerPoint and five actual PDF first-page previews are validated as one commit/version/build-bound bundle.\n\n')
               out.write('The AI response comes from a labelled local test provider through the real application endpoint.\n\n')
-              out.write(f"[Download screenshots, manuals, brochures, PowerPoint and cumulative source]({os.environ['UI_ARTIFACT_URL']})\n")
+              out.write(f"[Download same-run screenshots, manuals, brochures and presentations]({os.environ['UI_ARTIFACT_URL']})\n")
           PY
 
       - name: Upload failed UI capture diagnostics
@@ -451,7 +498,7 @@ jobs:
           case "$PRODUCTION_CHANGED" in true|false) ;; *) echo "Missing production_changed output" >&2; exit 1;; esac
           case "$DOCUMENTATION_NEEDED" in true|false) ;; *) echo "Missing documentation_needed output" >&2; exit 1;; esac
           echo "Production image required: $PRODUCTION_CHANGED" >> "$GITHUB_STEP_SUMMARY"
-          echo "Documentation PR required: $DOCUMENTATION_NEEDED" >> "$GITHUB_STEP_SUMMARY"
+          echo "Training release publication required: $DOCUMENTATION_NEEDED" >> "$GITHUB_STEP_SUMMARY"
 
   docker-release:
     name: Build, scan and promote multi-arch image
@@ -492,11 +539,6 @@ jobs:
             --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
             --source-commit "${GITHUB_SHA}"
 
-          python scripts/sync_current_documentation.py \
-            --root . \
-            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pptx" \
-            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pdf" \
-            --receipt "${RUNNER_TEMP}/cir-ui-evidence/visual-training/visual-training-receipt.json"
 
       - name: Resolve Docker repository and final tag
         id: image
@@ -648,7 +690,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   documentation-publication:
-    name: Publish only current verified screenshots and training documents
+    name: Publish CI-verified training on GitHub Releases (no chore PR)
     needs: [release-metadata, quality-gates, ui-documentation, release-scope, docker-release]
     outputs:
       result: ${{ steps.publish.outputs.result }}
@@ -660,51 +702,65 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     permissions:
-      actions: write
       contents: write
-      pull-requests: write
-    env:
-      CIR_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
-      CIR_RELEASE_BUILD: ${{ needs.release-metadata.outputs.build }}
+      actions: read
+    concurrency:
+      group: cir-training-release-${{ github.repository }}
+      cancel-in-progress: false
     steps:
       - name: Checkout exact main source
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 2
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Stamp exact release identity
-        run: python scripts/prepare_release_metadata.py --build "$CIR_RELEASE_BUILD" --expected-version "$CIR_RELEASE_VERSION" --write
       - name: Download same-run verified documentation
         uses: actions/download-artifact@v8.0.2
         with:
           name: ui-documentation-${{ github.sha }}
           path: ${{ runner.temp }}/cir-ui-evidence
           digest-mismatch: error
-      - name: Install and reconcile documentation
+      - name: Stage and verify immutable bilingual release assets
         run: |
-          python scripts/install_ui_documentation.py \
-            --manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+          python scripts/training_release_assets.py \
+            --visual-dir "${RUNNER_TEMP}/cir-ui-evidence/visual-training" \
             --documentation-dir "${RUNNER_TEMP}/cir-ui-evidence/documentation" \
-            --source-commit "${GITHUB_SHA}"
-          python scripts/sync_current_documentation.py \
-            --root . \
-            --pptx "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pptx" \
-            --pdf "${RUNNER_TEMP}/cir-ui-evidence/visual-training/CIR_Operational_Training_Visual.pdf" \
-            --receipt "${RUNNER_TEMP}/cir-ui-evidence/visual-training/visual-training-receipt.json"
-          python scripts/verify_documentation_publication.py --root . --source-commit "$GITHUB_SHA"
-      - name: Open documentation and optional production-digest pull request
+            --screenshot-manifest "${RUNNER_TEMP}/cir-ui-evidence/manifest.json" \
+            --output-dir "${RUNNER_TEMP}/cir-training-release" \
+            --source-commit "${GITHUB_SHA}" --repository "${GITHUB_REPOSITORY}"
+      - name: Publish immutable release; update latest only on success
         id: publish
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash scripts/publish_training_release.sh "${GITHUB_SHA}" "${RUNNER_TEMP}/cir-training-release"
+          echo "result=published" >> "$GITHUB_OUTPUT"
+          echo "Training: https://github.com/${GITHUB_REPOSITORY}/releases/latest" >> "$GITHUB_STEP_SUMMARY"
+
+  production-digest-publication:
+    name: Propose production digest update only when Docker was promoted
+    needs: [release-metadata, quality-gates, ui-documentation, release-scope, docker-release]
+    if: >-
+      ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          needs.quality-gates.result == 'success' && needs.ui-documentation.result == 'success' &&
+          needs.docker-release.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    permissions:
+      actions: write # required to dispatch CI for GITHUB_TOKEN-generated digest PRs
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare verified digest-only change
+        id: publish
+        env:
           PUBLISHED_DIGEST: ${{ needs.docker-release.outputs.digest }}
           DOCKER_RELEASE_RESULT: ${{ needs.docker-release.result }}
-          # Do not use needs.docker-release.outputs.repository: GitHub can
-          # discard it when it contains the secret-masked Docker Hub username.
           CONFIGURED_REPOSITORY: ${{ vars.CIR_DOCKER_REPOSITORY }}
+        shell: bash
         run: |
           set -euo pipefail
           case "$DOCKER_RELEASE_RESULT" in
@@ -713,11 +769,8 @@ jobs:
                 echo "Promoted Docker release did not expose a verified digest" >&2
                 exit 1
               fi
-              # Mirror docker-release's repository resolution. This value is
-              # never propagated as a job output (which may be secret-filtered).
               repository="${CONFIGURED_REPOSITORY:-${DEFAULT_DOCKER_REPOSITORY}}"
-              python scripts/record_production_digest.py \
-                --repository "$repository" --digest "$PUBLISHED_DIGEST"
+              python scripts/record_production_digest.py --repository "$repository" --digest "$PUBLISHED_DIGEST"
               bash ./scripts/verify_production_release.sh
               ;;
             skipped)
@@ -726,40 +779,32 @@ jobs:
                 exit 1
               fi
               ;;
-            *)
-              echo "Unexpected Docker release result: $DOCKER_RELEASE_RESULT" >&2
-              exit 1
-              ;;
+            *) echo "Unexpected Docker release result: $DOCKER_RELEASE_RESULT" >&2; exit 1 ;;
           esac
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Stage additions AND deletions: superseded RCxx decks must not
-          # remain in the GitHub repository after the publication PR merge.
-          git add -A -f -- PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml \
-            docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json \
-            docs/ app/static/help/ui-runtime/
+      - name: Open digest-only PR if manifest changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A -- PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml
           if git diff --cached --quiet; then
-            echo "result=already-current" >> "$GITHUB_OUTPUT"
-            echo "Current documentation already matches the verified run." >> "$GITHUB_STEP_SUMMARY"
+            echo 'Production digest is already current.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          branch="automation/publish-documentation-${GITHUB_SHA:0:12}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          branch="automation/record-production-digest-${GITHUB_SHA:0:12}"
           git checkout -b "$branch"
-          git commit -m "chore(cir): publish only current verified UI documentation and production digest"
+          git commit -m 'chore(release): record verified promoted production image digest'
           git push origin "HEAD:$branch"
-          existing="$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
-          if [[ -z "$existing" ]]; then
-            gh pr create --base main --head "$branch" \
-              --title "chore: publish current verified CIR documentation" \
-              --body "Same-run verified screenshots in both editable training decks and visual PDF; removes superseded RCxx decks. Preserves the optional promoted OCI digest without rebuilding an image for document-only changes."
-          else
-            echo "Documentation publication PR already open: #$existing"
-          fi
-          echo "result=pr-opened" >> "$GITHUB_OUTPUT"
-          echo "Documentation publication branch: $branch" >> "$GITHUB_STEP_SUMMARY"
-          echo "Documentation publication PR created or already open." >> "$GITHUB_STEP_SUMMARY"
-          # GITHUB_TOKEN-created branches/PRs do not recurse automatically.
+          gh pr create --base main --head "$branch" \
+            --title 'chore: record verified promoted production image digest' \
+            --body 'Digest-only metadata change; verified after the published image was scanned. No screenshots, PPTX, PDF or documentation regeneration is included.'
+          # GITHUB_TOKEN pushes do not start new workflows automatically. Dispatch
+          # the digest PR checks explicitly, as in the previous release pipeline.
           gh workflow run ci-release.yml --ref "$branch"
+          echo "Digest-only PR and checks dispatched: $branch" >> "$GITHUB_STEP_SUMMARY"
 
   documentation-publication-accountability:
     name: Enforce documentation publication result on main
@@ -774,7 +819,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check same-run PR publication contract
+      - name: Check same-run GitHub Release publication contract
         shell: bash
         env:
           PUBLICATION_REQUIRED: ${{ needs.release-scope.outputs.documentation_needed }}
@@ -797,13 +842,13 @@ jobs:
                 exit 1
               fi
               case "$PUBLICATION_RESULT" in
-                pr-opened|already-current) ;;
+                published) ;;
                 *) echo "Publication job did not report a verified outcome" >&2; exit 1 ;;
               esac
               ;;
             false)
               if [[ "$PUBLICATION_JOB" != skipped ]]; then
-                echo "Generated-only commit unexpectedly started publication" >&2
+                echo "Generated-only commit unexpectedly started documentation publication" >&2
                 exit 1
               fi
               ;;

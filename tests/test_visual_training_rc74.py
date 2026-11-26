@@ -73,7 +73,8 @@ def test_documentation_rebuild_on_main_changes_and_manual_dispatch():
     assert 'documentation_needed=true' in workflow
     assert 'production_changed=false' in workflow
     assert "needs.release-scope.outputs.documentation_needed == 'true'" in workflow
-    assert 'scripts/verify_documentation_publication.py' in workflow
+    assert 'scripts/training_release_assets.py' in workflow
+    assert 'scripts/publish_training_release.sh' in workflow
     assert 'scripts/verify_visual_training_rc64.py' in workflow
     from scripts.documentation_publication_policy import generated, needs_publication
     source_paths=[

@@ -30,9 +30,10 @@ ARCH_SLIDES = 4  # three architecture diagrams plus the alert chapter
 ARCH_AFTER = 6
 APPENDIX_PREVIEWS = 2
 APPENDIX_BANNER_SLIDES = 1
+THANK_YOU_SLIDES = 1
 WORKFLOW_INTRO_SLIDES = 5
 WORKFLOW_AFTER = 38
-EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + APPENDIX_BANNER_SLIDES + APPENDIX_PREVIEWS
+EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + THANK_YOU_SLIDES + APPENDIX_BANNER_SLIDES + APPENDIX_PREVIEWS
 GALLERY_FIRST_SLIDE = EXPECTED_SLIDES - APPENDIX_PREVIEWS + 1
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
 PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES
@@ -288,6 +289,24 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         add_full_width_rois(archived/'spam-workflow-steps.png','steps')
         add_full_width_rois(archived/'spam-workflow-steps.png','categories')
         add_original_rois(archived/'spam-workflow-steps.png','steps')
+    approved_document = root / 'docs/presentation/rc95_user_supplied/data_breach_notification_anonymized.png'
+    approved_hash = '17898ab5874ae15ded91a0c8f2d022402eac9f6c5d212bd72b24dd213965a9ce'
+    if digest(approved_document) != approved_hash:
+        raise ValueError('Approved anonymized document preview checksum mismatch')
+    allowed.add(approved_hash)
+    cartoon_data=json.loads((root/'docs/presentation/rc97_cartoon/provenance.json').read_text(encoding='utf8'))
+    cartoons=cartoon_data.get('artwork',[])
+    if len(cartoons)!=9 or [row.get('section') for row in cartoons] != [f'{i:02d}' for i in range(1,9)]+['grazie']:
+        raise ValueError('Missing or unordered RC97 banner/thank-you illustrations')
+    banner_positions={'01':2,'02':18,'03':37,'04':48,'05':64,'06':76,'07':89,'08':GALLERY_FIRST_SLIDE-1,'grazie':GALLERY_FIRST_SLIDE-2}
+    with ZipFile(pptx) as image_archive:
+        for row in cartoons:
+            source=root/row['file']
+            if not row['file'].startswith('docs/presentation/rc97_cartoon/') or row.get('real_people') is not False or row.get('contains_real_ui') is not False or digest(source)!=row['sha256']:
+                raise ValueError('Invalid original cartoon SHA-256 or provenance: '+str(row.get('section')))
+            if row['sha256'] not in linked_slide_image_digests(image_archive,banner_positions[row['section']]):
+                raise ValueError('Approved cartoon not displayed in correct chapter: '+row['section'])
+            allowed.add(row['sha256'])
     allowed.add(digest(root/'app/static/ai-chatbot/albot-avatar.png'))
     art = root / 'docs/presentation/visual_rc61_art'
     art_provenance = json.loads((art/'provenance.json').read_text(encoding='utf8'))
