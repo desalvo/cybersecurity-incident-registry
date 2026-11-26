@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from pathlib import PurePosixPath
 
 BASE_SLIDES = 96
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
@@ -49,6 +50,35 @@ def screenshot_rows(data: dict, label: str) -> list[tuple[str, str]]:
     return result
 
 
+
+def validate_published_pdf_preview(original: dict, installed: dict) -> dict:
+    """Audit sealed PDF-preview metadata without requiring CI scratch files.
+
+    The same-run verifier already checked both actual PDF and raster bytes and
+    required the raster on the dedicated slide. A publication PR preserves the
+    SHA-bound source manifest and the exact deck, but does not publish temporary
+    generated-mapped-example.pdf/.png. The raster hash must still be checked
+    against the PPTX by the visual verifier on every PR.
+    """
+    preview = original.get('generated_pdf_preview')
+    if not isinstance(preview, dict) or preview != installed.get('generated_pdf_preview'):
+        raise ValueError('Published generated PDF preview differs from the sealed source manifest')
+    if preview.get('source_kind') != 'cir-generated-mapped-acroform':
+        raise ValueError('Published generated PDF preview has invalid source kind')
+    for key, hash_key, extension in (('pdf_file', 'pdf_sha256', '.pdf'),
+                                     ('png_file', 'png_sha256', '.png')):
+        name, checksum = preview.get(key), preview.get(hash_key)
+        if (not isinstance(name, str) or not name.endswith(extension) or
+                '\\' in name or ':' in name or
+                PurePosixPath(name).is_absolute() or '..' in PurePosixPath(name).parts or
+                not isinstance(checksum, str) or
+                not re.fullmatch(r'[a-f0-9]{64}', checksum)):
+            raise ValueError('Published PDF preview has invalid path or SHA-256: ' + key)
+    if preview['pdf_file'] == preview['png_file']:
+        raise ValueError('Published PDF preview image and source must be distinct files')
+    return preview
+
+
 def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, receipt: Path) -> int:
     """Return exact expected slide count; fail closed on any inconsistent evidence."""
     root = root.resolve()
@@ -74,6 +104,7 @@ def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, r
         raise ValueError('Original browser manifest hash differs from presentation receipt')
     if build.get('installed_manifest_sha256') != sha256(manifest):
         raise ValueError('Installed browser manifest hash differs from documentation build')
+    validate_published_pdf_preview(original, installed)
     original_rows = screenshot_rows(original, 'original manifest')
     installed_rows = screenshot_rows(installed, 'installed manifest')
     receipt_rows = screenshot_rows(seal, 'presentation receipt')

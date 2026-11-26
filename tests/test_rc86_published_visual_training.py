@@ -28,10 +28,16 @@ def published(tmp_path):
     img = b'isolated-synthetic-fixture screenshot source bytes'
     (runtime / 'example-capture.png').write_bytes(img)
     row = {'id': 'example-capture', 'sha256': hashlib.sha256(img).hexdigest()}
+    preview = {'source_kind': 'cir-generated-mapped-acroform',
+               'pdf_file': 'screenshots/generated-mapped-example.pdf',
+               'pdf_sha256': 'b' * 64,
+               'png_file': 'screenshots/generated-mapped-example.png',
+               'png_sha256': 'c' * 64}
     original = {'source_kind': 'real-application-browser',
                 'data_provenance': 'isolated-synthetic-fixture',
                 'source_commit': source_commit, 'build': '20261126',
-                'screenshots': [{**row, 'file': 'capture.png'}]}
+                'screenshots': [{**row, 'file': 'capture.png'}],
+                'generated_pdf_preview': preview}
     installed = {**original, 'screenshots': [{**row, 'file': 'example-capture.png'}]}
     source_path = docs / 'UI_SCREENSHOTS_SOURCE.json'
     manifest_path = runtime / 'manifest.json'
@@ -77,6 +83,7 @@ def test_published_gallery_count_is_derived_from_sealed_capture(published, monke
     'wrong_gallery_start', 'wrong_pdf_coverage', 'wrong_receipt_source',
     'wrong_original_manifest_hash', 'wrong_installed_manifest_hash',
     'wrong_capture_provenance', 'wrong_capture_order',
+    'wrong_pdf_preview_metadata',
 ])
 def test_published_gallery_rejects_inconsistent_or_tampered_evidence(published, mutation):
     root, deck, pdf, manifest, receipt = published
@@ -105,6 +112,14 @@ def test_published_gallery_rejects_inconsistent_or_tampered_evidence(published, 
     elif mutation == 'wrong_capture_provenance':
         installed = json.loads(manifest.read_text())
         installed['data_provenance'] = 'unverified-fixture'
+        write_json(manifest, installed)
+        build_path = root / 'docs/UI_SCREENSHOTS_BUILD.json'
+        metadata = json.loads(build_path.read_text())
+        metadata['installed_manifest_sha256'] = sha256(manifest)
+        write_json(build_path, metadata)
+    elif mutation == 'wrong_pdf_preview_metadata':
+        installed = json.loads(manifest.read_text())
+        installed['generated_pdf_preview']['png_sha256'] = 'f' * 64
         write_json(manifest, installed)
         build_path = root / 'docs/UI_SCREENSHOTS_BUILD.json'
         metadata = json.loads(build_path.read_text())
