@@ -65,8 +65,8 @@ def test_category_diagrams_and_same_run_lab_capture_are_hard_gates():
     assert "'WORKFLOW\\nSPAM'" in js
     assert "'1ª SPAM  →  workflow SPAM  →  Crea'" in js
     assert 'SPAM prima tra le categorie' in js
-    assert LAB_SPAM_OPENING_SLIDE == 71
-    assert PALETTE_SLIDE == 79
+    assert LAB_SPAM_OPENING_SLIDE == 77
+    assert PALETTE_SLIDE == 85
     assert 'checksum not in lab_opening_digests' in py
 
 
@@ -78,9 +78,9 @@ def test_generated_editorial_deck_includes_workflow_instructions():
         return
     with ZipFile(pptx) as archive:
         for no,needles in {19:('prima categoria','workflow'),
-                           23:('prima categoria','workflow'),
-                           71:('Laboratorio Tutorial','WORKFLOW','SPAM')}.items():
+                           24:('prima categoria','workflow'),
+                           LAB_SPAM_OPENING_SLIDE:('Laboratorio Tutorial','WORKFLOW','SPAM')}.items():
             page=ET.fromstring(archive.read(f'ppt/slides/slide{no}.xml'))
             contents=' '.join((x.text or '') for x in page.iter(NS+'t')).lower()
             assert all(n.lower() in contents for n in needles), (no, contents[:200])
-        assert linked_slide_image_digests(archive,71)
+        assert linked_slide_image_digests(archive, LAB_SPAM_OPENING_SLIDE)

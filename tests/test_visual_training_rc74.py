@@ -17,7 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_mandatory_browser_captures_are_consistent_with_evidence_validator():
     assert capture.REQUIRED_CAPTURES == evidence.REQUIRED_SCREENSHOTS
-    assert len(capture.REQUIRED_CAPTURES) == 30
+    assert len(capture.REQUIRED_CAPTURES) == 32
+    assert {'tenant-wizard-next-step', 'notification-preview', 'pdf-generated-preview'} <= capture.REQUIRED_CAPTURES
+    assert evidence.ELEMENT_CAPTURE_SELECTORS['tenant-wizard-next-step'] == '.setup-wizard-shell'
+    assert evidence.DOCUMENTATION_CAPTURE_ROUTES['tenant-wizard-next-step'] == '/admin/setup-wizard'
     for ident, selector in {
         'workflow-steps-focused': '#incident-workflow .workflow-steps-ordered',
         'statistics-desktop': '.stats-card:first-child',
@@ -55,9 +58,12 @@ def test_real_ui_slide_focus_and_avatar_are_hard_gates():
     assert "57:'statistics-desktop'" in builder
     assert "60:'assistant-panel-closeup'" in builder
     assert "app/static/ai-chatbot/albot-avatar.png" in builder
-    for number, ident in ((55, 'workflow-steps-focused'), (65, 'statistics-desktop'),
-                          (68, 'assistant-panel-closeup')):
-        assert re.search(r'\(' + str(number) + r',\s*\''+ident+r'\'\)', verifier)
+    # The full CI gallery links every screenshot, including focused DOM
+    # regions; the training chapter also renders exact-pixel detail crops.
+    for ident in ('workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup'):
+        assert ident in REQUIRED_CI
+    assert 'for ident in REQUIRED_CI:' in verifier
+    assert 'linked_slide_image_digests(linked_archive, n)' in verifier
     assert 'linked_slide_image_digests(rich_archive, slide)' in verifier
 
 

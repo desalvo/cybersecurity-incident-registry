@@ -5,6 +5,10 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+try:
+    from scripts.published_visual_training import BASE_SLIDES, HIDDEN_GALLERY_IDS
+except ModuleNotFoundError:
+    from published_visual_training import BASE_SLIDES, HIDDEN_GALLERY_IDS
 
 
 def sha(path: Path) -> str:
@@ -17,9 +21,9 @@ def seal(pptx: Path, pdf: Path, manifest: Path, verification: Path, output: Path
     screens = data['screenshots']
     if (checked.get('status') != 'PASS' or
             checked.get('verified_browser_screenshots') != len(screens) or
-            checked.get('pdf_screenshots_visually_verified') != len(screens) or
+            checked.get('pdf_screenshots_visually_verified') != sum(row['id'] not in HIDDEN_GALLERY_IDS for row in screens) or
             checked.get('slides') != checked.get('pdf_pages') or
-            checked.get('slides') != 88 + len(screens)):
+            checked.get('slides') != BASE_SLIDES + sum(row['id'] not in HIDDEN_GALLERY_IDS for row in screens)):
         raise ValueError('Same-run PPTX/PDF screenshot coverage is not fully verified')
     record = {
         'schema_version': 1,
@@ -30,7 +34,7 @@ def seal(pptx: Path, pdf: Path, manifest: Path, verification: Path, output: Path
         'pdf_file': 'CIR_Operational_Training_Visual.pdf', 'pdf_sha256': sha(pdf),
         'slide_count': checked['slides'], 'pdf_pages': checked['pdf_pages'],
         'pdf_screenshots_visually_verified': checked['pdf_screenshots_visually_verified'],
-        'screenshot_gallery_first_slide': 89,
+        'screenshot_gallery_first_slide': BASE_SLIDES + 1,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(record, ensure_ascii=False, indent=2)+'\n', encoding='utf8')

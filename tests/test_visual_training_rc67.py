@@ -19,9 +19,10 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 BUILDER = ROOT / 'scripts/build_training_visual_rc64.js'
 VERIFIER = ROOT / 'scripts/verify_visual_training_rc64.py'
-REQUIRED = ('workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
+REQUIRED = ('login-desktop','registry-desktop','workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
             'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel', 'registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
-            'pdf-generated-preview', 'alfresco-settings-desktop', 'alfresco-incident-documents')
+            'pdf-generated-preview', 'alfresco-settings-desktop', 'alfresco-incident-documents',
+            'notification-preview', 'tenant-wizard-next-step')
 
 
 def test_browser_palette_has_precedence_over_the_original_photo():
@@ -30,7 +31,7 @@ def test_browser_palette_has_precedence_over_the_original_photo():
     assert right_panel.index("d.index===70 && categoryPalette?.id==='spam-incident-config-labels'") < right_panel.index('if(d.photo_art)')
     # The verified browser image now goes through the same-image zoom helper;
     # source-code tests must not require the old direct addImage spelling.
-    assert 'addCiZoom(slide,categoryPalette);' in right_panel
+    assert "preciseCiDetail(slide,categoryPalette,'categories');" in right_panel
     assert 'slide.addImage({path:shot.path,...p})' in src
     assert 'imageSizingContain(shot.path' in src
     assert 'imageSizingCrop(shot.path' in src
@@ -39,8 +40,8 @@ def test_browser_palette_has_precedence_over_the_original_photo():
 
 def test_validator_proves_actual_linkage_to_slide70():
     src = VERIFIER.read_text(encoding='utf8')
-    assert 'linked_slide_image_digests(archive, PALETTE_SLIDE)' in src
-    assert "checksum not in slide70_digests" in src
+    assert 'required_category_rois.issubset(slide70_digests)' in src
+    assert "required_category_rois" in src
     assert 'Screenshot CI non collegata alla slide ' in src
 
 
@@ -65,11 +66,13 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                   (40 + index * 18, 70 + index * 11, 105 + index * 8)).save(file, quality=90)
         records.append({'id': ident, 'file': file.name,
                         'sha256': hashlib.sha256(file.read_bytes()).hexdigest()})
+    from tests.rc87_test_visual_fixtures import generated_pdf_preview
+    preview = generated_pdf_preview(tmp_path)
     manifest = tmp_path / 'manifest.json'
     manifest.write_text(json.dumps({'source_kind': 'real-application-browser',
                                     'data_provenance': 'isolated-synthetic-fixture',
                                     'source_commit': 'a' * 40, 'build': '20261125',
-                                    'screenshots': records}), encoding='utf8')
+                                    'screenshots': records, 'generated_pdf_preview': preview}), encoding='utf8')
     deck = tmp_path / 'CI_visual_test_only.pptx'
     env = {**os.environ, 'CIR_SCREENSHOT_MANIFEST': str(manifest),
            'CIR_REQUIRE_REAL_SCREENSHOTS': '1', 'GITHUB_SHA': 'a' * 40,
@@ -81,12 +84,12 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                               '--screenshot-manifest', str(manifest), '--require-ci-images'],
                              cwd=ROOT, capture_output=True, text=True)
     assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)['slides'] == 88 + len(REQUIRED)
+    assert json.loads(checked.stdout)['slides'] == 96 + len(REQUIRED)
 
     # Prove that the validator will reject an image that is still in the PPTX
     # media pool but is no longer referenced by the intended slide.
     tampered = tmp_path / 'unlinked_palette_test_only.pptx'
-    slide_name = 'ppt/slides/slide79.xml'
+    slide_name = 'ppt/slides/slide85.xml'
     with ZipFile(deck) as source, ZipFile(tampered, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -109,7 +112,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
     # A second negative control ensures the instructional lab slide itself
     # really displays the same verified categories screenshot in strict CI.
     tampered_lab = tmp_path / 'unlinked_lab_category_test_only.pptx'
-    slide_name = 'ppt/slides/slide71.xml'
+    slide_name = 'ppt/slides/slide77.xml'
     with ZipFile(deck) as source, ZipFile(tampered_lab, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -125,4 +128,4 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                                    '--screenshot-manifest', str(manifest), '--require-ci-images'],
                                   cwd=ROOT, capture_output=True, text=True)
     assert rejected_lab.returncode != 0
-    assert 'Screenshot CI non collegata al laboratorio SPAM slide 71' in rejected_lab.stderr
+    assert 'Screenshot CI non collegata al laboratorio SPAM slide 77' in rejected_lab.stderr

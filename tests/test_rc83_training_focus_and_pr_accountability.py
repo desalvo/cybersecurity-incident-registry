@@ -77,7 +77,7 @@ def test_no_future_ci_screenshot_promises_in_editorial_slide_text():
     assert 'prossima CI' not in text
     assert 'screenshot reale sarà integrata dalla CI' not in source
     assert 'Vista reale del Wizard integrata dalla CI' not in source
-    assert 'addCiZoom(slide,shot)' in source
+    assert 'addCiZoom(slide,shot,null,d)' in source
     assert 'imageSizingCrop(shot.path' in source
     assert 'CIR_REQUIRE_REAL_SCREENSHOTS' in source
 

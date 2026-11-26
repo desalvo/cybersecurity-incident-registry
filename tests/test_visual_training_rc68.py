@@ -28,6 +28,7 @@ CAPTURE_IDS = (
     'interface-settings-desktop', 'classic-registry-desktop', 'admin-modules-desktop',
     'admin-sso-desktop', 'documentation-user-desktop', 'documentation-user-mobile',
     'documentation-admin-desktop', 'documentation-admin-mobile',
+    'notification-preview', 'tenant-wizard-next-step',
 )
 
 
@@ -55,13 +56,15 @@ def full_browser_capture(tmp_path_factory):
             'id': ident, 'file': file.name,
             'sha256': hashlib.sha256(file.read_bytes()).hexdigest(),
         })
+    from tests.rc87_test_visual_fixtures import generated_pdf_preview
+    preview = generated_pdf_preview(directory)
     manifest = directory / 'manifest.json'
     manifest.write_text(json.dumps({
         'source_kind': 'real-application-browser',
         'source_commit': 'a' * 40,
         'build': '20261125',
         'data_provenance': 'isolated-synthetic-fixture',
-        'screenshots': screenshots,
+        'screenshots': screenshots, 'generated_pdf_preview': preview,
     }), encoding='utf8')
     pptx = directory / 'disposable_rc68_visual_fixture.pptx'
     env = {**os.environ, 'CIR_SCREENSHOT_MANIFEST': str(manifest),
@@ -86,7 +89,7 @@ def test_current_ci_captures_all_have_valid_provenance(full_browser_capture):
     proc = _verify(pptx, manifest, env)
     assert proc.returncode == 0, proc.stderr
     details = json.loads(proc.stdout)
-    assert details['slides'] == 88 + len(CAPTURE_IDS)
+    assert details['slides'] == 96 + len(CAPTURE_IDS) - 1
     assert details['verified_browser_screenshots'] == len(CAPTURE_IDS)
     assert details['mandatory_ci_images_embedded'] is True
 
@@ -142,7 +145,7 @@ def test_published_gallery_checks_the_same_real_image_links_without_rebinding_to
     monkeypatch.setenv('GITHUB_SHA', 'f' * 40)
     monkeypatch.setenv('CIR_RELEASE_BUILD', '99999999')
     report = run_check(pptx, None, manifest, False, published_ci_images=True)
-    assert report['slides'] == 88 + len(CAPTURE_IDS)
+    assert report['slides'] == 96 + len(CAPTURE_IDS) - 1
     assert report['mandatory_ci_images_embedded'] is True
     assert report['verified_browser_screenshots'] == len(CAPTURE_IDS)
     with pytest.raises(ValueError, match='source_commit diverso'):

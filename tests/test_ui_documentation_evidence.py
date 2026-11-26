@@ -306,6 +306,38 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
         with self.assertRaisesRegex(evidence.EvidenceError, 'Unapproved screenshot element selector'):
             self.load()
 
+    def test_wizard_second_step_real_element_capture_is_accepted_and_fail_closed(self):
+        # The CI takes the second wizard step from a real Locator.screenshot,
+        # which must use the exact selector, route and intrinsic dimensions.
+        # This synthetic PNG is ONLY an isolated unit-test fixture.
+        from PIL import Image
+        row = next(item for item in self.manifest['screenshots']
+                   if item['id'] == 'tenant-wizard-next-step')
+        target = self.artifact / row['file']
+        Image.new('RGB', (840, 1340), (19, 63, 92)).save(target, format='PNG')
+        row.update({'sha256': evidence.sha256(target),
+                    'viewport': {'width': 1920, 'height': 1140},
+                    'capture_area': 'element',
+                    'element_selector': '.setup-wizard-shell',
+                    'element_size': {'width': 840, 'height': 1340},
+                    'route': '/admin/setup-wizard'})
+        self.save_manifest()
+        self.assertIn(row['id'], self.load()['_paths'])
+        for change, message in (({'element_selector': '.setup-wizard-panel'}, 'Unapproved'),
+                                ({'element_size': {'width': 840, 'height': 1341}}, 'dimensions'),
+                                ({'route': '/admin/other'}, 'real route')):
+            with self.subTest(change=change):
+                before = {key: row[key] for key in change}
+                row.update(change)
+                self.save_manifest()
+                with self.assertRaisesRegex(evidence.EvidenceError, message):
+                    self.load()
+                row.update(before)
+        row['sha256'] = '0' * 64
+        self.save_manifest()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'checksum mismatch'):
+            self.load()
+
     def test_jpeg_element_capture_accepts_real_dimensions_without_viewport_width(self):
         from PIL import Image
         row = next(item for item in self.manifest['screenshots']

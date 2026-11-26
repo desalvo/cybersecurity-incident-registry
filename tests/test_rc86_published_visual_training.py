@@ -58,9 +58,9 @@ def published(tmp_path):
     return root, pptx, pdf, manifest_path, receipt_path
 
 
-def test_source_edition_has_exactly_88_base_slides(tmp_path):
+def test_source_edition_keeps_base_without_archived_gallery(tmp_path):
     assert expected_visual_slides(tmp_path, tmp_path / 'example.pptx',
-                                  tmp_path / 'example.pdf') == 88
+                                  tmp_path / 'example.pdf') == BASE_SLIDES
 
 
 def test_published_gallery_count_is_derived_from_sealed_capture(published, monkeypatch):
