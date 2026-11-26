@@ -35,7 +35,8 @@ def test_generated_deck_has_editable_architecture_overview_when_available():
     with ZipFile(deck) as z:
         slides = [s for s in z.namelist() if s.startswith('ppt/slides/slide') and
                   s.endswith('.xml') and '/_rels/' not in s]
-        assert len(slides) == 88
+        from scripts.published_visual_training import expected_visual_slides
+        assert len(slides) == expected_visual_slides(ROOT, deck, P / 'CIR_Operational_Training_Visual.pdf')
         xml = ET.fromstring(z.read('ppt/slides/slide9.xml'))
         all_text = ' '.join(el.text or '' for el in xml.iter(TXT))
         assert 'Architettura CIR' in all_text

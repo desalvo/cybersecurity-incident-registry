@@ -132,3 +132,18 @@ def test_capture_manifest_must_match_ci_commit_and_build(full_browser_capture):
         proc = _verify(pptx, manifest, conflicting)
         assert proc.returncode != 0
         assert 'diverso dalla build CI' in proc.stderr
+
+
+def test_published_gallery_checks_the_same_real_image_links_without_rebinding_to_pr_sha(
+        full_browser_capture, monkeypatch):
+    """A chore PR verifies the sealed capture, not its temporary merge SHA."""
+    from scripts.verify_visual_training_rc64 import run_check
+    _, pptx, manifest, _ = full_browser_capture
+    monkeypatch.setenv('GITHUB_SHA', 'f' * 40)
+    monkeypatch.setenv('CIR_RELEASE_BUILD', '99999999')
+    report = run_check(pptx, None, manifest, False, published_ci_images=True)
+    assert report['slides'] == 88 + len(CAPTURE_IDS)
+    assert report['mandatory_ci_images_embedded'] is True
+    assert report['verified_browser_screenshots'] == len(CAPTURE_IDS)
+    with pytest.raises(ValueError, match='source_commit diverso'):
+        run_check(pptx, None, manifest, True)

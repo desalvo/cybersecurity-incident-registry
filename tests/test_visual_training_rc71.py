@@ -65,7 +65,8 @@ def test_presentation_cover_acronym_and_section_structure():
     pptx=P/'CIR_Operational_Training_Visual.pptx'
     with ZipFile(pptx) as z:
         names=[n for n in z.namelist() if n.startswith('ppt/slides/slide') and n.endswith('.xml') and '/_rels/' not in n]
-        assert len(names)==88
+        from scripts.published_visual_training import expected_visual_slides
+        assert len(names) == expected_visual_slides(ROOT, pptx, P / 'CIR_Operational_Training_Visual.pdf')
         def txt(i):return ''.join(x.text or '' for x in ET.fromstring(z.read(f'ppt/slides/slide{i}.xml')).iter(NS+'t'))
         assert 'CIR' in txt(1) and 'Cybersecurity' in txt(1) and 'Incident Registry' in txt(1)
         assert 'laboratorio didattico di esempio' in txt(1)

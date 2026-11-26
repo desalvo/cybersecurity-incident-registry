@@ -146,19 +146,20 @@ def reject_unresolved_ci_captions(archive, slide_names):
                              name.rsplit('/', 1)[-1])
 
 
-def run_check(pptx, pdf, manifest, require_ci_images):
-    if require_ci_images and manifest is None:
+def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False):
+    strict_images = require_ci_images or published_ci_images
+    if strict_images and manifest is None:
         raise ValueError('--require-ci-images richiede --screenshot-manifest')
     with ZipFile(pptx) as archive:
         bad = archive.testzip()
         if bad:
             raise ValueError('PPTX corrotto: ' + bad)
         slides = [n for n in archive.namelist() if re.fullmatch(r'ppt/slides/slide[0-9]+\.xml', n)]
-        if require_ci_images:
+        if strict_images:
             reject_unresolved_ci_captions(archive, slides)
         # A strict same-run build appends one visible screenshot gallery slide
         # for each browser capture; offline editorial builds still have 88.
-        if len(slides) < EXPECTED_SLIDES or (not require_ci_images and len(slides) != EXPECTED_SLIDES):
+        if len(slides) < EXPECTED_SLIDES or (not strict_images and len(slides) != EXPECTED_SLIDES):
             raise ValueError(f'Numero slide inatteso: {len(slides)} (base {EXPECTED_SLIDES})')
         for original_number, title in REQUIRED_SLIDE_TITLES.items():
             number = original_number + (ARCH_SLIDES if original_number > ARCH_AFTER else 0) + (ADDED_SLIDES if original_number > INSERT_AFTER else 0)
@@ -187,7 +188,7 @@ def run_check(pptx, pdf, manifest, require_ci_images):
     allowed = {digest(path) for path in editorial_media.iterdir() if path.is_file()}
     # Offline preview may show already checked-in UI captures, but it is not
     # same-run CI evidence. Strict CI never uses this archive fallback.
-    if not require_ci_images and not manifest:
+    if not strict_images and not manifest:
         archived = root / 'app/static/help/ui-runtime'
         allowed.update(digest(path) for path in archived.iterdir()
                        if path.is_file() and path.suffix.lower() in {'.png', '.jpg'})
@@ -216,7 +217,7 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         if n in (31,33,41,42,79) and item['sha256'] not in media_digests:
             # The authenticated wizard replaces slide 33's editorial illustration
             # during strict CI generation. Its actual slide link is checked below.
-            if not (n == 33 and require_ci_images):
+            if not (n == 33 and strict_images):
                 raise ValueError('Updated thematic artwork not embedded: '+str(n))
     additional = json.loads((root/'docs/presentation/visual_rc69_art/provenance.json').read_text(encoding='utf8'))
     for row in additional['artwork']:
@@ -280,9 +281,9 @@ def run_check(pptx, pdf, manifest, require_ci_images):
                 expected = os.environ.get(env_name)
                 if expected and str(data.get(manifest_key)) != expected:
                     raise ValueError(f'Manifest screenshot di un {manifest_key} diverso dalla build CI')
-            if (data.get('source_kind') != 'real-application-browser' or
-                    data.get('data_provenance') != 'isolated-synthetic-fixture'):
-                raise ValueError('Il manifest CI non dimostra browser reale su dati sintetici isolati')
+        if strict_images and (data.get('source_kind') != 'real-application-browser' or
+                              data.get('data_provenance') != 'isolated-synthetic-fixture'):
+            raise ValueError('Il manifest CI non dimostra browser reale su dati sintetici isolati')
         lookup = {}
         seen_files = set()
         # The previous verifier allowlisted only the six mandatory images,
@@ -320,16 +321,16 @@ def run_check(pptx, pdf, manifest, require_ci_images):
             lookup[ident] = row
             allowed.add(checksum)
         screenshot_count = len(records)
-        expected_count = EXPECTED_SLIDES + (len(records) if require_ci_images else 0)
-        if require_ci_images and len(slides) != expected_count:
+        expected_count = EXPECTED_SLIDES + (len(records) if strict_images else 0)
+        if strict_images and len(slides) != expected_count:
             raise ValueError(f'Appendice screenshot CI incompleta: {len(slides)} slide, attese {expected_count}')
-        if require_ci_images:
+        if strict_images:
             with ZipFile(pptx) as linked_archive:
                 for offset, row in enumerate(records):
                     n = EXPECTED_SLIDES + offset + 1
                     if row['sha256'] not in linked_slide_image_digests(linked_archive, n):
                         raise ValueError(f'Screenshot CI non visibile nella slide {n}: {row["id"]}')
-        if require_ci_images:
+        if strict_images:
             with ZipFile(pptx) as rich_archive:
                 for slide, ident in ((42, 'tenant-setup-wizard-panel'),
                                      (55, 'workflow-steps-focused'),
@@ -343,9 +344,9 @@ def run_check(pptx, pdf, manifest, require_ci_images):
             if ident not in lookup:
                 raise ValueError('Manca screenshot obbligatoria: '+ident)
             checksum = lookup[ident]['sha256']
-            if require_ci_images and checksum not in media_digests:
+            if strict_images and checksum not in media_digests:
                 raise ValueError('Screenshot CI non incorporata nel PPTX: ' + ident)
-            if require_ci_images and ident == 'spam-incident-config-labels':
+            if strict_images and ident == 'spam-incident-config-labels':
                 if checksum not in slide70_digests:
                     raise ValueError('Screenshot CI non collegata alla slide ' + str(PALETTE_SLIDE) + ': ' + ident)
                 if checksum not in lab_opening_digests:
@@ -363,13 +364,16 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         if pdf_pages != expected_pages:
             raise ValueError(f'PDF inaspettato: {pdf_pages} pagine invece di {expected_pages}')
     pdf_verified = 0
-    if pdf and require_ci_images:
-        from verify_pdf_screenshot_gallery import verify
+    if pdf and strict_images:
+        try:
+            from scripts.verify_pdf_screenshot_gallery import verify
+        except ModuleNotFoundError:  # direct script execution without project on sys.path
+            from verify_pdf_screenshot_gallery import verify
         pdf_verified = verify(Path(pdf), [manifest_path.parent / row['file'] for row in records],
                               base_slides=EXPECTED_SLIDES)
     summary = {'pdf_screenshots_visually_verified': pdf_verified, 'slides': len(slides), 'pdf_pages': pdf_pages,
                'verified_browser_screenshots': screenshot_count,
-               'mandatory_ci_images_embedded': require_ci_images, 'status': 'PASS'}
+               'mandatory_ci_images_embedded': strict_images, 'status': 'PASS'}
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return summary
 
@@ -380,9 +384,20 @@ def main():
     parser.add_argument('--pdf', type=Path)
     parser.add_argument('--screenshot-manifest', type=Path)
     parser.add_argument('--require-ci-images', action='store_true')
+    parser.add_argument('--published-receipt', type=Path,
+                        help='Audit previously sealed CI images on a documentation PR')
     args = parser.parse_args()
     try:
-        run_check(args.pptx, args.pdf, args.screenshot_manifest, args.require_ci_images)
+        if args.published_receipt:
+            if args.require_ci_images:
+                raise ValueError('Published receipt and same-run CI modes are mutually exclusive')
+            if args.screenshot_manifest is None:
+                raise ValueError('--published-receipt requires --screenshot-manifest')
+            from published_visual_training import check_published_receipt
+            check_published_receipt(Path(__file__).resolve().parents[1], args.pptx, args.pdf,
+                                    args.screenshot_manifest, args.published_receipt)
+        run_check(args.pptx, args.pdf, args.screenshot_manifest, args.require_ci_images,
+                  published_ci_images=bool(args.published_receipt))
     except (ValueError, OSError, subprocess.CalledProcessError, KeyError) as exc:
         print('Visual training QA FAILED:', exc, file=sys.stderr)
         raise SystemExit(1)
