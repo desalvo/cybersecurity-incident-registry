@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "source_commit": "662ef7c3da82eb8b350363fafe4a160c4b576c8b",
+  "functional_version": "0.10.0-1",
+  "build": "20261126",
+  "real_screenshots": true,
+  "screenshot_manifest_sha256": "2c89900953b740312895ce634dd7d0cc27f7ba7451f7ce06f1f49608d4556822",
+  "files": [
+    {
+      "file": "documentazione_utente.pdf",
+      "sha256": "0ea8498939a74769b467f39efd8a3fcd85faecdb102b25f2f078d0fdb690039a"
+    },
+    {
+      "file": "documentazione_amministrativa.pdf",
+      "sha256": "057168623456b68d8291b9d63f97558f7ad7218a1caefdd06ad5b97d5cafc7e1"
+    },
+    {
+      "file": "user_documentation_en.pdf",
+      "sha256": "38bbe23667fe64310e14df120d7bee0cee1e542ef8dba2143d1d7fb62f381f88"
+    },
+    {
+      "file": "administrator_documentation_en.pdf",
+      "sha256": "e4e96d69b70f3319920c245bdd2325cf7923f72cfeddb6acf491c433750d54dc"
+    },
+    {
+      "file": "ADMIN_ALFRESCO.pdf",
+      "sha256": "ecbbea750759f80ec3e2bf69c31ac4e2f6129b669c07e4a508d40ab143ea6a8a"
+    },
+    {
+      "file": "CIR_UI_Screenshots.pdf",
+      "sha256": "7b403b1358c1a6a5e4d873927c1d3a9305f001d1c6e11b6ccffe8d7c10085cb1"
+    },
+    {
+      "file": "CIR_Incident_Laboratory_IT.pdf",
+      "sha256": "1737c9916fb0a0daac072f3e3f79c68fa7b1f61b2f9f3b8792eaa3dcd8bdfa8e"
+    },
+    {
+      "file": "brochure_cybersecurity_incident_registry.pdf",
+      "sha256": "97866b16262ce8ecf1c1dbc855f111f312653037d6c24da317896b80c5d843f8"
+    },
+    {
+      "file": "brochure_cybersecurity_incident_registry_en.pdf",
+      "sha256": "42eec91e43e6d8a087c28ca86bc4dfce7ba35a311644716fe3491869e0b7a586"
+    },
+    {
+      "file": "CIR_Operational_Training_IT.pptx",
+      "sha256": "1a0b3857706f1bacb8a2411f0f01104115d35bdbead6b05b9e41de99e95f5a24"
+    },
+    {
+      "file": "manual-first-page-ADMIN_ALFRESCO.png",
+      "sha256": "4408435b32780b3904bba9f9355d17cec469e1145da9e8540eb2d791cffb89ed"
+    },
+    {
+      "file": "manual-first-page-administrator_documentation_en.png",
+      "sha256": "27bf5caa4b84935229f983e443dce7ec1db4bf4402ae6eca3a3ac961283e7c21"
+    },
+    {
+      "file": "manual-first-page-documentazione_amministrativa.png",
+      "sha256": "53a0393c1c6ed9406e0dfb7d03c5e58072de19987a681b7bc88c9ead1bde255a"
+    },
+    {
+      "file": "manual-first-page-documentazione_utente.png",
+      "sha256": "2596214a089edd4f3ef8869ba821998e90a7f65abee7a685c49592209d11858b"
+    },
+    {
+      "file": "manual-first-page-user_documentation_en.png",
+      "sha256": "ce09683e19489d595c820dd7b291ed6529e2042ea0c7fd897b3c2801b0426549"
+    },
+    {
+      "file": "presentation-receipt.json",
+      "sha256": "6bf5757d3b54ee27848f3994de05d4786986012b7a9a7163fa90375851aa2ebf"
+    }
+  ],
+  "presentation_receipt_file": "presentation-receipt.json",
+  "source_manifest_file": "UI_SCREENSHOTS_SOURCE.json",
+  "installed_manifest_sha256": "4a82eb1dd5de2ddb12707dc267388180c31672c6b0337965a453a8a166425f46"
+}
