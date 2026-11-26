@@ -1234,3 +1234,19 @@ After the RC81 merge, main-branch CI could complete without creating the documen
 - Introdotti callout nativi con evidenziazione, collegamento e ritaglio ingrandito della stessa screenshot SHA-256 proveniente dal manifest Chromium della build corrente; corretto il crop in ambiente CI senza helper locali.
 - Rimosse promesse testuali di screenshot nella prossima CI e rese esplicite le differenze tra edizione editoriale e pubblicazione autenticata.
 - Imposto un esito verificabile del job di pubblicazione e aggiunto un job di accountability che impedisce una CI verde con job documentazione erroneamente skipped. Aggiornati test e istruzioni operative in `docs/RC83_CI_SCREENSHOT_FOCUS_AND_PUBLICATION.md`.
+
+## RC85 — post-merge CI repository output redaction (2026-11-26)
+
+- Diagnose run `45742492679`: 1,157 application tests passed; 16 browser/documentation
+  artifacts verified; Docker promotion succeeded, but GitHub Actions suppressed
+  the `repository` job output as potentially secret-bearing.
+- Eliminate the cross-job OCI repository output and locally resolve the
+  configured/default Docker repository in the documentation publisher, using
+  exactly the same expression as the producing job.
+- Enforce release-state consistency before writing `PRODUCTION_IMAGE_DIGEST`:
+  success needs a verified digest; skip must have no digest; all other states
+  fail closed. Preserve immutable digest validation and existing protected PR
+  workflow, including its accountability gate.
+- Add executed shell-level regression tests for default/custom repository,
+  missing/invalid digest, skipped release and contradictory states. See
+  `docs/RC85_MAIN_CI_MASKED_REPOSITORY_OUTPUT.md`.
