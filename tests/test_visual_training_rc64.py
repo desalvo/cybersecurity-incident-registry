@@ -53,6 +53,10 @@ def test_rc64_provenance_validation_and_pptx_scene_integrity():
         import pytest
         pytest.skip('Deck built in release step')
     cmd=[sys.executable,str(ROOT/'scripts/verify_visual_training_rc64.py'),'--pptx',str(deck),'--pdf',str(pdf)]
+    published=P/'visual-training-receipt.json'
+    if published.exists():
+        cmd.extend(['--published-receipt', str(published), '--screenshot-manifest',
+                    str(ROOT/'app/static/help/ui-runtime/manifest.json')])
     proc=subprocess.run(cmd,capture_output=True,text=True)
     assert proc.returncode==0,proc.stderr
     with ZipFile(deck) as z:
