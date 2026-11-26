@@ -1,0 +1,14 @@
+{
+  "version": "RC77",
+  "artwork": [
+    {
+      "kind": "ecosystem",
+      "file": "docs/presentation/visual_rc77_art/cir_architecture_photorealistic.png",
+      "sha256": "082cbfedf85e0f8f6b4b839981ec03bbe72beaeb6d7df5d5f7a89fcd0cde4a69",
+      "real_people": false,
+      "contains_embedded_slide_chrome": false,
+      "source": "original_synthetic_photographic_architecture_scene_generated_for_CIR_2026-11-26"
+    }
+  ],
+  "policy": "Original synthetic CGI, no real persons or third-party stock photographs; picture contains no slide heading or footer, technical names remain separate editable PowerPoint text."
+}

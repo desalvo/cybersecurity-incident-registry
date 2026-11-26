@@ -1,42 +1,28 @@
-# Presentazione didattica CIR 0.10.0-1 / RC61
+# Presentazioni didattiche CIR — documentazione corrente
 
-L'**edizione visuale RC61** comprende [PowerPoint modificabile](presentation/CIR_Operational_Training_Visual_RC61.pptx) e [PDF](presentation/CIR_Operational_Training_Visual_RC61.pdf), entrambi con **79 slide**. Le illustrazioni sono originali e sintetiche; gli screenshot reali e verificati vengono incorporati dalla CI. La versione editoriale della slide 70 usa un diagramma concettuale fino alla nuova acquisizione Chromium. Note e gate: [RC61 review e capture](presentation/RC61_REVIEW_AND_CAPTURE.md).
+Su GitHub sono conservati **solo** i PowerPoint e i PDF correnti, senza
+versioni storiche `RCxx` nei nomi:
+
+- [Presentazione visuale modificabile](presentation/CIR_Operational_Training_Visual.pptx)
+  e [PDF visuale](presentation/CIR_Operational_Training_Visual.pdf).
+- [Presentazione operativa modificabile](presentation/CIR_Operational_Training_IT.pptx),
+  con note e schermate della stessa build CI.
+- [Galleria completa delle screenshot](CIR_UI_Screenshots.pdf), generata
+  da catture Chromium reali su dati sintetici isolati.
+
+Nella build verificata della CI, ogni schermata presente nel manifest deve
+comparire in entrambe le presentazioni; il visuale comprende un'appendice con
+una schermata per slide, e il suo PDF viene confrontato visivamente con i pixel
+delle catture originali. Il controllo di pubblicazione rifiuta file obsoleti,
+immagini mancanti, hash discordanti e receipt riferiti a un altro commit.
+Il contenuto editoriale visuale comprende 87 slide, seguite dall'appendice di
+catture (25 schermate nella configurazione di acquisizione corrente).
+
+La pubblicazione nel repository avviene con una PR automatica separata dalla
+build Docker. Dopo il merge di un aggiornamento dei sorgenti, è necessario
+integrare anche tale PR per aggiornare i documenti presenti su `main`.
 
 ---
-
-# Presentazione didattica CIR 0.10.0-1 / RC58
-
-L'**edizione visuale RC58** include [PowerPoint modificabile](presentation/CIR_Operational_Training_Visual_RC58.pptx)
-e [PDF didattico](presentation/CIR_Operational_Training_Visual_RC58.pdf), entrambi di **79 slide**.
-È destinata a operatori, amministratori, responsabili, revisori e formatori.
-
-- Revisione completa dell'italiano (apostrofi, accenti, terminologia «user alert»),
-  titoli dei workflow e distinzione puntuale di privilegi admin/operatori.
-- Spiegazione del workflow generale configurabile, catalogo, personalizzazioni,
-  condizioni, dipendenze, moduli AcroForm, PDF dell'incidente, report, statistiche,
-  Alfresco, autenticazione SSO e AlBot opzionale; il workflow SPAM è solo didattico.
-- Sommario generale, destinazione multitenant del servizio centrale, EUPL,
-  manuali cliccabili e contatto ufficiale del creatore.
-- Unica categoria SPAM visibile nel tenant anche quando la configurazione locale
-  è riconciliata con il catalogo Tenants Default, con indicazione della provenienza.
-
-Le screenshot editoriali di RC58 derivano da una precedente CI verificata,
-commit `919b027403ee55db05b2355cd2f8fbd09c7cf7b4` e dati fittizi.
-Le 5 viste aggiuntive richieste (icone di chiusura completa, mapping campi PDF,
-anteprima PDF compilato, Alfresco admin e incidenti) richiedono una **nuova
-esecuzione di CI**. Il deck editoriale non le attribuisce a un run non avvenuto.
-La pipeline GitHub Actions è ora predisposta a produrre, dalla stessa acquisizione
-Chromium, il PowerPoint/PDF RC58 verificando checksum, slide, provenienza delle
-immagini e incorporamento delle 5 screenshot obbligatorie, prima del package.
-La presentazione finale rigenerata dalla CI sostituisce quella editoriale
-all'interno del package corrente.
-
-Ricostruzione locale: `node scripts/build_training_visual_rc58.js`
-(con dipendenze `pptxgenjs@4.0.0` e `image-size@1.2.0`), seguita da
-`scripts/verify_visual_training_rc58.py`. Il manifest con screenshot CI autentiche
-si passa tramite `CIR_SCREENSHOT_MANIFEST`.
-Per le limitazioni residue vedere
-[presentazione RC58 — review e acquisizione](presentation/RC58_REVIEW_AND_CAPTURE.md).
 
 ## Materiale storico: prima edizione
 

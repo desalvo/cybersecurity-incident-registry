@@ -1,5 +1,9 @@
 # CIR — Handoff di sviluppo
 
+## Stato attuale: 0.10.0-1 RC79 — 26 novembre 2026
+
+Ultimo merge confermato: RC72 (CI verde); le modifiche RC73–RC79 non sono state dichiarate come committate. RC79 aggiunge l'eliminazione transazionale dei tipi di notifica nel tenant attivo: prima i template, poi il tipo, quindi ripristino immediato di tipo e template pubblicati in `Tenants Default`. Gli alias `_td` legacy vengono riconciliati con il codice condiviso (inclusi i riferimenti operativi locali); i tipi senza sostituzione condivisa restano protetti se ancora utilizzati. Nuovi test: `tests/test_rc79_notification_type_deletion.py` e `tests/test_rc79_notification_type_http.py`. La CI completa Flask/PostgreSQL deve ancora essere eseguita. La presentazione editoriale RC77/RC78 non cambia; il documento CI resta da rigenerare dal commit.
+
 ## Stato attuale: 0.10.0-1 RC69 — 25 novembre 2026
 
 La PR della RC68 risulta **committata e integrata con CI verde**, come confermato dall'utente; il precedente riferimento all'ultimo commit RC55 è storico e non è più la baseline per i nuovi messaggi Git. Il run automatico successivo (`logs_123590726294.zip`) passa 1.039 test, ma fallisce due asserzioni nello stesso helper `tests/test_rc2_training_and_brochure_media.py`: più screenshot possono riferirsi allo stesso media PPTX de-duplicato. RC69 verifica ogni coppia ID/hash e consente lo stesso percorso soltanto se SHA-256 coincide; screenshot assenti o alterate restano vietate.
@@ -69,7 +73,7 @@ RC57: **RC55** (SHA non disponibile). La versione funzionale resta
 `0.10.0-1`, con `BUILD=20261124` nei materiali editoriali pre-CI.
 
 - PowerPoint didattico RC58: 79 slide modificabili in
-  `docs/presentation/CIR_Operational_Training_Visual_RC58.pptx`, versione PDF
+  `docs/presentation/CIR_Operational_Training_Visual.pptx`, versione PDF
   associata e fonte editabile in `visual_rc58_spec.json`. Le correzioni
   editoriali e la revisione sistematica dei workflow sono descritte in
   `docs/presentation/RC58_REVIEW_AND_CAPTURE.md`.
@@ -965,6 +969,40 @@ A PR based on the RC71 cumulative source failed only
 folder enumeration treated as an extra plugin. The test now requires a plugin
 package `__init__.py` and has a regression with a real cache folder and a
 new dummy plugin package. All other application code and the 87-slide/PDF
-training assets are unchanged. See `docs/RC72_CI_PLUGIN_DISCOVERY.md`. The user
-last confirmed commit+merge through RC68; RC69-RC72 changes remain cumulative
-unless a later Git commit is confirmed. Remote CI still must be rerun.
+training assets are unchanged. See `docs/RC72_CI_PLUGIN_DISCOVERY.md`. The RC72 commit and PR merge were confirmed with green CI. RC73 development starts from that baseline.
+
+### RC73 — Current-only GitHub training files and complete screenshot publication (2026-11-25)
+
+GitHub no longer accumulates version-suffixed `CIR_Operational_Training_Visual_RCxx` PowerPoints/PDFs or their obsolete render directories. The canonical `CIR_Operational_Training_Visual.pptx` and `.pdf` are the only visual teaching artifacts; the editable `CIR_Operational_Training_IT.pptx` is also retained. Authoring provenance JSON, verified synthetic artwork and actual manuals remain intact.
+
+The same-run browser manifest supplies every capture to an editable appendix in the visual presentation. The CI verifies all image bytes with SHA-256 and exact slide relationships, then renders the PDF and checks the resulting appendix pages against the original screenshots. The operational PPTX already embeds all required browser captures; the post-build publication verifier independently checks that each is referenced by an actual slide.
+
+The documentation PR is now a separate successful-main job, and runs even if the production Docker job is skipped. A changed-source policy suppresses repetition when the prior generated-documentation PR is merged. The PR uses a verified same-run receipt, normalized stable filenames and staged deletions. This keeps the existing protected branch and PR review process rather than silently pushing to main. Local editorial snapshot: 87 slides/87 PDF pages; an actual CI run with 25 screenshots generates 112 slides/pages. Remote workflow validation remains pending.
+
+
+RC74: see docs/RC74_SCREENSHOT_REGENERATION_AND_REVIEW.md for all screenshot captures, mandatory focused training-slide evidence, and the automatic/manual documentation publication workflow.
+
+
+RC75: training uses plain-language risk-to-rights-and-freedoms wording, links the current CI-regenerated PDF, clarifies Continuous Improvement and AlBot/Alex, and restores the existing cartoon avatar in the modern UI. See `docs/RC75_TRAINING_TEXT_AND_AVATAR.md`.
+
+RC75: training now documents the tenant configuration Wizard (Admin menu), accessible to tenant administrators and super administrators with server-enforced privilege separation.
+
+
+RC76 documentation update: manual and template incident creation now explicitly selects the workflow through the first category, with tenant-default fallback. The Tutorial/SPAM lab slide explains importing SPAM from Tenants Default and putting SPAM first before creating the incident. CI must link verified `spam-incident-config-labels` evidence to both the lab-opening slide 70 and the category slide 78; current documents stay at stable filenames, with 87 editorial slides plus the same-run browser appendix. No application runtime change.
+
+
+RC77 catalog import: the workflow name and category name form an identical independent scope (`SPAM`, `SPAM v2`, ...); existing tenant severities, including inherited replicas, are reused by name without overwrites. Navigation labels are standardized to Workflow incidenti. Existing installed copies are unchanged. See `docs/RC77_CATALOG_WORKFLOW_NAMES.md`. Full Flask and PostgreSQL CI tests remain mandatory.
+
+RC77 tenant-cloning correction: clone configuration without source workflow definitions; seed exactly one independent three-step generic default. Administrators install specific workflows from the catalog afterward. Workflow selectors distinguish existing step-bearing scopes from categories without workflow definitions. Full Flask/database CI regression remains to be run.
+
+RC77 training onboarding: clarify manual/Wizard setup, subsequent mandatory catalog imports for tenant-specific procedures, and the single usable generic default workflow; updated source slides 35/37/42 and generated PowerPoint/PDF.
+
+RC77 visual architecture: add synthetic people-free photographic architecture illustration and editable platform diagrams; regenerate the 88-slide PowerPoint/PDF and update screenshot gallery numbering/provenance gates.
+
+## RC78 (2026-11-26) - notification-template inheritance and bulk administration
+
+New admin page `/notifiche/template/gestisci` appears under the Notifications menu for tenant admins/superusers in classic and modern navigation. It supports atomic multi-delete with safeguards against cross-tenant IDs, malformed selections, referenced templates and missing privileges; the action emits `admin:notification_template_bulk_delete`. Operational tenant overrides have priority over shared defaults. Removing the override restores the shared template if it exists. Built-in notification examples are now seeded once per tenant, so administrative deletion is not undone by the next page load. Actual Flask UI integration, PostgreSQL tests and GitHub Actions remain to be run. See `docs/RC78_NOTIFICATION_TEMPLATES.md`.
+
+## RC80 - notification type retirement and tenant overrides
+
+Removing a notification type from `Tenants Default` retires the inherited pristine and unused type/templates. **Tenant-customized types are retained unconditionally**, even without incident usage, together with their associated templates; tenant-customized templates and historically used notification types/templates are retained as well. A new shared type is propagated transactionally to existing tenants. The natural keys and provenance snapshots remain tenant-scoped. See `docs/RC80_NOTIFICATION_TYPE_RETIREMENT.md` and the RC80 isolated/full CI tests.

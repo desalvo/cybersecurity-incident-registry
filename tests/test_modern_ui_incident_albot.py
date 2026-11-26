@@ -161,7 +161,8 @@ def test_modern_albot_is_tenant_scoped_and_does_not_render_legacy_widget(inciden
     assert 'hidden' in page.named('cir-albot-panel')[0]
     assert not page.named('ai-chatbot-widget')
     assert not page.named('ai-chatbot-fab')
-    assert 'ai-chatbot/albot-avatar.png' not in html
+    assert 'ai-chatbot/albot-avatar.png' in html
+    assert 'cir-albot-avatar' in html
     for control in ('cir-albot-open', 'cir-albot-close', 'cir-albot-back',
                     'cir-albot-expand', 'cir-albot-new-question', 'cir-albot-question'):
         assert len(page.named(control)) == 1

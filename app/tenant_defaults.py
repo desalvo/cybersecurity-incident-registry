@@ -30,6 +30,198 @@ _ORIGIN_SETTING = '__cir_tenant_configuration_origin'
 # Keep the original key for backwards compatibility with existing snapshots.
 # It is stored in the existing replica snapshot; no schema/DDL change required.
 _LOCAL_CATEGORY_MARKER = '__cir_existing_tenant_category'
+# A tenant-owned notification type/template is the override of a same-named
+# Tenants Default record, not a second record to create with a suffix.
+_LOCAL_NOTIFICATION_TYPE_MARKER = '__cir_existing_tenant_notification_type'
+_LOCAL_NOTIFICATION_TEMPLATE_MARKER = '__cir_existing_tenant_notification_template'
+_LOCAL_NOTIFICATION_MARKERS = {
+    'notification_type': _LOCAL_NOTIFICATION_TYPE_MARKER,
+    'notification_template': _LOCAL_NOTIFICATION_TEMPLATE_MARKER,
+}
+
+
+def _locally_owned_notification_replica(replica):
+    if not replica or replica.local_type not in _LOCAL_NOTIFICATION_MARKERS:
+        return False
+    try:
+        return json.loads(replica.snapshot_json).get(_LOCAL_NOTIFICATION_MARKERS[replica.local_type]) is True
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
+def _legacy_notification_alias_base(code):
+    """Return the original code of an old auto-generated *_td* alias."""
+    match = re.fullmatch(r'(.+)_td(?:[2-9][0-9]*)?', str(code or ''), flags=re.I)
+    return match.group(1) if match else None
+
+
+def _notification_type_replacement(session, row, tenant_id, defaults):
+    """Identify a proven shared replacement, never guess from a suffix alone."""
+    if defaults is None or tenant_id == defaults.id:
+        return None
+    replica = session.scalar(select(TenantDefaultReplica).where(
+        TenantDefaultReplica.tenant_id == tenant_id,
+        TenantDefaultReplica.local_type == 'notification_type',
+        TenantDefaultReplica.local_id == row.id))
+    if replica is not None:
+        source = session.get(TenantDefaultSource, replica.source_id)
+        origin = (session.get(NotificationType, source.source_id)
+                  if source is not None and source.active and source.source_type == 'notification_type'
+                  else None)
+        if origin is not None and origin.tenant_id == defaults.id:
+            return origin
+    # Pre-provenance installations can contain an unclaimed security_td alias.
+    # Only treat it as derived when an exact shared source with the base code
+    # currently exists; an arbitrary code ending in _td is not enough.
+    base = _legacy_notification_alias_base(row.code)
+    if base:
+        return session.scalar(select(NotificationType).where(
+            NotificationType.tenant_id == defaults.id,
+            NotificationType.code == base).limit(1))
+    return session.scalar(select(NotificationType).where(
+        NotificationType.tenant_id == defaults.id,
+        NotificationType.code == row.code).limit(1))
+
+
+def _remap_notification_settings(session, tenant_id, old_code, replacement_code):
+    """Rewrite exact notification code tokens in this tenant's JSON settings.
+
+    Do not perform blind substring replacement in free text or touch settings
+    belonging to Tenants Default and other tenants.
+    """
+    prefix = f'tenant:{tenant_id}:'
+    def replace(value, field=''):
+        if isinstance(value, dict):
+            return {key: replace(item, key) for key, item in value.items()}
+        if isinstance(value, list):
+            return [replace(item, field) for item in value]
+        if isinstance(value, str):
+            if value == old_code:
+                return replacement_code
+            if field in {'notification_tags', 'tags', 'notification_types'} and ',' in value:
+                return ','.join(replacement_code if token.strip() == old_code else token
+                                for token in value.split(','))
+        return value
+
+    for setting in session.scalars(select(Setting).where(Setting.key.startswith(prefix))):
+        logical = setting.key[len(prefix):].lower()
+        if not any(token in logical for token in ('notification', 'workflow', 'button_action', 'document_tag')):
+            continue
+        raw = setting.value or ''
+        try:
+            parsed = json.loads(raw)
+        except (ValueError, TypeError):
+            # Some legacy settings store an unquoted single type code.
+            if raw.strip() == old_code:
+                setting.value = replacement_code
+            continue
+        changed = replace(parsed)
+        if changed != parsed:
+            setting.value = _json(changed)
+
+
+def delete_notification_type_and_templates(session, tenant_id, type_id):
+    """Delete a type and its templates atomically, then inherit shared defaults.
+
+    Never delete a source tenant's rows when working in a normal tenant.
+    Existing tenant overrides of other codes/types are left untouched. The
+    service flushes children before their type, then re-publishes in the *same*
+    transaction so the caller can commit or roll back as a unit.
+    """
+    row = session.scalar(select(NotificationType).where(
+        NotificationType.id == type_id, NotificationType.tenant_id == tenant_id))
+    if row is None:
+        raise ValueError('Tipo di notifica non presente nel tenant attivo.')
+    defaults = _lock_defaults(session)
+    replacement = _notification_type_replacement(session, row, tenant_id, defaults)
+    replacement_code = replacement.code if replacement is not None else None
+
+    from .configuration_usage import configuration_incident_usage
+    usage = configuration_incident_usage('notification_type', row, session)
+    if usage and replacement_code is None:
+        raise ValueError('Tipo ancora utilizzato: ' + usage + '. Nessun tipo condiviso sostitutivo disponibile.')
+    if defaults is not None and tenant_id == defaults.id:
+        # Catalog deletion must not invalidate a shared workflow even if no
+        # incidents have yet been created in Tenants Default.
+        if session.scalar(select(IncidentWorkflowStep.id).where(
+            IncidentWorkflowStep.tenant_id == tenant_id,
+            IncidentWorkflowStep.required_notification_type == row.code).limit(1)):
+            raise ValueError('Tipo utilizzato da un workflow del catalogo: rimuovere prima il riferimento.')
+
+    old_code = row.code
+    templates = session.scalars(select(NotificationTemplate).where(
+        NotificationTemplate.tenant_id == tenant_id,
+        NotificationTemplate.kind == old_code).order_by(NotificationTemplate.id)).all()
+    for template in templates:
+        session.delete(template)
+    session.flush()  # Dependent templates go first, inside the same transaction.
+    if replacement_code is None:
+        # The child-template dependency has been resolved. For a purely local
+        # type, do not erase a code still used by a workflow, document, form
+        # or other operational configuration without a valid replacement.
+        remaining_use = configuration_reference_reason('notification_type', row, session)
+        if remaining_use:
+            raise ValueError('Tipo ancora utilizzato: ' + remaining_use)
+
+    if replacement_code and replacement_code != old_code:
+        # Reconcile legacy aliases before removing their code. Historical
+        # documents and workflow steps must never keep dangling *_td tags.
+        for step in session.scalars(select(IncidentWorkflowStep).where(
+                IncidentWorkflowStep.tenant_id == tenant_id,
+                IncidentWorkflowStep.required_notification_type == old_code)):
+            step.required_notification_type = replacement_code
+        for document in session.scalars(select(Document).join(
+                Incident, Document.incident_id == Incident.id).where(
+                Incident.tenant_id == tenant_id)):
+            if old_code in document.notification_tag_list:
+                document.set_notification_tags([replacement_code if code == old_code else code
+                                                for code in document.notification_tag_list])
+        for state in session.scalars(select(DeadlineNotificationState).join(
+                Incident, DeadlineNotificationState.incident_id == Incident.id).where(
+                Incident.tenant_id == tenant_id,
+                DeadlineNotificationState.notification_type == old_code)):
+            state.notification_type = replacement_code
+        for form in session.scalars(select(FormTemplateConfig).where(
+                FormTemplateConfig.owner_tenant_id == tenant_id)):
+            if old_code in form.notification_tag_list:
+                form.set_notification_tags([replacement_code if code == old_code else code
+                                            for code in form.notification_tag_list])
+        _remap_notification_settings(session, tenant_id, old_code, replacement_code)
+
+    # Clear stale provenance so an old *_td* code is not forced back after
+    # deletion. Sync now adopts an existing canonical tenant row or creates
+    # the shared definition and all its published templates again.
+    replica = session.scalar(select(TenantDefaultReplica).where(
+        TenantDefaultReplica.local_type == 'notification_type',
+        TenantDefaultReplica.local_id == row.id))
+    if replica is not None:
+        session.delete(replica)
+    session.delete(row)
+    session.flush()
+    if defaults is not None:
+        sync_defaults_configuration(session)
+    session.flush()
+    restored = bool(replacement_code and session.scalar(select(NotificationType.id).where(
+        NotificationType.tenant_id == tenant_id,
+        NotificationType.code == replacement_code).limit(1)))
+    return {'deleted_code': old_code, 'templates_deleted': len(templates),
+            'restored_code': replacement_code if restored else None}
+
+
+def _notification_identity_matches(kind, row, data):
+    """Compare tenant-scoped notification natural keys without changing names."""
+    if kind == 'notification_type':
+        return _category_equivalent(row.code, data['code'])
+    if kind == 'notification_template':
+        return (row.kind == data['kind'] and _category_equivalent(row.name, data['name']))
+    return False
+
+
+def _local_notification_snapshot(kind, row):
+    fields = configuration_record_payload(kind, row)
+    fields[_LOCAL_NOTIFICATION_MARKERS[kind]] = True
+    return _json(fields)
+
 
 
 def _locally_owned_category_replica(replica):
@@ -355,17 +547,57 @@ def _alert(session, source, replica, kind, reason):
     ))
 
 
+def _tenant_notification_type_is_customized(session, tenant_id, code):
+    """An independently owned/edited tenant notification type is never retired.
+
+    Publishing an existing tenant type adopts its row and remembers provenance.
+    Compare against the last *replicated* snapshot, not the current shared
+    source: a tenant override must remain independent of later default edits.
+    Missing provenance means tenant ownership, so deletion is never inferred.
+    """
+    row = session.scalar(select(NotificationType).where(
+        NotificationType.tenant_id == tenant_id,
+        NotificationType.code == code).limit(1))
+    if row is None:
+        return False
+    replica = session.scalar(select(TenantDefaultReplica).where(
+        TenantDefaultReplica.local_type == 'notification_type',
+        TenantDefaultReplica.local_id == row.id).limit(1))
+    if replica is None or _locally_owned_notification_replica(replica):
+        return True
+    return _json(configuration_record_payload('notification_type', row)) != replica.snapshot_json
+
+
 def _retire_source(session, source):
+    """Retire published rows without removing tenant overrides or incident history.
+
+    Templates are retired before their parent notification type by the caller.
+    If a tenant customized its type, preserve the type AND its associated
+    templates: an otherwise pristine template may be essential to the locally
+    configured notification. Uncustomized, unused inherited rows are removed.
+    """
     for replica in session.scalars(select(TenantDefaultReplica).where(TenantDefaultReplica.source_id == source.id)).all():
         local = session.get(_MODELS[replica.local_type], replica.local_id, populate_existing=True)
-        if _locally_owned_category_replica(replica):
-            # A local category/data-type label predated publication. Removing the
-            # shared source must never remove the original tenant label.
+        if _locally_owned_category_replica(replica) or _locally_owned_notification_replica(replica):
+            # The row already belonged to the tenant before the shared source
+            # was published. Retire only provenance, never the tenant's data.
             session.delete(replica)
             continue
         if local is not None and local.tenant_id == replica.tenant_id:
             reason = configuration_reference_reason(replica.local_type, local, session)
+            if replica.local_type == 'notification_type' and not reason:
+                # A custom template surviving the shared source's retirement
+                # must not be left without a matching notification type.
+                if session.scalar(select(NotificationTemplate.id).where(
+                        NotificationTemplate.tenant_id == local.tenant_id,
+                        NotificationTemplate.kind == local.code).limit(1)) is not None:
+                    reason = 'template locale associato al tipo'
             customized = _json(configuration_record_payload(replica.local_type, local)) != replica.snapshot_json
+            if (replica.local_type == 'notification_template'
+                    and _tenant_notification_type_is_customized(session, local.tenant_id, local.kind)):
+                # Removing the source type cannot strip its unedited templates
+                # from a tenant which customized the notification type itself.
+                customized = True
             if reason or customized:
                 _alert(session, source, replica, 'retired_in_use' if reason else 'retired_customized',
                        f'rimosso da Tenants Default ma {reason or "personalizzato localmente"}')
@@ -413,6 +645,26 @@ def _sync_source_to_tenant(session, source, data, tenant_id):
                     _alert(session, source, replica, 'legacy_category_in_use',
                            'categoria legacy ancora utilizzata; consolidamento automatico sospeso per preservare i riferimenti')
                     return
+    if source.source_type in _LOCAL_NOTIFICATION_MARKERS:
+        # Preserve tenant changes in place instead of separating them and
+        # manufacturing '[Tenants Default]' copies on every publication.
+        # A natural-key rename is an independent local record; the original
+        # shared name is then inherited again under its own key.
+        mapped_notification = _replica_data(session, source.source_type, data, tenant_id,
+                                            _lock_defaults(session).id)
+        if _locally_owned_notification_replica(replica):
+            if local is not None and _notification_identity_matches(source.source_type, local, mapped_notification):
+                return
+            session.delete(replica)
+            session.flush()
+            replica = local = None
+        if (replica is not None and local is not None
+                and _json(configuration_record_payload(source.source_type, local)) != replica.snapshot_json
+                and _notification_identity_matches(source.source_type, local, mapped_notification)):
+            # Promote an edited inherited row to a tenant-owned override. The
+            # original ID, address/notification settings and default flag stay.
+            replica.snapshot_json = _local_notification_snapshot(source.source_type, local)
+            return
     if _locally_owned_category_replica(replica):
         # Remapping, not replication: never overwrite a pre-existing tenant
         # category, even if the shared source changes its description/group.
@@ -433,6 +685,28 @@ def _sync_source_to_tenant(session, source, data, tenant_id):
         session.delete(replica)
         session.flush()
         replica = None
+    if source.source_type in _LOCAL_NOTIFICATION_MARKERS and replica is None and local is None:
+        # A previously deleted legacy alias can leave a stale replica. Only
+        # after its provenance is detached can the canonical tenant override
+        # be adopted (instead of trying to insert a colliding duplicate).
+        mapped_notification = _replica_data(session, source.source_type, data, tenant_id,
+                                            _lock_defaults(session).id)
+        candidate_query = select(model).where(model.tenant_id == tenant_id)
+        if source.source_type == 'notification_template':
+            candidate_query = candidate_query.where(model.kind == mapped_notification['kind'])
+        for candidate in session.scalars(candidate_query.order_by(model.id)).all():
+            if not _notification_identity_matches(source.source_type, candidate, mapped_notification):
+                continue
+            claimed = session.scalar(select(TenantDefaultReplica.id).where(
+                TenantDefaultReplica.local_type == source.source_type,
+                TenantDefaultReplica.local_id == candidate.id).limit(1))
+            if claimed is not None:
+                continue
+            session.add(TenantDefaultReplica(
+                source_id=source.id, tenant_id=tenant_id, local_type=source.source_type,
+                local_id=candidate.id,
+                snapshot_json=_local_notification_snapshot(source.source_type, candidate)))
+            return
     defaults = _lock_defaults(session)
     mapped = _replica_data(session, source.source_type, data, tenant_id, defaults.id)
     if local is None and source.source_type == 'config_label' and data['kind'] in ('category', 'data_type'):
@@ -456,7 +730,12 @@ def _sync_source_to_tenant(session, source, data, tenant_id):
                 local_type='config_label', local_id=candidate.id,
                 snapshot_json=_json(snapshot)))
             return
-    desired = _available_data(session, source.source_type, mapped, tenant_id, excluding_id=local.id if local else None)
+    # Notification types/templates have already been resolved by their natural
+    # keys. Never invent aliases or suffixed notification templates for a
+    # same-named tenant override.
+    desired = (dict(mapped) if source.source_type in _LOCAL_NOTIFICATION_MARKERS else
+               _available_data(session, source.source_type, mapped, tenant_id,
+                               excluding_id=local.id if local else None))
     if local is not None and source.source_type == 'notification_type':
         # Code aliases can already occur in document tags and other string
         # references. Do not rename them merely because a collision vanished.
@@ -836,7 +1115,7 @@ def inherited_configuration_record(row, session=None):
         return None
     replica = session.scalar(select(TenantDefaultReplica).where(
         TenantDefaultReplica.local_type == kind, TenantDefaultReplica.local_id == row.id))
-    return None if _locally_owned_category_replica(replica) else replica
+    return None if (_locally_owned_category_replica(replica) or _locally_owned_notification_replica(replica)) else replica
 
 
 def resolve_shared_configuration_record(source_uuid, target_tenant_id, expected_type=None, session=None):

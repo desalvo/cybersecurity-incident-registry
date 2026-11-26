@@ -703,25 +703,14 @@
       "notes": "Approfondimento per la formazione CIR. Tenant: isolamento e governance. CONTESTO: Dati e permessi separati per tenant. DEFAULTS: Catalogo e configurazioni riusabili. OPERATIVITÀ: Selezionare sempre il tenant corretto. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     },
     {
-      "type": "columns",
-      "kicker": "APPROFONDIMENTO OPERATIVO",
-      "title": "Tenant: operazioni amministrative",
-      "items": [
-        [
-          "CREAZIONE",
-          "Definire tenant e proprietari."
-        ],
-        [
-          "CONFIGURAZIONE",
-          "Workflow, notifiche, template e utenti."
-        ],
-        [
-          "MANUTENZIONE",
-          "Import, export, audit e migrazioni."
-        ]
-      ],
-      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. Tenant: operazioni amministrative. CREAZIONE: Definire tenant e proprietari. CONFIGURAZIONE: Workflow, notifiche, template e utenti. MANUTENZIONE: Import, export, audit e migrazioni. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "type": "screenshots",
+      "kicker": "AMMINISTRAZIONE DEL TENANT",
+      "title": "Wizard di setup iniziale del tenant: riprendere o rieseguire",
+      "notes": "Il wizard di setup iniziale di CIR è una procedura guidata reale disponibile dal menu Admin per il tenant attivo. Sia admin del tenant sia super admin possono accedervi secondo i rispettivi privilegi. Le schermate visibili sono acquisite dalla CI tramite login autentica, con dati isolati di prova: la prima presenta sezioni, progresso e campo di configurazione; la seconda ingrandisce il pannello e i pulsanti. Per ogni sezione si può scegliere Salva e continua oppure Salta questo gruppo; dopo una pausa, il progress salvato o saltato rimane disponibile al rientro e le sezioni si possono rileggere. Il pulsante Riesegui da capo azzera il progresso e permette di ripetere il percorso anche più volte senza creare un nuovo tenant. Il super admin può creare o clonare altri tenant e modificare la password dell’admin globale; queste azioni restano vietate al solo admin di tenant. Il wizard non concede nuovi privilegi. Il flusso è verificato dalla CI con Chromium.",
+      "screenshots": [
+        "tenant-setup-wizard-desktop",
+        "tenant-setup-wizard-panel"
+      ]
     },
     {
       "type": "columns",
@@ -765,7 +754,8 @@
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
       "notes": "Approfondimento per la formazione CIR. Workflow: fasi e condizioni. FASI: Ogni fase rappresenta un compito verificabile. AVVISI: Vincoli e task incompleti segnalati. CHIUSURA: Consentita solo se le condizioni sono soddisfatte. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione. La cattura aggiuntiva mostra la palette delle categorie e dei dati interessati senza duplicazioni Tenants Default, con dati di laboratorio; viene acquisita dal browser nella stessa CI.",
       "screenshots": [
-        "spam-incident-config-labels"
+        "spam-incident-config-labels",
+        "workflow-steps-focused"
       ]
     },
     {
@@ -911,46 +901,22 @@
       "notes": "Approfondimento per la formazione CIR. Report operativi. DOVE: Sezioni di report ed esportazione autorizzate. COME: Filtrare periodo, tenant e stato. PERCHÉ: Audit, passaggi di consegne e governance. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     },
     {
-      "type": "columns",
+      "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
-      "title": "Statistiche e indicatori",
-      "items": [
-        [
-          "METRICHE",
-          "Incidenti aperti, chiusi e tempi."
-        ],
-        [
-          "FILTRI",
-          "Confrontare periodi e categorie."
-        ],
-        [
-          "LIMITI",
-          "Le metriche dipendono dalla qualità dei dati."
-        ]
-      ],
-      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. Statistiche e indicatori. METRICHE: Incidenti aperti, chiusi e tempi. FILTRI: Confrontare periodi e categorie. LIMITI: Le metriche dipendono dalla qualità dei dati. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "title": "Statistiche: indicatori reali del tenant",
+      "notes": "Approfondimento per la formazione CIR. Statistiche e indicatori. METRICHE: Incidenti aperti, chiusi e tempi. FILTRI: Confrontare periodi e categorie. LIMITI: Le metriche dipendono dalla qualità dei dati. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione.\nCattura autenticata obbligatoria dal browser della CI: statistics-desktop. La pagina raffigura solo dati di prova.",
+      "screenshots": [
+        "statistics-desktop"
+      ]
     },
     {
-      "type": "columns",
+      "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
-      "title": "AlBot: assistenza AI",
-      "items": [
-        [
-          "USO",
-          "Aiuto alla consultazione e redazione."
-        ],
-        [
-          "CONTROLLO",
-          "L’operatore verifica sempre il risultato."
-        ],
-        [
-          "PRIVACY",
-          "Rispettare permessi e policy del provider."
-        ]
-      ],
-      "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. AlBot: assistenza AI. USO: Aiuto alla consultazione e redazione. CONTROLLO: L’operatore verifica sempre il risultato. PRIVACY: Rispettare permessi e policy del provider. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "title": "AlBot (Alex): assistente AI e pannello reale",
+      "notes": "Approfondimento per la formazione CIR. AlBot: assistenza AI. USO: Aiuto alla consultazione e redazione. CONTROLLO: L’operatore verifica sempre il risultato. PRIVACY: Rispettare permessi e policy del provider. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione.\nCattura autenticata obbligatoria dal browser della CI: assistant-panel-closeup. La pagina raffigura solo dati di prova.",
+      "screenshots": [
+        "assistant-panel-closeup"
+      ]
     },
     {
       "type": "screenshots",
@@ -1080,7 +1046,12 @@
     "alfresco-incident-documents": "Scheda incidente: controlli e destinazioni Alfresco",
     "registry-closed-state": "Registro: icone di stato dei casi chiusi e di quelli ancora incompleti",
     "pdf-generated-preview": "Anteprima di un PDF compilato con i valori dell’incidente di prova",
-    "spam-incident-config-labels": "Palette reali: categorie e dati interessati senza duplicazioni Tenants Default"
+    "spam-incident-config-labels": "Palette reali: categorie e dati interessati senza duplicazioni Tenants Default",
+    "tenant-setup-wizard-desktop": "Wizard setup iniziale del tenant: sezioni, progresso e campi reali",
+    "tenant-setup-wizard-panel": "Wizard setup iniziale: pulsanti Salva, Salta e Termina",
+    "workflow-steps-focused": "Workflow SPAM in viewport ridotta: card e frecce più leggibili",
+    "statistics-desktop": "Statistiche reali del tenant e indicatori",
+    "assistant-panel-closeup": "Pannello reale AlBot, assistente Alex, con risposta di prova"
   },
   "references": {
     "nis2": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",

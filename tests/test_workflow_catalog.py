@@ -98,11 +98,18 @@ def test_catalog_round_trip_remaps_dependencies_and_keeps_local_configuration(ca
     assert installed.category_id not in {row.id for row in local_labels}
     assert installed.required_notification_type != 'notice'
     assert installed.document_template_name != 'triage_form'
+    assert result['copy_name'] == 'Incident triage'
+    assert db.session.get(ConfigLabel, result['category_id']).value == result['copy_name']
+    local_by_kind = {row.kind: row for row in local_labels}
     for token in installed.condition_tokens():
         if ':' in token:
             row = db.session.get(ConfigLabel, int(token.split(':', 1)[1]))
             assert row.tenant_id == target.id
-            assert row.id not in {row.id for row in local_labels}
+            if row.kind == 'severity':
+                assert row.id == local_by_kind['severity'].id
+                assert row.description == 'LOCAL ORIGINAL'
+            else:
+                assert row.id not in {row.id for row in local_labels}
     assert installed.condition_tokens()[1].startswith('!data_type:')
     assert all(row.description == 'LOCAL ORIGINAL' for row in local_labels)
     assert local_notice.label == 'LOCAL NOTICE'
@@ -154,6 +161,54 @@ def test_catalog_repeated_import_creates_named_copies_and_revision_does_not_chan
     db.session.commit()
     assert third['created'] == 1 and third['category_id'] not in {first['category_id'], second['category_id']}
     assert installed.description == 'LOCAL EDIT'
+
+
+
+def test_catalog_import_uses_workflow_name_for_category_and_reuses_existing_severity(catalog_db):
+    from app.models import db, ConfigLabel, IncidentWorkflowStep
+    from app.workflow_catalog import build_catalog_workflow_payload, save_catalog_workflow, import_catalog_workflow
+    _, source, target = catalog_db
+    labels, _ = _source_workflow(source)
+    local_category = ConfigLabel(tenant_id=target.id, kind='category', value='SPAM',
+                                 description='Original tenant classification')
+    local_severity = ConfigLabel(tenant_id=target.id, kind='severity', value='Critical',
+                                 description='Original tenant severity', max_completion_hours=9)
+    db.session.add_all([local_category, local_severity])
+    db.session.commit()
+    original_category_id, original_severity_id = local_category.id, local_severity.id
+    entry = save_catalog_workflow(build_catalog_workflow_payload(source.id, labels['category'].id), 'SPAM')
+    imported = import_catalog_workflow(entry.id, target.id)
+    next_copy = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert (imported['copy_name'], next_copy['copy_name']) == ('SPAM v2', 'SPAM v3')
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM').one().id == original_category_id
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM v2').one().id == imported['category_id']
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM v3').one().id == next_copy['category_id']
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='severity').count() == 1
+    severity = db.session.get(ConfigLabel, original_severity_id)
+    assert severity.description == 'Original tenant severity' and severity.max_completion_hours == 9
+    for result in (imported, next_copy):
+        installed = db.session.get(IncidentWorkflowStep, result['step_ids'][0])
+        assert f'severity:{original_severity_id}' in installed.condition_tokens()
+        assert installed.category_id == result['category_id']
+
+
+def test_catalog_severity_casefold_reuse_without_overwrite(catalog_db):
+    from app.models import db, ConfigLabel, IncidentWorkflowStep
+    from app.workflow_catalog import build_catalog_workflow_payload, save_catalog_workflow, import_catalog_workflow
+    _, source, target = catalog_db
+    labels, _ = _source_workflow(source)
+    local = ConfigLabel(tenant_id=target.id, kind='severity', value='critical', group='tenant',
+                        description='Local severity preserved')
+    db.session.add(local)
+    db.session.commit()
+    entry = save_catalog_workflow(build_catalog_workflow_payload(source.id, labels['category'].id), 'SPAM')
+    result = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    installed = db.session.get(IncidentWorkflowStep, result['step_ids'][0])
+    assert f'severity:{local.id}' in installed.condition_tokens()
+    assert local.description == 'Local severity preserved'
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='severity').count() == 1
 
 
 def test_catalog_copy_remains_after_catalog_retirement(catalog_db):
@@ -430,7 +485,8 @@ def test_catalog_repeated_names_are_disambiguated_without_overwrite(catalog_db):
     results = [import_catalog_workflow(entry.id, target.id, copy_name='Same name') for _ in range(3)]
     db.session.commit()
     values = [db.session.get(ConfigLabel, r['category_id']).value for r in results]
-    assert values[0] == 'Same name'
+    assert values == ['Same name', 'Same name v2', 'Same name v3']
+    assert [r['copy_name'] for r in results] == values
     assert len(set(values)) == 3
     assert len({r['installation_id'] for r in results}) == 3
 

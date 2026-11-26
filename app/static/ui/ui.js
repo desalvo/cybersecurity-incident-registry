@@ -14,9 +14,29 @@
       else input.form.submit();
     });
   });
+  document.querySelectorAll('[data-cir-notification-bulk]').forEach((form) => {
+    const master = form.querySelector('[data-cir-notification-select-all]');
+    const items = [...form.querySelectorAll('[data-cir-notification-select]')];
+    if (!master || !items.length) return;
+    master.addEventListener('change', () => {
+      items.forEach((item) => { item.checked = master.checked; });
+      master.indeterminate = false;
+    });
+    items.forEach((item) => item.addEventListener('change', () => {
+      const checked = items.filter((entry) => entry.checked).length;
+      master.checked = checked === items.length;
+      master.indeterminate = checked > 0 && checked < items.length;
+    }));
+    form.addEventListener('submit', (event) => {
+      if (!items.some((item) => item.checked)) {
+        event.preventDefault();
+        window.alert(form.dataset.cirEmptySelection || 'Selezionare almeno un template da cancellare.');
+      }
+    });
+  });
   document.querySelectorAll('[data-cir-confirm]').forEach((element) => {
     element.addEventListener(element.tagName === 'FORM' ? 'submit' : 'click', (event) => {
-      if (!window.confirm(element.dataset.cirConfirm)) event.preventDefault();
+      if (!event.defaultPrevented && !window.confirm(element.dataset.cirConfirm)) event.preventDefault();
     });
   });
   document.querySelectorAll('[data-cir-progress]').forEach((element) => {

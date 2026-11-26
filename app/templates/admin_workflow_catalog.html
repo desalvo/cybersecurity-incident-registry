@@ -2,8 +2,8 @@
 {% block content %}
 <div class="card">
   <h2>Catalogo workflow — Tenants Default</h2>
-  <p>Scegli i workflow da importare nel tuo tenant. Ogni importazione crea un flusso distinto, con una categoria e un nome propri.</p>
-  <p>Puoi importare lo stesso workflow più volte. I parametri pubblicati da Tenants Default vengono collegati alla loro corretta copia locale, anche quando gli ID sono diversi. Per modificare i parametri di un solo flusso, usa <strong>Personalizza parametri</strong> nei workflow del tenant prima di utilizzarlo in un incidente. Le revisioni del catalogo non sostituiscono gli step delle copie già importate.</p>
+  <p>Scegli i workflow da importare nel tuo tenant. Ogni importazione crea un workflow indipendente e una categoria con lo stesso nome (ad esempio SPAM, poi SPAM v2). Le gravità già presenti nel tenant vengono riutilizzate.</p>
+  <p>Puoi importare lo stesso workflow più volte. I parametri pubblicati da Tenants Default vengono collegati alla loro corretta copia locale, anche quando gli ID sono diversi. Per modificare i parametri di un solo workflow, usa <strong>Personalizza parametri</strong> nei workflow del tenant prima di utilizzarlo in un incidente. Le revisioni del catalogo non sostituiscono gli step delle copie già importate.</p>
   <p>I workflow obsoleti non possono essere importati né assegnati a nuovi incidenti. L’obsolescenza nel catalogo si applica a tutte le copie, comprese quelle personalizzate; gli incidenti esistenti continuano a utilizzare il loro workflow.</p>
   <p><a href="{{ url_for('main.admin_tenant_defaults') }}">Tenants Default</a> · <a href="{{ url_for('main.admin_incident_workflows') }}">Workflow del tenant attivo</a> · <a href="{{ url_for('main.admin_workflow_catalog_notices') }}">Avvisi workflow{% if workflow_notice_count %} ({{ workflow_notice_count }}){% endif %}</a></p>
 </div>
@@ -17,8 +17,8 @@
     <label>Tenant destinatario
       <select name="target_tenant_id" required>{% for target in targets %}<option value="{{ target.id }}" {% if active_tenant and target.id==active_tenant.id %}selected{% endif %}>{{ target.name }}</option>{% endfor %}</select>
     </label>
-    <label>Nome della nuova copia <input name="copy_name" maxlength="160" value="{{ entry.name }}" required></label>
-    <label class="checkbox-row"><input type="checkbox" name="as_default" value="1"> Importa come flusso di default, solo se il tenant non ne ha già uno.</label>
+    <label>Nome del workflow e della categoria <input name="copy_name" maxlength="160" value="{{ entry.name }}" required></label>
+    <label class="checkbox-row"><input type="checkbox" name="as_default" value="1"> Importa come workflow predefinito, solo se il tenant non ne ha già uno.</label>
     <button>Crea una nuova copia nel tenant</button>
   </form>{% else %}<p class="warning">Importazione bloccata: workflow obsoleto.</p>{% endif %}
   {% if can_publish %}
@@ -41,7 +41,7 @@
 <div class="card">
   <h3>Esporta un workflow da {{ source_tenant.name }}</h3>
   <form method="get" action="{{ url_for('main.admin_workflow_catalog_export_workflow') }}">
-    <label>Workflow <select name="category_id"><option value="">Flusso di default</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.value }}</option>{% endfor %}</select></label>
+    <label>Workflow <select name="category_id"><option value="">Workflow predefinito</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.value }}</option>{% endfor %}</select></label>
     <button>Scarica workflow con dipendenze</button>
   </form>
   <p class="muted">Il file può essere importato nel catalogo da un superuser, anche in un’altra istanza. Mantiene testi, indirizzi configurati, regole dei destinatari e contenuto dei PDF: verifica che siano adatti alla condivisione. Non è un export anonimizzato.</p>
@@ -51,7 +51,7 @@
   <h3>Pubblica dal tenant attivo</h3>
   <form method="post" action="{{ url_for('main.admin_workflow_catalog_publish') }}">
     {{ csrf_field()|safe }}
-    <label>Workflow di {{ source_tenant.name }} <select name="category_id"><option value="">Flusso di default</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.value }}</option>{% endfor %}</select></label>
+    <label>Workflow di {{ source_tenant.name }} <select name="category_id"><option value="">Workflow predefinito</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.value }}</option>{% endfor %}</select></label>
     <label>Nome nel catalogo <input name="name" maxlength="160" required></label>
     <label>Descrizione <textarea name="description"></textarea></label>
     <button>Pubblica nel catalogo</button>

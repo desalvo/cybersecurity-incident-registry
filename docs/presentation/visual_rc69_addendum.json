@@ -9,14 +9,14 @@
       "tag": "02 / OPERAZIONI · APERTURA INCIDENTI",
       "title": "Aprire un incidente: dalla pagina principale",
       "bullets": [
-        "Dopo l’accesso, selezionare il tenant corretto e aprire il registro «Incidenti» dalla pagina principale.",
-        "Premere «Nuovo incidente» per accedere al modulo di inserimento; il comando è disponibile ai ruoli autorizzati alla scrittura.",
-        "Per aprire un caso da zero, scegliere la compilazione manuale e inserire le informazioni iniziali richieste.",
-        "Premere «Crea»: si apre il dettaglio dell’incidente con il workflow e le attività previste dalla configurazione."
+        "Dalla pagina principale selezionare il tenant corretto, aprire «Incidenti» e premere «Nuovo incidente» (ruoli con permesso di scrittura).",
+        "Per aprire da zero scegliere «Nessun modello»; in alternativa un modello propone valori iniziali modificabili.",
+        "In «Categorie selezionate» mettere per prima la categoria del workflow desiderato: ad esempio SPAM nel tenant Tutorial.",
+        "Premere «Crea» e verificare gli step: CIR usa il workflow della prima categoria se configurato, altrimenti quello predefinito del tenant."
       ],
       "training_flow": "incident-entry",
       "images": [],
-      "notes": "CIR – nuova sezione didattica. Il pulsante Nuovo incidente è nel registro Incidenti: illustrare prima il percorso manuale, poi introdurre i modelli nelle slide successive. I ruoli writer, admin e superuser possono crearne uno. L’immagine a destra è una cattura autentica storica della UI CIR con dati dimostrativi; se disponibile, in CI è sostituita dalla cattura browser della build corrente. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py."
+      "notes": "CIR – nuova sezione didattica. Il pulsante Nuovo incidente è nel registro Incidenti: illustrare prima il percorso manuale, poi introdurre i modelli nelle slide successive. I ruoli writer, admin e superuser possono crearne uno. L’immagine a destra è una cattura autentica storica della UI CIR con dati dimostrativi; se disponibile, in CI è sostituita dalla cattura browser della build corrente. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py. Regola di assegnazione: app/workflow_lifecycle.py::workflow_scope_for_categories e app/routes.py::workflow_steps_for_incident. La prima categoria con workflow specifico deve essere precisamente la prima, non una categoria qualsiasi tra le selezionate."
     },
     {
       "index": 81,
@@ -25,14 +25,14 @@
       "tag": "02 / OPERAZIONI · APERTURA INCIDENTI",
       "title": "Aprire un incidente da zero: compilazione manuale",
       "bullets": [
-        "Da «Incidenti» → «Nuovo incidente», selezionare la compilazione manuale («Nessun modello» nel selettore).",
-        "Inserire Nome e Riferimento; controllare la data e l’ora di inizio preimpostate e scegliere categoria e gravità.",
-        "Indicare i dati interessati, la descrizione e le informazioni aggiuntive pertinenti, secondo i campi configurati.",
-        "Premere «Crea», aprire il dettaglio dell’incidente e seguire le azioni previste dal workflow."
+        "Da «Incidenti» → «Nuovo incidente», selezionare «Nessun modello» e compilare Nome, Riferimento, gravità e dati richiesti.",
+        "Trascinare la categoria desiderata da «Categorie disponibili» a «Categorie selezionate» e ordinarla al primo posto (es. SPAM in Tutorial).",
+        "Se la prima categoria dispone di step specifici, viene applicato il suo workflow; altrimenti vale il workflow di default del tenant. Le altre categorie non aggiungono step.",
+        "Controllare data e ora iniziali, poi premere «Crea»; aprire il dettaglio e verificare le card e le azioni del workflow risultante."
       ],
       "training_flow": "incident-blank",
       "images": [],
-      "notes": "CIR – nuova sezione didattica. Schema editabile della form, non screenshot della CI. Nome e Riferimento sono obbligatori. Data e ora di inizio sono inizializzate con il momento corrente. Il tenant è quello in cui si opera. I campi accessori sono configurabili nel layout. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py."
+      "notes": "CIR – nuova sezione didattica. Schema editabile della form, non screenshot della CI. Nome e Riferimento sono obbligatori. Data e ora di inizio sono inizializzate con il momento corrente. Il tenant è quello in cui si opera. I campi accessori sono configurabili nel layout. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py. Scelta workflow non tramite pulsante separato: dipende dalla prima categoria selezionata al salvataggio. In assenza di step specifici viene usata la configurazione predefinita del tenant. Ulteriori categorie non uniscono flussi."
     },
     {
       "index": 82,
@@ -42,13 +42,13 @@
       "title": "Modelli incidente: cosa sono, a cosa servono e permessi",
       "bullets": [
         "Un modello di incidente è una configurazione riutilizzabile di valori iniziali: nome, descrizione, destinatari, gravità, categorie e dati interessati.",
-        "Serve a velocizzare e uniformare l’apertura di casi ricorrenti: non è un template PDF e non sostituisce il workflow.",
+        "Un modello precompila anche le categorie e il loro ordine, ma non contiene un workflow indipendente: il workflow deriva dalla prima categoria del nuovo incidente.",
         "Writer, admin e superuser autorizzati nel tenant possono usare i modelli disponibili quando creano un incidente.",
         "Solo admin e superuser possono creare, modificare o cancellare i modelli del tenant; azioni svolte e documenti non vengono copiati."
       ],
       "training_flow": "incident-model",
       "images": [],
-      "notes": "CIR – nuova sezione didattica. I modelli incidente sono diversi dai moduli PDF e dai workflow. La route /admin/incident-templates è protetta da can_admin; la creazione usa can_write, vale per writer, admin, superuser, nel tenant attivo. Visualizzazione solo per formazione: diagramma editabile. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py."
+      "notes": "CIR – nuova sezione didattica. I modelli incidente sono diversi dai moduli PDF e dai workflow. La route /admin/incident-templates è protetta da can_admin; la creazione usa can_write, vale per writer, admin, superuser, nel tenant attivo. Visualizzazione solo per formazione: diagramma editabile. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py. La selezione del template non assegna direttamente un workflow, ma valorizza e rende modificabile il campo categorie. L ordine delle categorie deve essere verificato prima della creazione."
     },
     {
       "index": 83,
@@ -89,14 +89,14 @@
       "tag": "02 / OPERAZIONI · APERTURA INCIDENTI",
       "title": "Aprire un incidente usando un modello",
       "bullets": [
-        "Dalla pagina «Incidenti» premere «Nuovo incidente» e aprire il selettore «Vuoi utilizzare un modello predefinito?».",
-        "Selezionare uno dei modelli disponibili nel tenant: CIR precompila il modulo, ma non crea ancora l’incidente.",
-        "Verificare e, se necessario, modificare nome, riferimento, categoria, gravità, destinatari e altri campi proposti.",
-        "Controllare data e ora di inizio aggiornate al momento corrente, quindi premere «Crea» per registrare il nuovo incidente."
+        "Da «Incidenti» → «Nuovo incidente» selezionare «Vuoi utilizzare un modello predefinito?» e scegliere un modello disponibile nel tenant.",
+        "CIR propone nome, riferimento, gravità e categorie: verificare che la prima categoria sia quella collegata al workflow voluto (es. SPAM).",
+        "È possibile cambiare o riordinare le categorie: conta solo la prima se ha step propri; diversamente viene usato il workflow di default. Non si combinano workflow.",
+        "Controllare gli altri campi e data/ora aggiornate, premere «Crea» e verificare nel dettaglio le fasi risultanti dal workflow."
       ],
       "training_flow": "incident-template",
       "images": [],
-      "notes": "CIR – conclusione della nuova sezione didattica, dopo definizione e amministrazione dei modelli. Il modello è applicabile soltanto in creazione. Il selettore precompila lato browser i campi del form; il nuovo incidente viene salvato soltanto quando si preme Crea. Azioni e documenti precedenti non sono parte del modello. Questa è un’illustrazione sintetica originale. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py."
+      "notes": "CIR – conclusione della nuova sezione didattica, dopo definizione e amministrazione dei modelli. Il modello è applicabile soltanto in creazione. Il selettore precompila lato browser i campi del form; il nuovo incidente viene salvato soltanto quando si preme Crea. Azioni e documenti precedenti non sono parte del modello. Questa è un’illustrazione sintetica originale. [Sources] app/templates/index.html, app/templates/incident_form.html, app/templates/admin_incident_templates.html, app/routes.py. Il template precompila i campi e le categorie nell ordine stabilito, ma non avvia automaticamente uno specifico workflow. Lo scope effettivo e risolto alla creazione dalla prima categoria oppure dal default."
     }
   ]
 }

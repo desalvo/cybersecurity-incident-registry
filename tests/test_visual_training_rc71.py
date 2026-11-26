@@ -17,8 +17,8 @@ def _plugin_packages(root: Path) -> set[str]:
 def test_architecture_addendum_and_role_scoping():
     arch=json.loads((P/'visual_rc71_architecture_addendum.json').read_text())
     spec=json.loads((P/'visual_rc64_spec.json').read_text())
-    assert arch['insert_after_original']==6 and len(arch['slides'])==2
-    assert [x['arch_visual'] for x in arch['slides']]==['modules','procedures']
+    assert arch['insert_after_original']==6 and len(arch['slides'])==3
+    assert [x['arch_visual'] for x in arch['slides']]==['modules','procedures','ecosystem']
     assert all(len(x['bullets'])==4 for x in arch['slides'])
     text=' '.join(' '.join(x['bullets']) for x in arch['slides'])
     for phrase in ('AlBot','Alfresco','ChatGPT','Claude','Gemini','Ollama','Perplexity',
@@ -26,7 +26,7 @@ def test_architecture_addendum_and_role_scoping():
         assert phrase.lower() in text.lower()
     assert 'modulare' in spec[5]['title'].lower()
     roles=' '.join(spec[34]['bullets']).lower()
-    assert 'super admin' in roles and 'admin di tenant' in roles and 'operatori' in roles
+    assert 'super admin' in roles and ('admin di tenant' in roles or 'admin del tenant' in roles) and 'operatori' in roles
 
 
 def test_available_plugins_not_confused_with_core_features():
@@ -62,10 +62,10 @@ def test_plugin_package_discovery_ignores_runtime_and_non_plugin_folders(tmp_pat
 
 
 def test_presentation_cover_acronym_and_section_structure():
-    pptx=P/'CIR_Operational_Training_Visual_RC71.pptx'
+    pptx=P/'CIR_Operational_Training_Visual.pptx'
     with ZipFile(pptx) as z:
         names=[n for n in z.namelist() if n.startswith('ppt/slides/slide') and n.endswith('.xml') and '/_rels/' not in n]
-        assert len(names)==87
+        assert len(names)==88
         def txt(i):return ''.join(x.text or '' for x in ET.fromstring(z.read(f'ppt/slides/slide{i}.xml')).iter(NS+'t'))
         assert 'CIR' in txt(1) and 'Cybersecurity' in txt(1) and 'Incident Registry' in txt(1)
         assert 'laboratorio didattico di esempio' in txt(1)
@@ -74,5 +74,5 @@ def test_presentation_cover_acronym_and_section_structure():
         assert 'Architettura modulare' in txt(6)
         assert 'Plugin disponibili' in txt(7)
         assert 'workflow manager generico' in txt(8)
-        assert 'Aprire un incidente:' in txt(17)
-        assert 'Aprire un incidente usando un modello' in txt(22)
+        assert 'Aprire un incidente:' in txt(18)
+        assert 'Aprire un incidente usando un modello' in txt(23)

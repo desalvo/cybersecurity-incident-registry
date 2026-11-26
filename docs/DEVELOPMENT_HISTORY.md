@@ -1,5 +1,18 @@
 # Development history: 0.8.0 to 0.10.0-1
 
+## 0.10.0-1 / RC79 — transactional notification type deletion and inherited fallback
+
+Notification type administration now allows tenant admins to delete inherited types and old `_td` aliases. The operation deletes dependent templates first, removes the tenant-scoped type and stale provenance, then synchronizes published `Tenants Default` types and templates in the same database transaction. Legacy `_td` references are rebound to the canonical published code for the active tenant. Local-only types with active references and no shared replacement remain protected. Removed the UI restriction on deleting the built-in codes within a tenant; source and other tenants remain isolated. Added SQLAlchemy transaction and Flask HTTP regressions. Full CI must validate Flask/PostgreSQL behavior; no unrelated presentation changes.
+
+## 0.10.0-1 / RC74 — focused real screenshots and automatic documentation refresh
+
+Visual chapters amended: slide 69 generic educational SPAM case title, slide 78 category/workflow semantics (first selected category picks a dedicated workflow or tenant default; additional categories do not merge workflows), slide 81 reflective title; category/severity classification-extension announcement on slides 26 and 78. Slide 67 introduces AlBot by name with original app avatar, and slides 54, 64 and 67 render targeted native Chromium screenshots with a reduced left text column for readability. The browser CI captures three additional original element regions (28 captures in all), and publication fails closed unless all new screenshots visibly appear on the relevant teaching slide, both complete PowerPoints and every PDF gallery page. The source-changing main push and a manual main workflow dispatch both regenerate documentation; bot-generated-documentation-only merges do not loop. No CIR runtime feature changes. Local editorial snapshot 87 slides and 87 pages; verified 28-image synthetic CI smoke produced 115 slides and pages, with no test raster distributed as live evidence. Remote authenticated CI and main publication remain pending.
+
+## 0.10.0-1 / RC73 — current-only documents and complete screenshot publication
+
+Starting from the confirmed, green RC72 merge, remove historical visual PPTX/PDF binaries and retain only the two canonical editable training decks and the current visual PDF. Create a separate documentation publication job for main pushes, independent of production image changes, with a generated-only diff guard to prevent PR loops. Verify all 25 same-run browser captures are linked to visible slides in both PowerPoints; the visual deck adds an appendix of 25 slides and verifies each corresponding PDF page by pixel comparison before emitting a commit/build-bound SHA-256 receipt. No runtime CIR features were changed. Current offline visual edition: 87 slides/pages; CI edition with 25 captures: 112. All generated documents are published through an explicit reviewable PR, not silently committed to main.
+
+
 ## 0.10.0-1 / RC62 — people-free synthetic training media
 
 Il PowerPoint didattico passa a RC62 mantenendo 79 slide e PDF 79 pagine. Vietate fotografie di persone reali o immagini esterne di provenienza/licenza non verificata. Slide 28, 33, 35, 42 e 43: rimossi gli artwork storici contenenti silhouette umane, sostituiti da una scena tecnologica originale generata con ImageGen senza persone e da diagrammi PowerPoint nativi specifici della rispettiva slide. Slide capitolo 27 e 61: sfondo aggiornato allo stesso asset people-free. Screenshot applicative preesistenti conservate senza dichiararle catture dell'attuale CI.
@@ -1154,3 +1167,48 @@ excluding cache and non-plugin directories without masking future plugin
 packages. Added regression coverage, kept the approved 87-slide RC71 training
 presentation untouched, and recorded the fix in
 `docs/RC72_CI_PLUGIN_DISCOVERY.md`. Remote CI rerun remains required.
+
+
+RC75: training uses plain-language risk-to-rights-and-freedoms wording, links the current CI-regenerated PDF, clarifies Continuous Improvement and AlBot/Alex, and restores the existing cartoon avatar in the modern UI. See `docs/RC75_TRAINING_TEXT_AND_AVATAR.md`.
+
+RC75: training now documents the tenant configuration Wizard (Admin menu), accessible to tenant administrators and super administrators with server-enforced privilege separation.
+
+
+### 0.10.0-1 RC76 - workflow selection in incident opening tutorial
+
+- Explain first-category workflow scope for manual and template-based incident opening; other categories remain classifications and do not merge workflows.
+- Replace SPAM laboratory entry slide with an explicit Tutorial tenant procedure, including workflow import, first-category ordering, and verification after creation.
+- Add an editable diagram and use the verified same-run category screenshot when available; require SHA-256 linkage on both the lab slide and the existing category slide.
+- Rebuild current 87-slide PowerPoint and 87-page PDF; preserve original vetted media and future CI screenshot appendix behavior.
+
+
+### RC77 — Workflow/category naming and severity deduplication (2026-11-26)
+
+- Use the catalog entry name directly for an imported workflow and its dedicated category; allocate `v2`, `v3`, etc. only when a destination workflow or category already occupies the name. Do not reassign pre-existing category scopes.
+- Reuse the tenant severity labels already available by name (including inherited replicas), preserving their original ID and configuration while remapping step condition references. Other dependencies remain isolated or provenance-mapped as before.
+- Unify the incident workflow navigation item across modern/classic UI and related administration documentation. Add database-level and dependency-free regression tests; CI must verify the full integration suite. See `docs/RC77_CATALOG_WORKFLOW_NAMES.md`.
+
+- RC77 tenant cloning now seeds exactly one neutral three-step default workflow and never clones source category workflows. Tenant-specific workflows remain explicit catalog imports; empty category labels no longer masquerade as installed workflows in export, source or delete selectors. Applies to tenant creation and Wizard setup.
+
+RC77 training onboarding: clarify manual/Wizard setup, subsequent mandatory catalog imports for tenant-specific procedures, and the single usable generic default workflow; updated source slides 35/37/42 and generated PowerPoint/PDF.
+
+RC77 visual architecture: add synthetic people-free photographic architecture illustration and editable platform diagrams; regenerate the 88-slide PowerPoint/PDF and update screenshot gallery numbering/provenance gates.
+
+### 0.10.0-1 RC78 - notification template inheritance and bulk management
+
+- Preserve tenant-local notification templates over identically named published defaults, including during tenant cloning, without creating `[Tenants Default]` duplicates. On tenant override deletion, restore the published definition, preserving overrides in other tenants.
+- Add `Notifications -> Manage / delete templates` to modern and classic admin menus: multi-select, select-all, confirmation, tenant-scoped atomic deletion, protected-reference checks, and audit event.
+- Add bilingual UI labels and regression tests for administrative authorization and inherited-template lifecycle. Seed built-in notification examples only once per tenant; never silently recreate deleted examples on administrative page load. Full CI/PostgreSQL/browser validation pending. See `docs/RC78_NOTIFICATION_TEMPLATES.md`.
+
+### 0.10.0-1 RC80 - notification type retirement retains tenant customizations
+
+- Publish newly added Tenants Default notification types/templates transactionally to all existing tenants, preserving canonical names and local overrides.
+- On source removal, keep tenant-customized types even with zero incident history, and retain their associated templates; similarly keep custom local templates and their parent types. Remove only pristine, unreferenced inherited copies. Keep locally owned pre-existing records, audit retention reasons, and preserve cross-tenant isolation.
+- Add isolated SQLite and full Flask/SQLAlchemy CI regression coverage. See `docs/RC80_NOTIFICATION_TYPE_RETIREMENT.md`.
+
+## RC81 - CI provenance and screenshot validation
+
+Validated same-tenant notification override provenance in full restore
+archives, separated Wizard element captures from full-viewport online manual
+screenshots, and reconciled legacy tests with same-code tenant override and
+updated training slide navigation. See `docs/RC81_CI_RECOVERY.md`.

@@ -47,8 +47,8 @@ def test_rc64_provenance_validation_and_pptx_scene_integrity():
     cmd=[sys.executable,str(ROOT/'scripts/check_training_visual_sources_rc64.py')]
     proc=subprocess.run(cmd,capture_output=True,text=True)
     assert proc.returncode==0,proc.stderr
-    deck=P/'CIR_Operational_Training_Visual_RC71.pptx'
-    pdf=P/'CIR_Operational_Training_Visual_RC71.pdf'
+    deck=P/'CIR_Operational_Training_Visual.pptx'
+    pdf=P/'CIR_Operational_Training_Visual.pdf'
     if not deck.exists() or not pdf.exists():
         import pytest
         pytest.skip('Deck built in release step')
@@ -56,7 +56,7 @@ def test_rc64_provenance_validation_and_pptx_scene_integrity():
     proc=subprocess.run(cmd,capture_output=True,text=True)
     assert proc.returncode==0,proc.stderr
     with ZipFile(deck) as z:
-        slide31=ET.fromstring(z.read('ppt/slides/slide39.xml'))
+        slide31=ET.fromstring(z.read('ppt/slides/slide40.xml'))
         ns='{http://schemas.openxmlformats.org/drawingml/2006/main}'
         texts=' '.join((el.text or '') for el in slide31.iter(ns+'t'))
         assert 'TENANTS DEFAULT' in texts
@@ -71,4 +71,4 @@ def test_ci_rebuilds_rc64_with_current_browser_artifacts():
     assert 'build_training_visual_rc64.js' in flow
     assert 'verify_visual_training_rc64.py' in flow
     assert 'CIR_REQUIRE_REAL_SCREENSHOTS' in flow
-    assert 'CIR_Operational_Training_Visual_RC71.pptx' in flow
+    assert 'CIR_Operational_Training_Visual.pptx' in flow

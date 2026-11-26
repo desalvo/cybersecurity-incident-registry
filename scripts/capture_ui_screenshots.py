@@ -39,6 +39,8 @@ REQUIRED_CAPTURES = {
     "login-desktop", "login-mobile", "registry-desktop", "registry-closed-state", "registry-mobile",
     "registry-mobile-menu", "incident-desktop", "incident-mobile",
     "spam-incident-desktop", "spam-incident-config-labels", "spam-workflow-steps",
+    "workflow-steps-focused", "statistics-desktop", "assistant-panel-closeup",
+    "tenant-setup-wizard-desktop", "tenant-setup-wizard-panel",
     "pdf-mapping-configuration", "pdf-generated-preview", "alfresco-settings-desktop",
     "alfresco-incident-documents",
     "assistant-desktop", "assistant-mobile", "interface-settings-desktop",
@@ -355,6 +357,21 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             snap(page, "registry-closed-state", "Icone di stato a inizio riga: avviso e chiusura completa",
                  "Row leading icons: pending warning and complete closure")
             checks["closed_incidents_have_real_green_workflow_icons"] = True
+            # Capture the actual statistics panel, not a hand-drawn bar chart.
+            # The reduced browser viewport makes chart labels legible after
+            # placement in the PowerPoint and avoids an entire 1920px desktop.
+            page.set_viewport_size({"width": 1280, "height": 900})
+            go(page, "/reports/stats")
+            expect(page.get_by_role("heading", name="Statistiche", exact=True)).to_be_visible()
+            expect(page.locator(".stats-card")).not_to_have_count(0)
+            expect(page.locator(".stats-card .stat-pill")).not_to_have_count(0)
+            snap(page, "statistics-desktop",
+                 "Statistiche reali: indicatori e grafici del tenant di laboratorio",
+                 "Actual statistics: demo tenant indicators and charts",
+                 element_selector=".stats-card:first-child")
+            page.set_viewport_size(DESKTOP)
+            go(page, "/")
+            checks["real_statistics_charts_rendered"] = True
             expect(page.locator('a[href="/incident/' + str(fixture["incident_id"]) + '"]:visible')).not_to_have_count(0)
             page.locator('a[href="/incident/' + str(fixture["incident_id"]) + '"]:visible').first.click()
             page.wait_for_load_state("networkidle")
@@ -374,6 +391,20 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             snap(page, "spam-workflow-steps", "Workflow SPAM: 13 fasi, pulsanti e condizioni",
                  "SPAM workflow: 13 stages, controls and conditions", full_page=True)
             checks["spam_real_13_step_workflow_rendered"] = True
+            # A narrower viewport shows fewer workflow cards and visibly
+            # enlarges their descriptions, badges, step arrows and controls.
+            page.set_viewport_size({"width": 1100, "height": 850})
+            go(page, f'/incident/{fixture["spam_incident_id"]}')
+            focused = page.locator('#incident-workflow .workflow-steps-ordered')
+            expect(focused).to_be_visible()
+            expect(focused.locator('.workflow-step-card')).to_have_count(13)
+            focused.scroll_into_view_if_needed()
+            snap(page, "workflow-steps-focused",
+                 "Workflow SPAM: primi passi leggibili in viewport ridotta",
+                 "SPAM workflow: readable first steps in a narrower viewport",
+                 element_selector='#incident-workflow .workflow-steps-ordered')
+            page.set_viewport_size(DESKTOP)
+            checks["reduced_viewport_workflow_cards_captured"] = True
             # Regression for old imported '[Tenants Default]' labels: verify
             # both available palettes represent each logical choice only once.
             # This is a real CIR browser capture, never a retouched screenshot.
@@ -432,6 +463,12 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             panel_box = page.locator("#cir-albot-panel").bounding_box()
             assert panel_box and abs(panel_box["width"] - 360) <= 2
             snap(page, "assistant-desktop", "AlBot nella pagina reale; risposta del provider locale dimostrativo", "AlBot in the actual app; local demonstration provider response")
+            # The real chat panel is captured as a DOM region, rather than
+            # reducing a full-screen 1920px image to a thumbnail in the deck.
+            snap(page, "assistant-panel-closeup",
+                 "AlBot: pannello autentico e risposta del provider locale di test",
+                 "AlBot: real panel and the local test provider response",
+                 element_selector='#cir-albot-panel')
             page.locator("#cir-albot-close").click()
             expect(page.locator("#cir-albot-panel")).to_be_hidden()
             expect(page.locator("#cir-albot-open")).to_be_focused()
@@ -583,6 +620,33 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             limited = context(browser, DESKTOP)
             limited_page = new_page(limited)
             login(limited_page, "demo-tenant-admin")
+            # Capture the REAL tenant setup wizard, including its progress
+            # navigator and a tighter crop of the input panel. No mock HTML.
+            go(limited_page, "/admin/setup-wizard")
+            expect(limited_page.locator(".setup-wizard-shell")).to_be_visible()
+            expect(limited_page.locator(".setup-wizard-panel")).to_be_visible()
+            expect(limited_page.locator(".setup-wizard-sidebar .setup-step-item")).not_to_have_count(0)
+            expect(limited_page.get_by_role("button", name="Salva e continua")).to_be_visible()
+            expect(limited_page.get_by_role("button", name="Salta questo gruppo")).to_be_visible()
+            expect(limited_page.get_by_role("button", name="Riesegui da capo")).to_be_visible()
+            snap(limited_page, "tenant-setup-wizard-desktop",
+                 "Wizard iniziale del tenant: navigazione dei passi e configurazione guidata",
+                 "Tenant setup wizard: step navigation and configuration form",
+                 element_selector=".setup-wizard-shell")
+            snap(limited_page, "tenant-setup-wizard-panel",
+                 "Wizard iniziale del tenant: campi e comandi in primo piano",
+                 "Tenant setup wizard: readable form fields and controls",
+                 element_selector=".setup-wizard-panel")
+            # Prove resume and restart through the same real UI used by admins.
+            limited_page.get_by_role("button", name="Salta questo gruppo").click()
+            expect(limited_page.locator(".setup-step-item.skipped")).to_have_count(1)
+            go(limited_page, "/")
+            go(limited_page, "/admin/setup-wizard")
+            expect(limited_page.locator(".setup-step-item.skipped")).to_have_count(1)
+            limited_page.get_by_role("button", name="Riesegui da capo").click()
+            expect(limited_page.locator(".setup-step-item.skipped")).to_have_count(0)
+            expect(limited_page.locator('.setup-progress[role="progressbar"]')).to_have_attribute("aria-valuenow", "0")
+            checks["tenant_wizard_resume_and_restart_verified"] = True
             token = limited_page.locator('meta[name="csrf-token"]').get_attribute("content")
             assert token
             denied = limited.request.post(base_url + "/admin/interface", form={"mode": "classic", "_csrf_token": token})

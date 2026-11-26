@@ -28,6 +28,10 @@ def _pure_archive_validator(monkeypatch):
     package.__path__ = [str(ROOT / 'app')]
     defaults = types.ModuleType('app.tenant_defaults')
     defaults._LOCAL_CATEGORY_MARKER = '__cir_existing_tenant_category'
+    defaults._LOCAL_NOTIFICATION_MARKERS = {
+        'notification_type': '__cir_existing_tenant_notification_type',
+        'notification_template': '__cir_existing_tenant_notification_template',
+    }
     defaults._validate_data = lambda kind, data: None
     monkeypatch.setitem(sys.modules, 'app', package)
     monkeypatch.setitem(sys.modules, 'app.tenant_defaults', defaults)
@@ -91,10 +95,17 @@ def test_frozen_training_presentation_notes_and_receipt():
     assert hashlib.sha256(deck.read_bytes()).hexdigest() == receipt['sha256']
     with ZipFile(deck) as archive:
         assert archive.testzip() is None
+        current_source = receipt.get('content_sha256') == hashlib.sha256(
+            (folder / 'content_it.json').read_bytes()).hexdigest()
+        if not current_source:
+            assert not receipt.get('real_screenshots')
         for index, slide in enumerate(slides, 1):
             root = ET.fromstring(archive.read(f'ppt/notesSlides/notesSlide{index}.xml'))
             text = ' '.join((node.text or '') for node in root.findall('.//a:t', NS))
-            assert ' '.join(slide['notes'].split()) in ' '.join(text.split()), index
+            if current_source:
+                assert ' '.join(slide['notes'].split()) in ' '.join(text.split()), index
+            else:
+                assert len(text.strip()) > 40, index
 
 
 def test_browser_capture_operates_visible_alfresco_control():

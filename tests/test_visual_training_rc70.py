@@ -30,6 +30,6 @@ def test_generator_guards_sequence_and_verifier_references_it():
     js=(ROOT/'scripts/build_training_visual_rc64.js').read_text(encoding='utf8')
     py=(ROOT/'scripts/verify_visual_training_rc64.py').read_text(encoding='utf8')
     assert "const expectedTeachingSequence = ['incident-entry', 'incident-blank', 'incident-model'" in js
-    for number,title in [(19,'Modelli incidente: cosa sono'), (20,'Amministrare i modelli'),
-                         (21,'Creare un modello'), (22,'Aprire un incidente usando un modello')]:
+    for number,title in [(20,'Modelli incidente: cosa sono'), (21,'Amministrare i modelli'),
+                         (22,'Creare un modello'), (23,'Aprire un incidente usando un modello')]:
         assert f"{number}: '{title}" in py

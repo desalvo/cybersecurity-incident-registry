@@ -22,6 +22,8 @@ REQUIRED_SCREENSHOTS = frozenset({
     'login-desktop', 'login-mobile', 'registry-desktop', 'registry-closed-state', 'registry-mobile',
     'registry-mobile-menu', 'incident-desktop', 'incident-mobile',
     'spam-incident-desktop', 'spam-incident-config-labels', 'spam-workflow-steps',
+    'workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
+    'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel',
     'pdf-mapping-configuration', 'pdf-generated-preview', 'alfresco-settings-desktop',
     'alfresco-incident-documents',
     'assistant-desktop', 'assistant-mobile', 'interface-settings-desktop',
@@ -33,13 +35,27 @@ REQUIRED_SCREENSHOTS = frozenset({
 # Only specifically approved regions may claim element-capture provenance.
 ELEMENT_CAPTURE_SELECTORS = {
     'spam-incident-config-labels': '#incident-main .dnd-layout',
+    'workflow-steps-focused': '#incident-workflow .workflow-steps-ordered',
+    'statistics-desktop': '.stats-card:first-child',
+    'assistant-panel-closeup': '#cir-albot-panel',
+    'tenant-setup-wizard-desktop': '.setup-wizard-shell',
+    'tenant-setup-wizard-panel': '.setup-wizard-panel',
 }
 DOCUMENTATION_CAPTURE_ROUTES = {
+    'tenant-setup-wizard-desktop': '/admin/setup-wizard',
+    'tenant-setup-wizard-panel': '/admin/setup-wizard',
     'documentation-user-desktop': '/aiuto',
     'documentation-user-mobile': '/aiuto',
     'documentation-admin-desktop': '/aiuto/amministrazione',
     'documentation-admin-mobile': '/aiuto/amministrazione',
 }
+# Only online help landing pages are required to show the *whole first fold*.
+# Wizard captures are authenticated element crops with their own strict bounds,
+# selector and route checks. Do not classify them as online manual covers.
+ONLINE_DOCUMENTATION_COVERS = frozenset({
+    'documentation-user-desktop', 'documentation-user-mobile',
+    'documentation-admin-desktop', 'documentation-admin-mobile',
+})
 DOCUMENTATION_CAPTURE_CHECKS = frozenset({
     'documentation_covers_show_current_identity_and_local_platform_logos',
     'documentation_mobile_first_fold_has_no_horizontal_overflow',
@@ -197,7 +213,7 @@ def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, me
         # Online manual covers must remain exact first-fold screenshots.
         # Preserve their specific diagnostic even when the capture-area
         # metadata itself has been corrupted.
-        if sid in DOCUMENTATION_CAPTURE_ROUTES and (area != 'viewport' or height != viewport['height']):
+        if sid in ONLINE_DOCUMENTATION_COVERS and (area != 'viewport' or height != viewport['height']):
             raise EvidenceError('Online documentation must show its real route and first viewport: ' + sid)
         if area == 'element':
             # Playwright's Locator.screenshot captures a DOM rectangle, NOT the
@@ -232,8 +248,8 @@ def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, me
             raise EvidenceError('Screenshot route must be local')
         if sid in DOCUMENTATION_CAPTURE_ROUTES:
             if (route != DOCUMENTATION_CAPTURE_ROUTES[sid]
-                    or row.get('capture_area') != 'viewport'
-                    or height != viewport['height']):
+                    or (sid in ONLINE_DOCUMENTATION_COVERS and
+                        (row.get('capture_area') != 'viewport' or height != viewport['height']))):
                 raise EvidenceError('Online documentation must show its real route and first viewport: ' + sid)
         if not all(isinstance(row.get(k), str) and row[k].strip() for k in ('caption_it', 'caption_en')):
             raise EvidenceError('Bilingual screenshot captions are required')

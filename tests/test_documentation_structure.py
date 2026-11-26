@@ -22,7 +22,7 @@ def test_admin_documentation_sections_are_numbered_and_inside_card():
     assert html.rstrip().endswith("{% endblock %}")
     assert html.count("{% endblock %}") == 1
     assert "### Rendering Markdown" not in html
-    assert "6. Flussi operativi incidenti" in html
+    assert "6. Workflow incidenti" in html
     assert "20. Destinatari esterni nei dati incidente" in html
     assert html.index("Figura 1 - Sequenza consigliata") > html.index("1. Responsabilità")
     assert html.index("20. Destinatari esterni nei dati incidente") < html.rindex("</div>")
