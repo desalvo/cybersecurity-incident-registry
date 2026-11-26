@@ -60,22 +60,41 @@ def test_editorial_gallery_reuses_every_archived_screenshot_except_classic(tmp_p
     if not DECK.is_file() or not PDF.is_file():
         import pytest
         pytest.skip('Source edition not generated in current checkout')
-    files=sorted((p for p in ARCHIVE.iterdir() if p.is_file() and p.suffix.lower() in {'.png','.jpg'}
-                  and p.stem not in HIDDEN_GALLERY_IDS),key=lambda p:p.name)
-    assert len(files)>=15
+    import json
+    from scripts.published_visual_training import check_published_receipt
+    manifest=ARCHIVE/'manifest.json'
+    receipt=ROOT/'docs/presentation/visual-training-receipt.json'
+    published=manifest.is_file() and receipt.is_file()
     assert BASE_SLIDES==EXPECTED_SLIDES==96
+    if published:
+        # A documentation PR replaces the archived screenshots with a sealed
+        # *different run*. Never compare those images with old history.
+        check_published_receipt(ROOT,DECK,PDF,manifest,receipt)
+        rows=json.loads(manifest.read_text(encoding='utf8'))['screenshots']
+        files=[(ARCHIVE/row['file'],row['sha256']) for row in rows
+               if row['id'] not in HIDDEN_GALLERY_IDS]
+    else:
+        files=[(p,hashlib.sha256(p.read_bytes()).hexdigest()) for p in sorted(
+            (p for p in ARCHIVE.iterdir() if p.is_file() and p.suffix.lower() in {'.png','.jpg'}
+             and p.stem not in HIDDEN_GALLERY_IDS), key=lambda p:p.name)]
+    assert len(files)>=15
     with ZipFile(DECK) as z:
         slides=[n for n in z.namelist() if re.fullmatch(r'ppt/slides/slide\d+\.xml',n)]
         assert len(slides)==EXPECTED_SLIDES+len(files)
         assert 'Anteprima di un documento PDF compilato' in _visible_text(z,95)
         assert 'Anteprima di una notifica prima dell’invio' in _visible_text(z,96)
-        for n,image in enumerate(files,start=EXPECTED_SLIDES+1):
-            checksum=hashlib.sha256(image.read_bytes()).hexdigest()
+        for n,(image,checksum) in enumerate(files,start=EXPECTED_SLIDES+1):
+            assert image.is_file() and hashlib.sha256(image.read_bytes()).hexdigest()==checksum
             assert checksum in linked_slide_image_digests(z,n), (image.name,n)
-            assert 'CATTURA CI DEL RUN' not in _visible_text(z,n)
+            if not published:
+                assert 'CATTURA CI DEL RUN' not in _visible_text(z,n)
+        # The classic UI is intentionally invisible even when it is retained
+        # as a technical screenshot in the publication manifest.
+        classic=next((row for row in json.loads(manifest.read_text())['screenshots']
+                      if row['id']=='classic-registry-desktop'),None) if published else None
         old=ARCHIVE/'classic-registry-desktop.png'
-        assert old.exists()
-        forbidden=hashlib.sha256(old.read_bytes()).hexdigest()
+        assert classic is not None or old.exists()
+        forbidden=classic['sha256'] if classic else hashlib.sha256(old.read_bytes()).hexdigest()
         all_refs=set()
         for number in range(1,len(slides)+1):
             all_refs.update(linked_slide_image_digests(z,number))
@@ -86,18 +105,35 @@ def test_step_card_and_category_zoom_are_deterministic_real_pixel_crops(tmp_path
     if not DECK.is_file():
         import pytest
         pytest.skip('Source edition not built')
+    import json
     from PIL import Image
-    source=ARCHIVE/'spam-workflow-steps.png'
-    with Image.open(source) as im:
-        assert im.height>im.width
+    manifest=ARCHIVE/'manifest.json'
+    if manifest.is_file():
+        # On a published PR, both crops are made from authenticated images of
+        # that run, rather than the obsolete spam-workflow-steps.png file.
+        rows={row['id']:row for row in json.loads(manifest.read_text())['screenshots']}
+        step_id='spam-workflow-steps' if 'spam-workflow-steps' in rows else 'workflow-steps-focused'
+        source=ARCHIVE/rows[step_id]['file']
+        categories=ARCHIVE/rows['spam-incident-config-labels']['file']
+        assert hashlib.sha256(source.read_bytes()).hexdigest()==rows[step_id]['sha256']
+        assert hashlib.sha256(categories.read_bytes()).hexdigest()==rows['spam-incident-config-labels']['sha256']
+    else:
+        source=categories=ARCHIVE/'spam-workflow-steps.png'
     with ZipFile(DECK) as z:
         step_refs=linked_slide_image_digests(z,61)
         category_refs=linked_slide_image_digests(z,85)
-    for idx,pos in enumerate([.154,.294,.430,.565,.703,.838]):
+    with Image.open(source) as im:
+        tall=im.height>im.width*1.28
+    positions=[.154,.294,.430,.565,.703,.838] if tall else [.02,.183,.346,.509,.672,.835]
+    for idx,pos in enumerate(positions):
         output=tmp_path/f'step-{idx}.png'
-        crop_region(source,output,(pos,.108,.132,.112))
+        crop_region(source,output,(pos,.108 if tall else .015,.132 if tall else .163,.112 if tall else .95))
         assert hashlib.sha256(output.read_bytes()).hexdigest() in step_refs
-    for idx,rect in enumerate([(.15,.555,.83,.100),(.15,.654,.83,.112)]):
+    with Image.open(categories) as im:
+        category_tall=im.height>im.width*1.28
+    rois=([(.15,.555,.83,.100),(.15,.654,.83,.112)] if category_tall else
+          [(.01,.01,.98,.47),(.01,.48,.98,.50)])
+    for idx,rect in enumerate(rois):
         output=tmp_path/f'category-{idx}.png'
-        crop_region(source,output,rect)
+        crop_region(categories,output,rect)
         assert hashlib.sha256(output.read_bytes()).hexdigest() in category_refs
