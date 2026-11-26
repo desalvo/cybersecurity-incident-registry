@@ -291,6 +291,25 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             capture["element_selector"] = element_selector
             width, height = _image_size(target)
             capture["element_size"] = {"width": width, "height": height}
+            if capture_id == "workflow-steps-focused":
+                # Measure the first six real cards relative to the exact DOM
+                # element Playwright photographed. This survives wrapping to
+                # two/three/four columns: fixed percent crops cannot do so.
+                container = page.locator(element_selector).bounding_box()
+                cards = page.locator(element_selector).locator('.workflow-step-card')
+                assert container and cards.count() >= 6
+                regions = []
+                for n in range(6):
+                    card = cards.nth(n).bounding_box()
+                    assert card and card['width'] > 150 and card['height'] > 180
+                    pad = 3.0
+                    x = max(0.0, (card['x'] - container['x'] - pad) / container['width'])
+                    y = max(0.0, (card['y'] - container['y'] - pad) / container['height'])
+                    right = min(1.0, (card['x'] - container['x'] + card['width'] + pad) / container['width'])
+                    bottom = min(1.0, (card['y'] - container['y'] + card['height'] + pad) / container['height'])
+                    assert right > x and bottom > y
+                    regions.append([round(x, 7), round(y, 7), round(right-x, 7), round(bottom-y, 7)])
+                capture['step_card_rois'] = regions
         screenshots.append(capture)
 
     def ask(page):

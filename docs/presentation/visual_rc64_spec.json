@@ -1014,11 +1014,12 @@
     "bullets": [
       "Gli admin configurano tipi, testo, destinatari, CC e allegati.",
       "I segnaposto %NAME%, %REFERENCE%, %START% (e altri) possono essere inseriti nel testo delle notifiche.",
+      "Questi sono solo alcuni esempi: CIR offre molte altre variabili, descritte nel manuale, utilizzabili nei template.",
       "All’uso vengono sostituiti automaticamente con nome, riferimento, data di inizio e dati del contesto dell’incidente.",
       "Prima dell’invio gli operatori verificano messaggio, destinatari e allegati autorizzati."
     ],
     "images": [],
-    "notes": "CIR – modulo 50. Workflow: template notifiche e variabili. Gli admin configurano tipi, testo, destinatari, CC e allegati. Variabili come %NAME%, %REFERENCE% e %START% si possono inserire nel corpo delle notifiche. Al momento dell’uso CIR sostituisce i segnaposto con i valori dell’incidente. Prima dell’invio gli operatori verificano messaggio, destinatari e allegati autorizzati. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 50. Workflow: template notifiche e variabili. Gli admin configurano tipi, testo, destinatari, CC e allegati. Variabili come %NAME%, %REFERENCE% e %START% si possono inserire nel corpo delle notifiche. Al momento dell’uso CIR sostituisce i segnaposto con i valori dell’incidente. Gli esempi elencati non esauriscono le variabili supportate: per la lista completa e il loro significato consultare il manuale CIR. Prima dell’invio gli operatori verificano messaggio, destinatari e allegati autorizzati. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 48
   },
   {
