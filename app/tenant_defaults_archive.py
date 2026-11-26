@@ -234,6 +234,22 @@ def validate_defaults_archive_tables(tables):
                     return ' '.join((name or '').strip().casefold().split())
                 if semantic(local.get('value')) != semantic(shared.get('value')):
                     _fail('categoria o dato locale non corrispondente alla sorgente condivisa.')
+        from .tenant_defaults import _LOCAL_NOTIFICATION_MARKERS
+        for annotated_type, marker in _LOCAL_NOTIFICATION_MARKERS.items():
+            if marker not in snapshot:
+                continue
+            marker_value = snapshot.pop(marker)
+            if marker_value is not True or local_type != annotated_type:
+                _fail('marcatore di override notifica non valido.')
+            if annotated_type == 'notification_type':
+                shared = config['notification_type'].get(source['source_id'])
+                if shared is not None and (local.get('code') or '').casefold() != (shared.get('code') or '').casefold():
+                    _fail('tipo di notifica locale non corrispondente alla sorgente.')
+            else:
+                shared = config['notification_template'].get(source['source_id'])
+                if shared is not None and ((local.get('name') or '').casefold() != (shared.get('name') or '').casefold()
+                                           or (local.get('kind') or '').casefold() != (shared.get('kind') or '').casefold()):
+                    _fail('template di notifica locale non corrispondente alla sorgente.')
         _validate_data(local_type, snapshot)
         _unique(replica_pairs, (source['id'], tenant_id), 'replica.source_tenant')
         _unique(local_records, (local_type, local_id), 'replica.local_record')

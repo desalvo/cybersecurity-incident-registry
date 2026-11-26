@@ -64,6 +64,7 @@
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-notifiche">Notifiche</button>
       <div id="menu-notifiche" class="dropdown-content" role="menu" aria-label="Notifiche">
         <a role="menuitem" href="{{ url_for('main.notification_types') }}">Tipi di notifica</a>
+        <a role="menuitem" href="{{ url_for('main.notification_templates_manage') }}">Gestisci / cancella template</a>
         <a role="menuitem" href="{{ url_for('main.notification_template_new') }}">Aggiungi template</a>
         <span class="dropdown-separator" aria-hidden="true"></span>
         {% for nt in notification_menu_types %}
@@ -117,7 +118,7 @@
           <a role="menuitem" href="{{ url_for('main.admin_tenant_defaults_alerts') }}">Avvisi defaults{% if tenant_defaults_alert_count %} ({{ tenant_defaults_alert_count }}){% endif %}</a>
           <a role="menuitem" href="{{ url_for('main.admin_workflow_catalog_notices') }}">Avvisi workflow{% if workflow_notice_count %} ({{ workflow_notice_count }}){% endif %}</a>
           <a role="menuitem" href="{{ url_for('main.admin_labels') }}">Liste configurabili</a>
-          <a role="menuitem" href="{{ url_for('main.admin_incident_workflows') }}">Flussi operativi incidenti</a>
+          <a role="menuitem" href="{{ url_for('main.admin_incident_workflows') }}">Workflow incidenti</a>
           <a role="menuitem" href="{{ url_for('main.admin_incident_templates') }}">Modelli incidente</a>
           <a role="menuitem" href="{{ url_for('main.admin_incident_form_fields') }}">Layout campi incidenti</a>
           <a role="menuitem" href="{{ url_for('main.admin_incident_button_actions') }}">Azioni automatiche pulsanti</a>

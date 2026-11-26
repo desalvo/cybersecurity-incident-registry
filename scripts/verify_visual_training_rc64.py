@@ -20,15 +20,17 @@ from zipfile import ZipFile
 NS = '{http://schemas.openxmlformats.org/drawingml/2006/main}'
 OFFICE_REL = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
 PACKAGE_REL = '{http://schemas.openxmlformats.org/package/2006/relationships}'
-REQUIRED_CI = ('registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
+REQUIRED_CI = ('workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
+               'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel', 'registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
                'pdf-generated-preview', 'alfresco-settings-desktop',
                'alfresco-incident-documents')
 ADDED_SLIDES = 6
 INSERT_AFTER = 14
-ARCH_SLIDES = 2
+ARCH_SLIDES = 3
 ARCH_AFTER = 6
 EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES
 PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES
+LAB_SPAM_OPENING_SLIDE = 62 + ADDED_SLIDES + ARCH_SLIDES
 REQUIRED_SLIDE_TITLES = {
     8: 'Login',
     17: 'Come cambia lo stato di un incidente: workflow generale (configurabile)',
@@ -42,18 +44,19 @@ REQUIRED_SLIDE_TITLES = {
     77: 'Come rendere operativa l’applicazione',
 }
 REQUIRED_NEW_SLIDE_TITLES = {
-    17: 'Aprire un incidente: dalla pagina principale',
-    18: 'Aprire un incidente da zero: compilazione manuale',
-    19: 'Modelli incidente: cosa sono, a cosa servono e permessi',
-    20: 'Amministrare i modelli: creazione, modifica e cancellazione',
-    21: 'Creare un modello da un incidente già registrato',
-    22: 'Aprire un incidente usando un modello',
+    18: 'Aprire un incidente: dalla pagina principale',
+    19: 'Aprire un incidente da zero: compilazione manuale',
+    20: 'Modelli incidente: cosa sono, a cosa servono e permessi',
+    21: 'Amministrare i modelli: creazione, modifica e cancellazione',
+    22: 'Creare un modello da un incidente già registrato',
+    23: 'Aprire un incidente usando un modello',
 }
 
 
 REQUIRED_ARCH_TITLES = {
     7: 'Plugin disponibili e possibilità di estensione',
     8: 'Da registro incidenti a workflow manager generico',
+    9: 'Architettura CIR: componenti, piattaforme e funzioni',
 }
 
 
@@ -96,8 +99,10 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         if bad:
             raise ValueError('PPTX corrotto: ' + bad)
         slides = [n for n in archive.namelist() if re.fullmatch(r'ppt/slides/slide[0-9]+\.xml', n)]
-        if len(slides) != EXPECTED_SLIDES:
-            raise ValueError(f'Numero slide inatteso: {len(slides)} anziche {EXPECTED_SLIDES}')
+        # A strict same-run build appends one visible screenshot gallery slide
+        # for each browser capture; offline editorial builds still have 88.
+        if len(slides) < EXPECTED_SLIDES or (not require_ci_images and len(slides) != EXPECTED_SLIDES):
+            raise ValueError(f'Numero slide inatteso: {len(slides)} (base {EXPECTED_SLIDES})')
         for original_number, title in REQUIRED_SLIDE_TITLES.items():
             number = original_number + (ARCH_SLIDES if original_number > ARCH_AFTER else 0) + (ADDED_SLIDES if original_number > INSERT_AFTER else 0)
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
@@ -117,11 +122,13 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         # Only the target slide itself may prove that a specific piece of
         # CI evidence is visible; unused /ppt/media members do not count.
         slide70_digests = linked_slide_image_digests(archive, PALETTE_SLIDE)
+        lab_opening_digests = linked_slide_image_digests(archive, LAB_SPAM_OPENING_SLIDE)
     # Only vetted application screenshots, locally generated CIR imagery and
     # verified same-run browser screenshots may enter the distributed deck.
     root = Path(__file__).resolve().parents[1]
     editorial_media = root / 'docs/presentation/visual_rc57_media'
     allowed = {digest(path) for path in editorial_media.iterdir() if path.is_file()}
+    allowed.add(digest(root/'app/static/ai-chatbot/albot-avatar.png'))
     art = root / 'docs/presentation/visual_rc61_art'
     art_provenance = json.loads((art/'provenance.json').read_text(encoding='utf8'))
     obsolete = {row['sha256'] for row in art_provenance['slides'].values()}
@@ -144,7 +151,10 @@ def run_check(pptx, pdf, manifest, require_ci_images):
             raise ValueError('Image sha256 mismatch: '+str(n))
         allowed.add(item['sha256'])
         if n in (31,33,41,42,79) and item['sha256'] not in media_digests:
-            raise ValueError('Updated thematic artwork not embedded: '+str(n))
+            # The authenticated wizard replaces slide 33's editorial illustration
+            # during strict CI generation. Its actual slide link is checked below.
+            if not (n == 33 and require_ci_images):
+                raise ValueError('Updated thematic artwork not embedded: '+str(n))
     additional = json.loads((root/'docs/presentation/visual_rc69_art/provenance.json').read_text(encoding='utf8'))
     for row in additional['artwork']:
         if row['human_people'] is not False or row['contains_embedded_slide_chrome'] is not False:
@@ -167,6 +177,16 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         source=root/row['file']
         if digest(source)!=row['sha256']:
             raise ValueError('Modular artwork hash mismatch')
+        allowed.add(row['sha256'])
+    # RC77 photographic architecture overview has separately recorded provenance.
+    ecosystem = json.loads((root/'docs/presentation/visual_rc77_art/provenance.json').read_text(encoding='utf8'))
+    if [row['kind'] for row in ecosystem['artwork']] != ['ecosystem']:
+        raise ValueError('Architecture ecosystem illustration missing')
+    for row in ecosystem['artwork']:
+        if row['real_people'] is not False or row['contains_embedded_slide_chrome'] is not False:
+            raise ValueError('Untrusted architecture artwork')
+        if digest(root/row['file']) != row['sha256']:
+            raise ValueError('Architecture artwork SHA-256 mismatch')
         allowed.add(row['sha256'])
     # Chapter-cover art is separately pinned to its RC62 source, and is not
     # embedded in any right-panel thematic illustration.
@@ -237,14 +257,34 @@ def run_check(pptx, pdf, manifest, require_ci_images):
             lookup[ident] = row
             allowed.add(checksum)
         screenshot_count = len(records)
+        expected_count = EXPECTED_SLIDES + (len(records) if require_ci_images else 0)
+        if require_ci_images and len(slides) != expected_count:
+            raise ValueError(f'Appendice screenshot CI incompleta: {len(slides)} slide, attese {expected_count}')
+        if require_ci_images:
+            with ZipFile(pptx) as linked_archive:
+                for offset, row in enumerate(records):
+                    n = EXPECTED_SLIDES + offset + 1
+                    if row['sha256'] not in linked_slide_image_digests(linked_archive, n):
+                        raise ValueError(f'Screenshot CI non visibile nella slide {n}: {row["id"]}')
+        if require_ci_images:
+            with ZipFile(pptx) as rich_archive:
+                for slide, ident in ((42, 'tenant-setup-wizard-panel'),
+                                     (55, 'workflow-steps-focused'),
+                                     (65, 'statistics-desktop'),
+                                     (68, 'assistant-panel-closeup')):
+                    if ident not in lookup or lookup[ident]['sha256'] not in linked_slide_image_digests(rich_archive, slide):
+                        raise ValueError(f'Screenshot focalizzata non incorporata nella slide {slide}: {ident}')
         for ident in REQUIRED_CI:
             if ident not in lookup:
                 raise ValueError('Manca screenshot obbligatoria: '+ident)
             checksum = lookup[ident]['sha256']
             if require_ci_images and checksum not in media_digests:
                 raise ValueError('Screenshot CI non incorporata nel PPTX: ' + ident)
-            if require_ci_images and ident == 'spam-incident-config-labels' and checksum not in slide70_digests:
-                raise ValueError('Screenshot CI non collegata alla slide ' + str(PALETTE_SLIDE) + ': ' + ident)
+            if require_ci_images and ident == 'spam-incident-config-labels':
+                if checksum not in slide70_digests:
+                    raise ValueError('Screenshot CI non collegata alla slide ' + str(PALETTE_SLIDE) + ': ' + ident)
+                if checksum not in lab_opening_digests:
+                    raise ValueError('Screenshot CI non collegata al laboratorio SPAM slide ' + str(LAB_SPAM_OPENING_SLIDE) + ': ' + ident)
     foreign = media_digests - allowed
     if foreign:
         sample = ', '.join(value[:12] for value in sorted(foreign)[:5])
@@ -254,9 +294,15 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         result = subprocess.run(['pdfinfo', str(pdf)], capture_output=True, text=True, check=True)
         pages = re.search(r'^Pages:\s*(\d+)\s*$', result.stdout, flags=re.MULTILINE)
         pdf_pages = int(pages.group(1)) if pages else -1
-        if pdf_pages != EXPECTED_SLIDES:
-            raise ValueError(f'PDF inaspettato: {pdf_pages} pagine invece di {EXPECTED_SLIDES}')
-    summary = {'slides': len(slides), 'pdf_pages': pdf_pages,
+        expected_pages = len(slides)
+        if pdf_pages != expected_pages:
+            raise ValueError(f'PDF inaspettato: {pdf_pages} pagine invece di {expected_pages}')
+    pdf_verified = 0
+    if pdf and require_ci_images:
+        from verify_pdf_screenshot_gallery import verify
+        pdf_verified = verify(Path(pdf), [manifest_path.parent / row['file'] for row in records],
+                              base_slides=EXPECTED_SLIDES)
+    summary = {'pdf_screenshots_visually_verified': pdf_verified, 'slides': len(slides), 'pdf_pages': pdf_pages,
                'verified_browser_screenshots': screenshot_count,
                'mandatory_ci_images_embedded': require_ci_images, 'status': 'PASS'}
     print(json.dumps(summary, ensure_ascii=False, indent=2))

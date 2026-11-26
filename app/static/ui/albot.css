@@ -4,8 +4,8 @@ body.cir-modern .cir-albot-panel[hidden]{display:none!important}
 body.cir-modern .cir-albot-header{background:#fff;border-bottom:1px solid #dce5ed}
 body.cir-modern .cir-albot-header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:21px 18px;min-height:86px}
 body.cir-modern .cir-albot-identity{display:flex;align-items:center;gap:11px;min-width:0}
-body.cir-modern .cir-albot-symbol{display:flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:9px;background:#e1f3f8;color:#37748a}
-body.cir-modern .cir-albot-symbol svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+body.cir-modern .cir-albot-symbol{display:flex;align-items:center;justify-content:center;flex:none;width:45px;height:45px;border-radius:50%;background:#e1f3f8;color:#37748a;overflow:hidden;border:1px solid #c0ddf1}
+body.cir-modern .cir-albot-symbol img.cir-albot-avatar{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
 body.cir-modern .cir-albot-identity h2{font-size:1.28rem;line-height:1.2;margin:0 0 5px;color:#182e41}
 body.cir-modern .cir-albot-identity p{font-size:.69rem;line-height:1.4;color:#637d91;margin:0}
 body.cir-modern .cir-albot-tools{display:flex;gap:2px}
@@ -24,6 +24,8 @@ body.cir-modern .cir-albot-knowledge-label{font-weight:700;color:#4b6b86}
 body.cir-modern #cir-albot-context-details{padding:10px 11px;margin-top:10px;border:1px solid #d7e4ee;border-radius:7px;background:#fff}
 body.cir-modern .cir-albot-messages{display:flex;flex-direction:column;gap:17px;min-width:0}
 body.cir-modern .cir-albot-message{border:1px solid #dce6ef;border-radius:10px;background:#fff;padding:15px 14px;color:#213b50;font-size:.85rem;line-height:1.7;overflow-wrap:anywhere;min-width:0}
+body.cir-modern .cir-albot-message.bot{position:relative;margin-left:43px}
+body.cir-modern .cir-albot-message.bot::before{content:"";position:absolute;left:-43px;top:4px;width:34px;height:34px;background:#e5f2fb url('/static/ai-chatbot/albot-avatar.png') center/cover no-repeat;border:1px solid #c0ddf1;border-radius:50%;box-shadow:0 2px 6px #142b4012}
 body.cir-modern .cir-albot-message.user{align-self:flex-end;max-width:92%;background:#e6f1fd;border-color:#e6f1fd;color:#285d91}
 body.cir-modern .cir-albot-message.user>.cir-albot-message-label{color:#44739d}
 body.cir-modern .cir-albot-message-label{display:block;font-size:.77rem;margin-bottom:9px;font-weight:700;color:#1b344a}

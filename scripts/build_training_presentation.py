@@ -495,6 +495,7 @@ def build_presentation(*, root=ROOT, output=None, documentation_dir=None, screen
             "real_screenshots": evidence is not None,
             "screenshot_manifest_sha256": manifest_hash,
             "file": PRESENTATION_FILE, "sha256": sha256(candidate),
+            "content_sha256": sha256(root / "docs/presentation/content_it.json"),
             "editable_text": True, "speaker_notes": True,
             "screenshots": [{"id": sid, "sha256": deck.rows[sid]["sha256"],
                               "media_file": deck.screenshot_media[sid]}

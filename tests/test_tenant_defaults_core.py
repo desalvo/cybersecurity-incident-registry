@@ -224,29 +224,34 @@ def test_recommendation_used_in_incident_is_retained(defaults_db):
     assert TenantDefaultAlert.query.filter_by(tenant_id=operational_id).one().kind == 'retired_in_use'
 
 
-def test_notification_alias_and_document_reference_are_preserved(defaults_db):
+def test_local_notification_override_and_document_reference_are_preserved(defaults_db):
     from app.models import NotificationType, Incident, Document
-    from app.tenant_defaults_models import TenantDefaultAlert
+    from app.tenant_defaults_models import TenantDefaultReplica, TenantDefaultSource
     db, defaults_id, operational_id, _ = defaults_db
     own = NotificationType(tenant_id=operational_id, code='security', label='Local notice')
     shared = NotificationType(tenant_id=defaults_id, code='security', label='Shared notice')
     db.session.add_all([own, shared])
     db.session.commit()
-    replica = NotificationType.query.filter_by(tenant_id=operational_id, code='security_td').one()
+    source = TenantDefaultSource.query.filter_by(source_type='notification_type', source_id=shared.id).one()
+    provenance = TenantDefaultReplica.query.filter_by(source_id=source.id, tenant_id=operational_id).one()
+    assert provenance.local_id == own.id  # Same-code local override, never a *_td alias.
+    assert NotificationType.query.filter_by(tenant_id=operational_id, code='security').count() == 1
     incident = Incident(tenant_id=operational_id, name='Incident', reference='N1')
     db.session.add(incident)
     db.session.flush()
-    document = Document(incident_id=incident.id, notification_tags='security_td')
+    document = Document(incident_id=incident.id, notification_tags='security')
     db.session.add(document)
-    db.session.delete(own)
     shared.label = 'Updated shared notice'
     db.session.commit()
-    assert replica.code == document.notification_tags == 'security_td'
-    assert replica.label == 'Updated shared notice'
+    assert own.label == 'Local notice'  # Tenant override beats shared update.
+    db.session.delete(own)
+    db.session.commit()
+    restored = NotificationType.query.filter_by(tenant_id=operational_id, code='security').one()
+    assert restored.label == 'Updated shared notice'
+    assert document.notification_tags == 'security'
     db.session.delete(shared)
     db.session.commit()
-    assert db.session.get(NotificationType, replica.id) is not None
-    assert TenantDefaultAlert.query.filter_by(tenant_id=operational_id).one().kind == 'retired_in_use'
+    assert NotificationType.query.filter_by(tenant_id=operational_id, code='security').count() == 1
 
 
 def test_publishing_failure_rolls_back_source_and_every_replica(defaults_db, monkeypatch):
@@ -360,6 +365,7 @@ def _generic_replica(source_row, source_type, tenant_id):
 
 def test_notification_templates_remap_dependencies_and_preserve_local_default(defaults_db):
     from app.models import ConfigLabel, NotificationType, NotificationTemplate, FormTemplateConfig, FormTemplateBinary
+    from app.tenant_defaults import inherited_configuration_record
     db, defaults_id, operational_id, _ = defaults_db
     local_type = NotificationType(tenant_id=operational_id, code='notice', label='Local type')
     source_type = NotificationType(tenant_id=defaults_id, code='notice', label='Shared type')
@@ -367,7 +373,9 @@ def test_notification_templates_remap_dependencies_and_preserve_local_default(de
     db.session.add_all([local_type, source_type, action])
     db.session.commit()
     inherited_type = _generic_replica(source_type, 'notification_type', operational_id)
-    own = NotificationTemplate(tenant_id=operational_id, kind=inherited_type.code,
+    assert inherited_type.id == local_type.id
+    assert inherited_type.code == 'notice' and inherited_type.label == 'Local type'
+    own = NotificationTemplate(tenant_id=operational_id, kind='notice',
                                name='Notification', subject='LOCAL', is_default=True)
     db.session.add_all([own, FormTemplateConfig(template_name='notice-form'),
                        FormTemplateBinary(template_name='notice-form', filename='notice-form.pdf', pdf_data=b'%PDF-1.4\n%%EOF\n')])
@@ -377,15 +385,98 @@ def test_notification_templates_remap_dependencies_and_preserve_local_default(de
     db.session.add(source)
     db.session.commit()
     local = _generic_replica(source, 'notification_template', operational_id)
-    assert local.kind == inherited_type.code == 'notice_td'
-    assert local.action_label_id == _replica(action, operational_id).id
-    assert local.linked_form_template_name == 'notice-form'
-    assert local.name == 'Notification [Tenants Default]'
-    assert own.subject == 'LOCAL' and own.is_default is True
-    assert local.is_default is False
+    assert local.id == own.id
+    assert local.kind == 'notice' and local.name == 'Notification'
+    assert local.subject == 'LOCAL' and local.is_default is True
+    assert local.linked_form_template_name is None
+    assert inherited_configuration_record(local) is None  # Editable tenant override.
+    assert NotificationTemplate.query.filter_by(tenant_id=operational_id, kind='notice').count() == 1
     source.subject = 'Changed centrally'
     db.session.commit()
-    assert local.subject == 'Changed centrally' and own.subject == 'LOCAL'
+    assert local.subject == 'LOCAL'  # Never overwrite tenant-admin modifications.
+    assert NotificationTemplate.query.filter_by(tenant_id=operational_id, kind='notice').count() == 1
+    # Deleting a local customization immediately exposes the shared version,
+    # with correctly remapped action label and document references.
+    previous_id = local.id
+    db.session.delete(local)
+    db.session.commit()
+    restored = _generic_replica(source, 'notification_template', operational_id)
+    assert restored.id != previous_id
+    assert restored.name == 'Notification' and restored.subject == 'Changed centrally'
+    assert restored.action_label_id == _replica(action, operational_id).id
+    assert restored.linked_form_template_name == 'notice-form'
+    assert restored.is_default is True
+    assert NotificationTemplate.query.filter_by(tenant_id=operational_id, kind='notice').count() == 1
+
+
+def test_notification_template_in_place_edit_and_delete_restores_defaults(defaults_db):
+    from app.models import NotificationType, NotificationTemplate
+    from app.tenant_defaults import inherited_configuration_record
+    db, defaults_id, operational_id, other_id = defaults_db
+    db.session.add(NotificationType(tenant_id=defaults_id, code='user', label='User'))
+    db.session.commit()
+    shared = NotificationTemplate(tenant_id=defaults_id, kind='user', name='Welcome',
+                                  subject='Shared subject', body='Shared body', is_default=True)
+    db.session.add(shared)
+    db.session.commit()
+    local = _generic_replica(shared, 'notification_template', operational_id)
+    other = _generic_replica(shared, 'notification_template', other_id)
+    assert local.name == other.name == 'Welcome'
+    assert inherited_configuration_record(local) is not None
+    initial_id = local.id
+    local.subject = 'Tenant-specific subject'
+    db.session.commit()
+    assert inherited_configuration_record(local) is None
+    assert _generic_replica(shared, 'notification_template', operational_id).id == initial_id
+    shared.subject = 'Shared changed again'
+    db.session.commit()
+    assert local.subject == 'Tenant-specific subject'
+    assert other.subject == 'Shared changed again'
+    db.session.delete(local)
+    db.session.commit()
+    restored = _generic_replica(shared, 'notification_template', operational_id)
+    assert restored.id != initial_id
+    assert restored.subject == 'Shared changed again'
+    assert NotificationTemplate.query.filter_by(tenant_id=operational_id, kind='user', name='Welcome').count() == 1
+    db.session.commit()
+    assert NotificationTemplate.query.filter_by(tenant_id=operational_id, kind='user', name='Welcome').count() == 1
+
+
+def test_new_tenant_uses_original_notification_template_names(defaults_db):
+    from app.models import Tenant, NotificationType, NotificationTemplate
+    db, defaults_id, _, _ = defaults_db
+    db.session.add(NotificationType(tenant_id=defaults_id, code='csirt', label='CSIRT'))
+    db.session.commit()
+    db.session.add(NotificationTemplate(tenant_id=defaults_id, kind='csirt',
+                                        name='Notification CSIRT', subject='Common'))
+    db.session.commit()
+    new_tenant = Tenant(name='tenant-after-publication')
+    db.session.add(new_tenant)
+    db.session.commit()
+    rows = NotificationTemplate.query.filter_by(tenant_id=new_tenant.id).all()
+    assert [(t.kind, t.name) for t in rows] == [('csirt', 'Notification CSIRT')]
+
+
+def test_same_named_templates_in_different_notification_kinds_stay_distinct(defaults_db):
+    from app.models import NotificationType, NotificationTemplate
+    db, defaults_id, operational_id, _ = defaults_db
+    db.session.add_all([
+        NotificationType(tenant_id=defaults_id, code='csirt', label='CSIRT'),
+        NotificationType(tenant_id=defaults_id, code='dpo', label='DPO'),
+    ])
+    db.session.commit()
+    local = NotificationTemplate(tenant_id=operational_id, kind='csirt', name='Report', subject='Custom CSIRT')
+    db.session.add(local)
+    db.session.commit()
+    db.session.add_all([
+        NotificationTemplate(tenant_id=defaults_id, kind='csirt', name='Report', subject='Shared CSIRT'),
+        NotificationTemplate(tenant_id=defaults_id, kind='dpo', name='Report', subject='Shared DPO'),
+    ])
+    db.session.commit()
+    rows = NotificationTemplate.query.filter_by(tenant_id=operational_id, name='Report').all()
+    assert sorted((row.kind, row.subject) for row in rows) == [
+        ('csirt', 'Custom CSIRT'), ('dpo', 'Shared DPO')]
+    assert next(row for row in rows if row.kind == 'csirt').id == local.id
 
 
 def test_incident_template_remaps_all_label_and_recommendation_ids(defaults_db):

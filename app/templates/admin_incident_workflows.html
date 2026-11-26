@@ -21,7 +21,7 @@
 {%- endmacro %}
 {% block content %}
 <div class="card">
-  <h2>Flussi operativi incidenti</h2>
+  <h2>Workflow incidenti</h2>
   <p><a class="btn secondary" href="{{ url_for('main.admin_workflow_catalog') }}">Catalogo Tenants Default e export portabile</a></p>
   <p class="muted">Definisci le azioni previste per categoria. Uno step è considerato solo se non ha condizioni oppure se tutte le condizioni associate sono verificate nell’incidente. Le condizioni si assegnano trascinando i chip nello spazio dello step.</p>
 </div>
@@ -35,7 +35,7 @@
       <label>Workflow da esportare</label>
       <select name="category_id">
         <option value="">Flusso di default</option>
-        {% for c in categories %}<option value="{{c.id}}">Categoria: {{c.value}}</option>{% endfor %}
+        {% for opt in workflow_scope_options if opt.has_workflow and opt.value != 'default' %}<option value="{{opt.value.split(':')[1]}}">{{opt.label}}</option>{% endfor %}
       </select>
       <button>Visualizza struttura export</button>
     </form>
@@ -51,7 +51,7 @@
       <p class="muted">Copia tutti gli step da un workflow sorgente al default o a una categoria destinazione.</p>
       <label>Sorgente</label>
       <select name="clone_source" required>
-        {% for opt in workflow_scope_options %}<option value="{{ opt.value }}">{{ opt.label }}{% if not opt.has_workflow %} - vuoto{% endif %}</option>{% endfor %}
+        {% for opt in workflow_scope_options if opt.has_workflow %}<option value="{{ opt.value }}">{{ opt.label }}</option>{% endfor %}
       </select>
       <label>Destinazione</label>
       <select name="clone_destination" required>
@@ -101,7 +101,7 @@
       <p class="muted">Elimina tutti gli step definiti per il flusso selezionato nel tenant attivo.</p>
       <label>Workflow da eliminare</label>
       <select name="delete_scope" required>
-        {% for opt in workflow_scope_options %}<option value="{{ opt.value }}" data-has-workflow="{{ 1 if opt.has_workflow else 0 }}">{{ opt.label }}{% if not opt.has_workflow %} - vuoto{% endif %}</option>{% endfor %}
+        {% for opt in workflow_scope_options if opt.has_workflow %}<option value="{{ opt.value }}" data-has-workflow="1">{{ opt.label }}</option>{% endfor %}
       </select>
       <button class="danger">Elimina workflow</button>
     </form>

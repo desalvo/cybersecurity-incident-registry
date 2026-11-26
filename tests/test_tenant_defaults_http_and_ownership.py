@@ -352,7 +352,8 @@ def test_shared_pdf_is_readable_but_tags_resolve_to_the_tenants_replica(ownershi
         source = TenantDefaultSource.query.filter_by(source_type='notification_type', source_id=origin.id).one()
         replica = TenantDefaultReplica.query.filter_by(source_id=source.id, tenant_id=ids['own']).one()
         copied = db.session.get(NotificationType, replica.local_id)
-        assert copied.code != local.code
+        assert copied.id == local.id and copied.code == local.code
+        assert copied.label == 'Unrelated local notice'
         with tenant_execution_context(ids['own']):
             assert get_template('ownership_shared', tenant_id=ids['own']).path.exists()
             assert can_edit_template('ownership_shared', ids['own']) is False
@@ -461,7 +462,8 @@ def test_scoped_export_filters_alias_binaries_and_maps_shared_document_tags(owne
         origin = TenantDefaultSource.query.filter_by(source_type='notification_type', source_id=source_type.id).one()
         replica = TenantDefaultReplica.query.filter_by(source_id=origin.id, tenant_id=ids['own']).one()
         mapped_code = db.session.get(NotificationType, replica.local_id).code
-        assert mapped_code != 'owner_notice'
+        assert mapped_code == 'owner_notice'
+        assert db.session.get(NotificationType, replica.local_id).label == 'LOCAL NOTICE'
         tables = _export_tables_payload(ids['own'])
         for table in ('form_template_configs', 'form_template_binaries', 'form_field_mappings'):
             assert not any(row['template_name'].startswith('ownership_private') for row in tables[table])

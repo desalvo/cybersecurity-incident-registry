@@ -31,6 +31,21 @@
       ],
       "arch_visual": "procedures",
       "notes": "Configurabilità del workflow verificata in IncidentWorkflowStep e ConfigLabel: required, requires_notification, conditions, max_completion_hours e operazioni di verifica globale. Scheduler notifiche: impostazioni di intervallo o cron, promemoria per incidente. Il sistema è utilizzabile per processi procedurali diversi dagli incidenti informatici; regole e policy restano configurate solo da amministratori con privilegi adeguati. [Sources] app/models.py; app/templates/notification_settings.html; app/routes.py; app/__init__.py."
+    },
+    {
+      "index": 88,
+      "original": 88,
+      "kind": "content",
+      "tag": "01 / ARCHITETTURA · PANORAMICA FOTOGRAFICA",
+      "title": "Architettura CIR: componenti, piattaforme e funzioni",
+      "bullets": [
+        "Core web Python/Flask e Gunicorn: UI desktop/mobile, controllo accessi e tenant; persistenza PostgreSQL e documenti su volumi protetti.",
+        "Motore procedurale configurabile: categorie e workflow, verifiche, audit, notifiche, scadenze, statistiche e report PDF.",
+        "Integrazioni modulari: plugin AlBot (AI) e Alfresco; SSO/MFA e posta sono servizi integrati. Altri plugin estendibili in futuro.",
+        "Deploy Linux su Docker/Podman (Compose), Kubernetes e OpenShift via Helm; immagini multiarchitettura amd64 e arm64."
+      ],
+      "arch_visual": "ecosystem",
+      "notes": "Illustrazione fotografica CGI sintetica originale dell’architettura, senza persone reali né fotografia di terzi. Componenti e piattaforme sono raffigurazioni concettuali, non schermate autentiche dell’app. Stack verificato in README.md e docs/DEPLOYMENT.md: Python/Flask/Gunicorn, PostgreSQL, Docker/Podman, Kubernetes/OpenShift, Helm, immagini linux/amd64 e linux/arm64. Funzionalità da app/plugins/ai_chatbot, app/plugins/alfresco, app/models.py e app/routes.py. [Sources] README.md; docs/DEPLOYMENT.md; app/__init__.py; app/workflow_catalog.py."
     }
   ]
 }

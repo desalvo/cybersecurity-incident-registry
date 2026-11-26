@@ -19,7 +19,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 BUILDER = ROOT / 'scripts/build_training_visual_rc64.js'
 VERIFIER = ROOT / 'scripts/verify_visual_training_rc64.py'
-REQUIRED = ('registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
+REQUIRED = ('workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
+            'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel', 'registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
             'pdf-generated-preview', 'alfresco-settings-desktop', 'alfresco-incident-documents')
 
 
@@ -75,12 +76,12 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                               '--screenshot-manifest', str(manifest), '--require-ci-images'],
                              cwd=ROOT, capture_output=True, text=True)
     assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)['slides'] == 87
+    assert json.loads(checked.stdout)['slides'] == 88 + len(REQUIRED)
 
     # Prove that the validator will reject an image that is still in the PPTX
     # media pool but is no longer referenced by the intended slide.
     tampered = tmp_path / 'unlinked_palette_test_only.pptx'
-    slide_name = 'ppt/slides/slide78.xml'
+    slide_name = 'ppt/slides/slide79.xml'
     with ZipFile(deck) as source, ZipFile(tampered, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -98,3 +99,25 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                               cwd=ROOT, capture_output=True, text=True)
     assert rejected.returncode != 0
     assert 'Screenshot CI non collegata alla slide ' in rejected.stderr
+
+
+    # A second negative control ensures the instructional lab slide itself
+    # really displays the same verified categories screenshot in strict CI.
+    tampered_lab = tmp_path / 'unlinked_lab_category_test_only.pptx'
+    slide_name = 'ppt/slides/slide71.xml'
+    with ZipFile(deck) as source, ZipFile(tampered_lab, 'w') as target:
+        for entry in source.infolist():
+            contents = source.read(entry.filename)
+            if entry.filename == slide_name:
+                page = ET.fromstring(contents)
+                ns = '{http://schemas.openxmlformats.org/drawingml/2006/main}'
+                rel = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
+                for blip in page.iter(ns + 'blip'):
+                    blip.attrib.pop(rel + 'embed', None)
+                contents = ET.tostring(page, encoding='utf-8', xml_declaration=True)
+            target.writestr(entry, contents)
+    rejected_lab = subprocess.run([sys.executable, str(VERIFIER), '--pptx', str(tampered_lab),
+                                   '--screenshot-manifest', str(manifest), '--require-ci-images'],
+                                  cwd=ROOT, capture_output=True, text=True)
+    assert rejected_lab.returncode != 0
+    assert 'Screenshot CI non collegata al laboratorio SPAM slide 71' in rejected_lab.stderr

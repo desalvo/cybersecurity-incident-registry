@@ -673,8 +673,9 @@ def _copy_notification_template_to_tenant(src, target_tenant_id, label_map=None)
         cc_external_allowed=src.cc_external_allowed, is_default=src.is_default,
     )
     if existing:
-        for key, value in values.items():
-            setattr(existing, key, value)
+        # Configuration clones cannot overwrite notification templates edited
+        # by administrators in the destination tenant. Their local override
+        # takes precedence over source and Tenants Default values.
         return existing
     clone = NotificationTemplate(tenant_id=target_tenant_id, kind=src.kind, name=src.name, **values)
     db.session.add(clone)
@@ -6341,9 +6342,12 @@ def _shared_configuration_delete_blocked(kind, row):
         flash('Cancellazione non consentita: ' + reason + '.', 'warning')
         return True
     from .tenant_defaults import inherited_configuration_record, configuration_reference_reason
-    if inherited_configuration_record(row):
+    if inherited_configuration_record(row) and kind != 'notification_template':
         flash('Elemento gestito da Tenants Default. La rimozione si effettua dalla sorgente condivisa.', 'warning')
         return True
+    # Removing an inherited notification template in an operational tenant
+    # restores the published definition during the same commit. A local
+    # override is equally removable; neither operation edits Tenants Default.
     if current_tenant().is_system_defaults and configuration_reference_reason(kind, row):
         flash('Elemento utilizzato nella configurazione sorgente. Rimuovere prima i riferimenti.', 'warning')
         return True
@@ -6499,14 +6503,49 @@ def ldap_incident_recipient_search():
 
 
 
+
+def ensure_tenant_generic_default_workflow(tenant_id):
+    """Provision one usable neutral default workflow for a newly cloned tenant.
+
+    Tenant cloning deliberately does not install category-specific workflows:
+    administrators install those explicitly from the Tenants Default catalog.
+    This helper is idempotent so a subsequent configuration re-clone cannot
+    replace or duplicate an administrator's existing default workflow.
+    """
+    if IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id, category_id=None).first():
+        return
+    generic_steps = (
+        ('Apertura', 'Registrare le informazioni iniziali dell’incidente.'),
+        ('Analisi', 'Analizzare e verificare le informazioni disponibili.'),
+        ('Conclusione', 'Verificare il completamento delle attività previste.'),
+    )
+    for index, (title, description) in enumerate(generic_steps, start=1):
+        action = ConfigLabel.query.filter_by(
+            tenant_id=tenant_id, kind='action_label', value=title,
+        ).first()
+        if action is None:
+            action = ConfigLabel(
+                tenant_id=tenant_id, kind='action_label', value=title,
+                group='azioni', description=description, default_exportable=False,
+            )
+            db.session.add(action)
+            db.session.flush()
+        db.session.add(IncidentWorkflowStep(
+            tenant_id=tenant_id, category_id=None, action_label_id=action.id,
+            position=index * 10, description=description,
+            required=True, step_type=REGISTRATION_STEP_TYPE,
+        ))
+    db.session.flush()
+
+
 def clone_tenant_config(source_tenant_id, dest_tenant_id):
     """Clone tenant-specific configuration from one tenant to another.
 
     The operation is idempotent: tenant-local objects are matched by their
-    natural key before creation, so repeated tenant creation/cloning or later
-    re-cloning does not duplicate labels, recipients, notification templates,
-    workflow dependencies or other configuration elements already present in
-    the destination tenant.
+    natural key before creation, so repeated cloning does not duplicate labels
+    and other configuration. Only one neutral default workflow is provisioned.
+    Category workflows are not cloned: tenant admins import them separately
+    from the workflow catalog.
     """
     source_tenant_id = int(source_tenant_id)
     dest_tenant_id = int(dest_tenant_id)
@@ -6515,6 +6554,8 @@ def clone_tenant_config(source_tenant_id, dest_tenant_id):
     if tenant_or_404(source_tenant_id).is_system_defaults:
         from .tenant_defaults import sync_defaults_configuration
         sync_defaults_configuration()
+        align_all_table_sequences()
+        ensure_tenant_generic_default_workflow(dest_tenant_id)
         return
     # I backup legacy ripristinati con ID espliciti possono lasciare indietro
     # le sequence PostgreSQL. Prima di creare qualunque record clonato
@@ -6582,63 +6623,12 @@ def clone_tenant_config(source_tenant_id, dest_tenant_id):
                 vals.append(str(new))
         return ','.join(vals)
 
-    def remap_condition_tokens(raw):
-        mapped = []
-        for token in (raw or '').split(','):
-            token = (token or '').strip()
-            if not token:
-                continue
-            negated = token.startswith('!')
-            base = token[1:] if negated else token
-            mapped_base = base
-            if base.startswith('severity:') or base.startswith('data_type:'):
-                prefix_name, raw_id = base.split(':', 1)
-                try:
-                    new_id = label_map.get(int(raw_id))
-                except Exception:
-                    new_id = None
-                if not new_id:
-                    continue
-                mapped_base = f'{prefix_name}:{new_id}'
-            mapped_token = f'!{mapped_base}' if negated else mapped_base
-            if mapped_token not in mapped:
-                mapped.append(mapped_token)
-        return ','.join(mapped)
-
-    for src in IncidentWorkflowStep.query.filter_by(tenant_id=source_tenant_id).order_by(IncidentWorkflowStep.position, IncidentWorkflowStep.id).all():
-        dest_category_id = label_map.get(src.category_id) if src.category_id else None
-        dest_action_label_id = label_map.get(src.action_label_id)
-        if not dest_action_label_id:
-            continue
-        dest_conditions = remap_condition_tokens(src.conditions)
-        existing = IncidentWorkflowStep.query.filter_by(
-            tenant_id=dest_tenant_id,
-            category_id=dest_category_id,
-            action_label_id=dest_action_label_id,
-            position=src.position,
-            step_type=src.step_type,
-            description=src.description,
-        ).first()
-        if existing:
-            existing.personal_data_only = src.personal_data_only
-            existing.required = src.required
-            existing.requires_notification = src.requires_notification
-            existing.required_notification_type = src.required_notification_type
-            existing.document_generation_enabled = src.document_generation_enabled
-            existing.document_template_name = form_names.get(src.document_template_name, src.document_template_name)
-            existing.conditions = dest_conditions
-        else:
-            db.session.add(IncidentWorkflowStep(
-                tenant_id=dest_tenant_id,
-                category_id=dest_category_id,
-                action_label_id=dest_action_label_id,
-                position=src.position, description=src.description, personal_data_only=src.personal_data_only,
-                required=src.required, requires_notification=src.requires_notification,
-                required_notification_type=src.required_notification_type,
-                document_generation_enabled=src.document_generation_enabled,
-                document_template_name=form_names.get(src.document_template_name, src.document_template_name),
-                conditions=dest_conditions, step_type=src.step_type,
-            ))
+    # Clone configuration, not workflow definitions. All source category
+    # workflows are deliberately omitted, regardless of whether they contain
+    # steps; the tenant administrator imports them from the catalog later.
+    # The default is a neutral 3-step baseline, never a potentially customized
+    # workflow copied from another tenant.
+    ensure_tenant_generic_default_workflow(dest_tenant_id)
 
     for src in NotificationType.query.filter_by(tenant_id=source_tenant_id).order_by(NotificationType.id).all():
         _copy_notification_type_to_tenant(src, dest_tenant_id)
@@ -8111,21 +8101,32 @@ def notification_label_value(kind):
     return '07-notifica all’utente'
 
 def ensure_default_notification_templates():
-    """Ensure tenant-local default examples without touching another tenant.
+    """Seed built-in examples once per tenant, never after an admin deletes one.
 
-    Legacy global templates may still be read for compatibility, but each
-    active tenant gets its own concrete rows before an administrator can edit,
-    clone, delete, or select a default.
+    Published Tenants Default templates are synchronized independently via
+    tenant_defaults. A tenant whose templates already exist is treated as
+    initialized (including legacy installs), to avoid recreating removed
+    examples after an upgrade or after a bulk delete.
     """
     tenant_id = current_tenant_id()
+    marker = 'notification_templates_bootstrapped_v2'
+    initialized = setting_value(marker, '0') == '1'
+    local_query = current_tenant_notification_template_query()
+    # Inherited templates and local overrides already count as initialized.
+    # Seed built-in examples only for a genuinely empty, never-used tenant.
+    create_examples = not initialized and local_query.first() is None
+    if not initialized:
+        set_setting_value(marker, '1')
     available_kinds = {row.code for row in current_tenant_notification_type_query().all()}
     for kind in ['user', 'csirt', 'dpo']:
         if kind not in available_kinds:
             continue
         try:
-            action_label = tenant_query(ConfigLabel).filter_by(kind='action_label', value=notification_label_value(kind)).first()
-            tmpl = current_tenant_notification_template_query(kind).filter_by(name=DEFAULT_TEMPLATE_NAMES[kind]).first()
-            if not tmpl:
+            tmpl = current_tenant_notification_template_query(kind).filter_by(
+                name=DEFAULT_TEMPLATE_NAMES[kind]).first()
+            if create_examples and tmpl is None:
+                action_label = tenant_query(ConfigLabel).filter_by(
+                    kind='action_label', value=notification_label_value(kind)).first()
                 tmpl = NotificationTemplate(
                     tenant_id=tenant_id,
                     kind=kind,
@@ -8144,7 +8145,12 @@ def ensure_default_notification_templates():
                 db.session.add(tmpl)
                 db.session.flush()
             if not current_tenant_notification_template_query(kind).filter_by(is_default=True).first():
-                tmpl.is_default = True
+                # If the original built-in template was deleted, select an
+                # existing replacement but do not manufacture a new record.
+                candidate = tmpl or current_tenant_notification_template_query(kind).order_by(
+                    NotificationTemplate.id).first()
+                if candidate is not None:
+                    candidate.is_default = True
         except IntegrityError:
             db.session.rollback()
             current_app.logger.info('Template di notifica predefinito già presente per tenant=%s kind=%s', tenant_id, kind)
@@ -10274,21 +10280,20 @@ def notification_types():
         type_id = request.form.get('type_id', type=int)
         if action == 'delete':
             t = writable_notification_type_or_404(type_id)
-            if _shared_configuration_delete_blocked('notification_type', t):
+            from .tenant_defaults import delete_notification_type_and_templates
+            try:
+                result = delete_notification_type_and_templates(db.session, current_tenant_id(), t.id)
+                audit_log('admin:notification_type_delete',
+                          {'tenant_id': current_tenant_id(), **result}, actor_type='user')
+                db.session.commit()
+            except (ValueError, IntegrityError) as exc:
+                db.session.rollback()
+                flash(f'Impossibile cancellare il tipo: {exc}', 'warning')
                 return redirect(url_for('main.notification_types'))
-            from .tenant_defaults import inherited_configuration_record, configuration_reference_reason
-            if inherited_configuration_record(t):
-                flash('Il tipo è gestito da Tenants Default; cancellarlo dalla configurazione condivisa.', 'warning')
-                return redirect(url_for('main.notification_types'))
-            if current_tenant().is_system_defaults and configuration_reference_reason('notification_type', t):
-                flash('Il tipo è usato da un workflow o modello. Rimuovere prima i riferimenti nella configurazione sorgente.', 'warning')
-                return redirect(url_for('main.notification_types'))
-            if tenant_query(NotificationTemplate).filter(NotificationTemplate.kind == t.code).first():
-                flash('Impossibile cancellare il tipo: esistono template associati. Cancellare o spostare prima i template.', 'error')
-            elif t.code in ['user','csirt','dpo']:
-                flash('I tipi predefiniti non possono essere cancellati.', 'error')
-            else:
-                db.session.delete(t); db.session.commit(); flash('Tipo di notifica cancellato')
+            restored = result['restored_code']
+            flash(f"Tipo {result['deleted_code']} cancellato insieme a {result['templates_deleted']} template. "
+                  + (f'Tipo {restored} e relativi template ripristinati da Tenants Default.' if restored
+                     else 'Nessun tipo condiviso da ripristinare.'), 'success')
             return redirect(url_for('main.notification_types'))
         code = (request.form.get('code') or '').strip().lower().replace(' ','_')
         label = (request.form.get('label') or '').strip()
@@ -10402,6 +10407,56 @@ def notification_settings():
     schedule_info = format_deadline_schedule_info()
     return render_template('notification_settings.html', settings=settings, deadline_placeholders=DEADLINE_NOTIFICATION_PLACEHOLDERS, preview_subject=preview_subject, preview_body=preview_body, schedule_info=schedule_info, upcoming_notifications=upcoming_scheduled_notifications())
 
+@bp.route('/notifiche/template/gestisci', methods=['GET', 'POST'])
+@login_required
+def notification_templates_manage():
+    """Tenant-scoped bulk deletion; published defaults remain isolated.
+
+    Selection is resolved and validated completely before a single deletion.
+    Each replacement inherited from Tenants Default is recreated by the
+    existing transactional configuration synchronization on commit.
+    """
+    if not can_admin():
+        abort(403)
+    ensure_default_notification_templates()
+    db.session.commit()
+    if request.method == 'POST':
+        raw_ids = request.form.getlist('template_ids')
+        if not raw_ids:
+            flash('Selezionare almeno un template da cancellare.', 'warning')
+            return redirect(url_for('main.notification_templates_manage'))
+        if len(raw_ids) > 500 or any(len(value) > 18 or not value.isascii() or not value.isdecimal() or int(value) <= 0 for value in raw_ids):
+            abort(400, 'Selezione di template non valida.')
+        selected_ids = list(dict.fromkeys(int(value) for value in raw_ids))
+        # Never include NULL-tenant legacy data or rows from another tenant.
+        # A super admin must activate the target tenant before deleting.
+        templates = [writable_notification_template_or_404(row_id) for row_id in selected_ids]
+        if any(_shared_configuration_delete_blocked('notification_template', row) for row in templates):
+            db.session.rollback()
+            flash('Nessun template cancellato: verificare i riferimenti dei template selezionati.', 'warning')
+            return redirect(url_for('main.notification_templates_manage'))
+        deleted_keys = {(row.kind, row.name) for row in templates}
+        deleted_rows = [{'id': row.id, 'kind': row.kind, 'name': row.name} for row in templates]
+        for row in templates:
+            db.session.delete(row)
+        audit_log('admin:notification_template_bulk_delete',
+                  {'tenant_id': current_tenant_id(), 'templates': deleted_rows}, actor_type='user')
+        db.session.commit()
+        restored = sum(1 for kind, name in deleted_keys
+                       if current_tenant_notification_template_query(kind).filter_by(name=name).first() is not None)
+        flash(f'{len(templates)} template selezionati eliminati. '
+              + (f'{restored} ripristinati automaticamente da Tenants Default.' if restored
+                 else 'Nessun template condiviso da ripristinare.'), 'success')
+        return redirect(url_for('main.notification_templates_manage'))
+    from .tenant_defaults import inherited_configuration_record
+    rows = current_tenant_notification_template_query().order_by(
+        NotificationTemplate.kind, NotificationTemplate.name, NotificationTemplate.id).all()
+    sources = {row.id: bool(inherited_configuration_record(row)) for row in rows}
+    return render_template('notification_templates_manage.html', templates=rows,
+                           inherited_sources=sources, kinds=notification_type_map(enabled_only=False),
+                           is_defaults_tenant=bool(current_tenant().is_system_defaults))
+
+
 @bp.route('/notifiche/template/nuovo', methods=['GET','POST'])
 @login_required
 def notification_template_new():
@@ -10461,7 +10516,14 @@ def notification_template(kind):
             tmpl = writable_notification_template_or_404(template_id, kind)
             if _shared_configuration_delete_blocked('notification_template', tmpl):
                 return redirect(url_for('main.notification_template', kind=kind))
-            db.session.delete(tmpl); db.session.commit(); flash(f'Template {title} cancellato')
+            old_name = tmpl.name
+            db.session.delete(tmpl)
+            db.session.commit()
+            restored = current_tenant_notification_template_query(kind).filter_by(name=old_name).first()
+            if restored:
+                flash(f'Template {title} ripristinato da Tenants Default (override locale rimosso).', 'success')
+            else:
+                flash(f'Template {title} cancellato', 'success')
             return redirect(url_for('main.notification_template', kind=kind))
         if action == 'clone':
             source = writable_notification_template_or_404(template_id, kind)
@@ -14876,7 +14938,7 @@ SETUP_WIZARD_SECTIONS = [
     {
         'code': 'tenants',
         'title': 'Tenant',
-        'description': 'Crea un tenant iniziale opzionale clonando la configurazione di un tenant esistente. La gestione completa resta in Admin → Tenant.',
+        'description': 'Crea un tenant iniziale clonando parametri e liste, senza workflow specifici. Il nuovo tenant riceve solo il workflow di default generico; gli admin importano poi i workflow dal catalogo. La gestione completa resta in Admin → Tenant.',
         'fields': [
             {'name': 'wizard_tenant_name', 'label': 'Nome nuovo tenant', 'type': 'text', 'default': '', 'placeholder': 'tenant-esempio'},
             {'name': 'wizard_tenant_description', 'label': 'Descrizione nuovo tenant', 'type': 'textarea', 'rows': 3, 'default': ''},

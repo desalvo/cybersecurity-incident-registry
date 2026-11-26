@@ -19,13 +19,14 @@ def test_classic_global_chatbot_retains_albot_name_and_avatar():
     assert '.ai-chatbot-message.bot::before' in css
 
 
-def test_modern_global_chatbot_uses_neutral_conversation_symbol():
+def test_modern_global_chatbot_restores_original_albot_cartoon_avatar():
     template = Path('app/templates/ui/albot.html').read_text(encoding='utf-8')
     css = Path('app/static/ui/albot.css').read_text(encoding='utf-8')
     assert 'AlBot' in template
-    assert '<svg' in template
-    assert 'ai-chatbot/albot-avatar.png' not in template
-    # The legacy full-page answer avatar is kept for the classic interface only.
+    assert 'class="cir-albot-avatar"' in template
+    assert 'ai-chatbot/albot-avatar.png' in template
+    assert 'ai-chatbot/albot-avatar.png' in css
+    # The classic full-page avatar remains hidden in modern mode: modern chat uses its own avatar.
     assert 'body.cir-modern .ai-chatbot-page-avatar{display:none}' in css
 
 
@@ -80,7 +81,7 @@ def test_albot_runtime_renders_one_widget_for_each_global_mode(monkeypatch, tmp_
                 ids = [attrs.get('id') for _tag, attrs in elements]
                 assert ids.count('ai-chatbot-widget') == (1 if mode == 'classic' else 0)
                 assert ids.count('cir-albot-panel') == (1 if mode == 'modern' else 0)
-                assert ('ai-chatbot/albot-avatar.png' in html) == (mode == 'classic')
+                assert 'ai-chatbot/albot-avatar.png' in html
                 assert 'AlBot' in html
                 links = {attrs.get('href') for tag, attrs in elements if tag == 'a'}
                 assert '/ai-chatbot/admin/plugins' in links

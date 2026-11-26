@@ -65,7 +65,7 @@ def _published_workflow(source, target):
 
 
 def test_defaults_workflow_uses_exact_replica_ids_after_numeric_and_name_collisions(lifecycle_db):
-    from app.models import db, ConfigLabel, IncidentWorkflowStep, NotificationTemplate
+    from app.models import db, ConfigLabel, IncidentWorkflowStep, NotificationTemplate, NotificationType
     from app.tenant_defaults_models import TenantDefaultSource, TenantDefaultReplica
     from app.workflow_catalog import import_catalog_workflow, save_catalog_workflow
     source, target, _ = lifecycle_db
@@ -103,9 +103,10 @@ def test_defaults_workflow_uses_exact_replica_ids_after_numeric_and_name_collisi
     installed = import_catalog_workflow(entry.id, target.id, copy_name='First response')
     step = db.session.get(IncidentWorkflowStep, installed['step_ids'][0])
     assert step.action_label_id == replicas['action_label'].id
-    assert step.condition_tokens() == [f"severity:{replicas['severity'].id}",
+    assert step.condition_tokens() == [f"severity:{unrelated['severity'].id}",
                                        f"!data_type:{replicas['data_type'].id}"]
-    assert step.required_notification_type != 'notice'
+    assert step.required_notification_type == 'notice'
+    assert NotificationType.query.filter_by(tenant_id=target.id, code='notice').one().label == 'UNCHANGED LOCAL TYPE'
     template = NotificationTemplate.query.filter_by(tenant_id=target.id, kind=step.required_notification_type).one()
     assert template.action_label_id == replicas['action_label'].id
     assert step.category_id not in {replicas['category'].id, unrelated['category'].id}
@@ -324,7 +325,7 @@ def test_legacy_cross_clone_maps_defaults_notifications_pdf_tags_and_origin(life
         source_tenant_id=source.id, destination_tenant_id=target.id)
     assert result['ok'] is True
     copied = IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=destination.id).one()
-    assert copied.required_notification_type != 'notice'
+    assert copied.required_notification_type == 'notice'
     assert copied.document_template_name != 'clone_required'
     cfg = FormTemplateConfig.query.filter_by(template_name=copied.document_template_name).one()
     assert cfg.owner_tenant_id == target.id
@@ -417,7 +418,7 @@ def test_legacy_json_import_remaps_colliding_condition_ids_and_shared_notificati
     copied = IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=replicas['category']).one()
     assert copied.action_label_id == replicas['action_label']
     assert copied.condition_tokens() == [f"severity:{replicas['severity']}", f"!data_type:{replicas['data_type']}"]
-    assert copied.required_notification_type != 'notice'
+    assert copied.required_notification_type == 'notice'
     assert NotificationType.query.filter_by(tenant_id=target.id, code='notice').one().label == 'UNCHANGED LOCAL TYPE'
     assert all(db.session.get(ConfigLabel, row.id).description == 'UNCHANGED LOCAL VALUE' for row in unrelated.values())
 

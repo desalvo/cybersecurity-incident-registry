@@ -486,8 +486,9 @@ def test_ordinary_bundle_resolves_shared_pdf_tag_through_provenance_despite_code
         reference = payload['documents'][0]['notification_refs'][0]
         item = next(row for row in payload['configuration']['items'] if row['key'] == reference)
         assert item['type'] == 'notification_type'
-        assert item['data']['code'] != 'notice'
-        assert item['data']['label'] == 'Notify operators'
+        assert item['data']['code'] == 'notice'
+        assert item['data']['label'] == 'LOCAL UNRELATED NOTICE'
+        assert len([r for r in payload['configuration']['items'] if r['type'] == 'notification_type' and r['data']['code'] == 'notice']) == 1
 
 
 def test_redacted_reimport_keeps_previously_imported_secrets(bundle_apps):

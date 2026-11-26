@@ -332,7 +332,7 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
         row['capture_area'] = 'full-page'
         self.save_manifest()
         # Full-page still permits a real scrollable capture of the document.
-        if row['id'] not in evidence.DOCUMENTATION_CAPTURE_ROUTES:
+        if row['id'] not in evidence.ONLINE_DOCUMENTATION_COVERS:
             self.assertIn(row['id'], self.load()['_paths'])
 
     def test_other_commit_is_rejected(self):
@@ -421,7 +421,7 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
                 self.manifest['checks'][name] = True
 
     def test_online_manual_openings_require_the_actual_route_and_viewport_capture(self):
-        for sid in evidence.DOCUMENTATION_CAPTURE_ROUTES:
+        for sid in evidence.ONLINE_DOCUMENTATION_COVERS:
             row = next(item for item in self.manifest['screenshots'] if item['id'] == sid)
             for key, invalid in (('route', '/login'), ('capture_area', 'full-page'), ('capture_area', None)):
                 with self.subTest(id=sid, key=key, invalid=invalid):
@@ -431,6 +431,32 @@ class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
                     with self.assertRaisesRegex(evidence.EvidenceError, 'first viewport'):
                         self.load()
                     row[key] = original
+
+    def test_wizard_element_crops_validate_real_route_selector_and_geometry(self):
+        from PIL import Image
+        for sid, selector in (('tenant-setup-wizard-desktop', '.setup-wizard-shell'),
+                              ('tenant-setup-wizard-panel', '.setup-wizard-panel')):
+            with self.subTest(sid=sid):
+                row = next(item for item in self.manifest['screenshots'] if item['id'] == sid)
+                target = self.artifact / row['file']
+                Image.new('RGB', (420, 550), (32, 90, 130)).save(target, 'PNG')
+                row.update(sha256=evidence.sha256(target), capture_area='element',
+                           viewport={'width': 1366, 'height': 900},
+                           element_size={'width': 420, 'height': 550},
+                           element_selector=selector)
+                self.save_manifest()
+                self.assertIn(sid, self.load()['_paths'])
+                for key, invalid in (('route', '/login'), ('element_selector', '.fake'),
+                                     ('element_size', {'width': 419, 'height': 550}),
+                                     ('capture_area', 'full-page')):
+                    original = row[key]
+                    row[key] = invalid
+                    self.save_manifest()
+                    with self.assertRaises(evidence.EvidenceError):
+                        self.load()
+                    row[key] = original
+                # Restore for the next screenshot and leave no test fixture changes.
+                self.save_manifest()
 
     def test_tall_png_cannot_claim_a_normal_online_manual_viewport(self):
         row = next(item for item in self.manifest['screenshots'] if item['id'] == 'documentation-user-mobile')
