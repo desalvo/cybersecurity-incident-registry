@@ -235,8 +235,16 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         with Image.open(source) as src:
             tall=src.height>src.width*1.28
         if kind=='steps':
-            positions=[.154,.294,.430,.565,.703,.838] if tall else [.02,.183,.346,.509,.672,.835]
-            regions=[(pos,.108 if tall else .015,.132 if tall else .163,.112 if tall else .95) for pos in positions]
+            try:
+                from scripts.training_step_card_roi import step_card_regions
+            except ModuleNotFoundError:
+                from training_step_card_roi import step_card_regions
+            metadata = None
+            if manifest and manifest_path.is_file():
+                rows = json.loads(manifest_path.read_text(encoding='utf8')).get('screenshots', [])
+                metadata = next((row for row in rows if row.get('id')=='workflow-steps-focused'
+                                 and (manifest_path.parent/row.get('file','')).resolve()==source.resolve()), None)
+            regions=step_card_regions(source,metadata)
         else:
             regions=([(.15,.555,.83,.100),(.15,.654,.83,.112)] if tall else
                      [(.01,.01,.98,.47),(.01,.48,.98,.50)])
@@ -415,7 +423,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
                 if required not in lookup or required in HIDDEN_GALLERY_IDS:
                     raise ValueError('Mandatory preview missing from complete browser gallery: '+required)
             add_original_rois(manifest_path.parent / lookup['workflow-steps-focused']['file'],'steps')
-            chosen=lookup.get('spam-workflow-steps') or lookup['workflow-steps-focused']
+            chosen=(lookup['workflow-steps-focused'] if lookup['workflow-steps-focused'].get('step_card_rois') else lookup.get('spam-workflow-steps') or lookup['workflow-steps-focused'])
             required_step_rois=add_full_width_rois(manifest_path.parent / chosen['file'],'steps')
             required_category_rois=add_full_width_rois(manifest_path.parent / lookup['spam-incident-config-labels']['file'],'categories')
             with ZipFile(pptx) as linked:

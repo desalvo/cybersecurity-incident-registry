@@ -240,6 +240,17 @@ def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, me
                 raise EvidenceError('Screenshot dimensions do not match viewport: ' + sid)
         else:
             raise EvidenceError('Unsupported screenshot capture area: ' + sid)
+        # The optional ROIs are obtained directly from the authenticated DOM
+        # element used for this screenshot. Reject forged, clipped or colliding
+        # card regions before they can be used in training slide 61.
+        if row.get('step_card_rois') is not None:
+            if sid != 'workflow-steps-focused':
+                raise EvidenceError('Unexpected workflow step geometry for: ' + sid)
+            try:
+                from scripts.training_step_card_roi import step_card_regions
+                step_card_regions(path, row)
+            except (ValueError, OSError) as exc:
+                raise EvidenceError('Invalid workflow step geometry: ' + sid) from exc
         expected_mode = 'classic' if sid.startswith('classic-') else 'modern'
         if row.get('ui_mode') != expected_mode:
             raise EvidenceError('Wrong UI mode: ' + sid)

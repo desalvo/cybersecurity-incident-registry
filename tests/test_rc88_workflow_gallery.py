@@ -115,7 +115,8 @@ def test_step_card_and_category_zoom_are_deterministic_real_pixel_crops(tmp_path
         # On a published PR, both crops are made from authenticated images of
         # that run, rather than the obsolete spam-workflow-steps.png file.
         rows={row['id']:row for row in json.loads(manifest.read_text())['screenshots']}
-        step_id='spam-workflow-steps' if 'spam-workflow-steps' in rows else 'workflow-steps-focused'
+        step_id=('workflow-steps-focused' if rows.get('workflow-steps-focused',{}).get('step_card_rois')
+                 else 'spam-workflow-steps' if 'spam-workflow-steps' in rows else 'workflow-steps-focused')
         source=ARCHIVE/rows[step_id]['file']
         categories=ARCHIVE/rows['spam-incident-config-labels']['file']
         assert hashlib.sha256(source.read_bytes()).hexdigest()==rows[step_id]['sha256']
@@ -125,12 +126,12 @@ def test_step_card_and_category_zoom_are_deterministic_real_pixel_crops(tmp_path
     with ZipFile(DECK) as z:
         step_refs=linked_slide_image_digests(z,61)
         category_refs=linked_slide_image_digests(z,85)
-    with Image.open(source) as im:
-        tall=im.height>im.width*1.28
-    positions=[.154,.294,.430,.565,.703,.838] if tall else [.02,.183,.346,.509,.672,.835]
-    for idx,pos in enumerate(positions):
+    from scripts.training_step_card_roi import step_card_regions
+    step_row = (rows.get('workflow-steps-focused') if manifest.is_file()
+                and source == ARCHIVE/rows.get('workflow-steps-focused',{}).get('file','missing') else None)
+    for idx,rect in enumerate(step_card_regions(source,step_row)):
         output=tmp_path/f'step-{idx}.png'
-        crop_region(source,output,(pos,.108 if tall else .015,.132 if tall else .163,.112 if tall else .95))
+        crop_region(source,output,rect)
         assert hashlib.sha256(output.read_bytes()).hexdigest() in step_refs
     with Image.open(categories) as im:
         category_tall=im.height>im.width*1.28

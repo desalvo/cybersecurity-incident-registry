@@ -67,5 +67,8 @@ def test_gallery_regressions_use_published_manifest_and_not_obsolete_images():
               'tests/test_rc88_workflow_gallery.py').read_text(encoding='utf-8')
     assert "if published:" in source
     assert "check_published_receipt(ROOT,DECK,PDF,manifest,receipt)" in source
-    assert "step_id='spam-workflow-steps' if 'spam-workflow-steps' in rows else 'workflow-steps-focused'" in source
+    # Prefer the DOM-measured element capture when the current CI includes
+    # the six authenticated card regions; retain older published receipts.
+    assert "step_id=('workflow-steps-focused' if rows.get('workflow-steps-focused',{}).get('step_card_rois')" in source
+    assert "else 'spam-workflow-steps' if 'spam-workflow-steps' in rows else 'workflow-steps-focused'" in source
     assert "categories=ARCHIVE/rows['spam-incident-config-labels']['file']" in source
