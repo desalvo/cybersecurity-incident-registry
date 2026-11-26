@@ -456,7 +456,9 @@ jobs:
   docker-release:
     name: Build, scan and promote multi-arch image
     outputs:
-      repository: ${{ steps.image.outputs.repository }}
+      # Export only the immutable digest. GitHub Actions may suppress a job
+      # output containing the Docker Hub username when that name is a secret;
+      # the repository is resolved again by the consuming job from vars.
       digest: ${{ steps.published.outputs.digest }}
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/main' && needs.release-scope.outputs.production_changed == 'true'))
     needs: [release-metadata, quality-gates, ui-documentation, release-scope]
@@ -699,14 +701,36 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLISHED_DIGEST: ${{ needs.docker-release.outputs.digest }}
-          PUBLISHED_REPOSITORY: ${{ needs.docker-release.outputs.repository }}
+          DOCKER_RELEASE_RESULT: ${{ needs.docker-release.result }}
+          # Do not use needs.docker-release.outputs.repository: GitHub can
+          # discard it when it contains the secret-masked Docker Hub username.
+          CONFIGURED_REPOSITORY: ${{ vars.CIR_DOCKER_REPOSITORY }}
         run: |
           set -euo pipefail
-          if [[ -n "$PUBLISHED_DIGEST" ]]; then
-            python scripts/record_production_digest.py \
-              --repository "$PUBLISHED_REPOSITORY" --digest "$PUBLISHED_DIGEST"
-            bash ./scripts/verify_production_release.sh
-          fi
+          case "$DOCKER_RELEASE_RESULT" in
+            success)
+              if [[ -z "$PUBLISHED_DIGEST" ]]; then
+                echo "Promoted Docker release did not expose a verified digest" >&2
+                exit 1
+              fi
+              # Mirror docker-release's repository resolution. This value is
+              # never propagated as a job output (which may be secret-filtered).
+              repository="${CONFIGURED_REPOSITORY:-${DEFAULT_DOCKER_REPOSITORY}}"
+              python scripts/record_production_digest.py \
+                --repository "$repository" --digest "$PUBLISHED_DIGEST"
+              bash ./scripts/verify_production_release.sh
+              ;;
+            skipped)
+              if [[ -n "$PUBLISHED_DIGEST" ]]; then
+                echo "Skipped Docker release unexpectedly reported a digest" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Unexpected Docker release result: $DOCKER_RELEASE_RESULT" >&2
+              exit 1
+              ;;
+          esac
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Stage additions AND deletions: superseded RCxx decks must not

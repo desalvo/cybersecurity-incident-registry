@@ -1020,3 +1020,19 @@ New admin page `/notifiche/template/gestisci` appears under the Notifications me
 ## RC80 - notification type retirement and tenant overrides
 
 Removing a notification type from `Tenants Default` retires the inherited pristine and unused type/templates. **Tenant-customized types are retained unconditionally**, even without incident usage, together with their associated templates; tenant-customized templates and historically used notification types/templates are retained as well. A new shared type is propagated transactionally to existing tenants. The natural keys and provenance snapshots remain tenant-scoped. See `docs/RC80_NOTIFICATION_TYPE_RETIREMENT.md` and the RC80 isolated/full CI tests.
+
+## RC85 — fix masked Docker repository output blocking documentation PR (2026-11-26)
+
+The first main-branch run after RC84 merge (`45742492679`) passed the full
+application tests (1,157 passed) and produced 16 verified same-run documentation
+artifacts. Docker release successfully promoted an OCI digest, but GitHub
+suppressed the `repository` job output because the value may contain a secret
+(the Docker Hub username). The documentation publisher then received an empty
+repository and failed while recording the digest; accountability correctly
+failed the workflow. RC85 removes the secret-filterable repository job output
+and resolves the repository in the publisher from the same variable/default
+used by the Docker job. The publisher now also rejects success without digest,
+skipped release with digest, or unexpected job status. See
+`docs/RC85_MAIN_CI_MASKED_REPOSITORY_OUTPUT.md`. No manual alteration of
+screenshots or presentation; regeneration and PR creation must be proven on a
+new `main` CI after RC85 merge.
