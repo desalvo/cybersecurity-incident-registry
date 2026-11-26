@@ -13,9 +13,21 @@ try {
     const scale=Math.min(w/width,h/height);
     return {x:x+(w-width*scale)/2,y:y+(h-height*scale)/2,w:width*scale,h:height*scale};
   };
-  // Full-bleed photography is decorative; a small stretch is acceptable in
-  // this portable fallback, but actual interface screenshots use contain.
-  imageSizingCrop=(_file,x,y,w,h)=>({x,y,w,h});
+  // Match the authored helper on CI runners: crops must not silently stretch
+  // the whole screenshot when the optional slide toolbox is unavailable.
+  imageSizingCrop=(file,x,y,w,h,cx,cy,cw,ch)=>{
+    const {width,height}=imageSize(fs.readFileSync(file));
+    const aspect=width/height, target=w/h;
+    if(cx===undefined||cy===undefined||cw===undefined||ch===undefined){
+      cw=aspect>=target?target/aspect:1;
+      ch=aspect>=target?1:aspect/target;
+      cx=(1-cw)/2;cy=(1-ch)/2;
+    }
+    let virtualW=w/cw,virtualH=virtualW/aspect;
+    if(Math.abs(virtualH*ch-h)>1e-6){virtualH=h/ch;virtualW=virtualH*aspect;}
+    return {x,y,w:virtualW,h:virtualH,
+      sizing:{type:'crop',x:cx*virtualW,y:cy*virtualH,w,h}};
+  };
 }
 const root=process.env.CIR_REPO_ROOT||path.resolve(__dirname,'..');
 const specFile=process.env.CIR_SPEC||path.join(root,'docs/presentation/visual_rc64_spec.json');
@@ -70,6 +82,8 @@ if(ciManifest && process.env.CIR_RELEASE_BUILD && ciManifest.build!==process.env
   throw new Error('Screenshot con build diversa dalla build CI');
 if(process.env.CIR_REQUIRE_REAL_SCREENSHOTS==='1'){
   if(!ciManifest)throw new Error('Il manifest browser e obbligatorio nella CI');
+  if(ciManifest.source_kind!=='real-application-browser' || ciManifest.data_provenance!=='isolated-synthetic-fixture')
+    throw new Error('La CI richiede evidenza browser reale su dati sintetici isolati');
   const required=['registry-closed-state','pdf-mapping-configuration','pdf-generated-preview',
     'alfresco-settings-desktop','alfresco-incident-documents',
     'spam-incident-config-labels','tenant-setup-wizard-desktop',
@@ -93,11 +107,29 @@ const ciViewByOldSlide={8:'login-desktop',9:'login-mobile',10:'admin-sso-desktop
   60:'assistant-panel-closeup',61:'assistant-mobile',62:'spam-incident-desktop',63:'spam-incident-desktop',
   64:'spam-incident-desktop',65:'spam-workflow-steps',66:'spam-workflow-steps',
   67:'spam-workflow-steps',71:'spam-incident-config-labels'};
+// Offline editorial images were checked into the application help area by
+// earlier work. They are NOT evidence for the current source commit; they
+// provide visible, honest examples of what the same-run CI callouts look like.
+const ARCHIVED_UI={
+ 'login-desktop':'login-desktop.png','login-mobile':'login-mobile.png',
+ 'registry-desktop':'registry-desktop.png','registry-mobile':'registry-mobile.png',
+ 'incident-desktop':'incident-desktop.png','spam-incident-desktop':'spam-incident-desktop.png',
+ 'spam-workflow-steps':'spam-workflow-steps.png','workflow-steps-focused':'spam-workflow-steps.png',
+ 'spam-incident-config-labels':'spam-workflow-steps.png',
+ 'admin-sso-desktop':'admin-sso-desktop.png','admin-modules-desktop':'admin-modules-desktop.png',
+ 'assistant-panel-closeup':'assistant-desktop.png','assistant-mobile':'assistant-mobile.png',
+ 'documentation-admin-desktop':'documentation-admin-desktop.png'
+};
 function realUiImage(d){
-  const id=d.kind==='preview'?'pdf-generated-preview':ciViewByOldSlide[d.original];
-  return id&&ciById.get(id)?{id,path:ciById.get(id)}:null;
+ const id=d.kind==='preview'?'pdf-generated-preview':ciViewByOldSlide[d.original];
+ if(!id)return null;
+ if(ciManifest)return ciById.has(id)?{id,path:ciById.get(id),verified:true}:null;
+ const name=ARCHIVED_UI[id];
+ if(!name)return null;
+ const file=path.join(root,'app/static/help/ui-runtime',name);
+ return fs.existsSync(file)?{id,path:file,archived:true}:null;
 }
-const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title='CIR — Presentazione didattica RC77';pptx.company='Cybersecurity Incident Registry';pptx.lang='it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'it-IT'};
+const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title='CIR — Presentazione didattica RC83';pptx.company='Cybersecurity Incident Registry';pptx.lang='it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'it-IT'};
 const W=13.33333,H=7.5;
 const C={bg:'F4F8FA',white:'FFFFFF',navy:'12324A',muted:'60798A',cyan:'00A8BE',teal:'147E8F',blue:'326C92',violet:'6264A3',green:'23896B',gold:'F6A23A',pink:'D46C75',line:'D9E5EB',ink:'143044',shadow:'EDF3F6',pale:'EAF6F8'};
 function rgb(hex){return '#'+hex;}
@@ -126,16 +158,18 @@ function notes(slide,d){
    n+='Schermata autentica CIR catturata dal browser della build corrente: registry-desktop.\n';
  if(d.training_flow && d.training_flow!=='incident-entry')
    n+='Schemi didattici originali con forme PowerPoint modificabili.\n';
- if(ids.length){
-   n+='Schermata/e autentica/e CIR della CI corrente '+ciCommit+': '+ids.join(', ')+'. Manifest Chromium firmato da SHA-256.\n';
+ if(ids.length && ciManifest){
+   n+='Schermata/e autentica/e CIR della CI corrente '+ciCommit+': '+ids.join(', ')+'. Manifest Chromium vincolato tramite SHA-256.\n';
+ }else if(realUiImage(d)?.archived){
+   n+='Schermata storica dell interfaccia CIR inclusa nell applicazione, non attestata come cattura della CI corrente.\n';
  }else if((d.images||[]).length){
    n+='Media editoriale della precedente presentazione CIR, derivato da evidenze CI con dati fittizi. Nessuna cattura attuale rivendicata.\n';
  }
- n+='Sorgente CIR 0.10.0-1 RC77. I dati sono di esempio; diagrammi e schemi non rappresentano screenshot dell’applicazione.\n';
- if(!ciManifest)n+='Le screenshot mancanti (chiusura completa, mapping, anteprima PDF, Alfresco) saranno acquisite da CI su interfaccia reale.\n';
+ n+='Sorgente CIR 0.10.0-1 RC83. I dati sono di esempio; diagrammi e schemi non rappresentano screenshot dell’applicazione.\n';
+ if(!ciManifest)n+='Edizione editoriale offline: nessuna attestazione di catture dalla CI corrente.\n';
  slide.addNotes(n);
 }
-function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,'v0.10.0-1 · materiale didattico RC77',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${data.length + (ciManifest?.screenshots?.length||0)}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
+function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,'v0.10.0-1 · materiale didattico RC83',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${data.length + (ciManifest?.screenshots?.length||0)}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
 function bgBase(slide,section){slide.background={color:C.bg};rect(slide,.0,.0,W,.12,section);rect(slide,.5,.48,.055,.68,section);}
 function safeBullets(d){return (d.bullets||[]).map(s=>String(s).replace(/\\\s*$/,'').trim()).filter(Boolean)}
 // Photographic artwork is independent of slide chrome: no title, labels or footer.
@@ -273,12 +307,74 @@ function modularArchitecturePanel(slide,d,accent){
    addText(slide,'Regole operative configurabili da super admin e admin autorizzati', {x:6.63,y:6.38,w:5.68,h:.18,fontSize:9.2,color:C.teal,italic:true,align:'center',margin:0});
  }
 }
+
+// The source is an unmodified, SHA-256 verified image from the SAME CI manifest.
+// The zoom is a native PowerPoint crop of the same embedded image. No invented UI.
+const CI_FOCUS={
+ 'registry-closed-state':[.02,.14,.62,.29,'Icone di stato e chiusura'],
+ 'registry-desktop':[.02,.12,.65,.28,'Registro e comandi'],
+ 'incident-desktop':[.04,.24,.68,.30,'Dati e azioni incidente'],
+ 'spam-incident-desktop':[.05,.29,.72,.29,'Azioni del caso SPAM'],
+ 'spam-incident-config-labels':[.05,.27,.73,.31,'Categorie e dati interessati'],
+ 'workflow-steps-focused':[.03,.03,.92,.78,'Card, pulsanti e frecce delle fasi'],
+ 'spam-workflow-steps':[.08,.11,.84,.17,'Workflow SPAM'],
+ 'pdf-mapping-configuration':[.28,.19,.64,.30,'Associazione campi PDF'],
+ 'pdf-generated-preview':[.10,.16,.69,.35,'Anteprima PDF generata'],
+ 'alfresco-settings-desktop':[.17,.20,.68,.31,'Parametri di integrazione Alfresco'],
+ 'alfresco-incident-documents':[.12,.18,.72,.32,'Allegati e documenti incidente'],
+ 'statistics-desktop':[.03,.14,.73,.37,'Grafici e indicatori'],
+ 'assistant-panel-closeup':[.05,.12,.86,.36,'Risposta assistente AlBot'],
+ 'assistant-mobile':[.03,.12,.91,.34,'Conversazione su mobile'],
+ 'tenant-setup-wizard-panel':[.04,.18,.88,.37,'Campi e comandi del wizard'],
+ 'tenant-setup-wizard-desktop':[.05,.15,.84,.37,'Navigazione e avanzamento del wizard'],
+ 'login-desktop':[.27,.21,.50,.34,'Area di autenticazione'],
+ 'login-mobile':[.03,.16,.91,.32,'Form di autenticazione mobile'],
+ 'admin-sso-desktop':[.18,.18,.69,.33,'Configurazione SSO'],
+ 'admin-modules-desktop':[.15,.20,.70,.34,'Moduli disponibili']
+};
+function addCiZoom(slide,shot,override=null){
+ const ARCHIVED_FOCUS={
+   'workflow-steps-focused':[.10,.10,.82,.18,'Card e avanzamento delle fasi'],
+   'spam-incident-config-labels':[.13,.61,.82,.15,'Categorie e dati interessati'],
+   'assistant-panel-closeup':[.82,.35,.17,.115,'Conversazione e risposta AlBot']
+ };
+ const [cx,cy,cw,ch,label]=override||(shot.archived?ARCHIVED_FOCUS[shot.id]:null)||CI_FOCUS[shot.id]||[.12,.18,.72,.35,'Dettaglio operativo'];
+ if([cx,cy,cw,ch].some(v=>!Number.isFinite(v)||v<0||v>1)||cx+cw>1||cy+ch>1)
+   throw new Error('Invalid CI screenshot focus: '+shot.id);
+ const bx=6.44,bw=6.12;
+ rect(slide,bx,1.56,bw,5.09,C.white,C.line);
+ addText(slide,shot.archived?'SCHERMATA COMPLETA · EVIDENZA STORICA':'SCHERMATA COMPLETA · CATTURA CI AUTENTICA',
+   {x:bx+.17,y:1.65,w:bw-.34,h:.24,fontSize:9.0,bold:true,color:C.teal,margin:0});
+ const p=imageSizingContain(shot.path,bx+.22,1.97,bw-.44,2.03);
+ // Fit the chosen highlight precisely into the zoom panel without deforming
+ // the original screenshot. Trim the focus ROI symmetrically when necessary.
+ const ratio=(bw-.46)/1.92, sourceRatio=p.w/p.h;
+ let zw=cw,zh=ch;
+ if(sourceRatio*zw/zh>ratio)zw=ratio*zh/sourceRatio;
+ else zh=sourceRatio*zw/ratio;
+ const zx=cx+(cw-zw)/2,zy=cy+(ch-zh)/2;
+ slide.addImage({path:shot.path,...p});
+ // Highlight the exact crop on the overview and connect it to the enlarged view.
+ slide.addShape(pptx.ShapeType.rect,{x:p.x+zx*p.w,y:p.y+zy*p.h,w:zw*p.w,h:zh*p.h,
+   line:{color:'D46631',width:2.2},fill:{color:C.white,transparency:100}});
+ addText(slide,'INGRANDIMENTO · '+label.toUpperCase(),
+   {x:bx+.17,y:4.04,w:bw-.34,h:.25,fontSize:9.8,bold:true,color:C.teal,margin:0});
+ rect(slide,bx+.18,4.35,bw-.36,2.02,'EEF5F7','D46631');
+ // Preserve the original screenshot bytes; PowerPoint performs the crop at render time.
+ slide.addImage({path:shot.path,...imageSizingCrop(shot.path,bx+.23,4.40,bw-.46,1.92,zx,zy,zw,zh)});
+ line(slide,p.x+(zx+zw*.5)*p.w,p.y+(zy+zh)*p.h,0,Math.max(.04,4.32-(p.y+(cy+ch)*p.h)),'D46631',1.1);
+}
+
 function focusedCiPanel(slide,d,accent){
  // Use authentic DOM-region screenshots from the current CI only. For offline
  // editorial export, diagrams/archived evidence are explicitly labelled.
  const shot=realUiImage(d);
  const x=5.72, w=6.97;
  rect(slide,x,1.48,w,5.22,C.white,C.line);
+ if(shot){
+   addCiZoom(slide,shot);
+   return;
+ }
  if(d.index===59){
    const avatar=path.join(root,'app/static/ai-chatbot/albot-avatar.png');
    if(!fs.existsSync(avatar))throw new Error('AlBot original avatar missing');
@@ -288,7 +384,7 @@ function focusedCiPanel(slide,d,accent){
    if(shot){
      slide.addImage({path:shot.path,...imageSizingContain(shot.path,x+.45,3.40,6.12,2.79)});
    }else{
-     boxNode(slide,'Pannello conversazione AlBot: cattura reale richiesta alla CI',
+     boxNode(slide,'Pannello AlBot · riferimento operativo illustrativo',
        x+.41,3.81,6.15,1.14,'E9F3F9',C.navy,13);
    }
  }else if(shot){
@@ -297,7 +393,7 @@ function focusedCiPanel(slide,d,accent){
    slide.addImage({path:shot.path,...imageSizingContain(shot.path,x+.18,2.06,w-.36,4.05)});
  }else{
    visual(slide,d,accent);
-   addText(slide,'Illustrazione editoriale · la screenshot reale sarà integrata dalla CI',
+   addText(slide,'Schema didattico · non è una schermata dell’applicazione',
       {x:x+.21,y:6.27,w:w-.42,h:.26,fontSize:9.2,color:C.muted,align:'center',margin:0});
  }
  return;
@@ -322,7 +418,7 @@ function rightPanel(slide,d,accent){
    rect(slide,6.47,1.66,6.08,3.49,'F6F9FA',C.line);
    slide.addImage({path:source,...imageSizingContain(source,6.55,1.74,5.91,3.29)});
    addText(slide,categoryShot?'CATEGORIE REALI · CATTURA CI DELLA BUILD':
-     (incidentShot?'INCIDENTE REALE · CATTURA CI':'ESEMPIO CIR · SCHERMATA EDITORIALE'),
+     (incidentShot?'INCIDENTE REALE · CATTURA CI':'ESEMPIO DIDATTICO · MEDIA STORICO'),
      {x:6.56,y:5.19,w:5.86,h:.22,fontSize:8.3,bold:true,color:C.teal,align:'center',margin:0});
    boxNode(slide,'1ª CATEGORIA\nSPAM',6.68,5.53,2.33,.69,'E5F0F9',C.navy,13);
    arrow(slide,9.18,5.70,.45,'right',accent);
@@ -334,24 +430,17 @@ function rightPanel(slide,d,accent){
  if(d.index===33){
    const wizard=realUiImage(d);
    if(wizard?.id==='tenant-setup-wizard-panel'){
-     rect(slide,6.43,1.67,6.15,4.92,'F6F9FA');
-     slide.addImage({path:wizard.path,...imageSizingContain(wizard.path,6.55,1.77,5.91,4.70)});
-     addText(slide,'WIZARD INIZIALE DEL TENANT · CATTURA CI VERIFICATA',
-       {x:6.59,y:6.51,w:5.83,h:.23,fontSize:8.2,bold:true,color:C.teal,align:'center',margin:0});
+     addCiZoom(slide,wizard);
    }else{
      photoPanel(slide,d);
-     addText(slide,'Vista reale del Wizard integrata dalla CI dopo la cattura autenticata',
-       {x:6.49,y:6.46,w:5.97,h:.27,fontSize:8.8,color:C.muted,align:'center',margin:0});
+     rect(slide,6.49,6.38,5.97,.31,C.white,C.line);
+     addText(slide,'Schema del wizard · illustrazione di supporto',
+       {x:6.49,y:6.43,w:5.97,h:.20,fontSize:8.8,color:C.muted,align:'center',margin:0});
    }
    return;
  }
  if(d.index===70 && categoryPalette?.id==='spam-incident-config-labels'){
-   rect(slide,6.48,1.67,6.04,4.91,'F6F9FA');
-   slide.addImage({path:categoryPalette.path,
-      ...imageSizingContain(categoryPalette.path,6.55,1.77,5.90,4.64)});
-   addText(slide,'CATEGORIE E DATI INTERESSATI · SCHERMATA CI AUTENTICA',
-      {x:6.62,y:6.52,w:5.72,h:.20,fontSize:8.0,bold:true,color:C.teal,
-       align:'center',margin:0});
+   addCiZoom(slide,categoryPalette);
    return;
  }
  if(d.index===21 && Array.isArray(d.report_pages)){
@@ -369,6 +458,10 @@ function rightPanel(slide,d,accent){
    addText(slide,'PAGINA '+(i+1)+' / 2',{x:xx,y:6.36,w:2.48,h:.19,fontSize:8.6,bold:true,color:C.teal,align:'center',margin:0});
   }
   return;
+ }
+ if(realUiImage(d)){
+   addCiZoom(slide,realUiImage(d));
+   return;
  }
  if(d.photo_art){
   if(d.right_diagram==='tenant_inheritance'){
@@ -390,11 +483,11 @@ function rightPanel(slide,d,accent){
   });
   return;
  }
- const images=d.images||[];const src=images.find(i=>fs.existsSync(imagePath(i)));const real=realUiImage(d);const ciScreen=Boolean(real||(src&&(src.px||[])[0]>1000));
+ const images=d.images||[];const src=images.find(i=>fs.existsSync(imagePath(i)));const real=realUiImage(d);const ciScreen=Boolean(real);
  if(src||real){const img=real?real.path:imagePath(src);const wide=Boolean(real && !d.report_pages);
    const ix=wide?5.85:6.52,iw=wide?6.72:5.99;
    rect(slide,ix,1.80,iw,4.48,'F6F9FA');slide.addImage({path:img,...imageSizingContain(img,ix+.02,1.83,iw-.04,4.37)});
-   addText(slide,ciScreen?'SCHERMATA CI / DATI DI PROVA':'VISUAL ORIGINALE CIR',{x:ix+.02,y:6.43,w:iw-.06,h:.24,fontSize:8.7,bold:true,color:C.teal,align:'center',margin:0});}
+   addText(slide,ciManifest&&ciScreen?'SCHERMATA CI / DATI DI PROVA':'MEDIA EDITORIALE CIR',{x:ix+.02,y:6.43,w:iw-.06,h:.24,fontSize:8.7,bold:true,color:C.teal,align:'center',margin:0});}
  else {visual(slide,d,accent);}
  }
 function boxNode(slide,txt,x,y,w,h,fill=C.pale,color=C.navy,size=13){rect(slide,x,y,w,h,fill);addText(slide,txt,{x:x+.13,y:y+.08,w:w-.26,h:h-.16,fontSize:size,color,bold:true,align:'center',valign:'mid',margin:0,breakLine:false,fit:'shrink'});}
@@ -408,9 +501,9 @@ function visual(slide,d,accent){const title=d.title.toLowerCase();const x=6.60,y
   boxNode(slide,'Modulo PDF\nAcroForm',x+.10,y+.12,2.1,.95,'DFEDF4',C.navy,16);boxNode(slide,'Dati\ndell’incidente',x+3.29,y+.12,2.1,.95,'E6F4EE',C.navy,15);arrow(slide,x+2.38,y+.43,.62,'right',accent);
   boxNode(slide,'%REFERENCE% → RIFERIMENTO\n%NAME% → NOMINATIVO\n%START% → DATA',x+.31,y+1.38,5.1,1.16,'F2F7FA',C.navy,12.8);
   boxNode(slide,'PDF compilato → anteprima → download',x+.31,y+2.87,5.1,.66,'DBF2F2',C.navy,13);
-  addText(slide,'Anteprima autentica da acquisire nella prossima CI',{x:x+.22,y:y+3.75,w:5.32,h:.29,fontSize:9.2,italic:true,color:C.muted,align:'center',margin:0});
+  addText(slide,'Schema di mapping · non è una schermata applicativa',{x:x+.22,y:y+3.75,w:5.32,h:.29,fontSize:9.2,italic:true,color:C.muted,align:'center',margin:0});
  } else if(/alfresco/.test(title)){
-  boxNode(slide,'CONFIGURAZIONE\n(Amministratore)',x+.10,y+.34,2.5,1.0,'E6F0F9',C.navy,15);boxNode(slide,'REPOSITORY\nALFRESCO',x+3.11,y+.34,2.5,1.0,'EAF5F3',C.navy,15);arrow(slide,x+2.64,y+.65,.42,'right',accent);boxNode(slide,'INCIDENTE\n(operatori autorizzati)',x+1.10,y+2.12,3.7,.94,'F3F0FA',C.navy,14);line(slide,x+4.33,y+1.43,0,.6,accent,2);addText(slide,'Cattura reale da acquisire in CI',{x:x+.48,y:y+3.56,w:4.8,h:.36,fontSize:10,color:C.muted,italic:true,align:'center',margin:0});
+  boxNode(slide,'CONFIGURAZIONE\n(Amministratore)',x+.10,y+.34,2.5,1.0,'E6F0F9',C.navy,15);boxNode(slide,'REPOSITORY\nALFRESCO',x+3.11,y+.34,2.5,1.0,'EAF5F3',C.navy,15);arrow(slide,x+2.64,y+.65,.42,'right',accent);boxNode(slide,'INCIDENTE\n(operatori autorizzati)',x+1.10,y+2.12,3.7,.94,'F3F0FA',C.navy,14);line(slide,x+4.33,y+1.43,0,.6,accent,2);addText(slide,'Schema di integrazione · non è una schermata applicativa',{x:x+.48,y:y+3.56,w:4.8,h:.36,fontSize:10,color:C.muted,italic:true,align:'center',margin:0});
  } else if(d.original===49||d.original===50||/notific|template/.test(title)) {
    boxNode(slide,'Template notifica',x+.60,y+.28,4.55,.65,'E6F2FA',C.navy,15);
    boxNode(slide,'%NAME% · %REFERENCE% · %START%',x+.48,y+1.30,4.77,.73,'F2F5F9',C.navy,12.3);
@@ -455,7 +548,7 @@ function makeContent(slide,d,index){const accent=[C.cyan,C.teal,C.blue,C.violet,
  if([11,12].includes(d.original)){
   boxNode(slide,'⚠ Azioni mancanti = avviso',6.58,6.13,2.76,.40,'FCF2D9','80561C',10.7);
   boxNode(slide,'✓ Chiuso e completo = verde',9.45,6.13,2.86,.40,'E4F5EB','13744D',10.3);
-  addText(slide,ciById.has('registry-closed-state')?'Icone e stati verificati nella cattura CI della build corrente.':'Le icone ✓ reali saranno evidenziate nella nuova cattura CI.',{x:6.7,y:6.66,w:5.7,h:.21,fontSize:8.4,color:C.muted,italic:true,align:'center',margin:0});
+  addText(slide,ciById.has('registry-closed-state')?'Icone e stati verificati nella cattura CI della build corrente.':'Stati operativi rappresentati nello schema didattico.',{x:6.7,y:6.66,w:5.7,h:.21,fontSize:8.4,color:C.muted,italic:true,align:'center',margin:0});
  }
  footer(slide,index);notes(slide,d);
 }
@@ -475,7 +568,8 @@ function makeCover(slide,d,index){slide.background={color:C.navy};const img=imag
  addText(slide,'Cybersecurity\nIncident Registry',{x:4.16,y:2.62,w:7.35,h:1.04,fontSize:31.0,bold:true,color:'F8C66A',margin:0,breakLine:false,fit:'shrink',valign:'mid'});
  addText(slide,'Gestione degli incidenti e dei workflow procedurali',{x:1.01,y:4.18,w:10.95,h:.88,fontSize:28,bold:true,color:'FFFFFF',margin:0,fit:'shrink'});
  addText(slide,'Corso didattico · interfaccia reale · laboratorio didattico di esempio',{x:1.04,y:5.28,w:10.9,h:.38,fontSize:17.1,color:'D7F4FC',margin:0});
- rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,`VERSIONE 0.10.0-1     |     RC77     |     SCHERMATE CI ${ciCommit.slice(0,8)} / BUILD ${ciBuild}`,{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
+ rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,(ciManifest?`VERSIONE 0.10.0-1   |   RC83   |   SCREENSHOT CI ${ciCommit.slice(0,8)} / ${ciBuild}`:
+   'VERSIONE 0.10.0-1   |   RC83   |   EDIZIONE EDITORIALE · CATTURE STORICHE'),{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
 }
 data.forEach((d,i)=>{let slide=pptx.addSlide();const n=i+1;if(d.kind==='cover')makeCover(slide,d,n);else if(d.kind==='chapter')makeChapter(slide,d,n);else makeContent(slide,d,n)});
 // This appendix is authored only from the verified, same-run browser manifest.

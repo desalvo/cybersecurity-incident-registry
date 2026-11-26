@@ -42,7 +42,7 @@ def main():
         changed = []
     publication = needs_publication(changed)
     with open(args.publication_output, 'a', encoding='utf8') as output:
-        output.write('publication_needed='+str(publication).lower()+'\n')
+        output.write('documentation_needed='+str(publication).lower()+'\n')
     print('Documentation publication needed:', publication, 'changed:', len(changed))
 
 if __name__ == '__main__':
