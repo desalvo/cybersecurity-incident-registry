@@ -91,6 +91,61 @@ def linked_slide_image_digests(archive, slide_number):
     return hashes
 
 
+def verified_native_zoom(archive, slide_number, checksum):
+    """Prove a highlighted callout is a native crop of this exact CI image.
+
+    A decorative crop of another image is not sufficient.  The full image and
+    cropped instance must refer to identical verified screenshot bytes.
+    """
+    from xml.etree import ElementTree as ET
+    page = ET.fromstring(archive.read(f'ppt/slides/slide{slide_number}.xml'))
+    rels = ET.fromstring(archive.read(f'ppt/slides/_rels/slide{slide_number}.xml.rels'))
+    targets = {}
+    for rel in rels.iter(PACKAGE_REL + 'Relationship'):
+        if not rel.get('Type', '').endswith('/image') or rel.get('TargetMode') == 'External':
+            continue
+        target = rel.get('Target', '')
+        name = (target.lstrip('/') if target.startswith('/') else
+                posixpath.normpath(posixpath.join('ppt/slides', target)))
+        if name.startswith('ppt/media/'):
+            targets[rel.get('Id')] = hashlib.sha256(archive.read(name)).hexdigest()
+    base = focus = 0
+    graphic = '{http://schemas.openxmlformats.org/presentationml/2006/main}'
+    for pic in page.iter(graphic + 'pic'):
+        blip = next(pic.iter(NS + 'blip'), None)
+        if blip is None or targets.get(blip.get(OFFICE_REL + 'embed')) != checksum:
+            continue
+        cropped = next(pic.iter(NS + 'srcRect'), None)
+        if cropped is None or not any(int(v) > 0 for v in cropped.attrib.values()):
+            base += 1
+        else:
+            focus += 1
+    text = ''.join(x.text or '' for x in page.iter(NS + 't'))
+    return base >= 1 and focus >= 1 and 'INGRANDIMENTO' in text
+
+
+# Editorial exports are intentionally permitted to show illustrative fallbacks.
+# In strict same-run CI exports, those captions indicate that a screenshot was
+# *not* integrated; blocking them prevents an apparently successful publication
+# from leaving the user with a deck asking them to wait for a future CI run.
+UNRESOLVED_CI_CAPTIONS = (
+    'la screenshot reale sarà integrata dalla CI',
+    'cattura reale richiesta alla CI',
+    'Vista reale del Wizard integrata dalla CI',
+    'ESEMPIO CIR · SCHERMATA EDITORIALE',
+)
+
+
+def reject_unresolved_ci_captions(archive, slide_names):
+    for name in slide_names:
+        xml = ET.fromstring(archive.read(name))
+        visible = ''.join(node.text or '' for node in xml.iter(NS + 't'))
+        if any(phrase.casefold() in visible.casefold()
+               for phrase in UNRESOLVED_CI_CAPTIONS):
+            raise ValueError('Screenshot CI non sostituita nella slide ' +
+                             name.rsplit('/', 1)[-1])
+
+
 def run_check(pptx, pdf, manifest, require_ci_images):
     if require_ci_images and manifest is None:
         raise ValueError('--require-ci-images richiede --screenshot-manifest')
@@ -99,6 +154,8 @@ def run_check(pptx, pdf, manifest, require_ci_images):
         if bad:
             raise ValueError('PPTX corrotto: ' + bad)
         slides = [n for n in archive.namelist() if re.fullmatch(r'ppt/slides/slide[0-9]+\.xml', n)]
+        if require_ci_images:
+            reject_unresolved_ci_captions(archive, slides)
         # A strict same-run build appends one visible screenshot gallery slide
         # for each browser capture; offline editorial builds still have 88.
         if len(slides) < EXPECTED_SLIDES or (not require_ci_images and len(slides) != EXPECTED_SLIDES):
@@ -128,6 +185,12 @@ def run_check(pptx, pdf, manifest, require_ci_images):
     root = Path(__file__).resolve().parents[1]
     editorial_media = root / 'docs/presentation/visual_rc57_media'
     allowed = {digest(path) for path in editorial_media.iterdir() if path.is_file()}
+    # Offline preview may show already checked-in UI captures, but it is not
+    # same-run CI evidence. Strict CI never uses this archive fallback.
+    if not require_ci_images and not manifest:
+        archived = root / 'app/static/help/ui-runtime'
+        allowed.update(digest(path) for path in archived.iterdir()
+                       if path.is_file() and path.suffix.lower() in {'.png', '.jpg'})
     allowed.add(digest(root/'app/static/ai-chatbot/albot-avatar.png'))
     art = root / 'docs/presentation/visual_rc61_art'
     art_provenance = json.loads((art/'provenance.json').read_text(encoding='utf8'))
@@ -217,9 +280,9 @@ def run_check(pptx, pdf, manifest, require_ci_images):
                 expected = os.environ.get(env_name)
                 if expected and str(data.get(manifest_key)) != expected:
                     raise ValueError(f'Manifest screenshot di un {manifest_key} diverso dalla build CI')
-            if (data.get('source_kind') == 'real-application-browser' and
+            if (data.get('source_kind') != 'real-application-browser' or
                     data.get('data_provenance') != 'isolated-synthetic-fixture'):
-                raise ValueError('Il manifest CI non contiene dati sintetici isolati')
+                raise ValueError('Il manifest CI non dimostra browser reale su dati sintetici isolati')
         lookup = {}
         seen_files = set()
         # The previous verifier allowlisted only the six mandatory images,
@@ -274,6 +337,8 @@ def run_check(pptx, pdf, manifest, require_ci_images):
                                      (68, 'assistant-panel-closeup')):
                     if ident not in lookup or lookup[ident]['sha256'] not in linked_slide_image_digests(rich_archive, slide):
                         raise ValueError(f'Screenshot focalizzata non incorporata nella slide {slide}: {ident}')
+                    if not verified_native_zoom(rich_archive, slide, lookup[ident]['sha256']):
+                        raise ValueError(f'Callout zoom assente o non proveniente dalla cattura CI: slide {slide}, {ident}')
         for ident in REQUIRED_CI:
             if ident not in lookup:
                 raise ValueError('Manca screenshot obbligatoria: '+ident)

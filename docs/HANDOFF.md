@@ -1,5 +1,19 @@
 # CIR — Handoff di sviluppo
 
+## RC84 — 26 novembre 2026 (PR RC83 fallita, baseline RC83)
+
+Log della PR `logs_123747275266.zip`: la suite CI restituisce `1155 passed, 34 skipped, 2 failed` per due test RC75/RC67 che cercano ancora `slide.addImage` diretto; il generatore RC83 usa `addCiZoom` per i ritagli PowerPoint verificati. RC84 aggiorna entrambi i test mantenendo le verifiche su SHA-256, immagine originale e crop; aggiorna anche la fixture facoltativa RC67 alla nuova provenienza browser rigorosa `real-application-browser`/`isolated-synthetic-fixture`. I 15 test mirati passano localmente, compreso il test end-to-end Node/PptxGenJS; suite completa non eseguibile nel runtime locale privo di Flask/Werkzeug. Il job di documentazione della PR ha confermato il bundle PASS con 16 artefatti, ma la CI globale era rossa e la pubblicazione automatica della PR documentale su `main` non e stata ancora osservata. Nessuna modifica al builder o ai file PPTX/PDF in RC84. Dettagli in `docs/RC84_PR_CI_TRAINING_REGRESSIONS.md`. Commit inglese, una sola linea, incrementale dalla RC83 presente nella PR.
+
+
+## RC83 — 26 novembre 2026 (baseline recuperata RC82, merge più recente confermato dall’utente)
+
+L’utente conferma di aver effettuato commit e merge dell’ultimo avanzamento con CI verde, ma denuncia la mancata PR documentale e le 88 slide del PowerPoint ancora editoriali. RC83 aggiunge zoom nativi verificati della **medesima** screenshot del run Chromium, rimuove promesse di future catture dalle slide e inserisce un controllo bloccante sulle PR documentali saltate. Lo ZIP/PPTX editoriale locale non attesta l’ultima CI; per pubblicare la versione definitiva serve eseguire la pipeline su `main`, controllare il job di pubblicazione e poi integrare la PR dedicata. Nessuna PR remota viene rivendicata. Dettagli in `docs/RC83_CI_SCREENSHOT_FOCUS_AND_PUBLICATION.md`. Messaggio commit in inglese, una sola linea, cumulativo dalle modifiche successive al merge confermato.
+
+
+## RC82 — 26 novembre 2026 (ultimo merge confermato: RC81)
+
+L’utente ha confermato commit e merge della RC81 con CI verde, ma non si è aperta la PR documentale. La causa è il mismatch `publication_needed` / `documentation_needed`: la CI saltava silenziosamente il job di pubblicazione. RC82 corregge il nome dell’output, rende bloccanti gli output di scope assenti e vieta i segnaposto delle screenshot nei PowerPoint CI rigorosi. Le 88 slide editoriali non sono il risultato autenticato della CI; la PR successiva al merge deve pubblicare i documenti rigenerati e verificati, poi essere integrata su `main`. Commit in inglese, una sola linea, cumulativo dal merge RC81. Vedere `docs/RC82_DOCUMENTATION_PR_RECOVERY.md`.
+
 ## Stato attuale: 0.10.0-1 RC79 — 26 novembre 2026
 
 Ultimo merge confermato: RC72 (CI verde); le modifiche RC73–RC79 non sono state dichiarate come committate. RC79 aggiunge l'eliminazione transazionale dei tipi di notifica nel tenant attivo: prima i template, poi il tipo, quindi ripristino immediato di tipo e template pubblicati in `Tenants Default`. Gli alias `_td` legacy vengono riconciliati con il codice condiviso (inclusi i riferimenti operativi locali); i tipi senza sostituzione condivisa restano protetti se ancora utilizzati. Nuovi test: `tests/test_rc79_notification_type_deletion.py` e `tests/test_rc79_notification_type_http.py`. La CI completa Flask/PostgreSQL deve ancora essere eseguita. La presentazione editoriale RC77/RC78 non cambia; il documento CI resta da rigenerare dal commit.

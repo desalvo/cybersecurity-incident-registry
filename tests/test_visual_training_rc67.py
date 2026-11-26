@@ -28,8 +28,12 @@ def test_browser_palette_has_precedence_over_the_original_photo():
     src = BUILDER.read_text(encoding='utf8')
     right_panel = src.split('function rightPanel(slide,d,accent)', 1)[1]
     assert right_panel.index("d.index===70 && categoryPalette?.id==='spam-incident-config-labels'") < right_panel.index('if(d.photo_art)')
-    assert 'slide.addImage({path:categoryPalette.path' in right_panel
-    assert 'imageSizingContain(categoryPalette.path' in right_panel
+    # The verified browser image now goes through the same-image zoom helper;
+    # source-code tests must not require the old direct addImage spelling.
+    assert 'addCiZoom(slide,categoryPalette);' in right_panel
+    assert 'slide.addImage({path:shot.path,...p})' in src
+    assert 'imageSizingContain(shot.path' in src
+    assert 'imageSizingCrop(shot.path' in src
     assert "paletteCI?['spam-incident-config-labels']" in src
 
 
@@ -62,7 +66,8 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
         records.append({'id': ident, 'file': file.name,
                         'sha256': hashlib.sha256(file.read_bytes()).hexdigest()})
     manifest = tmp_path / 'manifest.json'
-    manifest.write_text(json.dumps({'source_kind': 'real_browser',
+    manifest.write_text(json.dumps({'source_kind': 'real-application-browser',
+                                    'data_provenance': 'isolated-synthetic-fixture',
                                     'source_commit': 'a' * 40, 'build': '20261125',
                                     'screenshots': records}), encoding='utf8')
     deck = tmp_path / 'CI_visual_test_only.pptx'

@@ -1085,7 +1085,7 @@
       "Solo admin tenant e super admin: «Moduli» → «Configurazione», poi scelta del template PDF.",
       "La screenshot CI mostra la vera interfaccia di caricamento, sostituzione e «Mappatura campi template».",
       "Per ciascun campo AcroForm si associa una proprietà del database CIR, per esempio RIFERIMENTO → reference.",
-      "La cattura ravvicinata con mapping compilati è richiesta alla prossima CI e sostituirà questa vista generale."
+      "Nel riquadro CI verificare i campi AcroForm e le rispettive proprietà CIR; lo zoom evidenzia il dettaglio operativo."
     ],
     "images": [
       {
@@ -1096,7 +1096,7 @@
         ]
       }
     ],
-    "notes": "CIR – modulo 54. Mapping PDF: schermata di configurazione. Solo admin autorizzati: aprire «Moduli» → «Configurazione». Selezionare un PDF compilabile e associare i campi alle proprietà CIR. Il laboratorio CI acquisirà la schermata reale di mapping, con tre campi AcroForm. L’immagine non disponibile nel run corrente non viene sostituita da un falso screenshot. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.\nLa fotografia a destra è una reale schermata CI precedente della pagina Moduli/Configurazione. Non rappresenta i mapping compilati della prossima CI.",
+    "notes": "CIR – modulo 54. Mapping PDF: schermata di configurazione. Solo admin autorizzati: aprire «Moduli» → «Configurazione». Selezionare un PDF compilabile e associare i campi alle proprietà CIR. Il laboratorio usa solo catture autentiche del browser con dati sintetici; lo schema editoriale offline non rappresenta un mapping compilato. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.\nLa fotografia a destra è una reale schermata CI precedente della pagina Moduli/Configurazione. Non rappresenta una cattura del run corrente.",
     "index": 52
   },
   {
@@ -1109,10 +1109,10 @@
       "Gli operatori autorizzati scelgono un modulo nella scheda dell’incidente e premono «Genera documenti».",
       "La pagina «Anteprima PDF generati» mostra il documento compilato dai mapping configurati dagli admin.",
       "Verificare i campi RIFERIMENTO, DESCRIZIONE e DATA_INIZIO, poi accettare o rifiutare.",
-      "La CI acquisirà la schermata effettiva e il PDF generato sull’istanza temporanea di prova."
+      "La pipeline di verifica acquisisce la schermata effettiva e il PDF generato sull’istanza temporanea di prova."
     ],
     "images": [],
-    "notes": "Anteprima PDF generato: esempio di verifica. Gli operatori autorizzati scelgono un modulo nella scheda dell’incidente e premono «Genera documenti». La pagina «Anteprima PDF generati» mostra il documento compilato dai mapping configurati dagli admin. Verificare i campi RIFERIMENTO, DESCRIZIONE e DATA_INIZIO, poi accettare o rifiutare. La CI acquisirà la schermata effettiva e il PDF generato sull’istanza temporanea di prova.. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release.",
+    "notes": "Anteprima PDF generato: esempio di verifica. Gli operatori autorizzati scelgono un modulo nella scheda dell’incidente e premono «Genera documenti». La pagina «Anteprima PDF generati» mostra il documento compilato dai mapping configurati dagli admin. Verificare i campi RIFERIMENTO, DESCRIZIONE e DATA_INIZIO, poi accettare o rifiutare. La pipeline di verifica acquisisce la schermata effettiva e il PDF generato sull’istanza temporanea di prova.. Le evidenze del run corrente sono utilizzate solo dopo la verifica del relativo manifest CI.",
     "index": 53
   },
   {
@@ -1144,7 +1144,7 @@
       "Sono due momenti distinti: prima l’admin prepara il collegamento; poi gli utenti autorizzati lo utilizzano nei singoli incidenti. Se l’integrazione non è configurata o mancano i permessi, non si possono eseguire le operazioni corrispondenti."
     ],
     "images": [],
-    "notes": "CIR – modulo 56. Alfresco: configurazione e operazioni. Gli admin configurano l’integrazione Alfresco del tenant (endpoint, sito e credenziali). Gli operatori autorizzati gestiscono documenti e report dalla scheda del singolo incidente. Percorsi e permessi rispettano le regole del repository configurato. La prossima CI acquisirà la schermata reale; non vengono usati endpoint di produzione. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 56. Alfresco: configurazione e operazioni. Gli admin configurano l’integrazione Alfresco del tenant (endpoint, sito e credenziali). Gli operatori autorizzati gestiscono documenti e report dalla scheda del singolo incidente. Percorsi e permessi rispettano le regole del repository configurato. Le schermate CI utilizzano solo endpoint e dati sintetici isolati. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 55
   },
   {
@@ -1589,7 +1589,7 @@
       "Il progetto è Open Source, pubblicato con licenza EUPL e adattabile a contesti differenti."
     ],
     "images": [],
-    "notes": "CIR in sintesi: cos’è e a chi si rivolge. CIR è un registro di pratiche con workflow configurabili, evidenze, notifiche e responsabilità. È pensato per operatori, amministratori, responsabili e revisori, in un servizio multitenant. Il modello è agnostico rispetto all’organizzazione: può gestire procedure anche fuori dalla cybersecurity. Il progetto è Open Source, pubblicato con licenza EUPL e adattabile a contesti differenti.. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "CIR in sintesi: cos’è e a chi si rivolge. CIR è un registro di pratiche con workflow configurabili, evidenze, notifiche e responsabilità. È pensato per operatori, amministratori, responsabili e revisori, in un servizio multitenant. Il modello è agnostico rispetto all’organizzazione: può gestire procedure anche fuori dalla cybersecurity. Il progetto è Open Source, pubblicato con licenza EUPL e adattabile a contesti differenti.. Le evidenze del run corrente sono utilizzate solo dopo la verifica del relativo manifest CI. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
     "index": 75,
     "photo_art": "docs/presentation/visual_rc63_art/visual_75.jpg"
   },
@@ -1607,7 +1607,7 @@
       "AlBot opzionale, laboratorio SPAM a 13 step e passaggio alla gestione operativa."
     ],
     "images": [],
-    "notes": "Sommario: tutto il percorso formativo. Accesso, SSO e navigazione; registro, stati e ruoli. Creazione dell’incidente, azioni, evidenze, report, statistiche e sicurezza. Tenant e Tenants Default; workflow, condizioni, step e import amministrativi. Moduli PDF, mapping, anteprima, firme esterne e integrazione Alfresco. AlBot opzionale, laboratorio SPAM a 13 step e passaggio alla gestione operativa.. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
+    "notes": "Sommario: tutto il percorso formativo. Accesso, SSO e navigazione; registro, stati e ruoli. Creazione dell’incidente, azioni, evidenze, report, statistiche e sicurezza. Tenant e Tenants Default; workflow, condizioni, step e import amministrativi. Moduli PDF, mapping, anteprima, firme esterne e integrazione Alfresco. AlBot opzionale, laboratorio SPAM a 13 step e passaggio alla gestione operativa.. Le evidenze del run corrente sono utilizzate solo dopo la verifica del relativo manifest CI. Immagine a destra: illustrazione concettuale originale, con base fotografica sintetica, non screenshot CIR.",
     "index": 76,
     "photo_art": "docs/presentation/visual_rc63_art/visual_76.jpg"
   },
@@ -1659,7 +1659,7 @@
       "Repository Open Source EUPL: github.com/desalvo/cybersecurity-incident-registry"
     ],
     "images": [],
-    "notes": "Creatore e contributi al progetto. Autore: Alessandro De Salvo Contatti: Alessandro.DeSalvo@roma1.infn.it Commenti, segnalazioni e suggerimenti di miglioramento sono benvenuti. Repository Open Source EUPL: github.com/desalvo/cybersecurity-incident-registry. Per le schermate ancora da acquisire, attendere il manifest verificato della CI della release. Immagine sintetica originale, specifica per il tema della slide: nessuna persona reale, nessuna fotografia esterna, nessuna intestazione o footer integrati.",
+    "notes": "Creatore e contributi al progetto. Autore: Alessandro De Salvo Contatti: Alessandro.DeSalvo@roma1.infn.it Commenti, segnalazioni e suggerimenti di miglioramento sono benvenuti. Repository Open Source EUPL: github.com/desalvo/cybersecurity-incident-registry. Le evidenze del run corrente sono utilizzate solo dopo la verifica del relativo manifest CI. Immagine sintetica originale, specifica per il tema della slide: nessuna persona reale, nessuna fotografia esterna, nessuna intestazione o footer integrati.",
     "index": 79,
     "photo_art": "docs/presentation/visual_rc64_art/visual_79.jpg"
   }
