@@ -34,10 +34,17 @@ body.cir-modern .incident-section-body{padding:0 20px 20px}
 body.cir-modern .incident-section-body>.muted{font-size:.8rem;line-height:1.65;margin:0 0 14px;color:#657d90}
 body.cir-modern .cir-workflow-progress{font-size:.74rem;font-weight:400;color:#657c91;margin-left:auto;text-align:right}
 body.cir-modern .workflow-card>.incident-section-summary:after{margin-left:0}
-body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{display:flex;align-items:stretch;gap:0;margin:0;overflow-x:auto;padding:4px 2px 6px;scroll-snap-type:x proximity}
-body.cir-modern .workflow-step-card{flex:1 0 235px;min-width:235px;width:auto;display:grid;grid-template-rows:minmax(145px,1fr) minmax(190px,auto);gap:0;border:1px solid #d6e2ed;padding:0;background:#fff;border-radius:8px;box-shadow:none;align-content:stretch;position:relative;scroll-snap-align:start}
+/* Wrap entire phase cards across rows; never squeeze them into a horizontal scroller.
+   At very narrow widths the card uses the available space, not an overflowing minimum. */
+body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));align-items:stretch;column-gap:30px;row-gap:34px;margin:0;overflow:visible;padding:4px 2px 8px;scroll-snap-type:none}
+body.cir-modern .workflow-step-card{min-width:0;width:100%;max-width:none;display:grid;grid-template-rows:minmax(145px,1fr) minmax(190px,auto);gap:0;border:1px solid #d6e2ed;padding:0;background:#fff;border-radius:8px;box-shadow:none;align-content:stretch;position:relative;scroll-snap-align:none}
+/* Original between-card arrows are hidden to avoid orphaned arrows at wrap points.
+   Directional connectors are placed on the relevant card after actual row layout. */
 body.cir-modern .workflow-step-card::after{content:none!important}
-body.cir-modern .workflow-step-arrow{display:flex;align-items:center;justify-content:center;flex:0 0 24px;color:#7b98b2;font-size:24px;font-weight:400}
+body.cir-modern .workflow-steps-ordered .workflow-step-card.workflow-connector-right::after{content:"→"!important;position:absolute;display:block;top:50%;right:-17px;transform:translate(50%,-50%);font-size:23px;font-weight:700;line-height:1;color:#7b98b2;pointer-events:none}
+body.cir-modern .workflow-steps-ordered .workflow-step-card.workflow-connector-down::after{content:"↓"!important;position:absolute;display:block;top:auto;bottom:-31px;right:50%;transform:translate(50%,0);font-size:23px;font-weight:700;line-height:1;color:#7b98b2;pointer-events:none}
+body.cir-modern .workflow-steps-ordered .workflow-step-card.workflow-connector-wrap::after{content:"↙"!important;position:absolute;display:block;top:auto;bottom:-30px;right:50%;transform:translate(50%,0);font-size:23px;font-weight:700;line-height:1;color:#7b98b2;pointer-events:none}
+body.cir-modern .workflow-step-arrow{display:none!important}
 body.cir-modern .workflow-first-incomplete-arrow{display:none}
 body.cir-modern .workflow-step-sequence{left:14px;right:auto;top:14px;width:27px;min-width:27px;height:27px;font-size:.76rem;background:#6d8498;color:#fff;border:0;box-shadow:none;padding:0;z-index:1}
 body.cir-modern .workflow-step-flow{display:block;padding:15px 14px;border:0;border-bottom:1px solid #d9e4ee;border-radius:7px 7px 0 0;background:#f1f5f9;min-width:0}
@@ -91,9 +98,9 @@ body.cir-modern .incident-action-card,body.cir-modern .incident-reminder-card{bo
   body.cir-modern .incident-section-collapsible>.incident-section-summary h2,body.cir-modern .incident-section-collapsible>.incident-section-summary h3{font-size:1.08rem}
   body.cir-modern .incident-section-body{padding:0 14px 16px}
   body.cir-modern .cir-workflow-progress{font-size:.67rem}
-  body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{flex-direction:column;overflow:visible;scroll-snap-type:none;padding:3px 1px}
-  body.cir-modern .workflow-step-card{width:100%;min-width:0;flex:auto;grid-template-rows:auto auto}
-  body.cir-modern .workflow-step-arrow{flex:0 0 30px;min-height:30px;transform:rotate(90deg);font-size:23px}
+  body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{grid-template-columns:minmax(0,1fr);overflow:visible;padding:3px 1px;row-gap:34px}
+  body.cir-modern .workflow-step-card{width:100%;min-width:0;grid-template-rows:auto auto}
+
   body.cir-modern .workflow-step-flow{padding:15px}
   body.cir-modern .workflow-step-flow .cir-workflow-title{font-size:.98rem}
   body.cir-modern .workflow-step-description{font-size:.88rem}

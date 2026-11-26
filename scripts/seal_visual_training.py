@@ -6,9 +6,9 @@ import hashlib
 import json
 from pathlib import Path
 try:
-    from scripts.published_visual_training import BASE_SLIDES, HIDDEN_GALLERY_IDS
+    from scripts.published_visual_training import BASE_SLIDES, GALLERY_FIRST_SLIDE, HIDDEN_GALLERY_IDS
 except ModuleNotFoundError:
-    from published_visual_training import BASE_SLIDES, HIDDEN_GALLERY_IDS
+    from published_visual_training import BASE_SLIDES, GALLERY_FIRST_SLIDE, HIDDEN_GALLERY_IDS
 
 
 def sha(path: Path) -> str:
@@ -34,7 +34,7 @@ def seal(pptx: Path, pdf: Path, manifest: Path, verification: Path, output: Path
         'pdf_file': 'CIR_Operational_Training_Visual.pdf', 'pdf_sha256': sha(pdf),
         'slide_count': checked['slides'], 'pdf_pages': checked['pdf_pages'],
         'pdf_screenshots_visually_verified': checked['pdf_screenshots_visually_verified'],
-        'screenshot_gallery_first_slide': BASE_SLIDES + 1,
+        'screenshot_gallery_first_slide': GALLERY_FIRST_SLIDE,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(record, ensure_ascii=False, indent=2)+'\n', encoding='utf8')

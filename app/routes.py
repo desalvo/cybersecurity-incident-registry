@@ -2379,8 +2379,20 @@ def incident_config_label_choices(kind, tenant_id=None):
     suffix = re.compile(r'\s*\[Tenants Default(?:\s+\d+)?\]$', re.IGNORECASE)
     key_of = lambda name: ' '.join((name or '').strip().casefold().split())
     literal_names = {key_of(label.value) for label in rows if not suffix.search(label.value)}
-    active_workflows = ({int(row.category_id) for row in IncidentWorkflowStep.query.filter_by(
-        tenant_id=tid).all() if row.category_id is not None} if kind == 'category' else set())
+    # A category triggers its own workflow only if it has at least one actual
+    # step in the active tenant. A category inherited from Tenants Default
+    # does NOT automatically inherit a category-specific workflow.
+    # The historical default tenant can also use tenant_id=NULL steps.
+    active_workflows = set()
+    if kind == 'category':
+        tenant = db.session.get(Tenant, tid)
+        step_query = IncidentWorkflowStep.query.filter_by(tenant_id=tid)
+        if tenant is not None and tenant.name == 'default' and not tenant.is_system_defaults:
+            step_query = IncidentWorkflowStep.query.filter(or_(
+                IncidentWorkflowStep.tenant_id == tid,
+                IncidentWorkflowStep.tenant_id.is_(None)))
+        active_workflows = {int(cid) for (cid,) in step_query.with_entities(
+            IncidentWorkflowStep.category_id).distinct().all() if cid is not None}
     groups = {}
     for label in rows:
         is_shared = label.id in shared_ids
@@ -2409,6 +2421,17 @@ def incident_config_label_choices(kind, tenant_id=None):
         else:
             origin = 'Locale'
         winner.ui_choice_origin = origin
+        if kind == 'category':
+            has_workflow = winner.id in active_workflows
+            winner.ui_choice_has_workflow = has_workflow
+            if has_workflow:
+                state_description = ('Workflow specifico associato: se questa categoria è la prima '
+                                     'dell’incidente, viene applicato il suo workflow.')
+            else:
+                state_description = ('Nessun workflow specifico associato: se questa categoria è la prima '
+                                     'dell’incidente, viene applicato il workflow predefinito del tenant. '
+                                     'La categoria rimane disponibile per classificare l’incidente.')
+            winner.ui_choice_tooltip = f'{origin}. {state_description}'
         choices.append(winner)
     return sorted(choices, key=lambda row: (
         (row.group or '').casefold(), row.ui_choice_name.casefold(), row.id))
@@ -2812,12 +2835,18 @@ def delete_workflow_steps(category_id=None, tenant_id=None):
     from .configuration_usage import workflow_incident_usage
     from .workflow_lifecycle import remove_workflow_state
     tid = tenant_id if tenant_id is not None else current_tenant_id(default_to_default=True)
+    if category_id is None:
+        raise ValueError('Il workflow di default è obbligatorio e non può essere eliminato.')
     reason = workflow_incident_usage(tid, category_id)
     if reason:
         raise ValueError('Cancellazione non consentita: ' + reason + '.')
     rows = workflow_step_scope_query(category_id, tenant_id).all()
     for row in rows:
         db.session.delete(row)
+    # Release the copied category only after the final step is really gone.
+    # Before flush, the lifecycle cleanup still sees a populated workflow,
+    # leaving an invisible category that reserves the name on reimport.
+    db.session.flush()
     remove_workflow_state(tid, category_id)
     return len(rows)
 
@@ -5660,6 +5689,19 @@ def admin_incident_workflows():
                         overwrite = False
                     result = clone_workflow_steps(source_category_id, destination_category_id, overwrite=overwrite, source_tenant_id=source_tid, destination_tenant_id=dest_tid)
                     flash(result['message'], 'success' if result.get('ok') else 'error')
+        elif action == 'rename_workflow':
+            from .workflow_lifecycle import rename_workflow
+            category_id = parse_workflow_scope_value(request.form.get('rename_scope'))
+            try:
+                rename_workflow(current_tenant_id(default_to_default=True), category_id,
+                                request.form.get('rename_name', ''))
+                db.session.commit()
+            except ValueError as exc:
+                db.session.rollback()
+                flash(str(exc), 'error')
+                return redirect(url_for('main.admin_incident_workflows'))
+            flash('Workflow e categoria rinominati correttamente.', 'success')
+            return redirect(url_for('main.admin_incident_workflows'))
         elif action == 'delete_workflow':
             category_id = parse_workflow_scope_value(request.form.get('delete_scope'))
             try:
@@ -5709,6 +5751,9 @@ def admin_incident_workflows():
                 db.session.add(step)
                 from .workflow_lifecycle import ensure_workflow_state
                 ensure_workflow_state(current_tenant_id(default_to_default=True), category_id)
+                if category_id is None and current_tenant().is_system_defaults:
+                    from .workflow_defaults import sync_all_tenant_default_workflows
+                    sync_all_tenant_default_workflows()
                 try:
                     db.session.commit()
                 except IntegrityError as exc:
@@ -5743,6 +5788,9 @@ def admin_incident_workflows():
                 step.document_template_name = workflow_document_template_from_form(f'document_template_name_{sid}') if step.document_generation_enabled else None
                 new_label = request.form.get(f'action_label_id_{sid}', type=int)
                 if new_label: step.action_label_id = new_label
+            if current_tenant().is_system_defaults:
+                from .workflow_defaults import sync_all_tenant_default_workflows
+                sync_all_tenant_default_workflows()
             db.session.commit(); flash('Flussi aggiornati','success')
             return redirect(url_for('main.admin_incident_workflows') + '#' + (request.form.get('return_anchor') or ''))
         return redirect(url_for('main.admin_incident_workflows'))
@@ -5762,15 +5810,25 @@ def admin_incident_workflows():
 def admin_incident_workflow_delete(sid):
     if not can_admin(): return redirect(url_for('main.index'))
     step=model_or_404(IncidentWorkflowStep, sid)
+    if step.category_id is None and workflow_step_scope_query(None, step.tenant_id).count() <= 1:
+        flash('Il workflow di default deve contenere almeno uno step.', 'error')
+        return redirect(url_for('main.admin_incident_workflows'))
     from .configuration_usage import workflow_incident_usage
     from .workflow_lifecycle import remove_workflow_state
     reason = workflow_incident_usage(step.tenant_id, step.category_id)
     if reason:
         flash('Cancellazione non consentita: ' + reason + '.', 'warning')
         return redirect(url_for('main.admin_incident_workflows'))
-    if workflow_step_scope_query(step.category_id, step.tenant_id).count() == 1:
+    is_last_step = workflow_step_scope_query(step.category_id, step.tenant_id).count() == 1
+    db.session.delete(step)
+    if is_last_step:
+        db.session.flush()
         remove_workflow_state(step.tenant_id, step.category_id)
-    db.session.delete(step); db.session.commit(); flash('Passo del flusso eliminato','info')
+    if step.category_id is None and db.session.get(Tenant, step.tenant_id).is_system_defaults:
+        from .workflow_defaults import sync_all_tenant_default_workflows
+        db.session.flush()
+        sync_all_tenant_default_workflows()
+    db.session.commit(); flash('Passo del flusso eliminato','info')
     return redirect(url_for('main.admin_incident_workflows'))
 
 
@@ -6512,6 +6570,10 @@ def ensure_tenant_generic_default_workflow(tenant_id):
     This helper is idempotent so a subsequent configuration re-clone cannot
     replace or duplicate an administrator's existing default workflow.
     """
+    from .workflow_defaults import sync_tenant_default_workflow
+    result = sync_tenant_default_workflow(tenant_id)
+    if result['status'] not in ('defaults_absent', 'source_default_absent'):
+        return
     if IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id, category_id=None).first():
         return
     generic_steps = (

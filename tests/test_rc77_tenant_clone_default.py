@@ -11,7 +11,7 @@ def _fn(name):
     return next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == name)
 
 
-def test_generic_baseline_is_an_actual_workflow_and_idempotent_without_flask():
+def test_generic_baseline_is_an_actual_workflow_and_idempotent_without_flask(monkeypatch):
     node = _fn('ensure_tenant_generic_default_workflow')
     code = compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<clone baseline>', 'exec')
     rows, actions = [], []
@@ -42,7 +42,13 @@ def test_generic_baseline_is_an_actual_workflow_and_idempotent_without_flask():
             else: rows.append(row)
         def flush(self): pass
 
-    ns = {'IncidentWorkflowStep': IncidentWorkflowStep,
+    # Fallback to the neutral three-step workflow only when Tenants Default
+    # has no published default. Normal provisioning now copies the shared one.
+    import sys
+    monkeypatch.setitem(sys.modules, 'app.workflow_defaults', SimpleNamespace(
+        sync_tenant_default_workflow=lambda _tid: {'status': 'source_default_absent'}))
+    ns = {'__name__': 'app.routes', '__package__': 'app',
+          'IncidentWorkflowStep': IncidentWorkflowStep,
           'ConfigLabel': ConfigLabel, 'db': SimpleNamespace(session=Session()),
           'REGISTRATION_STEP_TYPE': 'registration'}
     exec(code, ns)

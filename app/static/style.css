@@ -513,3 +513,14 @@ label:has(> input[type="checkbox"]) input[type="checkbox"],
 
 /* The incident picker displays one choice per logical category, retaining provenance. */
 .chip-origin{display:inline-block;font-size:.68em;font-weight:500;opacity:.78;margin-left:.22rem}
+/* Incident DnD palette: inherited categories are not necessarily workflows.
+   Keep the state legible without relying on color alone. */
+.palette .category-chip-no-workflow,
+.dropzone .category-chip-no-workflow{
+  background:#fff1cc;
+  border:2px dashed #b45309;
+  color:#78350f;
+}
+.palette .category-chip-no-workflow:hover,
+.dropzone .category-chip-no-workflow:hover{background:#ffdf99;}
+.chip-workflow-hint{display:block;font-size:.72em;font-weight:700;line-height:1.25;margin-top:.18rem;}

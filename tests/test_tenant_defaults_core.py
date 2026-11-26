@@ -885,3 +885,74 @@ def test_legacy_unmapped_suffix_does_not_double_incident_category_choices(defaul
     assert selected[0].id == local.id
     assert selected[0].ui_choice_name == 'SPAM'
     assert {x.id for x in ConfigLabel.query.filter_by(tenant_id=tenant_id, kind='category')} == existing_ids
+
+
+def test_incident_category_palette_marks_inherited_without_specific_workflow(defaults_db):
+    """Shared categories alone do not install a category-specific workflow."""
+    from app.models import ConfigLabel, IncidentWorkflowStep
+    from app.routes import incident_category_choices
+    db, _, operational_id, _ = defaults_db
+    source = _publish(defaults_db, kind='category', value='No-steps inherited')
+    local = _replica(source, operational_id)
+    choices = incident_category_choices(operational_id)
+    choice = next(c for c in choices if c.id == local.id)
+    assert choice.ui_choice_has_workflow is False
+    assert 'Tenants Default' in choice.ui_choice_tooltip
+    assert 'workflow predefinito del tenant' in choice.ui_choice_tooltip
+    action = ConfigLabel(tenant_id=operational_id, kind='action_label', value='Review')
+    db.session.add(action); db.session.flush()
+    db.session.add(IncidentWorkflowStep(tenant_id=operational_id, category_id=local.id,
+                                        action_label_id=action.id, position=10, description='Review'))
+    db.session.commit()
+    choices = incident_category_choices(operational_id)
+    choice = next(c for c in choices if c.id == local.id)
+    assert choice.ui_choice_has_workflow is True
+    assert 'Workflow specifico associato' in choice.ui_choice_tooltip
+
+
+def test_incident_category_palette_never_claims_an_uninstalled_workflow(defaults_db):
+    from app.models import ConfigLabel, IncidentWorkflowStep
+    from app.routes import incident_category_choices
+    db, _, tid, _ = defaults_db
+    category = ConfigLabel(tenant_id=tid, kind='category', value='Custom category')
+    action = ConfigLabel(tenant_id=tid, kind='action_label', value='Action')
+    db.session.add_all([category, action]); db.session.flush()
+    choices = incident_category_choices(tid)
+    assert next(c for c in choices if c.id == category.id).ui_choice_has_workflow is False
+    db.session.add(IncidentWorkflowStep(tenant_id=tid, category_id=category.id,
+                                        action_label_id=action.id, position=10))
+    db.session.commit()
+    assert next(c for c in incident_category_choices(tid) if c.id == category.id).ui_choice_has_workflow is True
+
+
+def test_dnd_category_pill_has_distinct_style_accessible_text_and_tooltip(defaults_db):
+    """Actual Jinja fragment carries explanation; draggability is unchanged."""
+    from pathlib import Path
+    from flask import render_template_string
+    from app.models import ConfigLabel
+    from app.routes import incident_category_choices
+    db, _, tid, _ = defaults_db
+    source = _publish(defaults_db, kind='category', value='Inherited without steps')
+    category = _replica(source, tid)
+    html = render_template_string((Path(__file__).resolve().parents[1] / 'app/templates/dnd_fields.html').read_text(),
+        categories=incident_category_choices(tid), data_types=[], people=[], recommendations=[], inc=None,
+        selected_template=None, recommendations_max_per_incident=3)
+    from html.parser import HTMLParser
+    class Chips(HTMLParser):
+        def __init__(self): super().__init__(); self.chips=[]
+        def handle_starttag(self, tag, attrs):
+            d=dict(attrs)
+            if tag=='span' and d.get('data-target')=='categories': self.chips.append(d)
+    parser=Chips(); parser.feed(html)
+    assert len(parser.chips)==1
+    pill=parser.chips[0]
+    assert pill['draggable']=='true' and pill['data-id']==str(category.id)
+    assert pill['data-has-workflow']=='false'
+    assert 'category-chip-no-workflow' in pill['class']
+    assert 'workflow predefinito' in pill['title']
+    assert 'nessun workflow specifico associato' in pill['aria-label']
+    assert 'Senza workflow specifico' in html
+    css=(Path(__file__).resolve().parents[1]/'app/static/style.css').read_text()
+    js=(Path(__file__).resolve().parents[1]/'app/static/app.js').read_text()
+    assert '.category-chip-no-workflow' in css
+    assert "source.dataset.hasWorkflow==='false'" in js
