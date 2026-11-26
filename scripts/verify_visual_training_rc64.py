@@ -23,19 +23,24 @@ PACKAGE_REL = '{http://schemas.openxmlformats.org/package/2006/relationships}'
 REQUIRED_CI = ('workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
                'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel', 'registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
                'pdf-generated-preview', 'alfresco-settings-desktop',
-               'alfresco-incident-documents')
+               'alfresco-incident-documents','notification-preview','tenant-wizard-next-step')
 ADDED_SLIDES = 6
 INSERT_AFTER = 14
-ARCH_SLIDES = 3
+ARCH_SLIDES = 4  # three architecture diagrams plus the alert chapter
 ARCH_AFTER = 6
-EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES
-PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES
-LAB_SPAM_OPENING_SLIDE = 62 + ADDED_SLIDES + ARCH_SLIDES
+APPENDIX_PREVIEWS = 2
+WORKFLOW_INTRO_SLIDES = 5
+WORKFLOW_AFTER = 38
+EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + APPENDIX_PREVIEWS
+HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
+PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES
+LAB_SPAM_OPENING_SLIDE = 62 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES
 REQUIRED_SLIDE_TITLES = {
     8: 'Login',
     17: 'Come cambia lo stato di un incidente: workflow generale (configurabile)',
     26: 'Sicurezza e tracciabilità dell\'applicazione',
     29: 'Cos’è un tenant',
+    39: 'Esempio: dal workflow SPAM all',
     40: 'Workflow: selezione e import dal catalogo',
     45: 'Workflow: azioni e navigazione nell’incidente',
     48: 'Workflow: template notifiche e variabili',
@@ -44,12 +49,12 @@ REQUIRED_SLIDE_TITLES = {
     77: 'Come rendere operativa l’applicazione',
 }
 REQUIRED_NEW_SLIDE_TITLES = {
-    18: 'Aprire un incidente: dalla pagina principale',
-    19: 'Aprire un incidente da zero: compilazione manuale',
-    20: 'Modelli incidente: cosa sono, a cosa servono e permessi',
-    21: 'Amministrare i modelli: creazione, modifica e cancellazione',
-    22: 'Creare un modello da un incidente già registrato',
-    23: 'Aprire un incidente usando un modello',
+    19: 'Aprire un incidente: dalla pagina principale',
+    20: 'Aprire un incidente da zero: compilazione manuale',
+    21: 'Modelli incidente: cosa sono, a cosa servono e permessi',
+    22: 'Amministrare i modelli: creazione, modifica e cancellazione',
+    23: 'Creare un modello da un incidente già registrato',
+    24: 'Aprire un incidente usando un modello',
 }
 
 
@@ -57,6 +62,7 @@ REQUIRED_ARCH_TITLES = {
     7: 'Plugin disponibili e possibilità di estensione',
     8: 'Da registro incidenti a workflow manager generico',
     9: 'Architettura CIR: componenti, piattaforme e funzioni',
+    10: 'Alert, scadenze e promemoria operativi',
 }
 
 
@@ -158,16 +164,31 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         if strict_images:
             reject_unresolved_ci_captions(archive, slides)
         # A strict same-run build appends one visible screenshot gallery slide
-        # for each browser capture; offline editorial builds still have 88.
-        if len(slides) < EXPECTED_SLIDES or (not strict_images and len(slides) != EXPECTED_SLIDES):
+        # for each visible application-browser capture; editorial builds have 91.
+        if len(slides) < EXPECTED_SLIDES:
             raise ValueError(f'Numero slide inatteso: {len(slides)} (base {EXPECTED_SLIDES})')
+        # Offline editorials intentionally restore every available historical
+        # screenshot as a provenance-labelled gallery. Strict CI always uses
+        # the entire sealed browser manifest instead.
+        if not strict_images and not manifest:
+            archived_dir = Path(__file__).resolve().parents[1] / 'app/static/help/ui-runtime'
+            archived_rows = sorted((p for p in archived_dir.iterdir() if p.is_file() and p.suffix.lower() in {'.png','.jpg'} and p.stem not in HIDDEN_GALLERY_IDS), key=lambda p:p.name)
+            expected_editorial = EXPECTED_SLIDES+len(archived_rows)
+            if len(slides)!=expected_editorial:
+                raise ValueError(f'Incomplete editorial gallery: {len(slides)} instead of {expected_editorial}')
+            for idx,img in enumerate(archived_rows,start=EXPECTED_SLIDES+1):
+                if digest(img) not in linked_slide_image_digests(archive,idx):
+                    raise ValueError('Missing historical application screenshot from slide '+str(idx)+': '+img.name)
         for original_number, title in REQUIRED_SLIDE_TITLES.items():
-            number = original_number + (ARCH_SLIDES if original_number > ARCH_AFTER else 0) + (ADDED_SLIDES if original_number > INSERT_AFTER else 0)
+            number = original_number + (ARCH_SLIDES if original_number > ARCH_AFTER else 0) + (ADDED_SLIDES if original_number > INSERT_AFTER else 0) + (WORKFLOW_INTRO_SLIDES if original_number > WORKFLOW_AFTER else 0)
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             text = ''.join(node.text or '' for node in page.iter(NS+'t'))
             if title.replace('\u2019', '\u0027') not in text.replace('\u2019','\u0027'):
                 raise ValueError(f'Slide {number}: manca il titolo {title!r}')
-        for number, title in {**REQUIRED_ARCH_TITLES, **REQUIRED_NEW_SLIDE_TITLES}.items():
+        for number, title in {**REQUIRED_ARCH_TITLES, **REQUIRED_NEW_SLIDE_TITLES,
+                              **{49:'Che cos',50:'Categorie: come si classifica',
+                                 51:'Step: i passaggi operativi',52:'Condizioni: quando',
+                                 53:'Dipendenze: risorse e prerequisiti'}}.items():
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             text = ''.join(node.text or '' for node in page.iter(NS + 't'))
             if title.replace('’', "'") not in text.replace('’', "'"):
@@ -181,6 +202,50 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         # CI evidence is visible; unused /ppt/media members do not count.
         slide70_digests = linked_slide_image_digests(archive, PALETTE_SLIDE)
         lab_opening_digests = linked_slide_image_digests(archive, LAB_SPAM_OPENING_SLIDE)
+    # RC88: validate the ordered teaching introduction without weakening CI provenance.
+    workflow_intro = json.loads((Path(__file__).resolve().parents[1] / 'docs/presentation/visual_rc88_workflow_intro.json').read_text(encoding='utf8'))
+    if workflow_intro.get('insert_after_original') != WORKFLOW_AFTER or len(workflow_intro.get('slides', [])) != WORKFLOW_INTRO_SLIDES or [row.get('workflow_intro') for row in workflow_intro['slides']] != ['workflow','categories','steps','conditions','dependencies']:
+        raise ValueError('Incomplete RC88 workflow terminology introduction')
+    # Lossless callout crops are deterministic descendants of two originals.
+    # Reconstruct exact output PNG hashes rather than allowing arbitrary media.
+    from tempfile import TemporaryDirectory
+    try:
+        from scripts.training_image_roi import crop_region
+    except ModuleNotFoundError:
+        from training_image_roi import crop_region
+    def add_full_width_rois(source: Path, kind: str) -> None:
+        from PIL import Image
+        with Image.open(source) as src:
+            tall=src.height>src.width*1.28
+        if kind=='steps':
+            positions=[.154,.294,.430,.565,.703,.838] if tall else [.02,.183,.346,.509,.672,.835]
+            regions=[(pos,.108 if tall else .015,.132 if tall else .163,.112 if tall else .95) for pos in positions]
+        else:
+            regions=([(.15,.555,.83,.100),(.15,.654,.83,.112)] if tall else
+                     [(.01,.01,.98,.47),(.01,.48,.98,.50)])
+        checksums=set()
+        with TemporaryDirectory() as temp:
+            for idx,region in enumerate(regions):
+                dest=Path(temp)/(str(idx)+'.png')
+                crop_region(source,dest,region)
+                checksums.add(digest(dest))
+        allowed.update(checksums)
+        return checksums
+    def add_original_rois(source: Path, kind: str) -> None:
+        from PIL import Image
+        with Image.open(source) as src:
+            tall=src.height>src.width*1.28
+        if kind=='steps':
+            regions=([(.16,.098,.40,.118),(.56,.098,.41,.118)] if tall else
+                     [(.00,.01,.52,.83),(.47,.01,.53,.83)])
+        else:
+            regions=([(.15,.558,.82,.108),(.15,.664,.82,.106)] if tall else
+                     [(.01,.02,.98,.46),(.01,.50,.98,.48)])
+        with TemporaryDirectory() as temp:
+            for idx,region in enumerate(regions):
+                output=Path(temp)/(str(idx)+'.png')
+                crop_region(source,output,region)
+                allowed.add(digest(output))
     # Only vetted application screenshots, locally generated CIR imagery and
     # verified same-run browser screenshots may enter the distributed deck.
     root = Path(__file__).resolve().parents[1]
@@ -192,6 +257,12 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         archived = root / 'app/static/help/ui-runtime'
         allowed.update(digest(path) for path in archived.iterdir()
                        if path.is_file() and path.suffix.lower() in {'.png', '.jpg'})
+    if not strict_images and not manifest:
+        archived = root / 'app/static/help/ui-runtime'
+        add_original_rois(archived/'spam-workflow-steps.png','categories')
+        add_full_width_rois(archived/'spam-workflow-steps.png','steps')
+        add_full_width_rois(archived/'spam-workflow-steps.png','categories')
+        add_original_rois(archived/'spam-workflow-steps.png','steps')
     allowed.add(digest(root/'app/static/ai-chatbot/albot-avatar.png'))
     art = root / 'docs/presentation/visual_rc61_art'
     art_provenance = json.loads((art/'provenance.json').read_text(encoding='utf8'))
@@ -230,7 +301,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
     if extra['insert_after_original'] != INSERT_AFTER or len(extra['slides']) != ADDED_SLIDES:
         raise ValueError('Incomplete incident-opening instructional addendum')
     arch_extra = json.loads((root/'docs/presentation/visual_rc71_architecture_addendum.json').read_text(encoding='utf8'))
-    if arch_extra['insert_after_original'] != ARCH_AFTER or len(arch_extra['slides']) != ARCH_SLIDES:
+    if arch_extra['insert_after_original'] != ARCH_AFTER or len(arch_extra['slides']) != ARCH_SLIDES - 1:
         raise ValueError('Incomplete modular architecture chapter')
     modular_art=json.loads((root/'docs/presentation/visual_rc71_art/provenance.json').read_text(encoding='utf8'))
     if {x['kind'] for x in modular_art['artwork']} != {'modules','procedures'}:
@@ -320,22 +391,69 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
             seen_files.add(filename)
             lookup[ident] = row
             allowed.add(checksum)
+        if strict_images:
+            # The two new preview captures are mandatory members of the
+            # FINAL, full-gallery appendix, not merely earlier illustrations.
+            for required in ('pdf-generated-preview','notification-preview'):
+                if required not in lookup or required in HIDDEN_GALLERY_IDS:
+                    raise ValueError('Mandatory preview missing from complete browser gallery: '+required)
+            add_original_rois(manifest_path.parent / lookup['workflow-steps-focused']['file'],'steps')
+            chosen=lookup.get('spam-workflow-steps') or lookup['workflow-steps-focused']
+            required_step_rois=add_full_width_rois(manifest_path.parent / chosen['file'],'steps')
+            required_category_rois=add_full_width_rois(manifest_path.parent / lookup['spam-incident-config-labels']['file'],'categories')
+            with ZipFile(pptx) as linked:
+                if not required_step_rois.issubset(linked_slide_image_digests(linked,61)):
+                    raise ValueError('Step cards zoom does not use verified screenshot pixels in slide 61')
+                if not required_category_rois.issubset(linked_slide_image_digests(linked, PALETTE_SLIDE)):
+                    raise ValueError('Screenshot CI non collegata alla slide ' + str(PALETTE_SLIDE) + ': category focus crops')
+            add_original_rois(manifest_path.parent / lookup['spam-incident-config-labels']['file'],'categories')
+        # A generated PDF preview is separate from the browser screenshots.
+        # It must be the rasterized page of an app-produced PDF, with two
+        # independent hashes. Never treat it as an unverified arbitrary image.
+        preview = data.get('generated_pdf_preview')
+        if strict_images:
+            if not isinstance(preview, dict) or preview.get('source_kind') != 'cir-generated-mapped-acroform':
+                raise ValueError('Generated PDF preview evidence is required')
+            for key, checksum_key, extension in (('pdf_file', 'pdf_sha256', '.pdf'),
+                                                  ('png_file', 'png_sha256', '.png')):
+                name = preview.get(key)
+                checksum = preview.get(checksum_key)
+                if (not isinstance(name, str) or not name or name.startswith('/') or
+                        '..' in name.split('/') or '\\' in name or ':' in name or
+                        not name.lower().endswith(extension) or
+                        not isinstance(checksum, str) or not re.fullmatch('[0-9a-f]{64}', checksum)):
+                    raise ValueError('Generated PDF preview path or hash invalid')
+                file = manifest_path.parent / name
+                if not file.is_file() or file.is_symlink() or not file.resolve().is_relative_to(manifest_path.parent):
+                    raise ValueError('Generated PDF preview file missing or outside manifest')
+                if digest(file) != checksum:
+                    raise ValueError('Generated PDF preview SHA-256 mismatch')
+            if not (manifest_path.parent / preview['pdf_file']).read_bytes().startswith(b'%PDF-'):
+                raise ValueError('Generated PDF preview source is not a PDF')
+            allowed.add(preview['png_sha256'])
+            with ZipFile(pptx) as linked_archive:
+                if preview['png_sha256'] not in linked_slide_image_digests(linked_archive, EXPECTED_SLIDES - 1):
+                    raise ValueError('Generated PDF preview not visible on its dedicated appendix page')
+                notify = lookup.get('notification-preview')
+                if notify and notify['sha256'] not in linked_slide_image_digests(linked_archive, EXPECTED_SLIDES):
+                    raise ValueError('Notification preview not visible on its dedicated appendix page')
         screenshot_count = len(records)
-        expected_count = EXPECTED_SLIDES + (len(records) if strict_images else 0)
+        visible_records = [row for row in records if row['id'] not in HIDDEN_GALLERY_IDS]
+        expected_count = EXPECTED_SLIDES + (len(visible_records) if strict_images else 0)
         if strict_images and len(slides) != expected_count:
             raise ValueError(f'Appendice screenshot CI incompleta: {len(slides)} slide, attese {expected_count}')
         if strict_images:
             with ZipFile(pptx) as linked_archive:
-                for offset, row in enumerate(records):
+                for offset, row in enumerate(visible_records):
                     n = EXPECTED_SLIDES + offset + 1
                     if row['sha256'] not in linked_slide_image_digests(linked_archive, n):
                         raise ValueError(f'Screenshot CI non visibile nella slide {n}: {row["id"]}')
         if strict_images:
             with ZipFile(pptx) as rich_archive:
-                for slide, ident in ((42, 'tenant-setup-wizard-panel'),
-                                     (55, 'workflow-steps-focused'),
-                                     (65, 'statistics-desktop'),
-                                     (68, 'assistant-panel-closeup')):
+                for slide, ident in ((12, 'login-desktop'),
+                                     (15, 'registry-desktop'),
+                                     (62 + WORKFLOW_INTRO_SLIDES, 'pdf-mapping-configuration'),
+                                     (69 + WORKFLOW_INTRO_SLIDES, 'assistant-panel-closeup')):
                     if ident not in lookup or lookup[ident]['sha256'] not in linked_slide_image_digests(rich_archive, slide):
                         raise ValueError(f'Screenshot focalizzata non incorporata nella slide {slide}: {ident}')
                     if not verified_native_zoom(rich_archive, slide, lookup[ident]['sha256']):
@@ -347,7 +465,10 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
             if strict_images and checksum not in media_digests:
                 raise ValueError('Screenshot CI non incorporata nel PPTX: ' + ident)
             if strict_images and ident == 'spam-incident-config-labels':
-                if checksum not in slide70_digests:
+                # The full-image screenshot is intentionally kept in the
+                # final gallery. The learning slide uses 100%-pixel crops,
+                # separately proven above by exact reconstructed SHA-256.
+                if not required_category_rois.issubset(slide70_digests):
                     raise ValueError('Screenshot CI non collegata alla slide ' + str(PALETTE_SLIDE) + ': ' + ident)
                 if checksum not in lab_opening_digests:
                     raise ValueError('Screenshot CI non collegata al laboratorio SPAM slide ' + str(LAB_SPAM_OPENING_SLIDE) + ': ' + ident)
@@ -369,7 +490,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
             from scripts.verify_pdf_screenshot_gallery import verify
         except ModuleNotFoundError:  # direct script execution without project on sys.path
             from verify_pdf_screenshot_gallery import verify
-        pdf_verified = verify(Path(pdf), [manifest_path.parent / row['file'] for row in records],
+        pdf_verified = verify(Path(pdf), [manifest_path.parent / row['file'] for row in visible_records],
                               base_slides=EXPECTED_SLIDES)
     summary = {'pdf_screenshots_visually_verified': pdf_verified, 'slides': len(slides), 'pdf_pages': pdf_pages,
                'verified_browser_screenshots': screenshot_count,

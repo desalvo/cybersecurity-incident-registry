@@ -14,7 +14,8 @@ import json
 import re
 from pathlib import Path
 
-BASE_SLIDES = 88
+BASE_SLIDES = 96
+HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
 MAX_SCREENSHOTS = 80
 
 
@@ -86,10 +87,10 @@ def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, r
         image = manifest.parent / name
         if not image.is_file() or image.is_symlink() or sha256(image) != row['sha256']:
             raise ValueError('Published screenshot bytes differ from sealed capture: ' + ident)
-    expected = BASE_SLIDES + len(installed_rows)
+    expected = BASE_SLIDES + sum(ident not in HIDDEN_GALLERY_IDS for ident, _ in installed_rows)
     if (seal.get('screenshot_gallery_first_slide') != BASE_SLIDES + 1 or
             seal.get('slide_count') != expected or seal.get('pdf_pages') != expected or
-            seal.get('pdf_screenshots_visually_verified') != len(installed_rows)):
+            seal.get('pdf_screenshots_visually_verified') != expected - BASE_SLIDES):
         raise ValueError('Published visual-training gallery has incorrect slide/page coverage')
     for path, filename_key, checksum_key in ((pptx, 'pptx_file', 'pptx_sha256'),
                                              (pdf, 'pdf_file', 'pdf_sha256')):
@@ -101,10 +102,18 @@ def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, r
 
 
 def expected_visual_slides(root: Path, pptx: Path, pdf: Path) -> int:
-    """Allow 88 source-edition slides, or strictly receipt-sealed CI appendix."""
+    """Allow 96 source-edition slides, or strictly receipt-sealed CI appendix."""
     receipt = root / 'docs/presentation/visual-training-receipt.json'
     manifest = root / 'app/static/help/ui-runtime/manifest.json'
     if not receipt.exists() and not manifest.exists():
+        # The checked-in editorial presentation retains every previously
+        # captured application screenshot (except the classical UI) even
+        # before CI attaches the new manifest and the publication receipt.
+        archive = root / 'app/static/help/ui-runtime'
+        if archive.is_dir() and pptx.is_file() and pdf.is_file():
+            preserved = sum(p.is_file() and p.suffix.lower() in {'.png', '.jpg'}
+                            and p.stem not in HIDDEN_GALLERY_IDS for p in archive.iterdir())
+            return BASE_SLIDES + preserved
         return BASE_SLIDES
     if not receipt.is_file() or not manifest.is_file():
         raise ValueError('Unsealed browser screenshots found in current visual-training bundle')

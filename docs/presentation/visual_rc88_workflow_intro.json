@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "insert_after_original": 38,
+  "slides": [
+    {
+      "index": 90,
+      "original": 90,
+      "kind": "content",
+      "workflow_intro": "workflow",
+      "tag": "WORKFLOW / CONCETTI FONDAMENTALI",
+      "title": "Che cos’è un workflow?",
+      "bullets": [
+        "Un workflow è una procedura configurabile che descrive come affrontare un tipo di incidente, dall’apertura alla chiusura.",
+        "Definisce una sequenza ordinata di attività, responsabilità, condizioni e verifiche prima di concludere il caso.",
+        "Gli amministratori ne configurano la struttura nel tenant; gli operatori lo seguono e documentano le azioni svolte.",
+        "CIR può utilizzare un workflow specifico di categoria oppure, se assente, quello predefinito del tenant."
+      ],
+      "notes": "Introduzione neutra, prima di qualsiasi esempio: il workflow non è la categoria e non coincide con una semplice lista di etichette. Le fasi vengono recuperate da IncidentWorkflowStep del tenant e ordinate per posizione; gli admin definiscono attività e regole. Fonti: app/models.py (IncidentWorkflowStep), app/workflow_lifecycle.py (workflow_scope_for_categories), app/routes.py."
+    },
+    {
+      "index": 91,
+      "original": 91,
+      "kind": "content",
+      "workflow_intro": "categories",
+      "tag": "WORKFLOW / CONCETTI FONDAMENTALI",
+      "title": "Categorie: come si classifica un incidente",
+      "bullets": [
+        "Una categoria è un’etichetta configurabile che descrive il tipo di incidente, per esempio SPAM o phishing.",
+        "L’incidente può avere più categorie, ma l’ordine di selezione è significativo: la prima governa la scelta del workflow.",
+        "Se esiste un workflow dedicato alla prima categoria, CIR utilizza quello; altrimenti passa al workflow predefinito.",
+        "Le categorie aggiuntive migliorano classificazione, ricerca e report: non sommano automaticamente altri workflow."
+      ],
+      "notes": "Distinguere classificazione dal flusso operativo. La scelta del workflow avviene tramite identità della prima categoria selezionata, quando esistono step per tale categoria nel tenant; non per somiglianza di testo arbitraria. Le ulteriori categorie restano metadati di classificazione. Fonte: app/workflow_lifecycle.py::workflow_scope_for_categories; app/routes.py::workflow_steps_for_incident."
+    },
+    {
+      "index": 92,
+      "original": 92,
+      "kind": "content",
+      "workflow_intro": "steps",
+      "tag": "WORKFLOW / CONCETTI FONDAMENTALI",
+      "title": "Step: i passaggi operativi del workflow",
+      "bullets": [
+        "Uno step è una singola attività della procedura: registrare un’analisi, bloccare un account, inviare una notifica o produrre un documento.",
+        "Ogni step ha una posizione ordinata e può essere obbligatorio o facoltativo, secondo la configurazione.",
+        "Le istruzioni e i dati richiesti possono variare; azioni, evidenze e comunicazioni restano tracciabili sull’incidente.",
+        "Il completamento del percorso richiede la verifica dei passaggi applicabili, non il semplice cambio di stato dell’incidente."
+      ],
+      "notes": "Gli step sono record IncidentWorkflowStep con posizione, action_label, required, description, section_target, requires_notification, document_generation_enabled. Non ogni step invia automaticamente email o genera PDF: dipende dalla configurazione. Fonti: app/models.py, app/routes.py."
+    },
+    {
+      "index": 93,
+      "original": 93,
+      "kind": "content",
+      "workflow_intro": "conditions",
+      "tag": "WORKFLOW / CONCETTI FONDAMENTALI",
+      "title": "Condizioni: quando si attivano le fasi",
+      "bullets": [
+        "Una condizione è una regola configurata che stabilisce se uno step deve comparire ed essere eseguito nel contesto del caso.",
+        "Esempio: se l’incidente comporta rischi per diritti e libertà, possono diventare applicabili ulteriori valutazioni e comunicazioni.",
+        "Se la condizione non è soddisfatta, la fase condizionale non si applica: non va trattata come un’azione omessa.",
+        "Le condizioni agiscono sul workflow scelto; non costituiscono un secondo workflow indipendente."
+      ],
+      "notes": "Esempio didattico privacy: la condizione personal_data si riflette in IncidentWorkflowStep.conditions e nel flag compatibile personal_data_only. Evitare di implicare che ogni caso SPAM comporti obbligatoriamente una notifica al Garante. Fonte: app/models.py::IncidentWorkflowStep.condition_tokens e logica UI di applicabilità step."
+    },
+    {
+      "index": 94,
+      "original": 94,
+      "kind": "content",
+      "workflow_intro": "dependencies",
+      "tag": "WORKFLOW / CONCETTI FONDAMENTALI",
+      "title": "Dipendenze: risorse e prerequisiti del percorso",
+      "bullets": [
+        "Una dipendenza collega uno step alle risorse o ai requisiti necessari per svolgerlo correttamente.",
+        "Esempi: label dell’azione, tipo/template di notifica, modello PDF, campi richiesti o informazioni di contesto.",
+        "Gli amministratori configurano e verificano le risorse nel tenant prima di rendere operativo il workflow.",
+        "Non confondere le dipendenze dalle risorse con le condizioni: le prime indicano che cosa serve; le seconde quando uno step si applica."
+      ],
+      "notes": "Nel modello CIR le dipendenze dello step sono soprattutto riferimenti configurativi (action_label_id, required_notification_type, document_template_name, section_target) e requisiti; non attribuire al prodotto un grafo generico arbitrario di depends_on tra step se non implementato. Fonti: app/models.py::IncidentWorkflowStep, app/workflow_catalog.py, app/tenant_defaults.py."
+    }
+  ],
+  "editorial_kind": "editable-vector-diagram",
+  "sources": [
+    "app/models.py::IncidentWorkflowStep",
+    "app/workflow_lifecycle.py::workflow_scope_for_categories",
+    "app/routes.py",
+    "app/workflow_catalog.py"
+  ]
+}

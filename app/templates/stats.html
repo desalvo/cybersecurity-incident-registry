@@ -3,12 +3,25 @@
 <div class="page-header">
   <div>
     <h1>Statistiche</h1>
-    <p class="muted">Statistiche separate per intervallo temporale, categorie e dati interessati.</p>
+    <p class="muted">Indicatori per tenant, aggregazioni globali e confronti cross-tenant (solo super admin). Export PDF, CSV e JSON per analisi esterne e connettori dedicati.</p>
   </div>
-  <a class="button" href="{{ url_for('main.stats_pdf', start=request.args.get('start',''), end=request.args.get('end','')) }}">Scarica PDF statistiche</a>
+  <div class="toolbar">
+    <a class="button" href="{{ url_for('main.stats_pdf', scope=scope, start=request.args.get('start',''), end=request.args.get('end','')) }}">Scarica PDF statistiche</a>
+    <a class="button secondary" href="{{ url_for('main.stats_csv', scope=scope, start=request.args.get('start',''), end=request.args.get('end','')) }}">Esporta CSV</a>
+    <a class="button secondary" href="{{ url_for('main.stats_json', scope=scope, start=request.args.get('start',''), end=request.args.get('end','')) }}">Esporta JSON</a>
+  </div>
 </div>
 
 <form class="card toolbar" method="get" action="{{ url_for('main.stats') }}" aria-label="Filtro finestra temporale statistiche">
+  <label>Ambito
+    <select name="scope" aria-label="Ambito delle statistiche">
+      <option value="tenant" {{ 'selected' if scope == 'tenant' }}>Tenant attivo</option>
+      {% if is_stats_superuser %}
+      <option value="all" {{ 'selected' if scope == 'all' }}>Globale (tutti i tenant)</option>
+      <option value="per_tenant" {{ 'selected' if scope == 'per_tenant' }}>Cross-tenant (aggregati per tenant)</option>
+      {% endif %}
+    </select>
+  </label>
   <label>Da
     <input type="datetime-local" name="start" value="{{ request.args.get('start','') }}">
   </label>
@@ -69,6 +82,15 @@
         {% endif %}
       </div>
     </div>
+    {% if scope == 'per_tenant' %}
+      <div class="card" aria-label="Statistiche ripartite per tenant">
+        <h3>Confronto cross-tenant · dettaglio per tenant</h3>
+        <table class="table"><thead><tr><th>Tenant</th><th>Incidenti</th><th>Durata media (ore)</th></tr></thead>
+        <tbody>{% for item in row.tenant_breakdown %}
+          <tr><td>{{ item.tenant }}</td><td>{{ item.count }}</td><td>{{ '%.2f'|format(item.avg_duration) }}</td></tr>
+        {% else %}<tr><td colspan="3">Nessun incidente nel periodo.</td></tr>{% endfor %}</tbody></table>
+      </div>
+    {% endif %}
   </section>
   {% endfor %}
 </div>

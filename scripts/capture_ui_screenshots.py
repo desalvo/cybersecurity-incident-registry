@@ -45,6 +45,7 @@ REQUIRED_CAPTURES = {
     "alfresco-incident-documents",
     "assistant-desktop", "assistant-mobile", "interface-settings-desktop",
     "classic-registry-desktop", "admin-modules-desktop", "admin-sso-desktop",
+    "notification-preview", "tenant-wizard-next-step",
     "documentation-user-desktop", "documentation-user-mobile",
     "documentation-admin-desktop", "documentation-admin-mobile",
 }
@@ -203,6 +204,7 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
     if version("playwright") != PLAYWRIGHT_VERSION:
         raise RuntimeError("Install the exact requirements-ui.txt before capturing")
     errors, blocked, screenshots, checks = [], [], [], {}
+    generated_pdf_preview = None
     origin = urlparse(base_url).netloc
     identity = read_application_identity(ROOT)
 
@@ -577,13 +579,50 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             preview_url = page.locator('.generated-preview-card iframe').get_attribute('src')
             response = desktop.request.get(base_url + preview_url)
             assert response.status == 200, f"Generated PDF request returned HTTP {response.status}"
-            verify_generated_pdf_final_print(response.body(), expected_reference=fixture["incident_reference"])
+            pdf_bytes = response.body()
+            verify_generated_pdf_final_print(pdf_bytes, expected_reference=fixture["incident_reference"])
+            # Chromium's built-in PDF iframe sometimes remains white in a
+            # screenshot although its network response is a valid, flattened,
+            # populated PDF. Render the *actual app response* via Poppler.
+            # The screenshot and the source PDF are both sealed by SHA-256.
+            pdf_file = output / 'screenshots' / 'generated-mapped-example.pdf'
+            png_file = output / 'screenshots' / 'generated-mapped-example.png'
+            pdf_file.write_bytes(pdf_bytes)
+            subprocess.run(['pdftoppm', '-f', '1', '-l', '1', '-singlefile',
+                            '-png', '-r', '144', str(pdf_file),
+                            str(png_file.with_suffix(''))], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            assert _image_size(png_file)[0] >= 800, 'Generated PDF preview too narrow'
+            generated_pdf_preview = {
+                'source_kind': 'cir-generated-mapped-acroform',
+                'pdf_file': str(pdf_file.relative_to(output)),
+                'pdf_sha256': hashlib.sha256(pdf_bytes).hexdigest(),
+                'png_file': str(png_file.relative_to(output)),
+                'png_sha256': hashlib.sha256(png_file.read_bytes()).hexdigest(),
+                'renderer': 'poppler-pdftoppm',
+                'incident_reference': fixture['incident_reference'],
+            }
+            checks['generated_pdf_real_page_rasterized'] = True
             page.locator('.pdf-preview-frame').scroll_into_view_if_needed()
             page.wait_for_timeout(900)  # Chromium's built-in PDF plugin paints asynchronously.
             snap(page, 'pdf-generated-preview',
                  "Anteprima reale: PDF AcroForm compilato e salvabile dall'incidente",
                  "Real preview: populated AcroForm PDF from an incident")
             checks["real_filled_pdf_generated_and_previewed"] = True
+            # A notification preview must be captured before sending. This
+            # route renders the real populated template, not a simulated email.
+            from app.models import NotificationType
+            with app.app_context():
+                notification_kind = NotificationType.query.filter_by(enabled=True).first()
+                assert notification_kind is not None, 'No enabled notification type in isolated fixture'
+                kind_code = notification_kind.code
+            go(page, f'/incident/{fixture["incident_id"]}/notify/{kind_code}/preview')
+            expect(page.get_by_role('heading', name=re.compile('Anteprima'))).to_be_visible()
+            expect(page.locator('.mail-preview')).to_be_visible()
+            snap(page, 'notification-preview',
+                 'Anteprima notifica: testo, destinatari e allegati prima dell’invio',
+                 'Notification preview: content, recipients and attachments before send')
+            checks['notification_real_pre_send_preview_captured'] = True
             go(page, "/alfresco/admin/plugins")
             expect(page.locator('input[name="alfresco_base_url"]')).to_have_value("https://alfresco.example.invalid")
             expect(page.locator('input[name="alfresco_site"]')).to_have_value("laboratorio")
@@ -640,6 +679,10 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             # Prove resume and restart through the same real UI used by admins.
             limited_page.get_by_role("button", name="Salta questo gruppo").click()
             expect(limited_page.locator(".setup-step-item.skipped")).to_have_count(1)
+            snap(limited_page, "tenant-wizard-next-step",
+                 "Wizard tenant: sequenza e secondo passaggio effettivo",
+                 "Tenant wizard: real step sequence after skipping the first group",
+                 element_selector=".setup-wizard-shell")
             go(limited_page, "/")
             go(limited_page, "/admin/setup-wizard")
             expect(limited_page.locator(".setup-step-item.skipped")).to_have_count(1)
@@ -707,6 +750,7 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
         "application_security": {"authentication": "real-login", "csrf": "enabled",
                                  "database_context": False, "production_data_used": False},
         "checks": checks, "screenshots": screenshots,
+        "generated_pdf_preview": generated_pdf_preview,
     }
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest

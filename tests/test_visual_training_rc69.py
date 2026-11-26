@@ -58,6 +58,6 @@ def test_editable_schematics_provenance_and_ui_authorization_match_source():
 
 def test_ci_validator_matches_reordered_real_slide_76():
     verifier=(ROOT/'scripts/verify_visual_training_rc64.py').read_text()
-    assert 'EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES' in verifier
+    assert 'EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + APPENDIX_PREVIEWS' in verifier
     assert 'PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES' in verifier
     assert 'linked_slide_image_digests(archive, PALETTE_SLIDE)' in verifier

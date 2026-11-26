@@ -48,11 +48,11 @@ def test_tenant_wizard_is_captured_from_authenticated_browser_and_embedded():
     # The wizard is rendered by the shared RC83 provenance-preserving zoom
     # helper, rather than by a wizard-specific addImage call. Verify the
     # conditional dispatch and its use of one screenshot for both views.
-    assert "if(wizard?.id==='tenant-setup-wizard-panel')" in builder
-    assert 'addCiZoom(slide,wizard);' in builder
+    assert "wizard?.id==='tenant-setup-wizard-desktop'" in builder
+    assert 'SEQUENZA DEGLI STEP DEL WIZARD' in builder
     assert 'slide.addImage({path:shot.path,...p})' in builder
     assert 'imageSizingCrop(shot.path' in builder
-    assert "(42, 'tenant-setup-wizard-panel')" in verifier
+    assert "(62, 'pdf-mapping-configuration')" in verifier
     assert 'linked_slide_image_digests(rich_archive, slide)' in verifier
 
 

@@ -75,5 +75,5 @@ def test_presentation_cover_acronym_and_section_structure():
         assert 'Architettura modulare' in txt(6)
         assert 'Plugin disponibili' in txt(7)
         assert 'workflow manager generico' in txt(8)
-        assert 'Aprire un incidente:' in txt(18)
-        assert 'Aprire un incidente usando un modello' in txt(23)
+        assert 'Aprire un incidente:' in txt(19)
+        assert 'Aprire un incidente usando un modello' in txt(24)

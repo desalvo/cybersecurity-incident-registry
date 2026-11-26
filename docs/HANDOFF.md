@@ -1,5 +1,35 @@
 # CIR — Handoff di sviluppo
 
+
+## PRIORITA AL RIAVVIO: wheel offline Python 3.13 e Flask (26 novembre 2026)
+
+**Non dichiarare Flask non disponibile prima di cercare gli archivi wheel nella Libreria ChatGPT.**
+La Libreria contiene nella cartella radice gli archivi (file Library persistenti):
+
+- **`/cir-wheels-py313.zip`** (archivio preferito: wheel Python 3.13 per Linux x86_64). Contiene `cir-wheels-py313/flask-3.1.3-py3-none-any.whl`, `cir-wheels-py313/flask_sqlalchemy-3.1.1-py3-none-any.whl`, `cir-wheels-py313/Flask_Login-0.6.3-py3-none-any.whl` e le dipendenze, incluso pytest.
+- Archivi alternativi disponibili: **`/cir-python-wheels(1).zip`** e **`/cir-python-wheels.zip`**. Verificare piattaforma, versione Python e wheel presenti prima di usarli.
+
+**In ogni nuova sessione/ambiente:** usare `files__list` sul surface `library` (o cercare il nome esatto), recuperare il `file_id`, quindi `files__materialize` in container. I percorsi `/mnt/data/files/...` sono **solo temporanei**, non sono percorsi permanenti della Libreria. Installare le wheel in un virtualenv isolato **prima** di decidere che la suite Flask non e riproducibile. Non tentare accesso diretto a Internet se le wheel sono gia disponibili.
+
+Comandi di esempio dopo materializzazione (Linux x86_64, Python 3.13):
+
+```bash
+WHEEL_ZIP=/mnt/data/files/cir-wheels-py313.zip  # sostituire con il path materializzato corrente
+WORK=/tmp/cir-offline-env
+python3.13 -m venv "$WORK"
+mkdir -p /tmp/cir-offline-wheels
+unzip -q "$WHEEL_ZIP" -d /tmp/cir-offline-wheels
+"$WORK/bin/python" -m pip install --no-index \
+  --find-links /tmp/cir-offline-wheels/cir-wheels-py313 \
+  Flask==3.1.3 Flask-SQLAlchemy==3.1.1 Flask-Login==0.6.3 pytest
+"$WORK/bin/python" -m pip check
+"$WORK/bin/python" -m pytest -q tests/test_rc87_statistics_scope.py
+```
+
+**Ambiente di lavoro verificato in questa sessione** (temporaneo): `/mnt/data/cir-rc87-work/venv/bin/python`, Python **3.13.5**, Flask **3.1.3**, Flask-SQLAlchemy **3.1.1**, Flask-Login **0.6.3**, SQLAlchemy **2.1.9**, pytest **9.0.3**, psycopg2-binary **2.9.10**; `pip check` **PASS**. Il test HTTP/tenant dell'aggregazione statistica `tests/test_rc87_statistics_scope.py` ha dato **2 passed, 4 deprecation warnings** eseguendolo con questo interprete. Per ogni test futuro preferire **il Python del virtualenv con Flask** al `python` di sistema. La disponibilita delle wheel non implica che tutti i pin dei file requirements correnti coincidano con quelli in archivio: confrontarli e verificare con `pip check` e la CI prima di dichiarare supporto produzione.
+
+Questa sezione prevale sulle annotazioni storiche RC58/RC84 che indicavano Flask assente nel runtime usato allora: quelle note sono conservate come storico e non descrivono la disponibilita attuale.
+
 ## RC84 — 26 novembre 2026 (PR RC83 fallita, baseline RC83)
 
 Log della PR `logs_123747275266.zip`: la suite CI restituisce `1155 passed, 34 skipped, 2 failed` per due test RC75/RC67 che cercano ancora `slide.addImage` diretto; il generatore RC83 usa `addCiZoom` per i ritagli PowerPoint verificati. RC84 aggiorna entrambi i test mantenendo le verifiche su SHA-256, immagine originale e crop; aggiorna anche la fixture facoltativa RC67 alla nuova provenienza browser rigorosa `real-application-browser`/`isolated-synthetic-fixture`. I 15 test mirati passano localmente, compreso il test end-to-end Node/PptxGenJS; suite completa non eseguibile nel runtime locale privo di Flask/Werkzeug. Il job di documentazione della PR ha confermato il bundle PASS con 16 artefatti, ma la CI globale era rossa e la pubblicazione automatica della PR documentale su `main` non e stata ancora osservata. Nessuna modifica al builder o ai file PPTX/PDF in RC84. Dettagli in `docs/RC84_PR_CI_TRAINING_REGRESSIONS.md`. Commit inglese, una sola linea, incrementale dalla RC83 presente nella PR.
@@ -1036,3 +1066,13 @@ skipped release with digest, or unexpected job status. See
 `docs/RC85_MAIN_CI_MASKED_REPOSITORY_OUTPUT.md`. No manual alteration of
 screenshots or presentation; regeneration and PR creation must be proven on a
 new `main` CI after RC85 merge.
+
+## RC87 visual training and application statistics (2026-11-26)
+
+- The visual-training builder (`scripts/build_training_visual_rc64.js`) now has **91 editorial slides** before CI screenshot gallery pages: 89 instructional slides (including a new alert/reminder section after the architecture overview) and two appendix preview slides. The classic-interface screenshot remains a test capture but is not shown in the visual training gallery.
+- On public appendix slides use **"SCREENSHOT AUTENTICHE DELL'APPLICAZIONE"**, never the previous "SCREENSHOT AUTENTICHE DELLA CI". Keep CI run, source commit and SHA-256 in speaker notes and verification manifests. The new interpretation of CI as *Continuous Improvement* on slide 3 is explicitly optional, not its original meaning.
+- Zoom windows use identical screenshot coordinates for the orange highlight and the source-image crop; avoid arbitrary aspect-ratio crops that cut controls. Wizard step sequence and statistics overview use full-screen views where a zoom adds no value. Verify every relevant slide visually after CI capture.
+- CI requires real application screenshot evidence from the same commit, plus a real populated mapped PDF response rendered with `pdftoppm` and a notification preview captured before sending. The PDF response and rendered PNG carry separate SHA-256 hashes in `generated_pdf_preview`. Neither synthetic disposable test fixtures nor the offline editorial deck qualify as published CI evidence. The browser test could not run against local loopback in this environment (`net::ERR_BLOCKED_BY_ADMINISTRATOR`); GitHub CI must confirm it.
+- Public stats now distinguish the tenant-active default from global and per-tenant aggregation available to the super admin, with PDF/CSV/JSON exports. Dedicated connectors can consume these exports with appropriate authorization; do not imply a connector is shipped if it is not.
+- Python 3.13 dependencies are available in the root of the ChatGPT Library as `cir-wheels-py313.zip` (preferred), with `cir-python-wheels(1).zip` and `cir-python-wheels.zip` as alternatives. The primary wheel archive includes Flask 3.1.3, Flask-SQLAlchemy 3.1.1, PyYAML, python-pptx and supporting packages. Reuse an offline venv before claiming Flask is unavailable.
+- RC87 targeted regression: 51 tests passed, 4 SQLAlchemy deprecation warnings. The full local pytest suite exceeded the execution limit, and the slide-layout all-pages test also exceeded its limit; neither is certified as passed. The 91-page editorial PDF and slide/content verifier passed. Real GitHub CI documentation publication remains to be verified.

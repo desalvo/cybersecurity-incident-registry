@@ -13903,8 +13903,27 @@ def import_full():
             _release_full_import_execution_lock(import_lock)
     return render_template('import_full.html')
 
-def _stats_incidents_for_range(start=None, end=None):
-    q = visible(Incident.query)
+def _statistics_scope():
+    """Restrict global and cross-tenant statistics to global superusers.
+
+    The default remains the selected tenant, including when a superuser is
+    signed in. Never infer an elevated scope from a role alone.
+    """
+    scope = request.args.get('scope', 'tenant').strip()
+    if scope not in {'tenant', 'all', 'per_tenant'}:
+        abort(400, description='Ambito statistiche non valido.')
+    if scope != 'tenant' and not is_superuser():
+        abort(403, description='Solo il super admin può consultare statistiche cross-tenant.')
+    return scope
+
+
+def _stats_incidents_for_range(start=None, end=None, *, scope='tenant'):
+    if scope not in {'tenant', 'all', 'per_tenant'}:
+        raise ValueError('Invalid statistics scope')
+    if scope != 'tenant' and not is_superuser():
+        abort(403)
+    # The scoped UI query and the cross-tenant query are intentionally separate.
+    q = visible(Incident.query) if scope == 'tenant' else Incident.query
     if start:
         q = q.filter(or_(
             Incident.start_date > start.date(),
@@ -13917,13 +13936,21 @@ def _stats_incidents_for_range(start=None, end=None):
         ))
     return q.order_by(Incident.start_date.desc(), Incident.start_time.desc()).all()
 
-def _build_stats_rows(include_search=True):
+
+def _build_stats_rows(include_search=True, *, scope='tenant'):
+    if scope != 'tenant' and not is_superuser():
+        abort(403)
     now = utcnow()
     periods = []
     start_arg = request.args.get('start', '').strip()
     end_arg = request.args.get('end', '').strip()
-    search_start = datetime.fromisoformat(start_arg) if start_arg else None
-    search_end = datetime.fromisoformat(end_arg) if end_arg else None
+    try:
+        search_start = datetime.fromisoformat(start_arg) if start_arg else None
+        search_end = datetime.fromisoformat(end_arg) if end_arg else None
+    except ValueError:
+        abort(400, description='Intervallo temporale non valido.')
+    if search_start and search_end and search_start > search_end:
+        abort(400, description='La data iniziale non può superare quella finale.')
     if include_search and (search_start or search_end):
         periods.append(('Finestra ricercata', search_start, search_end))
     periods.extend([
@@ -13941,44 +13968,123 @@ def _build_stats_rows(include_search=True):
                 counts[label.value] = counts.get(label.value, 0) + 1
         return sorted(counts.items(), key=lambda item: (-item[1], item[0].lower()))
 
-    rows = []
-    pdf_periods = []
-    for name, start, end in periods:
-        incs = _stats_incidents_for_range(start, end)
+    def summary(incidents):
         durations = [
             incident.effective_duration_seconds / 3600
-            for incident in incs
-            if incident.effective_duration_seconds is not None
+            for incident in incidents if incident.effective_duration_seconds is not None
         ]
-        categories = count_labels(incs, 'categories')
-        data_types = count_labels(incs, 'data_types')
-        rows.append({
-            'name': name,
-            'count': len(incs),
+        categories = count_labels(incidents, 'categories')
+        data_types = count_labels(incidents, 'data_types')
+        return {
+            'count': len(incidents),
             'avg_duration': (sum(durations) / len(durations)) if durations else 0,
             'categories': categories,
             'data_types': data_types,
             'max_category': max([value for _, value in categories] or [1]),
             'max_data_type': max([value for _, value in data_types] or [1]),
-        })
-        pdf_periods.append({'name': name, 'start': start, 'end': end, 'incidents': incs})
+        }
+
+    tenant_names = ({tenant.id: tenant.name for tenant in Tenant.query.order_by(Tenant.name).all()}
+                    if scope == 'per_tenant' else {})
+    rows = []
+    pdf_periods = []
+    for name, start, end in periods:
+        incs = _stats_incidents_for_range(start, end, scope=scope)
+        stats = summary(incs)
+        breakdown = []
+        if scope == 'per_tenant':
+            grouped = {}
+            for incident in incs:
+                grouped.setdefault(incident.tenant_id, []).append(incident)
+            for tenant_id, records in sorted(grouped.items(), key=lambda item: (tenant_names.get(item[0], 'Senza tenant') if item[0] is not None else 'Senza tenant').casefold()):
+                breakdown.append({
+                    'tenant_id': tenant_id,
+                    'tenant': tenant_names.get(tenant_id, 'Senza tenant') if tenant_id is not None else 'Senza tenant',
+                    **summary(records),
+                })
+        rows.append({'name': name, **stats, 'tenant_breakdown': breakdown})
+        pdf_periods.append({'name': name, 'start': start, 'end': end,
+                            'incidents': incs, 'tenant_breakdown': breakdown})
     return rows, pdf_periods
+
+
+def _statistics_response_cache_control(response):
+    response.headers['Cache-Control'] = 'private, no-store, max-age=0'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
 
 @bp.route('/reports/stats')
 @login_required
 def stats():
-    rows, _ = _build_stats_rows()
-    return render_template('stats.html', rows=rows)
+    scope = _statistics_scope()
+    rows, _ = _build_stats_rows(scope=scope)
+    return _statistics_response_cache_control(Response(
+        render_template('stats.html', rows=rows, scope=scope,
+                        is_stats_superuser=is_superuser()), mimetype='text/html'))
+
 
 @bp.route('/reports/stats.pdf')
 @login_required
 def stats_pdf():
-    _, raw_periods = _build_stats_rows()
-    # Arricchimento demandato a reports.statistics_pdf per mantenere il PDF coerente
+    scope = _statistics_scope()
+    _, raw_periods = _build_stats_rows(scope=scope)
     from .reports import _period_statistics
-    periods = [_period_statistics(p['name'], p['incidents'], p.get('start'), p.get('end')) for p in raw_periods]
-    path = statistics_pdf(periods)
-    return send_file(path, as_attachment=True, download_name='statistiche-incidenti.pdf', mimetype='application/pdf')
+    periods = []
+    for p in raw_periods:
+        result = _period_statistics(p['name'], p['incidents'], p.get('start'), p.get('end'))
+        result['tenant_breakdown'] = p['tenant_breakdown']
+        periods.append(result)
+    path = statistics_pdf(periods, scope_label={
+        'tenant': 'Tenant attivo', 'all': 'Globale (tutti i tenant)',
+        'per_tenant': 'Cross-tenant: aggregati per tenant',
+    }[scope])
+    return _statistics_response_cache_control(send_file(path, as_attachment=True,
+        download_name='statistiche-incidenti.pdf', mimetype='application/pdf'))
+
+
+@bp.route('/reports/stats.json')
+@login_required
+def stats_json():
+    scope = _statistics_scope()
+    rows, _ = _build_stats_rows(scope=scope)
+    payload = {
+        'schema_version': 1,
+        'scope': scope,
+        'generated_at': utcnow().isoformat(),
+        'filters': {'start': request.args.get('start', ''), 'end': request.args.get('end', '')},
+        'periods': rows,
+    }
+    return _statistics_response_cache_control(jsonify(payload))
+
+
+@bp.route('/reports/stats.csv')
+@login_required
+def stats_csv():
+    scope = _statistics_scope()
+    rows, _ = _build_stats_rows(scope=scope)
+    output = io.StringIO(newline='')
+    writer = csv.writer(output)
+    writer.writerow(('Periodo', 'Ambito', 'Tenant', 'Incidenti', 'Durata media (ore)',
+                     'Categorie (JSON)', 'Dati interessati (JSON)'))
+
+    def safe_cell(value):
+        # Spreadsheet CSV applications interpret formula-prefixed data as code.
+        if isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@')):
+            return "'" + value
+        return value
+
+    for row in rows:
+        entries = row['tenant_breakdown'] if scope == 'per_tenant' else [row]
+        for item in entries:
+            writer.writerow((safe_cell(row['name']), scope, safe_cell(item.get('tenant',
+                'Tenant attivo' if scope == 'tenant' else 'Tutti i tenant')),
+                item['count'], f"{item['avg_duration']:.2f}",
+                json.dumps(item['categories'], ensure_ascii=False),
+                json.dumps(item['data_types'], ensure_ascii=False)))
+    response = Response(output.getvalue(), mimetype='text/csv; charset=utf-8')
+    response.headers['Content-Disposition'] = 'attachment; filename="statistiche-incidenti.csv"'
+    return _statistics_response_cache_control(response)
 
 
 @bp.route("/healthz")

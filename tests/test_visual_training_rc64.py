@@ -60,7 +60,7 @@ def test_rc64_provenance_validation_and_pptx_scene_integrity():
     proc=subprocess.run(cmd,capture_output=True,text=True)
     assert proc.returncode==0,proc.stderr
     with ZipFile(deck) as z:
-        slide31=ET.fromstring(z.read('ppt/slides/slide40.xml'))
+        slide31=ET.fromstring(z.read('ppt/slides/slide41.xml'))
         ns='{http://schemas.openxmlformats.org/drawingml/2006/main}'
         texts=' '.join((el.text or '') for el in slide31.iter(ns+'t'))
         assert 'TENANTS DEFAULT' in texts

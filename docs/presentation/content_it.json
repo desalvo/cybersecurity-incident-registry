@@ -898,13 +898,13 @@
         ]
       ],
       "bottom": "Percorso dimostrativo: verificare sempre autorizzazioni, dati e configurazioni effettive.",
-      "notes": "Approfondimento per la formazione CIR. Report operativi. DOVE: Sezioni di report ed esportazione autorizzate. COME: Filtrare periodo, tenant e stato. PERCHÉ: Audit, passaggi di consegne e governance. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
+      "notes": "Approfondimento per la formazione CIR. Report operativi. DOVE: Sezioni di report ed esportazione autorizzate. COME: Filtrare periodo, tenant e stato. PERCHÉ: Audit, passaggi di consegne e governance. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione. Le statistiche supportano export PDF, CSV, JSON; i connettori verso altri sistemi possono essere sviluppati ad hoc. Per il super admin esistono viste globali e per tenant."
     },
     {
       "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
-      "title": "Statistiche: indicatori reali del tenant",
-      "notes": "Approfondimento per la formazione CIR. Statistiche e indicatori. METRICHE: Incidenti aperti, chiusi e tempi. FILTRI: Confrontare periodi e categorie. LIMITI: Le metriche dipendono dalla qualità dei dati. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione.\nCattura autenticata obbligatoria dal browser della CI: statistics-desktop. La pagina raffigura solo dati di prova.",
+      "title": "Statistiche: tenant, cross-tenant e globale",
+      "notes": "Statistiche operative: il tenant attivo mostra solo il proprio perimetro; il super admin può scegliere vista globale (tutti i tenant) oppure cross-tenant con aggregazioni distinte per tenant. Filtri temporali; categorie, dati interessati e durata media. Export PDF, CSV e JSON aggregati; connettori ad hoc per BI o sistemi esterni ove necessario, con autorizzazioni appropriate. Fonte: app/routes.py, app/reports.py, app/templates/stats.html. Schermata autenticata della CI: statistics-desktop con dati sintetici isolati.",
       "screenshots": [
         "statistics-desktop"
       ]
