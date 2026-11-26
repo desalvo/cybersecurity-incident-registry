@@ -238,7 +238,7 @@
       "La barra laterale porta a incidenti, statistiche, notifiche e moduli.",
       "L’icona all’inizio della riga distingue un incidente con attività da completare da uno chiuso senza avvisi.",
       "L’intestazione riporta identità e tenant attivo; AlBot compare solo quando abilitato.",
-      "La cattura CI successiva documenta due incidenti chiusi con tutte le fasi completate e l’icona ✓ verde."
+      "La screenshot documenta due incidenti chiusi con tutte le fasi completate e l’icona ✓ verde."
     ],
     "images": [
       {
@@ -253,7 +253,7 @@
         ]
       }
     ],
-    "notes": "CIR – modulo 11. Navigazione principale e stato degli incidenti. La barra laterale porta a incidenti, report/statistiche e moduli. L’icona all’inizio di ogni riga distingue le pratiche con avvisi da quelle chiuse e complete. L’intestazione mostra identità e tenant attivo; il bot AI appare solo se abilitato. L’immagine CI aggiornata mostrerà sia incidenti aperti sia casi conclusi con ✓ verde. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
+    "notes": "CIR – modulo 11. Navigazione principale e stato degli incidenti. La barra laterale porta a incidenti, report/statistiche e moduli. L’icona all’inizio di ogni riga distingue le pratiche con avvisi da quelle chiuse e complete. L’intestazione mostra identità e tenant attivo; il bot AI appare solo se abilitato. La screenshot documenta incidenti chiusi con tutte le fasi completate e icona ✓ verde. Le catture usate nel materiale editoriale sono provenienti dalla CI con dati sintetici; per i nuovi contenuti la pipeline usa solo catture autentiche e verificate. Gli schemi non sono screenshot.",
     "index": 11
   },
   {
@@ -263,10 +263,10 @@
     "subtitle": "",
     "tag": "INTRO",
     "bullets": [
-      "⚠ indica passaggi del workflow ancora da completare, anche su una pratica marcata chiusa.",
+      "⚠ indica passaggi del workflow ancora da completare: un incidente in questo stato non dovrebbe essere considerato chiuso.",
       "✓ verde identifica la chiusura effettiva, senza avvisi procedurali ancora attivi.",
       "◆ identifica un workflow finalizzato per una pratica non ancora formalmente chiusa.",
-      "Le icone dipendono dai task: nella cattura precedente i casi chiusi hanno ancora avvisi; la nuova CI ne verificherà la correzione."
+      "Le icone dipendono dai task: i casi chiusi non dovrebbero mai avere avvisi attivi."
     ],
     "images": [
       {

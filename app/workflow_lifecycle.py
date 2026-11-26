@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import uuid
 
-from sqlalchemy import inspect, or_, text
+from sqlalchemy import inspect, or_, select, text
 
 from .models import db, ConfigLabel, IncidentWorkflowStep, Tenant, User
 from .timeutils import utcnow
@@ -342,11 +342,127 @@ def remove_workflow_state(tenant_id, category_id=None):
     lock_workflow_configuration()
     state = get_workflow_state(tenant_id, category_id)
     if state is None:
+        # Legacy imports can have step rows and an imported category but no
+        # lifecycle state. Deleting their final step must release the name too.
+        _prune_catalog_category(tenant_id, category_id)
         return
     # Leave receipts as historical pointers, never reconnect them to a newly
     # created scope during a later backfill.
     db.session.delete(state)
+    db.session.flush()
+    _prune_catalog_category(tenant_id, category_id, workflow_id=state.id)
 
+
+def rename_workflow(tenant_id, category_id, new_name):
+    """Rename the workflow and its first-category label as one tenant-scoped edit.
+
+    Never apply an automatic ``v2`` suffix here: an explicit rename must either
+    use exactly the requested name or fail, including case-insensitive clashes.
+    """
+    if category_id is None:
+        raise ValueError('Il workflow di default ha nome riservato e non può essere rinominato.')
+    if not isinstance(new_name, str) or not new_name.strip() or len(new_name.strip()) > 160:
+        raise ValueError('Inserire un nome workflow valido (massimo 160 caratteri).')
+    name = new_name.strip()
+    lock_workflow_configuration()
+    tenant = Tenant.query.filter_by(id=int(tenant_id)).with_for_update().first()
+    if tenant is None:
+        raise ValueError('Tenant inesistente.')
+    label = _category_query(tenant, int(category_id)).first()
+    if label is None or not _steps_query(tenant.id, label.id).first():
+        raise ValueError('Workflow inesistente o vuoto.')
+    from .tenant_defaults_models import TenantDefaultReplica
+    if TenantDefaultReplica.query.filter_by(tenant_id=tenant.id, local_type='config_label', local_id=label.id).first():
+        raise ValueError('Categoria ereditata da Tenants Default: creare prima una copia locale indipendente.')
+    wanted = name.casefold()
+    for category in ConfigLabel.query.filter_by(tenant_id=tenant.id, kind='category').all():
+        if category.id != label.id and category.value.strip().casefold() == wanted:
+            raise ValueError('Il nome scelto è già presente nel tenant.')
+    for other in TenantWorkflow.query.filter_by(tenant_id=tenant.id).all():
+        if other.category_id != label.id and other.name.strip().casefold() == wanted:
+            raise ValueError('Il nome scelto è già presente nel tenant.')
+    label.value = name
+    state = get_workflow_state(tenant.id, label.id)
+    if state is None:
+        state = ensure_workflow_state(tenant.id, label.id, name=name)
+    else:
+        state.name = name
+    # Installation receipts intentionally retain the historical import name.
+    # The stable category/workflow IDs preserve incident associations.
+    db.session.flush()
+    return state
+
+
+def _prune_catalog_category(tenant_id, category_id, *, workflow_id=None):
+    """Release an imported workflow name only when its category is unused.
+
+    Categories may also classify incidents or templates. Never discard those
+    records, or a live replica of the shared defaults configuration.
+    """
+    if category_id is None:
+        return False
+    category = ConfigLabel.query.filter_by(id=int(category_id), tenant_id=int(tenant_id), kind='category').first()
+    if category is None:
+        return False
+    receipt_query = WorkflowCatalogInstallation.query.filter_by(tenant_id=int(tenant_id), category_id=category.id)
+    receipts = receipt_query.all()
+    owned = category.group == 'catalogo workflow' or any(
+        row.workflow_id == workflow_id for row in receipts if workflow_id is not None
+    )
+    if not owned:
+        return False
+    if _steps_query(tenant_id, category.id).first() or get_workflow_state(tenant_id, category.id):
+        return False
+    from .models import IncidentTemplate, incident_categories
+    from .tenant_defaults_models import TenantDefaultReplica, TenantDefaultSource
+    if db.session.execute(select(incident_categories.c.incident_id).where(
+            incident_categories.c.label_id == category.id).limit(1)).first():
+        return False
+    if any(str(category.id) in str(row.category_ids or '').split(',') for row in
+           IncidentTemplate.query.filter_by(tenant_id=int(tenant_id)).all()):
+        return False
+    if TenantDefaultReplica.query.filter_by(tenant_id=int(tenant_id), local_type='config_label', local_id=category.id).first():
+        return False
+    if TenantDefaultSource.query.filter_by(source_type='config_label', source_id=category.id).first():
+        return False
+    db.session.delete(category)
+    db.session.flush()
+    return True
+
+
+def prune_empty_workflows(tenant_id=None):
+    """Remove empty lifecycle records and safe orphaned catalogue categories.
+
+    Called during explicit workflow maintenance/import, not on every request.
+    Receipts remain immutable historical records; they cannot reserve names.
+    """
+    lock_workflow_configuration()
+    rows = TenantWorkflow.query
+    if tenant_id is not None:
+        rows = rows.filter_by(tenant_id=int(tenant_id))
+    states = rows.all()
+    removed_states = 0
+    for state in states:
+        if _steps_query(state.tenant_id, state.category_id).first():
+            continue
+        tid, cid, wid = state.tenant_id, state.category_id, state.id
+        # Delete empty scopes, including legacy empty default states; the
+        # bootstrap/sync routine recreates the required default steps.
+        db.session.delete(state)
+        db.session.flush()
+        removed_states += 1
+        _prune_catalog_category(tid, cid, workflow_id=wid)
+    receipts = WorkflowCatalogInstallation.query
+    if tenant_id is not None:
+        receipts = receipts.filter_by(tenant_id=int(tenant_id))
+    removed_categories = 0
+    for receipt in receipts.all():
+        if receipt.category_id is None:
+            continue
+        if _prune_catalog_category(receipt.tenant_id, receipt.category_id,
+                                   workflow_id=receipt.workflow_id):
+            removed_categories += 1
+    return {'empty_states_removed': removed_states, 'orphan_categories_removed': removed_categories}
 
 def unread_workflow_notice_count(user_id):
     return WorkflowObsolescenceNotice.query.filter_by(user_id=int(user_id), read_at=None).count()

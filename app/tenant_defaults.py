@@ -805,6 +805,8 @@ def sync_defaults_configuration(session=None):
             for tenant_id in tenants:
                 _sync_source_to_tenant(session, source, data, tenant_id)
         session.flush()
+        from .workflow_defaults import sync_all_tenant_default_workflows
+        sync_all_tenant_default_workflows()
         session.info.pop('cir_defaults_dirty', None)
         return {'sources': len(current), 'tenants': len(tenants)}
     finally:

@@ -89,9 +89,33 @@ def test_current_ci_captures_all_have_valid_provenance(full_browser_capture):
     proc = _verify(pptx, manifest, env)
     assert proc.returncode == 0, proc.stderr
     details = json.loads(proc.stdout)
-    assert details['slides'] == 96 + len(CAPTURE_IDS) - 1
+    assert details['slides'] == 97 + len(CAPTURE_IDS) - 1
     assert details['verified_browser_screenshots'] == len(CAPTURE_IDS)
     assert details['mandatory_ci_images_embedded'] is True
+
+
+def test_rc91_appendix_separates_gallery_and_numbers_terminal_previews(full_browser_capture):
+    from xml.etree import ElementTree as ET
+    from scripts.verify_visual_training_rc64 import linked_slide_image_digests
+    directory, deck, manifest, env = full_browser_capture
+    visible = len(CAPTURE_IDS) - 1  # classic UI is deliberately excluded
+    assert visible == 31
+    with ZipFile(deck) as archive:
+        def text(number):
+            page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
+            return ' '.join(el.text or '' for el in page.iter('{http://schemas.openxmlformats.org/drawingml/2006/main}t'))
+        assert '08' in text(95) and 'Appendici' in text(95)
+        assert 'Schermata 1 / 33' in text(96)
+        assert 'Schermata 31 / 33' in text(126)
+        assert 'Schermata 32 / 33' in text(127) and 'Documento PDF compilato' in text(127)
+        assert 'Schermata 33 / 33' in text(128) and 'Notifica prima' in text(128)
+        preview = json.loads(manifest.read_text())['generated_pdf_preview']
+        assert preview['png_sha256'] in linked_slide_image_digests(archive,127)
+        notify = next(row for row in json.loads(manifest.read_text())['screenshots'] if row['id']=='notification-preview')
+        assert notify['sha256'] in linked_slide_image_digests(archive,128)
+        classic = next(row for row in json.loads(manifest.read_text())['screenshots'] if row['id']=='classic-registry-desktop')
+        for number in range(96,129):
+            assert classic['sha256'] not in linked_slide_image_digests(archive,number)
 
 
 def test_nonmandatory_capture_checksum_is_checked(full_browser_capture):
@@ -145,7 +169,7 @@ def test_published_gallery_checks_the_same_real_image_links_without_rebinding_to
     monkeypatch.setenv('GITHUB_SHA', 'f' * 40)
     monkeypatch.setenv('CIR_RELEASE_BUILD', '99999999')
     report = run_check(pptx, None, manifest, False, published_ci_images=True)
-    assert report['slides'] == 96 + len(CAPTURE_IDS) - 1
+    assert report['slides'] == 97 + len(CAPTURE_IDS) - 1
     assert report['mandatory_ci_images_embedded'] is True
     assert report['verified_browser_screenshots'] == len(CAPTURE_IDS)
     with pytest.raises(ValueError, match='source_commit diverso'):

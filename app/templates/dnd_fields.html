@@ -5,7 +5,14 @@
     <div class="palette">
       {% for g,items in categories|groupby('group') %}
         <div class="group-title">{{g}}</div>
-        {% for l in items %}<span class="chip" draggable="true" data-id="{{l.id}}" data-text="{{l.ui_choice_name if l.ui_choice_name is defined else l.value}}" data-target="categories" title="{{ l.ui_choice_origin if l.ui_choice_origin is defined else 'Locale' }}">{{ l.ui_choice_name if l.ui_choice_name is defined else l.value }} <small class="chip-origin">{{ l.ui_choice_origin if l.ui_choice_origin is defined else 'Locale' }}</small></span>{% endfor %}
+        {% for l in items %}
+        {% set has_workflow = l.ui_choice_has_workflow if l.ui_choice_has_workflow is defined else false %}
+        <span class="chip category-workflow-chip{% if not has_workflow %} category-chip-no-workflow{% endif %}" draggable="true" data-id="{{ l.id }}" data-text="{{ l.ui_choice_name if l.ui_choice_name is defined else l.value }}" data-target="categories" data-has-workflow="{{ 'true' if has_workflow else 'false' }}" title="{{ l.ui_choice_tooltip if l.ui_choice_tooltip is defined else 'Stato del workflow non disponibile' }}" aria-label="{{ l.ui_choice_name if l.ui_choice_name is defined else l.value }} - {{ 'workflow specifico associato' if has_workflow else 'nessun workflow specifico associato' }}">
+          {{ l.ui_choice_name if l.ui_choice_name is defined else l.value }}
+          <small class="chip-origin">{{ l.ui_choice_origin if l.ui_choice_origin is defined else 'Locale' }}</small>
+          {% if not has_workflow %}<small class="chip-workflow-hint">Senza workflow specifico</small>{% endif %}
+        </span>
+        {% endfor %}
       {% endfor %}
     </div>
   </div>

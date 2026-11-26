@@ -328,13 +328,16 @@ def test_modern_workflow_layout_keeps_two_task_regions_and_directional_arrows():
     # are tested by the HTTP and CI browser suites respectively.
     css = Path('app/static/ui/incident.css').read_text()
     template = Path('app/templates/incident_detail.html').read_text()
-    assert 'body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{display:flex;' in css
+    assert 'body.cir-modern .workflow-steps,body.cir-modern .workflow-steps-ordered{display:grid;' in css
+    assert 'grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))' in css
     assert 'grid-template-rows:minmax(145px,1fr) minmax(190px,auto)' in css
-    assert 'body.cir-modern .workflow-step-arrow{display:flex;' in css
+    assert 'body.cir-modern .workflow-step-arrow{display:none!important}' in css
+    for connector in ('right', 'down', 'wrap'):
+        assert f'.workflow-step-card.workflow-connector-{connector}::after' in css
     assert 'body.cir-modern .workflow-step-task:focus-visible{' in css
     mobile = css.split('@media(max-width:760px){', 1)[1]
-    assert 'flex-direction:column' in mobile
-    assert 'transform:rotate(90deg)' in mobile
+    assert 'grid-template-columns:minmax(0,1fr)' in mobile
+    assert 'body.cir-modern .workflow-step-card{width:100%;min-width:0;' in mobile
     assert 'class="workflow-step-flow"' in template
     assert 'class="workflow-step-task workflow-step-action" role="button" tabindex="0"' in template
     assert 'class="cir-workflow-command" aria-hidden="true"' in template

@@ -450,3 +450,84 @@ def test_historical_legacy_id_metadata_is_remapped_without_destination_id_lookup
     ids = {('severity', 'Severe'): 701, ('data_type', 'Personal'): 801}
     assert legacy_map_conditions(payload['workflow']['steps'][0]['conditions'], index,
         lambda row: ids[(row['kind'], row['value'])]) == ['severity:701', '!data_type:801']
+
+
+def test_deleting_second_import_releases_its_name_for_reimport(lifecycle_db):
+    """Deleted v2 must not reserve v3 through a leftover category."""
+    from app.models import db, ConfigLabel, IncidentWorkflowStep
+    from app.workflow_catalog import import_catalog_workflow
+    from app.routes import delete_workflow_steps
+    source, target, _ = lifecycle_db
+    entry, _, _ = _published_workflow(source, target)
+    first = import_catalog_workflow(entry.id, target.id, copy_name='Training')
+    second = import_catalog_workflow(entry.id, target.id, copy_name='Training')
+    assert first['copy_name']=='Training'
+    assert second['copy_name']=='Training v2'
+    removed = delete_workflow_steps(second['category_id'], tenant_id=target.id)
+    assert removed >= 1
+    db.session.commit()
+    assert db.session.get(ConfigLabel, second['category_id']) is None
+    assert not IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=second['category_id']).first()
+    again = import_catalog_workflow(entry.id, target.id, copy_name='Training')
+    assert again['copy_name']=='Training v2'
+    assert again['category_id'] != first['category_id']
+
+
+def test_rename_workflow_is_explicit_and_rejects_duplicate_category_names(lifecycle_db):
+    from app.models import db, ConfigLabel
+    from app.workflow_catalog import import_catalog_workflow
+    from app.workflow_lifecycle import rename_workflow, get_workflow_state
+    source, target, _ = lifecycle_db
+    entry, _, _ = _published_workflow(source, target)
+    first = import_catalog_workflow(entry.id, target.id, copy_name='Training')
+    second = import_catalog_workflow(entry.id, target.id, copy_name='Training')
+    db.session.commit()
+    with pytest.raises(ValueError, match='già presente'):
+        rename_workflow(target.id, second['category_id'], 'trAIning')
+    db.session.rollback()
+    renamed=rename_workflow(target.id, second['category_id'], 'New training')
+    db.session.commit()
+    assert renamed.name=='New training'
+    assert db.session.get(ConfigLabel, second['category_id']).value=='New training'
+    assert get_workflow_state(target.id, second['category_id']).name=='New training'
+
+
+def test_tenant_default_follows_shared_workflow_when_no_incident_history(lifecycle_db):
+    from app.models import db, ConfigLabel, IncidentWorkflowStep
+    from app.workflow_defaults import sync_tenant_default_workflow
+    from app.routes import ensure_tenant_generic_default_workflow, delete_workflow_steps
+    source, target, _ = lifecycle_db
+    labels = []
+    for label in ('Shared intake', 'Shared closure'):
+        row = ConfigLabel(tenant_id=source.id, kind='action_label', value=label)
+        db.session.add(row)
+        labels.append(row)
+    db.session.flush()
+    db.session.add_all([
+        IncidentWorkflowStep(tenant_id=source.id, category_id=None,
+            action_label_id=labels[0].id, position=10, description='Start processing', required=True),
+        IncidentWorkflowStep(tenant_id=source.id, category_id=None,
+            action_label_id=labels[1].id, position=20, description='Close after all checks', required=True),
+    ])
+    db.session.commit()
+    ensure_tenant_generic_default_workflow(target.id)
+    db.session.commit()
+    rows = IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=None).order_by(
+        IncidentWorkflowStep.position).all()
+    assert [r.description for r in rows] == ['Start processing', 'Close after all checks']
+    assert [db.session.get(ConfigLabel, r.action_label_id).value for r in rows] == [
+        'Shared intake', 'Shared closure']
+    assert sync_tenant_default_workflow(target.id)['status'] == 'unchanged'
+    assert IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=None).count() == 2
+    db.session.rollback()
+    with pytest.raises(ValueError, match='obbligatorio'):
+        delete_workflow_steps(None, tenant_id=target.id)
+
+    # No historical incidents: changes in Tenants Default are propagated.
+    source_step = IncidentWorkflowStep.query.filter_by(tenant_id=source.id, category_id=None,
+        position=20).one()
+    source_step.description = 'Updated shared closure'
+    db.session.commit()
+    assert sync_tenant_default_workflow(target.id)['status'] == 'synchronized'
+    assert IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=None,
+        position=20).one().description == 'Updated shared closure'

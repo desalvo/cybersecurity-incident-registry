@@ -1,8 +1,51 @@
 /* Presentation navigation only; workflow activation remains the audited app.js path. */
 (function () {
   'use strict';
+  function initWorkflowConnectors() {
+    // Position arrows based on rendered rows, not on an assumed number of columns.
+    // ResizeObserver also covers incident panels whose available width changes.
+    document.querySelectorAll('.workflow-steps-ordered').forEach(function (grid) {
+      const cards = Array.from(grid.querySelectorAll('.workflow-step-card'));
+      if (!cards.length) return;
+      let pending = false;
+      function layout() {
+        pending = false;
+        cards.forEach(function (card) {
+          card.classList.remove('workflow-connector-right', 'workflow-connector-down', 'workflow-connector-wrap');
+        });
+        if (grid.getClientRects().length === 0) return;
+        cards.slice(0, -1).forEach(function (card, index) {
+          const next = cards[index + 1];
+          const currentBounds = card.getBoundingClientRect();
+          const nextBounds = next.getBoundingClientRect();
+          if (Math.abs(currentBounds.top - nextBounds.top) <= 2) {
+            card.classList.add('workflow-connector-right');
+          } else if (Math.abs(currentBounds.left - nextBounds.left) <= 2) {
+            card.classList.add('workflow-connector-down');
+          } else {
+            // The sequence wraps to the first card in the following row.
+            card.classList.add('workflow-connector-wrap');
+          }
+        });
+      }
+      function requestLayout() {
+        if (pending) return;
+        pending = true;
+        window.requestAnimationFrame(layout);
+      }
+      requestLayout();
+      window.addEventListener('resize', requestLayout);
+      const details = grid.closest('details');
+      if (details) details.addEventListener('toggle', requestLayout);
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(requestLayout);
+        observer.observe(grid);
+      }
+    });
+  }
   function init() {
     if (!document.body.classList.contains('cir-modern')) return;
+    initWorkflowConnectors();
     const navigation = document.getElementById('cir-incident-navigation');
     if (!navigation) return;
     const links = Array.from(navigation.querySelectorAll('a[data-cir-section-link]'));

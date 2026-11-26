@@ -71,8 +71,10 @@ for(const item of originalData){
  if(item.index===38)data.push(...workflowIntro.slides);
 }
 const CONTENT_SLIDES=94;
+const APPENDIX_BANNER_SLIDES=1;
 const APPENDIX_PREVIEWS=2;
-const BASE_SLIDES=CONTENT_SLIDES+APPENDIX_PREVIEWS;
+const BASE_SLIDES=CONTENT_SLIDES+APPENDIX_BANNER_SLIDES+APPENDIX_PREVIEWS;
+const GALLERY_FIRST_SLIDE=CONTENT_SLIDES+APPENDIX_BANNER_SLIDES+1;
 const HIDDEN_GALLERY_IDS=new Set(['classic-registry-desktop']);
 const MANDATORY_GALLERY_IDS=new Set(['pdf-generated-preview','notification-preview']);
 const ARCHIVED_GALLERY_ROOT=path.join(root,'app/static/help/ui-runtime');
@@ -188,7 +190,7 @@ function realUiImage(d){
  const file=path.join(root,'app/static/help/ui-runtime',name);
  return fs.existsSync(file)?{id,path:file,archived:true}:null;
 }
-const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title='CIR — Presentazione didattica RC88';pptx.company='Cybersecurity Incident Registry';pptx.lang='it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'it-IT'};
+const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title='CIR — Presentazione didattica RC91';pptx.company='Cybersecurity Incident Registry';pptx.lang='it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'it-IT'};
 const W=13.33333,H=7.5;
 const C={bg:'F4F8FA',white:'FFFFFF',navy:'12324A',muted:'60798A',cyan:'00A8BE',teal:'147E8F',blue:'326C92',violet:'6264A3',green:'23896B',gold:'F6A23A',pink:'D46C75',line:'D9E5EB',ink:'143044',shadow:'EDF3F6',pale:'EAF6F8'};
 function rgb(hex){return '#'+hex;}
@@ -224,11 +226,11 @@ function notes(slide,d){
  }else if((d.images||[]).length){
    n+='Media editoriale della precedente presentazione CIR, derivato da evidenze CI con dati fittizi. Nessuna cattura attuale rivendicata.\n';
  }
- n+='Sorgente CIR 0.10.0-1 RC88. I dati sono di esempio; diagrammi e schemi non rappresentano screenshot dell’applicazione.\n';
+ n+='Sorgente CIR 0.10.0-1 RC91. I dati sono di esempio; diagrammi e schemi non rappresentano screenshot dell’applicazione.\n';
  if(!ciManifest)n+='Edizione editoriale offline: nessuna attestazione di catture dalla CI corrente.\n';
  slide.addNotes(n);
 }
-function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,'v0.10.0-1 · materiale didattico RC88',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${BASE_SLIDES + GALLERY_ITEMS.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
+function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,'v0.10.0-1 · materiale didattico RC91',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${BASE_SLIDES + GALLERY_ITEMS.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
 function bgBase(slide,section){slide.background={color:C.bg};rect(slide,.0,.0,W,.12,section);rect(slide,.5,.48,.055,.68,section);}
 function safeBullets(d){return (d.bullets||[]).map(s=>String(s).replace(/\\\s*$/,'').trim()).filter(Boolean)}
 // Photographic artwork is independent of slide chrome: no title, labels or footer.
@@ -471,7 +473,7 @@ function addCiZoom(slide,shot,override=null,d=null){
 }
 
 
-// RC88: use actual screenshot-pixel crops, not an oversized canvas squeezed to
+// RC91: use actual screenshot-pixel crops, not an oversized canvas squeezed to
 // fit the lower panel. This is essential for tall page captures (3862px SPAM).
 const os=require('os'),cp=require('child_process');
 const roiDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'cir-verified-training-rois-'));
@@ -553,7 +555,7 @@ function focusedCiPanel(slide,d,accent){
  return;
 }
 
-// RC88: definitions precede the SPAM worked example. Editable native diagrams.
+// RC91: definitions precede the SPAM worked example. Editable native diagrams.
 function introLabel(slide,text,x,y,w,h,fill='E7F2FA',size=13.5){
  boxNode(slide,text,x,y,w,h,fill,C.navy,size);
 }
@@ -775,7 +777,7 @@ function visual(slide,d,accent){const title=d.title.toLowerCase();const x=6.60,y
    boxNode(slide,'CONFIGURAZIONE',x+.45,y+.25,4.99,.74,'E8F2F7',C.navy,17);boxNode(slide,'AMBIENTE OPERATIVO',x+.45,y+1.55,4.99,.74,'E5F5EF',C.navy,17);boxNode(slide,'TRACCIAMENTO & GOVERNANCE',x+.45,y+2.85,4.99,.74,'F0EDFA',C.navy,14.5);arrow(slide,x+2.65,y+1.06,.54,'right',accent);arrow(slide,x+2.65,y+2.36,.54,'right',accent);
  }
 }
-// RC88: large readable native training slides for workflow cards and
+// RC91: large readable native training slides for workflow cards and
 // category/data-type selectors. Each crop is losslessly sourced from verified
 // application screenshot pixels; the original is also embedded as evidence.
 function makeFullWidthFocus(slide,d,index,accent){
@@ -873,56 +875,96 @@ function makeCover(slide,d,index){slide.background={color:C.navy};const img=imag
  addText(slide,'Cybersecurity\nIncident Registry',{x:4.16,y:2.62,w:7.35,h:1.04,fontSize:31.0,bold:true,color:'F8C66A',margin:0,breakLine:false,fit:'shrink',valign:'mid'});
  addText(slide,'Gestione degli incidenti e dei workflow procedurali',{x:1.01,y:4.18,w:10.95,h:.88,fontSize:28,bold:true,color:'FFFFFF',margin:0,fit:'shrink'});
  addText(slide,'Corso didattico · interfaccia reale · laboratorio didattico di esempio',{x:1.04,y:5.28,w:10.9,h:.38,fontSize:17.1,color:'D7F4FC',margin:0});
- rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,(ciManifest?`VERSIONE 0.10.0-1   |   RC88   |   SCREENSHOT CI ${ciCommit.slice(0,8)} / ${ciBuild}`:
-   'VERSIONE 0.10.0-1   |   RC88   |   EDIZIONE EDITORIALE · CATTURE STORICHE'),{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
+ rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,(ciManifest?`VERSIONE 0.10.0-1   |   RC91   |   SCREENSHOT CI ${ciCommit.slice(0,8)} / ${ciBuild}`:
+   'VERSIONE 0.10.0-1   |   RC91   |   EDIZIONE EDITORIALE · CATTURE STORICHE'),{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
 }
 data.forEach((d,i)=>{let slide=pptx.addSlide();const n=i+1;if(d.kind==='cover')makeCover(slide,d,n);else if(d.kind==='chapter')makeChapter(slide,d,n);else makeContent(slide,d,n)});
-// Two always-present appendix pages. CI publication adds only verified images;
-// offline editorial builds visibly mark missing *current-run* evidence.
-function appendixPreview(title,id,caption){
- const slide=pptx.addSlide();const n=pptx._slides.length;
- bgBase(slide,C.teal);
- addText(slide,'APPENDICE / ANTEPRIME OPERATIVE',{x:.75,y:.34,w:11.9,h:.29,fontSize:10.1,bold:true,color:C.teal,margin:0});
- addText(slide,title,{x:.75,y:.75,w:11.85,h:.54,fontSize:23.5,bold:true,color:C.navy,margin:0});
- rect(slide,.68,1.51,11.96,4.88,C.white,C.line);
- const image=id==='generated-pdf'?generatedPdfPreview?.path:ciById.get(id);
- if(image){
-  slide.addImage({path:image,...imageSizingContain(image,.84,1.62,11.64,4.63)});
-  addText(slide,caption,{x:.90,y:6.49,w:11.46,h:.24,fontSize:10.1,color:C.teal,bold:true,margin:0,align:'center'});
-  slide.addNotes('[Sources] '+(id==='generated-pdf'? 'Rasterizzazione verificata SHA-256 del PDF compilato dalla vera app CIR con dati sintetici.':
-    'Screenshot browser della vera interfaccia CIR; bytes verificati SHA-256 dal manifest del run corrente.')+' Commit '+ciCommit+'; build '+ciBuild+'.');
- }else{
-  addText(slide,'La cattura viene aggiunta durante la CI della build corrente,\ncon dati di prova e provenienza SHA-256 verificata.',
-    {x:1.80,y:3.19,w:9.73,h:1.05,fontSize:21,bold:true,color:C.muted,align:'center',margin:0});
-  slide.addNotes('Edizione editoriale: anteprima reale non ancora acquisita per questa build. Nessuna immagine simulata.');
- }
- footer(slide,n);
+// RC91 appendix: a true chapter divider, then all original application
+// screenshots in manifest order (except the classic UI), followed by two
+// dedicated, large-format previews. With 31 gallery captures, those previews
+// are "Schermata 32" (compiled PDF) and "Schermata 33" (notification).
+function appendixBanner(){
+ const slide=pptx.addSlide(), n=pptx._slides.length;
+ slide.background={color:C.navy};
+ rect(slide,0,0,W,.14,C.teal);
+ rect(slide,.88,1.18,.12,4.76,C.cyan);
+ addText(slide,'FORMAZIONE • CIR',{x:1.33,y:1.10,w:10.3,h:.40,
+   fontSize:16,bold:true,color:'D5F6FC',charSpacing:1.8,margin:0});
+ addText(slide,'08',{x:1.29,y:2.03,w:5.16,h:1.14,fontSize:74,
+   bold:true,color:'FFFFFF',margin:0});
+ addText(slide,'Appendici',{x:1.34,y:3.31,w:10.9,h:.91,
+   fontSize:39,bold:true,color:'FFFFFF',margin:0});
+ addText(slide,"Screenshot autentiche dell'applicazione\nDati di prova · prove di origine e integrità",
+   {x:1.36,y:4.60,w:10.48,h:.79,fontSize:18.5,color:'D7F4FC',margin:0});
+ addText(slide,`${n} / ${FINAL_SLIDES}`,{x:11.57,y:6.78,w:.97,h:.30,
+   color:'FFFFFF',align:'right',fontSize:10,bold:true,margin:0});
+ slide.addNotes('Sezione 08 - Appendici. Le screenshot provengono dalla vera applicazione CIR. '+
+   (ciManifest?'Il manifest e gli SHA-256 attestano la provenienza dal run CI corrente.':
+   'La galleria editoriale contiene solo catture storiche dell applicazione, non attestazioni del run corrente.')+
+   ' La UI classica e esclusa. Le ultime due schermate sono dedicate al PDF compilato e all anteprima di una notifica.');
 }
-appendixPreview('Anteprima di un documento PDF compilato','generated-pdf',
- 'PDF creato da CIR: campi mappati e dati sintetici verificati');
-appendixPreview('Anteprima di una notifica prima dell’invio','notification-preview',
- 'Oggetto, destinatari, allegati e contenuto verificabili prima della conferma');
-// Complete appendix: ALL authentic source-run browser screenshots, plus the
-// two previews (pdf-generated-preview and notification-preview). The classic
-// UI is never published. Offline edition retains all historical app captures.
+appendixBanner();
+
+// Complete gallery: each visible capture appears in the original manifest
+// order and is linked to its SHA-256-identical source PNG/JPEG. In a CI run
+// this includes pdf-generated-preview and notification-preview; the final
+// dedicated pages below offer a larger annotated view of these two subjects.
 for(const [i,row] of GALLERY_ITEMS.entries()){
     const img=row.path;
     if(!fs.existsSync(img))throw new Error('Screenshot missing for appendix: '+row.id);
     const slide=pptx.addSlide();
     bgBase(slide,C.teal);
-    addText(slide,"APPENDICE / SCREENSHOT AUTENTICHE DELL'APPLICAZIONE",{x:.73,y:.34,w:11.9,h:.3,fontSize:10.2,bold:true,color:C.teal,margin:0});
-    addText(slide,'Schermata '+String(i+1)+' / '+String(GALLERY_ITEMS.length)+' — '+row.id,
+    addText(slide,"APPENDICE / SCREENSHOT AUTENTICHE DELL'APPLICAZIONE",
+      {x:.73,y:.34,w:11.9,h:.3,fontSize:10.2,bold:true,color:C.teal,margin:0});
+    addText(slide,'Schermata '+String(i+1)+' / '+String(GALLERY_ITEMS.length+APPENDIX_PREVIEWS)+' — '+row.id,
       {x:.73,y:.75,w:11.9,h:.48,fontSize:22,bold:true,color:C.navy,margin:0,fit:'shrink'});
     rect(slide,.63,1.39,12.07,5.20,'FFFFFF',C.line);
     slide.addImage({path:img,...imageSizingContain(img,.76,1.48,11.81,4.98)});
     addText(slide,row.archived?'Cattura storica della vera applicazione CIR · NON del run CI corrente':
       'Cattura originale CIR con dati sintetici isolati · SHA-256 '+row.sha256.slice(0,20)+'…',
       {x:.80,y:6.59,w:11.8,h:.27,fontSize:10,color:C.muted,margin:0});
-    footer(slide,BASE_SLIDES+i+1);
+    footer(slide,GALLERY_FIRST_SLIDE+i);
     slide.addNotes((row.archived?'Screenshot storica inclusa negli asset originali dell applicazione; non attestata per questo commit.':
       'Screenshot originale della CI, prelevata dal browser dell applicazione con dati sintetici isolati.')+
       ' ID '+row.id+'; SHA-256 '+row.sha256+'; '+(row.archived?'archivio del progetto':
       'commit '+ciCommit+'; build '+ciBuild)+'. Nessuna immagine dell interfaccia classica.');
 }
+
+// The previews used to appear at positions 95 and 96 before the gallery.
+// They now close the appendix as additional numbered learning screenshots.
+// Current full CI manifests contain 31 permitted browser images, thus these
+// are displayed as Schermata 32 and Schermata 33, respectively.
+function appendixPreview(title,id,caption,serial){
+ const slide=pptx.addSlide();const n=pptx._slides.length;
+ bgBase(slide,C.teal);
+ addText(slide,"APPENDICE / SCREENSHOT AUTENTICHE DELL'APPLICAZIONE",
+   {x:.75,y:.34,w:11.9,h:.29,fontSize:10.1,bold:true,color:C.teal,margin:0});
+ addText(slide,`Schermata ${serial} / ${GALLERY_ITEMS.length+APPENDIX_PREVIEWS} — ${title}`,
+   {x:.75,y:.75,w:11.85,h:.54,fontSize:22.5,bold:true,color:C.navy,margin:0,fit:'shrink'});
+ rect(slide,.68,1.51,11.96,4.88,C.white,C.line);
+ const image=id==='generated-pdf'?generatedPdfPreview?.path:ciById.get(id);
+ if(image){
+  slide.addImage({path:image,...imageSizingContain(image,.84,1.62,11.64,4.63)});
+  addText(slide,caption,{x:.90,y:6.49,w:11.46,h:.24,fontSize:10.1,
+    color:C.teal,bold:true,margin:0,align:'center'});
+  slide.addNotes('[Sources] '+(id==='generated-pdf'?
+    'Rasterizzazione verificata SHA-256 del PDF compilato dalla vera app CIR con dati sintetici e campi mappati.':
+    'Screenshot browser della vera interfaccia CIR, anteprima oggetto/destinatari/contenuto notifiche; byte verificati SHA-256 dal manifest del run corrente.')+
+    ' Commit '+ciCommit+'; build '+ciBuild+'.');
+ }else{
+  addText(slide,'Cattura autentica non disponibile in questa edizione editoriale.\nLa CI inserirà la schermata della vera applicazione.',
+    {x:1.53,y:3.14,w:10.25,h:1.10,fontSize:19.5,bold:true,color:C.muted,
+      align:'center',margin:0});
+  slide.addNotes('Anteprima editoriale: non contiene un PDF o una notifica simulati. '+
+    'La schermata autentica viene incorporata solo dalla CI con manifest e SHA-256.');
+ }
+ footer(slide,n);
+}
+appendixPreview('Documento PDF compilato','generated-pdf',
+ 'Documento PDF generato da CIR · valori mappati dall’incidente di prova · anteprima del documento',
+ GALLERY_ITEMS.length+1);
+appendixPreview('Notifica prima dell’invio','notification-preview',
+ 'Anteprima della notifica · oggetto, destinatari, contenuto e allegati da verificare',
+ GALLERY_ITEMS.length+2);
 
 fs.mkdirSync(path.dirname(out),{recursive:true});pptx.writeFile({fileName:out}).then(()=>console.log('Created '+out+' slides='+(BASE_SLIDES+GALLERY_ITEMS.length))).catch(e=>{console.error(e);process.exit(1)});

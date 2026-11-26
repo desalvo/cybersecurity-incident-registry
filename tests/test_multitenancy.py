@@ -282,14 +282,27 @@ def test_clone_tenant_config_does_not_create_spurious_source_workflows(monkeypat
         db.session.add(IncidentWorkflowStep(tenant_id=source.id, category_id=spam.id, action_label_id=action.id, position=20))
         db.session.commit()
         source_id, dest_id = source.id, dest.id
+        # The commit has synchronized every operational tenant's default from
+        # Tenants Default. Cloning must not introduce any *additional* source
+        # workflow or copy the source's category-specific SPAM steps.
+        def signature(tenant_id):
+            return [(row.category_id, row.position, row.action_label.value)
+                    for row in IncidentWorkflowStep.query.filter_by(tenant_id=tenant_id)
+                    .order_by(IncidentWorkflowStep.category_id, IncidentWorkflowStep.position,
+                              IncidentWorkflowStep.id).all()]
+        source_before = signature(source_id)
+        defaults = Tenant.query.filter_by(is_system_defaults=True).one()
+        shared = signature(defaults.id)
+        assert len([row for row in source_before if row[0] == spam.id]) == 1
+        assert [(pos, name) for category, pos, name in source_before if category is None] == [
+            (pos, name) for category, pos, name in shared]
 
         clone_tenant_config(source_id, dest_id)
         db.session.commit()
-
-        assert IncidentWorkflowStep.query.filter_by(tenant_id=source_id).count() == 2
+        assert signature(source_id) == source_before
         rows = IncidentWorkflowStep.query.filter_by(tenant_id=dest_id).order_by(IncidentWorkflowStep.position).all()
-        assert len(rows) == 3
-        assert [step.action_label.value for step in rows] == ['Apertura', 'Analisi', 'Conclusione']
+        assert [(row.position, row.action_label.value) for row in rows] == [
+            (pos, name) for category, pos, name in shared]
         assert all(step.category_id is None for step in rows)
         assert ConfigLabel.query.filter_by(tenant_id=dest_id, kind='category', value='SPAM').first() is not None
         # A category label alone is not an installed workflow.
@@ -297,11 +310,12 @@ def test_clone_tenant_config_does_not_create_spurious_source_workflows(monkeypat
         assert IncidentWorkflowStep.query.filter(IncidentWorkflowStep.tenant_id.is_(None)).count() == 0
         clone_tenant_config(source_id, dest_id)
         db.session.commit()
-        assert IncidentWorkflowStep.query.filter_by(tenant_id=dest_id).count() == 3
+        assert signature(source_id) == source_before
+        assert len(signature(dest_id)) == len(shared)
 
 
 
-def test_clone_from_system_defaults_provisions_generic_default(monkeypatch, tmp_path):
+def test_clone_from_system_defaults_provisions_shared_default(monkeypatch, tmp_path):
     _configure_test_env(monkeypatch, tmp_path)
     from app import create_app
     from app.models import db, Tenant, IncidentWorkflowStep
@@ -317,15 +331,19 @@ def test_clone_from_system_defaults_provisions_generic_default(monkeypatch, tmp_
         target_id = dest.id
         clone_tenant_config(source.id, target_id)
         db.session.commit()
+        source_steps = IncidentWorkflowStep.query.filter_by(tenant_id=source.id, category_id=None).order_by(IncidentWorkflowStep.position).all()
         default_steps = IncidentWorkflowStep.query.filter_by(tenant_id=target_id, category_id=None).order_by(IncidentWorkflowStep.position).all()
-        assert [step.action_label.value for step in default_steps] == ['Apertura', 'Analisi', 'Conclusione']
-        assert IncidentWorkflowStep.query.filter_by(tenant_id=target_id).count() == 3
+        expected = [(step.position, step.action_label.value, step.description) for step in source_steps]
+        assert expected
+        assert [(step.position, step.action_label.value, step.description) for step in default_steps] == expected
+        assert IncidentWorkflowStep.query.filter_by(tenant_id=target_id).count() == len(expected)
         clone_tenant_config(source.id, target_id)
         db.session.commit()
-        assert IncidentWorkflowStep.query.filter_by(tenant_id=target_id).count() == 3
+        repeated = IncidentWorkflowStep.query.filter_by(tenant_id=target_id, category_id=None).order_by(IncidentWorkflowStep.position).all()
+        assert [(step.position, step.action_label.value, step.description) for step in repeated] == expected
 
 
-def test_workflow_admin_can_delete_entire_current_tenant_workflow(monkeypatch, tmp_path):
+def test_workflow_admin_cannot_delete_required_default_workflow(monkeypatch, tmp_path):
     _configure_test_env(monkeypatch, tmp_path)
     from app import create_app
     from app.models import db, Tenant, IncidentWorkflowStep
@@ -335,8 +353,10 @@ def test_workflow_admin_can_delete_entire_current_tenant_workflow(monkeypatch, t
     client = app.test_client()
     with app.app_context():
         default = Tenant.query.filter_by(name='default').one()
-        before = IncidentWorkflowStep.query.filter_by(tenant_id=default.id, category_id=None).count()
-        assert before > 0
+        before = [(row.position, row.action_label.value)
+                  for row in IncidentWorkflowStep.query.filter_by(tenant_id=default.id, category_id=None)
+                  .order_by(IncidentWorkflowStep.position).all()]
+        assert before
 
     login_page = client.get('/login')
     token = _csrf(login_page.get_data(as_text=True))
@@ -345,10 +365,13 @@ def test_workflow_admin_can_delete_entire_current_tenant_workflow(monkeypatch, t
     token = _csrf(page.get_data(as_text=True))
     response = client.post('/admin/incident-workflows', data={'_csrf_token': token, 'action': 'delete_workflow', 'delete_scope': 'default'}, follow_redirects=True)
     assert response.status_code == 200
-    assert 'Flusso eliminato per Flusso di default' in response.get_data(as_text=True)
+    assert 'Il workflow di default è obbligatorio e non può essere eliminato.' in response.get_data(as_text=True)
     with app.app_context():
         default = Tenant.query.filter_by(name='default').one()
-        assert IncidentWorkflowStep.query.filter_by(tenant_id=default.id, category_id=None).count() == 0
+        after = [(row.position, row.action_label.value)
+                 for row in IncidentWorkflowStep.query.filter_by(tenant_id=default.id, category_id=None)
+                 .order_by(IncidentWorkflowStep.position).all()]
+        assert after == before
 
 
 def test_menu_tenant_switcher_posts_with_current_page_reload_hook():
@@ -441,8 +464,11 @@ def test_clone_tenant_config_reuses_existing_tenant_objects(monkeypatch, tmp_pat
         assert ConfigLabel.query.filter_by(tenant_id=dest_id, kind='action_label', value='Azione idempotente').count() == 1
         assert ConfigLabel.query.filter_by(tenant_id=dest_id, kind='severity', value='Alta idempotente').count() == 1
         generic = IncidentWorkflowStep.query.filter_by(tenant_id=dest_id, category_id=None).order_by(IncidentWorkflowStep.position).all()
-        assert len(generic) == 3
-        assert [step.action_label.value for step in generic] == ['Apertura', 'Analisi', 'Conclusione']
+        shared_tenant = Tenant.query.filter_by(is_system_defaults=True).one()
+        shared = IncidentWorkflowStep.query.filter_by(tenant_id=shared_tenant.id, category_id=None).order_by(IncidentWorkflowStep.position).all()
+        assert shared
+        assert [(step.position, step.action_label.value) for step in generic] == [
+            (step.position, step.action_label.value) for step in shared]
         assert IncidentWorkflowStep.query.filter_by(tenant_id=dest_id, position=10, description='Step').count() == 0
         assert NotificationType.query.filter_by(tenant_id=dest_id, code='notice_idempotent').count() == 1
         assert NotificationTemplate.query.filter_by(tenant_id=dest_id, kind='notice_idempotent', name='Template idempotente').count() == 1
