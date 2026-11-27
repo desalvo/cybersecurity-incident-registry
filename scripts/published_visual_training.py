@@ -15,8 +15,8 @@ import re
 from pathlib import Path
 from pathlib import PurePosixPath
 
-BASE_SLIDES = 97  # 94 content + 1 appendix divider + 2 terminal previews
-GALLERY_FIRST_SLIDE = 96  # gallery starts immediately after slide 95 divider
+BASE_SLIDES = 98  # 94 content + 1 thank-you + 1 appendix divider + 2 terminal previews
+GALLERY_FIRST_SLIDE = 97  # gallery starts immediately after slide 96 divider
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
 MAX_SCREENSHOTS = 80
 

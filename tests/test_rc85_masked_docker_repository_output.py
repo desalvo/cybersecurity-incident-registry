@@ -23,7 +23,7 @@ DIGEST = 'sha256:' + 'e' * 64
 
 def publisher_step():
     jobs = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))['jobs']
-    steps = jobs['documentation-publication']['steps']
+    steps = jobs['production-digest-publication']['steps']
     step, = (s for s in steps if s.get('id') == 'publish')
     return jobs, step
 

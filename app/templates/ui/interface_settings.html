@@ -18,6 +18,15 @@
         <span>{{ 'The previous interface, with the same application data and permissions.' if en else 'L’interfaccia precedente, con gli stessi dati applicativi e permessi.' }}</span>
       </label>
     </fieldset>
+    <fieldset>
+      <legend>{{ 'Profile picture in the top bar' if en else 'Immagine profilo nella barra superiore' }}</legend>
+      <label for="global-gravatar-setting">{{ 'Show Gravatar linked to the signed-in user email (enabled by default)' if en else 'Mostra Gravatar associato alla email dell’utente autenticato (attivo per default)' }}</label>
+      <select id="global-gravatar-setting" name="gravatar_enabled">
+        <option value="1" {% if selected_gravatar_enabled %}selected{% endif %}>{{ 'Enabled' if en else 'Attivo' }}</option>
+        <option value="0" {% if not selected_gravatar_enabled %}selected{% endif %}>{{ 'Disabled' if en else 'Disattivato' }}</option>
+      </select>
+      <p class="muted">{{ 'When enabled, the browser contacts secure.gravatar.com using a hash of the email. If there is no image, user initials are shown. Disable to avoid external avatar requests.' if en else 'Se attivo, il browser contatta secure.gravatar.com usando un hash dell’indirizzo email. Se non esiste un’immagine, rimangono visibili le iniziali. Disattiva per evitare richieste esterne per gli avatar.' }}</p>
+    </fieldset>
     <p>{{ 'The change is applied when pages are opened or reloaded. You can return here from either interface. Your choice is retained after a restart.' if en else 'Il cambio si applica all’apertura o al ricaricamento delle pagine. Puoi tornare qui da entrambe le interfacce. La scelta rimane salvata dopo un riavvio.' }}</p>
     <button class="btn primary" type="submit">{{ 'Save for all tenants' if en else 'Salva per tutti i tenant' }}</button>
   </form>

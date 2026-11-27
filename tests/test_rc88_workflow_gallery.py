@@ -51,7 +51,7 @@ def test_ci_gallery_requires_both_preview_captures_and_excludes_classic_ui():
     assert "new Set(['classic-registry-desktop'])" in src
     assert 'ciManifest.screenshots.filter(row=>!HIDDEN_GALLERY_IDS.has(row.id))' in src
     assert "GALLERY_ITEMS.entries()" in src
-    assert 'generatedPdfPreview?.path' in src
+    assert 'USER_DOC_PREVIEW' in src and 'generatedPdfPreview.path' in src
     assert "id==='generated-pdf'" in src
     assert 'screenshot_manifest_sha256' in (ROOT/'scripts/published_visual_training.py').read_text(encoding='utf8')
 
@@ -65,7 +65,7 @@ def test_editorial_gallery_reuses_every_archived_screenshot_except_classic(tmp_p
     manifest=ARCHIVE/'manifest.json'
     receipt=ROOT/'docs/presentation/visual-training-receipt.json'
     published=manifest.is_file() and receipt.is_file()
-    assert BASE_SLIDES==EXPECTED_SLIDES==97
+    assert BASE_SLIDES==EXPECTED_SLIDES==98
     if published:
         # A documentation PR replaces the archived screenshots with a sealed
         # *different run*. Never compare those images with old history.
@@ -81,12 +81,12 @@ def test_editorial_gallery_reuses_every_archived_screenshot_except_classic(tmp_p
     with ZipFile(DECK) as z:
         slides=[n for n in z.namelist() if re.fullmatch(r'ppt/slides/slide\d+\.xml',n)]
         assert len(slides)==EXPECTED_SLIDES+len(files)
-        assert '08' in _visible_text(z,95) and 'Appendici' in _visible_text(z,95)
+        assert '08' in _visible_text(z,96) and 'Appendici' in _visible_text(z,96)
         assert 'Documento PDF compilato' in _visible_text(z,len(slides)-1)
         assert 'Notifica prima' in _visible_text(z,len(slides))
         assert ('Schermata '+str(len(files)+1)) in _visible_text(z,len(slides)-1)
         assert ('Schermata '+str(len(files)+2)) in _visible_text(z,len(slides))
-        for n,(image,checksum) in enumerate(files,start=96):
+        for n,(image,checksum) in enumerate(files,start=97):
             assert image.is_file() and hashlib.sha256(image.read_bytes()).hexdigest()==checksum
             assert checksum in linked_slide_image_digests(z,n), (image.name,n)
             if not published:

@@ -56,7 +56,7 @@ def _step_fields(source_step, target_id, label_map):
         base = token[1:] if negated else token
         if ':' in base:
             kind, raw_id = base.split(':', 1)
-            if kind in ('severity', 'data_type'):
+            if kind in ('severity', 'data_type', 'step_completed'):
                 base = f'{kind}:{mapped(int(raw_id))}'
         conditions.append(('!' if negated else '') + base)
     return dict(

@@ -48,7 +48,9 @@ def test_specific_instructional_slides_and_future_classification_note():
     assert 'duplicazion' not in text
     assert 'in fase di definizione' in ' '.join(by_id[18]['bullets']).lower()
     assert 'albot' in ' '.join(by_id[59]['bullets']).lower()
-    assert 'avatar' in ' '.join(by_id[59]['bullets']).lower()
+    assert 'workflow' in ' '.join(by_id[59]['bullets']).lower()
+    assert 'conferm' in ' '.join(by_id[59]['bullets']).lower()
+    assert (ROOT / 'app/static/ai-chatbot/albot-avatar.png').is_file()
 
 
 def test_real_ui_slide_focus_and_avatar_are_hard_gates():
@@ -73,7 +75,8 @@ def test_documentation_rebuild_on_main_changes_and_manual_dispatch():
     assert 'documentation_needed=true' in workflow
     assert 'production_changed=false' in workflow
     assert "needs.release-scope.outputs.documentation_needed == 'true'" in workflow
-    assert 'scripts/verify_documentation_publication.py' in workflow
+    assert 'scripts/training_release_assets.py' in workflow
+    assert 'scripts/publish_training_release.sh' in workflow
     assert 'scripts/verify_visual_training_rc64.py' in workflow
     from scripts.documentation_publication_policy import generated, needs_publication
     source_paths=[

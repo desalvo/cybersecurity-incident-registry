@@ -3,6 +3,7 @@
 <section class="card">
   <h2>AlBot</h2>
   <p class="muted">Assistente AI per funzionalità dell’applicazione, operazioni e procedure sugli incidenti di sicurezza. Motore attivo: <strong>{{ engine }}</strong>.</p>
+  {% if current_tenant_role in ['admin', 'superuser'] %}<p>Puoi anche chiedere ad AlBot di <strong>creare o aggiornare workflow</strong> indicando nome, step, caratteristiche, dipendenze e condizioni. Per salvarli nel tenant corrente si apre sempre un’anteprima e serve una conferma esplicita; in alternativa puoi scaricare il JSON.</p>{% endif %}
   <form method="post" class="stacked-form">
     <label for="question">Domanda</label>
     <textarea id="question" name="question" rows="6" required placeholder="Esempio: come preparo una notifica manuale all’utente?">{{ question }}</textarea>

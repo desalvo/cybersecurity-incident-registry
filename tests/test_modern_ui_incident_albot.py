@@ -218,7 +218,8 @@ def test_reader_does_not_receive_new_write_shortcut(incident_ui_app):
 
 
 @pytest.mark.parametrize('mode', ['modern', 'classic'])
-def test_defaults_tenant_keeps_ai_configuration_without_runtime_launchers(incident_ui_app, mode):
+def test_defaults_tenant_allows_albot_only_for_superadmin(incident_ui_app, mode):
+    """RC103: super admins can author Tenants Default workflows with AlBot."""
     from app.models import db, Setting, Tenant
     set_mode(incident_ui_app, mode)
     with incident_ui_app.app_context():
@@ -232,10 +233,13 @@ def test_defaults_tenant_keeps_ai_configuration_without_runtime_launchers(incide
         response = client.get(route)
         assert response.status_code == 200, (mode, route)
         page = Page(response.get_data(as_text=True))
-        for element_id in ('cir-albot-open', 'cir-albot', 'cir-albot-panel',
-                           'ai-chatbot-mobile-open', 'ai-chatbot-widget', 'ai-chatbot-fab'):
-            assert not page.named(element_id), (mode, route, element_id)
         links = {attrs.get('href') for tag, attrs in page.elements if tag == 'a'}
-        assert '/ai-chatbot' not in links
+        assert '/ai-chatbot' in links
         assert '/ai-chatbot/admin/plugins' in links
         assert '/alfresco/admin/plugins' in links
+        if mode == 'modern':
+            assert page.named('cir-albot-open')
+            assert page.named('cir-albot')
+        else:
+            assert page.named('ai-chatbot-widget')
+            assert page.named('ai-chatbot-fab')

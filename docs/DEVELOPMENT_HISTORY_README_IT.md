@@ -41,7 +41,7 @@ Documentazione apre anche installazione, migrazione, Alfresco, sicurezza,
 formazione, test, architettura e procedure di rilascio. Ogni guida online offre
 il PDF con la stessa copertina. Le sezioni storiche restano riconoscibili.
 
-Il [PowerPoint didattico modificabile](../docs/presentation/CIR_Operational_Training_IT.pptx)
+Il [PowerPoint didattico modificabile](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_IT.pptx)
 contiene 34 slide con note per il relatore, esercizi sugli incidenti, prime pagine
 reali dei manuali, piattaforme supportate, riferimenti di sviluppo/compliance e
 ciclo di revisione delle vulnerabilità. Nell'edizione sorgente i riquadri delle
@@ -73,7 +73,7 @@ Tenants Default viene inizializzato dalla configurazione del tenant `default` se
 
 Full Export e bootstrap includono Tenants Default. È disponibile anche il bundle completo del solo tenant speciale per un'altra istanza. [Migrazione e procedure](../docs/MIGRATION.md).
 
-Il package include [Helm e OpenShift](../docs/DEPLOYMENT.md), [guida del laboratorio](../docs/TRAINING.md), [slide PowerPoint](../docs/presentation/CIR_Operational_Training_IT.pptx) e brochure aggiornate. La versione funzionale resta **0.9.0-1**. Le verifiche e i gate ancora necessari sono riportati in [Testing](../docs/TESTING_AND_PRODUCTION.md) e [Handoff](../docs/HANDOFF.md).
+Il package include [Helm e OpenShift](../docs/DEPLOYMENT.md), [guida del laboratorio](../docs/TRAINING.md), [slide PowerPoint](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_IT.pptx) e brochure aggiornate. La versione funzionale resta **0.9.0-1**. Le verifiche e i gate ancora necessari sono riportati in [Testing](../docs/TESTING_AND_PRODUCTION.md) e [Handoff](../docs/HANDOFF.md).
 
 
 ## Tenants Default RC17

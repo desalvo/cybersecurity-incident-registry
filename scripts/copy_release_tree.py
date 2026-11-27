@@ -7,6 +7,14 @@ import sys
 
 EXCLUDED_DIRS = {'.git', '.venv', 'venv', '__pycache__', '.pytest_cache',
                  '.pytest_tmp', 'backups', 'generated', 'htmlcov'}
+EXCLUDED_DOCUMENT_PATHS = {
+    'docs/CIR_UI_Screenshots.pdf',
+    'docs/presentation/CIR_Operational_Training_IT.pptx',
+    'docs/presentation/CIR_Operational_Training_Visual.pptx',
+    'docs/presentation/CIR_Operational_Training_Visual.pdf',
+    'docs/presentation/CIR_Operational_Training_Visual_EN.pptx',
+    'docs/presentation/CIR_Operational_Training_Visual_EN.pdf',
+}
 EXCLUDED_FILES = {'.env', 'SCA_PIP_AUDIT.json', '.coverage', 'coverage.xml'}
 EXCLUDED_PATTERNS = ('*.py[co]', '*.log', '*.key', '*.crt')
 
@@ -23,7 +31,7 @@ def copy_release_tree(source, target):
         result = []
         for name in names:
             path = Path(directory) / name
-            if name in EXCLUDED_DIRS or name in EXCLUDED_FILES or any(fnmatch.fnmatchcase(name, p) for p in EXCLUDED_PATTERNS):
+            if (relative / name).as_posix() in EXCLUDED_DOCUMENT_PATHS or name in EXCLUDED_DIRS or name in EXCLUDED_FILES or any(fnmatch.fnmatchcase(name, p) for p in EXCLUDED_PATTERNS):
                 result.append(name)
             elif path.is_symlink():
                 raise ValueError(f'Symlinks are not supported in release sources: {relative / name}')

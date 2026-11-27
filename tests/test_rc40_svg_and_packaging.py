@@ -33,7 +33,11 @@ def test_smoke_mode_is_not_distribution_mode():
     assert '--verify-installed-documentation' in script
     workflow = (root/'.github/workflows/ci-release.yml').read_text()
     assert "CIR_SOURCE_PACKAGE_SMOKE: '1'" in workflow
-    assert 'Install verified documentation and package the current source' in workflow
+    # RC102 separates smoke packaging from the verified production-image build.
+    assert 'Build release package as packaging smoke test' in workflow
+    assert 'Install exact-source UI documentation before building' in workflow
+    assert 'Download verified documentation from this workflow run' in workflow
+    assert 'digest-mismatch: error' in workflow
 
 
 def test_legacy_rdf_title_metadata_is_removed_and_graphics_preserved():

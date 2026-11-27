@@ -180,10 +180,11 @@ def test_catalog_import_uses_workflow_name_for_category_and_reuses_existing_seve
     imported = import_catalog_workflow(entry.id, target.id)
     next_copy = import_catalog_workflow(entry.id, target.id)
     db.session.commit()
-    assert (imported['copy_name'], next_copy['copy_name']) == ('SPAM v2', 'SPAM v3')
+    assert (imported['copy_name'], next_copy['copy_name']) == ('SPAM', 'SPAM v2')
+    assert imported['category_id'] == original_category_id
+    assert local_category.description == 'Original tenant classification'
     assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM').one().id == original_category_id
-    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM v2').one().id == imported['category_id']
-    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM v3').one().id == next_copy['category_id']
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM v2').one().id == next_copy['category_id']
     assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='severity').count() == 1
     severity = db.session.get(ConfigLabel, original_severity_id)
     assert severity.description == 'Original tenant severity' and severity.max_completion_hours == 9
@@ -657,3 +658,125 @@ def test_catalog_preserves_all_notification_address_configuration(catalog_db, so
     step = db.session.get(IncidentWorkflowStep, result['step_ids'][0])
     installed = NotificationTemplate.query.filter_by(tenant_id=target.id, kind=step.required_notification_type).one()
     assert {field: getattr(installed, field) for field in fields} == expected
+
+
+def test_catalog_reuses_inherited_unassigned_category_without_changing_defaults_provenance(catalog_db):
+    """RC96: inherited SPAM is a classification, not an installed workflow."""
+    from app.models import db, Tenant, ConfigLabel, IncidentWorkflowStep
+    from app.tenant_defaults_models import TenantDefaultSource, TenantDefaultReplica
+    from app.workflow_catalog_models import TenantWorkflow, WorkflowCatalogInstallation
+    from app.workflow_catalog import build_catalog_workflow_payload, save_catalog_workflow, import_catalog_workflow
+    from app.workflow_lifecycle import workflow_scope_for_categories
+    _, source, target = catalog_db
+    labels, _ = _source_workflow(source)
+    defaults = Tenant(name='Tenants Default', is_system_defaults=True)
+    db.session.add(defaults)
+    db.session.flush()
+    default_label = ConfigLabel(tenant_id=defaults.id, kind='category', value='SPAM', description='Shared definition')
+    inherited = ConfigLabel(tenant_id=target.id, kind='category', value='SPAM',
+                            group='inherited', description='Tenant default shared category')
+    db.session.add_all([default_label, inherited])
+    db.session.flush()
+    shared = TenantDefaultSource(source_type='config_label', source_id=default_label.id, snapshot_json='{}')
+    db.session.add(shared)
+    db.session.flush()
+    replica = TenantDefaultReplica(source_id=shared.id, tenant_id=target.id,
+                                   local_type='config_label', local_id=inherited.id, snapshot_json='{}')
+    db.session.add(replica)
+    db.session.commit()
+    inherited_id, replica_id = inherited.id, replica.id
+
+    entry = save_catalog_workflow(build_catalog_workflow_payload(source.id, labels['category'].id), 'SPAM')
+    imported = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert imported['copy_name'] == 'SPAM'
+    assert imported['category_id'] == inherited_id
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value='SPAM').count() == 1
+    assert db.session.get(TenantDefaultReplica, replica_id).local_id == inherited_id
+    assert inherited.description == 'Tenant default shared category'
+    assert workflow_scope_for_categories(target.id, [inherited_id]) == inherited_id
+    assert TenantWorkflow.query.filter_by(tenant_id=target.id, category_id=inherited_id).count() == 1
+    assert WorkflowCatalogInstallation.query.filter_by(tenant_id=target.id, category_id=inherited_id).count() == 1
+
+    second = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert second['copy_name'] == 'SPAM v2'
+    assert second['category_id'] != inherited_id
+    assert ConfigLabel.query.filter_by(tenant_id=target.id, kind='category').count() == 2
+    assert IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=inherited_id).count() == 1
+
+    # Removing the imported SPAM must not remove the shared label.  The
+    # existing v2 still belongs to a different scope and is unaffected.
+    from app.workflow_lifecycle import remove_workflow_state
+    for step in IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=inherited_id).all():
+        db.session.delete(step)
+    db.session.flush()
+    remove_workflow_state(target.id, inherited_id)
+    db.session.commit()
+    assert db.session.get(ConfigLabel, inherited_id) is not None
+    assert db.session.get(TenantDefaultReplica, replica_id).local_id == inherited_id
+    restored = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert restored['copy_name'] == 'SPAM' and restored['category_id'] == inherited_id
+    assert db.session.get(ConfigLabel, second['category_id']) is not None
+
+
+def test_catalog_legacy_steps_reserve_name_even_without_workflow_state(catalog_db):
+    """Do not attach imported steps to a category already running a legacy workflow."""
+    from app.models import db, ConfigLabel, IncidentWorkflowStep
+    from app.workflow_catalog import build_catalog_workflow_payload, save_catalog_workflow, import_catalog_workflow
+    _, source, target = catalog_db
+    labels, _ = _source_workflow(source)
+    existing = ConfigLabel(tenant_id=target.id, kind='category', value='SPAM')
+    action = ConfigLabel(tenant_id=target.id, kind='action_label', value='Old triage')
+    db.session.add_all([existing, action])
+    db.session.flush()
+    db.session.add(IncidentWorkflowStep(tenant_id=target.id, category_id=existing.id,
+                                        action_label_id=action.id, position=1, description='Legacy workflow'))
+    db.session.commit()
+    entry = save_catalog_workflow(build_catalog_workflow_payload(source.id, labels['category'].id), 'SPAM')
+    result = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert result['copy_name'] == 'SPAM v2'
+    assert result['category_id'] != existing.id
+    assert IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=existing.id).count() == 1
+
+
+def test_catalog_reimport_reuses_inherited_category_after_workflow_deletion(catalog_db):
+    from app.models import db, ConfigLabel, IncidentWorkflowStep
+    from app.workflow_catalog import build_catalog_workflow_payload, save_catalog_workflow, import_catalog_workflow
+    from app.workflow_lifecycle import remove_workflow_state
+    _, source, target = catalog_db
+    labels, _ = _source_workflow(source)
+    inherited = ConfigLabel(tenant_id=target.id, kind='category', value='SPAM', group='inherited')
+    db.session.add(inherited)
+    db.session.commit()
+    cid = inherited.id
+    entry = save_catalog_workflow(build_catalog_workflow_payload(source.id, labels['category'].id), 'SPAM')
+    first = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert first['copy_name'] == 'SPAM'
+    for step in IncidentWorkflowStep.query.filter_by(tenant_id=target.id, category_id=cid).all():
+        db.session.delete(step)
+    db.session.flush()
+    remove_workflow_state(target.id, cid)
+    db.session.commit()
+    assert db.session.get(ConfigLabel, cid) is not None
+    again = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert again['copy_name'] == 'SPAM' and again['category_id'] == cid
+
+
+def test_catalog_import_preserves_casefold_identity_of_free_category(catalog_db):
+    from app.models import db, ConfigLabel
+    from app.workflow_catalog import build_catalog_workflow_payload, save_catalog_workflow, import_catalog_workflow
+    _, source, target = catalog_db
+    labels, _ = _source_workflow(source)
+    local = ConfigLabel(tenant_id=target.id, kind='category', value='Spam', group='inherited')
+    db.session.add(local)
+    db.session.commit()
+    entry = save_catalog_workflow(build_catalog_workflow_payload(source.id, labels['category'].id), 'SPAM')
+    installed = import_catalog_workflow(entry.id, target.id)
+    db.session.commit()
+    assert installed['copy_name'] == 'Spam'
+    assert installed['category_id'] == local.id
