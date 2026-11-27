@@ -222,6 +222,7 @@ if(process.env.CIR_REQUIRE_REAL_SCREENSHOTS==='1'){
     'alfresco-settings-desktop','alfresco-incident-documents',
     'spam-incident-config-labels','tenant-setup-wizard-desktop',
     'tenant-setup-wizard-panel'];
+  required.push('support-ticket-new-tenant-admin','support-ticket-submitted-tenant-admin');
   const missing=required.filter(id=>!ciById.has(id));
   for (const ident of MANDATORY_GALLERY_IDS) {
     if(!ciManifest.screenshots.some(row=>row.id===ident))
@@ -281,7 +282,7 @@ function realUiImage(d){
  const file=path.join(root,'app/static/help/ui-runtime',name);
  return fs.existsSync(file)?{id,path:file,archived:true}:null;
 }
-const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title=english?'CIR — Operational Training RC103 (English)':'CIR — Presentazione didattica RC103';pptx.company='Cybersecurity Incident Registry';pptx.lang=english?'en-US':'it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:english?'en-US':'it-IT'};
+const pptx=new pptxgen();pptx.layout='LAYOUT_WIDE';pptx.author='CIR - Cybersecurity Incident Registry';pptx.subject='CIR | Laboratorio e documentazione utente, amministratore e governance';pptx.title=english?'CIR — Operational Training RC111 (English)':'CIR — Presentazione didattica RC111';pptx.company='Cybersecurity Incident Registry';pptx.lang=english?'en-US':'it-IT';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:english?'en-US':'it-IT'};
 const W=13.33333,H=7.5;
 const C={bg:'F4F8FA',white:'FFFFFF',navy:'12324A',muted:'60798A',cyan:'00A8BE',teal:'147E8F',blue:'326C92',violet:'6264A3',green:'23896B',gold:'F6A23A',pink:'D46C75',line:'D9E5EB',ink:'143044',shadow:'EDF3F6',pale:'EAF6F8'};
 // RC97: all nine original illustrations are pinned by SHA-256, including the
@@ -326,6 +327,7 @@ function notes(slide,d){
   if(ciManifest)lines.push('Same-run browser screenshot manifest; source commit '+ciCommit+'; build '+ciBuild+'.');
   else lines.push('Offline editorial version; screenshots are historical, not from the current CI run.');
   if(d.support_tickets)lines.push('Original synthetic 3D artwork: docs/presentation/rc109_support_tickets_art.png. Not a screenshot.');
+  if(d.support_tickets)lines.push('Genuine CIR support ticket form and submitted-ticket examples: '+(ciById.has('support-ticket-new-tenant-admin')?'same-run browser manifest':'bundled offline editorial UI captures')+'. The requester and tenant are synthetic.');
   if(d.kind==='preview')lines.push('Approved anonymized document sample: docs/presentation/rc95_user_supplied/data_breach_notification_anonymized.png; SHA-256 '+USER_DOC_SHA256+'.');
   if(ids.length)lines.push('Supporting CIR artwork: '+ids.join('; ')+'.');
   lines.push('Source code: CIR version 0.10.0-1, English training edition RC109.');
@@ -344,6 +346,7 @@ function notes(slide,d){
  if(d.kind==='preview')n+='Documento di esempio anonimizzato approvato, fornito per fini didattici: docs/presentation/rc95_user_supplied/data_breach_notification_anonymized.png. Non e una screenshot della CI; SHA-256 '+USER_DOC_SHA256+'.\n';
  if(d.arch_visual)n+='Illustrazione sintetica originale e diagramma nativo PowerPoint, senza persone, senza testo incorporato. Immagine verificata SHA-256.\n';
  if(d.support_tickets)n+='Illustrazione sintetica 3D: docs/presentation/rc109_support_tickets_art.png, non screenshot della CI.\n';
+ if(d.support_tickets)n+='Schermate ticket dimostrativo dalla vera UI CIR con dati sintetici: '+(ciById.has('support-ticket-new-tenant-admin')?'manifest della CI corrente e SHA-256 verificato':'rasterizzazione editoriale offline della vista Flask reale, non attestata per questo commit')+'.\n';
  if(d.index===59)n+='Avatar AlBot ufficiale dell applicazione: app/static/ai-chatbot/albot-avatar.png.\n';
  if(d.photo_art && !ids.length)n+='Immagine sintetica fotografica originale, senza persone reali, senza titolo e footer; non e una schermata dell applicazione.\n';
 
@@ -364,7 +367,7 @@ function notes(slide,d){
  if(!ciManifest)n+='Edizione editoriale offline: nessuna attestazione di catture dalla CI corrente.\n';
  slide.addNotes(n);
 }
-function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,english?'v0.10.0-1 · training material RC109':'v0.10.0-1 · materiale didattico RC109',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${BASE_SLIDES + GALLERY_ITEMS.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
+function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,english?'v0.10.0-1 · training material RC111':'v0.10.0-1 · materiale didattico RC111',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${BASE_SLIDES + GALLERY_ITEMS.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
 function bgBase(slide,section){slide.background={color:C.bg};rect(slide,.0,.0,W,.12,section);rect(slide,.5,.48,.055,.68,section);}
 function safeBullets(d){return (d.bullets||[]).map(s=>String(s).replace(/\\\s*$/,'').trim()).filter(Boolean)}
 // Photographic artwork is independent of slide chrome: no title, labels or footer.
@@ -776,13 +779,23 @@ function albotWorkflowAuthoringPanel(slide,d,accent){
 }
 function supportTicketsPanel(slide,d,accent){
  const art=path.join(root,'docs/presentation/rc109_support_tickets_art.png');
- if(!fs.existsSync(art))throw new Error('Missing original Support Tickets illustration');
- rect(slide,6.45,1.63,6.13,4.18,'142B51');
- slide.addImage({path:art,...imageSizingContain(art,6.46,1.64,6.10,4.15)});
- addText(slide,english?'OPEN A TICKET • REPLY • ESCALATE':'APRI UN TICKET • RISPONDI • ESCALA',
-   {x:6.54,y:5.96,w:5.92,h:.27,fontSize:11.2,bold:true,align:'center',color:C.teal,margin:0});
- addText(slide,english?'Illustrative 3D artwork · tickets remain private to authorized users':'Illustrazione sintetica 3D · ticket visibili solo agli utenti autorizzati',
-   {x:6.54,y:6.34,w:5.92,h:.25,fontSize:9.2,color:C.muted,align:'center',margin:0});
+ const archived=path.join(root,'app/static/help/ui-runtime/support-ticket-new-tenant-admin.jpg');
+ const shot=ciById.get('support-ticket-new-tenant-admin')||archived;
+ if(!fs.existsSync(art)||!fs.existsSync(shot))throw new Error('Missing Support Tickets art or genuine sample ticket screenshot');
+ if(process.env.CIR_REQUIRE_REAL_SCREENSHOTS==='1' && !ciById.has('support-ticket-new-tenant-admin'))
+  throw new Error('The Support Tickets slide requires a genuine same-run browser capture');
+ // The real form is directly BELOW the approved synthetic illustration.
+ // In the appendix the complete screenshot is preserved without cropping.
+ rect(slide,6.46,1.62,6.09,2.11,'142B51');
+ slide.addImage({path:art,...imageSizingContain(art,6.51,1.65,5.98,2.01)});
+ addText(slide,english?'REAL CIR SCREENSHOT · USER TO TENANT ADMIN':'SCHERMATA CIR REALE · UTENTE VERSO ADMIN TENANT',
+   {x:6.55,y:3.82,w:5.90,h:.24,fontSize:10.0,bold:true,align:'center',color:C.teal,margin:0});
+ rect(slide,6.47,4.10,6.08,2.20,'F7FAFC',C.line);
+ // Original browser bytes are embedded in PPTX (native crop only).
+ slide.addImage({path:shot,...imageSizingCrop(shot,6.55,4.16,5.92,2.06,.176,.245,.70,.335)});
+ addText(slide,english?'Synthetic request · recipient: tenant administrators · full view in appendix':
+   'Ticket di prova · destinatario: admin tenant · vista completa in appendice',
+   {x:6.49,y:6.40,w:6.06,h:.24,fontSize:8.9,color:C.muted,align:'center',margin:0});
 }
 function rightPanel(slide,d,accent){
  if([46,56,59].includes(d.index))return focusedCiPanel(slide,d,accent);
@@ -1167,13 +1180,30 @@ for(const [i,row] of GALLERY_ITEMS.entries()){
     if(!fs.existsSync(img))throw new Error('Screenshot missing for appendix: '+row.id);
     const slide=pptx.addSlide();
     bgBase(slide,C.teal);
-    addText(slide,"APPENDICE / SCREENSHOT AUTENTICHE DELL'APPLICAZIONE",
+    addText(slide,english?'APPENDIX / AUTHENTIC APPLICATION SCREENSHOTS':"APPENDICE / SCREENSHOT AUTENTICHE DELL'APPLICAZIONE",
       {x:.73,y:.34,w:11.9,h:.3,fontSize:10.2,bold:true,color:C.teal,margin:0});
-    addText(slide,'Schermata '+String(i+1)+' / '+String(GALLERY_ITEMS.length+APPENDIX_PREVIEWS)+' — '+row.id,
+    const galleryCaption = {
+      'support-ticket-new-tenant-admin':english?'Support Tickets — sample request to tenant administrator':'Support Tickets — apertura ticket di prova verso admin tenant',
+      'support-ticket-submitted-tenant-admin':english?'Support Tickets — submitted request and conversation':'Support Tickets — richiesta sottomessa e conversazione'
+    }[row.id] || row.id;
+    addText(slide,(english?'Screenshot ':'Schermata ')+String(i+1)+' / '+String(GALLERY_ITEMS.length+APPENDIX_PREVIEWS)+' — '+galleryCaption,
       {x:.73,y:.75,w:11.9,h:.48,fontSize:22,bold:true,color:C.navy,margin:0,fit:'shrink'});
     rect(slide,.63,1.39,12.07,5.20,'FFFFFF',C.line);
-    slide.addImage({path:img,...imageSizingContain(img,.76,1.48,11.81,4.98)});
-    addText(slide,row.archived?'Cattura storica della vera applicazione CIR · NON del run CI corrente':
+    if(row.id==='support-ticket-new-tenant-admin'||row.id==='support-ticket-submitted-tenant-admin'){
+      // Preserve the whole real UI on the left, add a native image crop of
+      // the SAME ORIGINAL image on the right for legibility. No synthetic UI.
+      const submitted=row.id==='support-ticket-submitted-tenant-admin';
+      addText(slide,english?'FULL CIR SCREENSHOT':'SCHERMATA CIR COMPLETA',
+        {x:.91,y:1.49,w:5.21,h:.22,fontSize:9.9,bold:true,color:C.teal,margin:0});
+      addText(slide,english?(submitted?'ZOOM · SUBMITTED REQUEST':'ZOOM · TICKET FIELDS'):
+        (submitted?'INGRANDIMENTO · TICKET SOTTOMESSO':'INGRANDIMENTO · CAMPI DEL TICKET'),
+        {x:6.44,y:1.49,w:5.78,h:.22,fontSize:9.9,bold:true,color:C.teal,margin:0});
+      slide.addImage({path:img,...imageSizingContain(img,.85,1.83,5.14,4.51)});
+      rect(slide,6.32,1.77,6.05,4.67,'F7FAFC',C.line);
+      const region=submitted?[.185,.105,.765,.58]:[.183,.218,.72,.54];
+      slide.addImage({path:img,...imageSizingCrop(img,6.44,1.86,5.80,4.49,...region)});
+    }else slide.addImage({path:img,...imageSizingContain(img,.76,1.48,11.81,4.98)});
+    addText(slide,row.archived?(row.id.startsWith('support-ticket-')?(english?'Genuine CIR template + sample user in isolated offline render · NOT current CI':'Template CIR reale, dati di prova e rendering offline · NON della CI corrente'):'Cattura storica della vera applicazione CIR · NON del run CI corrente'):
       'Cattura originale CIR con dati sintetici isolati · SHA-256 '+row.sha256.slice(0,20)+'…',
       {x:.80,y:6.59,w:11.8,h:.27,fontSize:10,color:C.muted,margin:0});
     footer(slide,GALLERY_FIRST_SLIDE+i);
@@ -1185,8 +1215,8 @@ for(const [i,row] of GALLERY_ITEMS.entries()){
 
 // The previews used to appear at positions 95 and 96 before the gallery.
 // They now close the appendix as additional numbered learning screenshots.
-// Current full CI manifests contain 31 permitted browser images, thus these
-// are displayed as Schermata 32 and Schermata 33, respectively.
+// Current CI manifests now contain 33 permitted browser images including
+// both Support Tickets states; the final two are PDF and notification previews.
 function appendixPreview(title,id,caption,serial){
  const slide=pptx.addSlide();const n=pptx._slides.length;
  bgBase(slide,C.teal);

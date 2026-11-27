@@ -29,6 +29,7 @@ CAPTURE_IDS = (
     'admin-sso-desktop', 'documentation-user-desktop', 'documentation-user-mobile',
     'documentation-admin-desktop', 'documentation-admin-mobile',
     'notification-preview', 'tenant-wizard-next-step',
+    'support-ticket-new-tenant-admin', 'support-ticket-submitted-tenant-admin',
 )
 
 
@@ -99,22 +100,22 @@ def test_rc91_appendix_separates_gallery_and_numbers_terminal_previews(full_brow
     from scripts.verify_visual_training_rc64 import linked_slide_image_digests
     directory, deck, manifest, env = full_browser_capture
     visible = len(CAPTURE_IDS) - 1  # classic UI is deliberately excluded
-    assert visible == 31
+    assert visible == 33
     with ZipFile(deck) as archive:
         def text(number):
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             return ' '.join(el.text or '' for el in page.iter('{http://schemas.openxmlformats.org/drawingml/2006/main}t'))
         assert '08' in text(98) and 'Appendici' in text(98)
-        assert 'Schermata 1 / 33' in text(99)
-        assert 'Schermata 31 / 33' in text(129)
-        assert 'Schermata 32 / 33' in text(130) and 'Documento PDF compilato' in text(130)
-        assert 'Schermata 33 / 33' in text(131) and 'Notifica prima' in text(131)
+        assert 'Schermata 1 / 35' in text(99)
+        assert 'Schermata 33 / 35' in text(131)
+        assert 'Schermata 34 / 35' in text(132) and 'Documento PDF compilato' in text(132)
+        assert 'Schermata 35 / 35' in text(133) and 'Notifica prima' in text(133)
         preview = json.loads(manifest.read_text())['generated_pdf_preview']
-        assert preview['png_sha256'] in linked_slide_image_digests(archive,130)
+        assert preview['png_sha256'] in linked_slide_image_digests(archive,132)
         notify = next(row for row in json.loads(manifest.read_text())['screenshots'] if row['id']=='notification-preview')
-        assert notify['sha256'] in linked_slide_image_digests(archive,131)
+        assert notify['sha256'] in linked_slide_image_digests(archive,133)
         classic = next(row for row in json.loads(manifest.read_text())['screenshots'] if row['id']=='classic-registry-desktop')
-        for number in range(99,132):
+        for number in range(99,134):
             assert classic['sha256'] not in linked_slide_image_digests(archive,number)
 
 

@@ -48,6 +48,7 @@ REQUIRED_CAPTURES = {
     "notification-preview", "tenant-wizard-next-step",
     "documentation-user-desktop", "documentation-user-mobile",
     "documentation-admin-desktop", "documentation-admin-mobile",
+    "support-ticket-new-tenant-admin", "support-ticket-submitted-tenant-admin",
 }
 DEMO_ANSWER = (
     "Risposta dimostrativa per la documentazione · provider locale di test.\n\n"
@@ -728,6 +729,38 @@ def capture_browser(app, fixture, base_url, password, output, commit, provider_c
             expect(reader_page.locator("#cir-incident-register-action")).to_have_count(0)
             expect(reader_page.locator("#new-action-label-id")).to_have_count(0)
             checks["reader_sees_workflow_without_write_form"] = True
+
+            # RC111: real browser evidence of a requester creating a support
+            # ticket addressed to the administrators of the current tenant.
+            # This uses the application's actual form, authenticated session,
+            # CSRF token, POST route and isolated synthetic database.
+            go(reader_page, "/support/new")
+            expect(reader_page.get_by_role('heading', name='Come possiamo aiutarti?')).to_be_visible()
+            reader_page.locator('input[name="subject"]').fill('Richiesta accesso al workflow Gestione incidenti')
+            reader_page.locator('select[name="tenant_id"]').select_option(label='default')
+            reader_page.locator('select[name="assignee_level"]').select_option('tenant_admin')
+            reader_page.locator('select[name="priority"]').select_option('high')
+            reader_page.locator('select[name="category_id"]').select_option(label='Autorizzazione')
+            reader_page.locator('textarea[name="body"]').fill(
+                '## Richiesta di supporto\n\n'
+                'Buongiorno, non riesco ad aprire il workflow **Gestione incidenti** del tenant *default*.\n\n'
+                '- [x] Accesso al portale completato\n- [ ] Apertura del workflow non disponibile\n\n'
+                'Chiedo agli **amministratori del tenant** di verificare le autorizzazioni.\n\n'
+                '*Ticket dimostrativo con dati di prova.*'
+            )
+            assert reader_page.locator('select[name="assignee_level"]').input_value() == 'tenant_admin'
+            assert reader_page.locator('select[name="tenant_id"] option:checked').inner_text() == 'default'
+            snap(reader_page, "support-ticket-new-tenant-admin",
+                 "Apertura ticket di prova · utente lettore → amministratori del tenant",
+                 "Sample ticket creation · reader → tenant administrators", full_page=True)
+            reader_page.locator('button.support-primary[type="submit"]').click()
+            reader_page.wait_for_url(re.compile(re.escape(base_url) + r'/support/tickets/\d+$'),wait_until='networkidle')
+            expect(reader_page.locator('body')).to_contain_text('Sottomesso')
+            expect(reader_page.locator('body')).to_contain_text('Admin del tenant')
+            snap(reader_page, "support-ticket-submitted-tenant-admin",
+                 "Ticket di prova sottomesso · utente lettore → admin tenant",
+                 "Submitted sample ticket · reader → tenant admin", full_page=True)
+            checks["support_tickets_reader_to_tenant_admin_submission_verified"] = True
 
             other_reader = context(browser, DESKTOP)
             other_page = new_page(other_reader)

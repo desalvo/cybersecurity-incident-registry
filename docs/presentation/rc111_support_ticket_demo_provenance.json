@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "kind": "real-CIR-server-template-offline-browser-render",
+  "fixture": "isolated-synthetic-sqlite",
+  "browser": "chromium",
+  "capture_note": "Offline editorial snapshots of the genuine Flask-rendered Support Tickets UI with application CSS inlined because this workstation blocks HTTP navigation. CI independently captures the real live application in Chromium over localhost and seals those images with commit/build/hash.",
+  "contains_real_user_data": false,
+  "recipient": "tenant_admin",
+  "tenant": "default",
+  "requester": "demo-reader",
+  "screenshots": [
+    {
+      "file": "app/static/help/ui-runtime/support-ticket-new-tenant-admin.jpg",
+      "sha256": "f707fd6757e79277036874d28f8b76212818e6073134b2974280bcd8e89e5346"
+    },
+    {
+      "file": "app/static/help/ui-runtime/support-ticket-submitted-tenant-admin.jpg",
+      "sha256": "2a2fa57270e306045bd4a0a1f79502a07d8fb4885a05c084288666fc3c72f694"
+    }
+  ]
+}
