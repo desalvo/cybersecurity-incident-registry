@@ -27,7 +27,7 @@ def deck_number(original_index: int) -> int:
 
 def test_browser_evidence_and_capturer_have_identical_mandatory_sets():
     assert capture.REQUIRED_CAPTURES == evidence.REQUIRED_SCREENSHOTS
-    assert len(capture.REQUIRED_CAPTURES) == 32
+    assert len(capture.REQUIRED_CAPTURES) == 34
     for ident in ('pdf-generated-preview', 'notification-preview', 'tenant-wizard-next-step'):
         assert ident in evidence.REQUIRED_SCREENSHOTS
         assert ident in REQUIRED_CI or ident == 'pdf-generated-preview'
@@ -65,7 +65,7 @@ def test_secondary_training_deck_renders_every_new_required_capture():
     screenshot_items = [item for item in content['slides'] if item.get('screenshots')]
     assert all(item['type'] == 'screenshots' for item in screenshot_items)
     shots = [sid for item in screenshot_items for sid in item['screenshots']]
-    assert len(shots) == len(set(shots)) == 32
+    assert len(shots) == len(set(shots)) == 34
     assert set(shots) == evidence.REQUIRED_SCREENSHOTS
     assert any('notification-preview' in item['screenshots'] for item in screenshot_items)
     assert any('tenant-wizard-next-step' in item['screenshots'] for item in screenshot_items)

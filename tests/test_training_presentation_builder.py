@@ -64,7 +64,8 @@ class PresentationBuilderTests(unittest.TestCase):
                          "viewport": {"width": width, "height": height},
                          "ui_mode": "classic" if sid.startswith("classic-") else "modern",
                          "authenticated": not sid.startswith("login-"),
-                         "route": DOCUMENTATION_CAPTURE_ROUTES.get(sid, "/test-fixture"),
+                         "route": ("/support/tickets/1" if sid == "support-ticket-submitted-tenant-admin"
+                                   else DOCUMENTATION_CAPTURE_ROUTES.get(sid, "/test-fixture")),
                          "capture_area": "viewport",
                          "caption_it": "Fixture artificiale: " + sid,
                          "caption_en": "Artificial fixture: " + sid})

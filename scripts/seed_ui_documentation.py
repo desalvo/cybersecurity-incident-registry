@@ -123,6 +123,10 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
         # retains the installation-wide, admin-controlled Gravatar default.
         db.session.merge(Setting(key="global_gravatar_enabled", value="0"))
 
+        # The helpdesk is explicitly enabled ONLY inside this isolated UI fixture.
+        # Production keeps Support Tickets disabled by default.
+        db.session.merge(Setting(key="plugin_support_tickets_enabled", value="1"))
+
         # No setting for global_ui_mode: captures prove the application's NEW
         # default is modern, rather than making the fixture force the result.
         if db.session.get(Setting, "global_ui_mode") is not None:

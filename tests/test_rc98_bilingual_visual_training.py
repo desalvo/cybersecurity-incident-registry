@@ -119,9 +119,17 @@ def test_ci_english_same_run_screenshot_checksums_and_receipt(disposable_manifes
     assert result.returncode==0,result.stderr
     pdf=pdf_folder/'fake_training_EN.pdf'
     checked=verify(pptx,pdf,manifest,strict=True)
-    assert checked['slides']==131 and checked['pdf_pages']==131
-    assert checked['verified_browser_screenshots']==32
-    assert checked['pdf_screenshots_visually_verified']==31
+    assert checked['slides'] == BASE_SLIDES + len(rows) - len(HIDDEN_GALLERY_IDS)
+    assert checked['pdf_pages'] == checked['slides']
+    assert checked['verified_browser_screenshots'] == len(rows)
+    assert checked['pdf_screenshots_visually_verified'] == len(rows) - len(HIDDEN_GALLERY_IDS)
+    # Audit the PDF pixels, not only the PPTX media links: the two Support
+    # Tickets pages use a left-hand full capture plus a right-hand zoom.
+    from scripts.verify_pdf_screenshot_gallery import verify as verify_gallery
+    visible = [row for row in rows if row['id'] not in HIDDEN_GALLERY_IDS]
+    assert verify_gallery(pdf, [manifest.parent / row['file'] for row in visible],
+                          base_slides=GALLERY_FIRST_SLIDE - 1,
+                          screenshot_ids=[row['id'] for row in visible]) == len(visible)
     from scripts.seal_visual_training import seal
     verified=d/'verification.json';verified.write_text(json.dumps(checked))
     receipt=seal(pptx,pdf,manifest,verified,d/'en-receipt.json',locale='en')
