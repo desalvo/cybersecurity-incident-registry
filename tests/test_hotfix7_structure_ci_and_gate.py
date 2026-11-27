@@ -301,12 +301,15 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert 'documentation-publication:' in workflow
     assert 'needs.release-scope.outputs.documentation_needed' in workflow
     assert 'scripts/documentation_publication_policy.py' in workflow
-    assert 'Publish only current verified screenshots and training documents' in workflow
-    assert 'scripts/verify_documentation_publication.py' in workflow
-    assert 'scripts/sync_current_documentation.py' in workflow
-    assert 'Open documentation and optional production-digest pull request' in workflow
-    assert 'docs/UI_SCREENSHOTS_SOURCE.json docs/UI_SCREENSHOTS_BUILD.json' in workflow
-    assert 'app/static/help/ui-runtime/' in workflow
+    # RC102 publishes sealed training assets to an immutable GitHub Release.
+    # Browser evidence must still pass before publication or Docker promotion.
+    assert 'Publish CI-verified training on GitHub Releases (no chore PR)' in workflow
+    assert 'scripts/training_release_assets.py' in workflow
+    assert 'scripts/publish_training_release.sh' in workflow
+    assert 'digest-mismatch: error' in workflow
+    assert "needs.ui-documentation.result == 'success'" in workflow
+    assert 'Enforce documentation publication result on main' in workflow
+    assert 'Required documentation publication was skipped or failed' in workflow
     assert 'scripts/record_production_digest.py' in workflow
     assert '--digest "$PUBLISHED_DIGEST"' in workflow
     assert "--format '{{json .Manifest}}'" in workflow
@@ -315,7 +318,8 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert 'published-index.json' in workflow
     assert 'imagetools inspect --raw' not in workflow
     assert 'scripts/verify_promoted_manifest.py' in workflow
-    assert 'git add -A -f' in workflow
+    # The remaining digest-only PR may stage only immutable image metadata.
+    assert 'git add -A -- PRODUCTION_IMAGE_DIGEST k8s/kustomization.yaml' in workflow
     assert 'git checkout -b "$branch"' in workflow
     assert 'git push origin "HEAD:$branch"' in workflow
     assert 'gh pr create' in workflow
@@ -325,7 +329,7 @@ def test_ci_auto_records_promoted_digest_via_pull_request_and_skips_metadata_reb
     assert "[skip ci]" not in workflow
 
     verify_idx = workflow.index('Verify published manifest and report digest')
-    record_idx = workflow.index('Open documentation and optional production-digest pull request')
+    record_idx = workflow.index('Open digest-only PR if manifest changed')
     assert verify_idx < record_idx
     assert "github.ref == 'refs/heads/main'" in workflow
 

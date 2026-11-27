@@ -1,28 +1,35 @@
 # Presentazioni didattiche CIR — documentazione corrente
 
-Su GitHub sono conservati **solo** i PowerPoint e i PDF correnti, senza
-versioni storiche `RCxx` nei nomi:
+Le presentazioni verificate sono ora pubblicate come **asset di GitHub Releases**,
+non nella cronologia Git del branch `main`. La CI genera IT e EN dallo stesso
+manifest delle screenshot; l'italiano resta il master. I collegamenti qui
+sotto puntano sempre all'**ultima release documentale validata**. In caso di
+CI fallita, la versione precedente rimane disponibile.
 
-- [Presentazione visuale modificabile](presentation/CIR_Operational_Training_Visual.pptx)
-  e [PDF visuale](presentation/CIR_Operational_Training_Visual.pdf).
-- [Presentazione operativa modificabile](presentation/CIR_Operational_Training_IT.pptx),
-  con note e schermate della stessa build CI.
-- [Galleria completa delle screenshot](CIR_UI_Screenshots.pdf), generata
-  da catture Chromium reali su dati sintetici isolati.
+- [PowerPoint italiano (master)](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual.pptx) · [PDF italiano](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual.pdf)
+- [English PowerPoint (derived)](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual_EN.pptx) · [English PDF](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual_EN.pdf)
+- [PowerPoint operativo](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_IT.pptx) · [Galleria di screenshot PDF](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_UI_Screenshots.pdf)
+- [Manifest di provenienza SHA-256](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/training-release-manifest.json) · [Archivio delle release](https://github.com/desalvo/cybersecurity-incident-registry/releases)
 
-Nella build verificata della CI, ogni schermata presente nel manifest deve
-comparire in entrambe le presentazioni; il visuale comprende un'appendice con
-una schermata per slide, e il suo PDF viene confrontato visivamente con i pixel
-delle catture originali. Il controllo di pubblicazione rifiuta file obsoleti,
-immagini mancanti, hash discordanti e receipt riferiti a un altro commit.
-Il contenuto editoriale visuale comprende 87 slide, seguite dall'appendice di
-catture (25 schermate nella configurazione di acquisizione corrente).
-
-La pubblicazione nel repository avviene con una PR automatica separata dalla
-build Docker. Dopo il merge di un aggiornamento dei sorgenti, è necessario
-integrare anche tale PR per aggiornare i documenti presenti su `main`.
+La generazione documentale su `main` pubblica una release direttamente dopo
+la verifica di test, PDF, screenshot e checksum. **Non apre una PR `chore`
+per aggiornare i documenti.** Eventuali PR per il digest Docker sono separate.
 
 ---
+
+## RC103: AlBot crea e aggiorna workflow
+
+Il plugin opzionale AlBot/Alex è progettato per tradurre descrizioni in linguaggio naturale in workflow CIR. Solo un amministratore può preparare una proposta per il **tenant attivo**; Tenants Default è riservato ai super admin. La proposta contiene nome, step e caratteristiche, dipendenze, condizioni, eventuali notifiche e moduli PDF già configurati. Il motore AI non ha accesso in scrittura al database.
+
+1. Aprire AlBot dal menu o dal pannello e richiedere la creazione/variazione di un workflow con nome esplicito, step e dipendenze. Per una modifica precisare il nome del workflow preesistente e le variazioni.
+2. Controllare la pagina di **anteprima**: ordine, obbligatorietà, descrizioni, condizioni, prerequisiti e risorse collegate. Un'operazione su un workflow collegato a incidenti non viene modificata distruttivamente: creare una variante con un nuovo nome.
+3. Se si vuole **importare/aggiornare nel tenant**, spuntare la conferma e applicare. La scrittura avviene in una singola transazione ed è registrata nell'audit. Se si vuole **solo il JSON**, usare l'esportazione senza applicazione.
+4. Il JSON usa il formato portabile `cybersecurity-incident-registry.workflow-catalog.v1`; le condizioni `step_completed` rappresentano prerequisiti da azioni registrate precedentemente.
+
+La sezione formativa AlBot presenta due slide consecutive: **74 - AlBot: AI assistiva con RAG sanitizzato** e **75 - AlBot: crea e aggiorna workflow con conferma**. Le presentazioni IT/EN contengono **117 slide** ciascuna. La pubblicazione dei file didattici resta separata dal sorgente mediante il workflow GitHub Releases descritto in `docs/RC102_TRAINING_RELEASE_ARCHITECTURE.md`.
+
+---
+
 
 ## Materiale storico: prima edizione
 
@@ -32,7 +39,7 @@ Materiale per **0.10.0-1 / RC1**, aggiornato il **22 novembre 2026**.
 Durata suggerita: 45-60 minuti, inclusa esercitazione. Le tempistiche sono una
 proposta didattica, non una misura delle prestazioni applicative.
 
-La presentazione modificabile è [CIR_Operational_Training_IT.pptx](presentation/CIR_Operational_Training_IT.pptx),
+La presentazione modificabile è [CIR_Operational_Training_IT.pptx](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_IT.pptx),
 34 slide con note del relatore, testo e diagrammi modificabili. Le illustrazioni
 sintetiche mostrano infrastrutture e sicurezza informatica senza persone, usando
 l'identità grafica approvata per l'interfaccia e i manuali. La descrizione delle

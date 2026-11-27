@@ -15,7 +15,7 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def seal(pptx: Path, pdf: Path, manifest: Path, verification: Path, output: Path):
+def seal(pptx: Path, pdf: Path, manifest: Path, verification: Path, output: Path, locale='it'):
     data = json.loads(manifest.read_text(encoding='utf8'))
     checked = json.loads(verification.read_text(encoding='utf8'))
     screens = data['screenshots']
@@ -30,8 +30,9 @@ def seal(pptx: Path, pdf: Path, manifest: Path, verification: Path, output: Path
         'source_commit': data['source_commit'], 'build': str(data['build']),
         'screenshot_manifest_sha256': sha(manifest),
         'screenshots': [{'id': row['id'], 'sha256': row['sha256']} for row in screens],
-        'pptx_file': 'CIR_Operational_Training_Visual.pptx', 'pptx_sha256': sha(pptx),
-        'pdf_file': 'CIR_Operational_Training_Visual.pdf', 'pdf_sha256': sha(pdf),
+        'locale': locale,
+        'pptx_file': ('CIR_Operational_Training_Visual_EN.pptx' if locale=='en' else 'CIR_Operational_Training_Visual.pptx'), 'pptx_sha256': sha(pptx),
+        'pdf_file': ('CIR_Operational_Training_Visual_EN.pdf' if locale=='en' else 'CIR_Operational_Training_Visual.pdf'), 'pdf_sha256': sha(pdf),
         'slide_count': checked['slides'], 'pdf_pages': checked['pdf_pages'],
         'pdf_screenshots_visually_verified': checked['pdf_screenshots_visually_verified'],
         'screenshot_gallery_first_slide': GALLERY_FIRST_SLIDE,
@@ -45,8 +46,9 @@ def main():
     p = argparse.ArgumentParser()
     for name in ('pptx', 'pdf', 'manifest', 'verification', 'output'):
         p.add_argument('--'+name, type=Path, required=True)
+    p.add_argument('--locale',choices=('it','en'),default='it')
     args=p.parse_args()
-    result=seal(args.pptx,args.pdf,args.manifest,args.verification,args.output)
+    result=seal(args.pptx,args.pdf,args.manifest,args.verification,args.output,locale=args.locale)
     print('Visual training evidence sealed:', result['slide_count'], 'slides')
 
 if __name__ == '__main__':

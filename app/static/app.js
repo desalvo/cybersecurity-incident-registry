@@ -462,6 +462,10 @@ function makeIncidentWorkflowStepsClickable(){
   const actionSelect=document.getElementById('new-action-label-id');
   const description=actionForm ? actionForm.querySelector('textarea[name="description"]') : null;
   const activate=(step)=>{
+    if(step.dataset.prerequisitesSatisfied === '0'){
+      window.alert(step.dataset.prerequisiteMessage || 'Completa prima le azioni da cui dipende questo step.');
+      return;
+    }
     if(step.dataset.sectionTarget){
       const section=document.getElementById(step.dataset.sectionTarget);
       scrollToIncidentSection(section);

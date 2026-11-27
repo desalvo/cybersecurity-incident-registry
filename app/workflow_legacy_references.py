@@ -6,7 +6,7 @@ destination database ID. Its meaning must be stated by an included definition.
 import re
 import uuid
 
-_CONDITION = re.compile(r'^(severity|data_type):([1-9][0-9]*)$')
+_CONDITION = re.compile(r'^(severity|data_type|step_completed):([1-9][0-9]*)$')
 _KINDS = {'action_label', 'category', 'severity', 'data_type'}
 _REEXPORT = ('ID di condizione non attribuibile alle definizioni incluse: '
              'riesportare il workflow dal catalogo con le dipendenze e ripetere l’importazione.')
@@ -84,7 +84,7 @@ def legacy_map_conditions(tokens, index, resolve_id):
             if match is None:
                 raise ValueError('Condizione workflow non supportata.')
             kind, source_id = match.group(1), int(match.group(2))
-            definition = index['source_ids'].get((kind, source_id))
+            definition = index['source_ids'].get(('action_label' if kind == 'step_completed' else kind, source_id))
             if definition is None:
                 raise ValueError(_REEXPORT)
             destination_id = resolve_id(definition)

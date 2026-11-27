@@ -82,14 +82,34 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
     assert proc.returncode == 0, proc.stderr
     checked = subprocess.run([sys.executable, str(VERIFIER), '--pptx', str(deck),
                               '--screenshot-manifest', str(manifest), '--require-ci-images'],
-                             cwd=ROOT, capture_output=True, text=True)
+                             cwd=ROOT, capture_output=True, text=True, env=env)
     assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)['slides'] == 97 + len(REQUIRED)
+    assert json.loads(checked.stdout)['slides'] == 99 + len(REQUIRED)
+
+    # Reject source/build mismatches, but keep identical synthetic identities
+    # for BOTH the builder and verifier. On GitHub Actions the inherited
+    # GITHUB_SHA is the actual PR SHA, not the isolated test-fixture SHA.
+    mismatched = subprocess.run(
+        [sys.executable, str(VERIFIER), '--pptx', str(deck),
+         '--screenshot-manifest', str(manifest), '--require-ci-images'],
+        cwd=ROOT, capture_output=True, text=True,
+        env={**env, 'GITHUB_SHA': 'b' * 40},
+    )
+    assert mismatched.returncode != 0
+    assert 'source_commit diverso' in mismatched.stderr
+    wrong_build = subprocess.run(
+        [sys.executable, str(VERIFIER), '--pptx', str(deck),
+         '--screenshot-manifest', str(manifest), '--require-ci-images'],
+        cwd=ROOT, capture_output=True, text=True,
+        env={**env, 'CIR_RELEASE_BUILD': '20261127'},
+    )
+    assert wrong_build.returncode != 0
+    assert 'build diverso' in wrong_build.stderr
 
     # Prove that the validator will reject an image that is still in the PPTX
     # media pool but is no longer referenced by the intended slide.
     tampered = tmp_path / 'unlinked_palette_test_only.pptx'
-    slide_name = 'ppt/slides/slide85.xml'
+    slide_name = 'ppt/slides/slide86.xml'
     with ZipFile(deck) as source, ZipFile(tampered, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -104,7 +124,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
             target.writestr(entry, contents)
     rejected = subprocess.run([sys.executable, str(VERIFIER), '--pptx', str(tampered),
                                '--screenshot-manifest', str(manifest), '--require-ci-images'],
-                              cwd=ROOT, capture_output=True, text=True)
+                              cwd=ROOT, capture_output=True, text=True, env=env)
     assert rejected.returncode != 0
     assert 'Screenshot CI non collegata alla slide ' in rejected.stderr
 
@@ -112,7 +132,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
     # A second negative control ensures the instructional lab slide itself
     # really displays the same verified categories screenshot in strict CI.
     tampered_lab = tmp_path / 'unlinked_lab_category_test_only.pptx'
-    slide_name = 'ppt/slides/slide77.xml'
+    slide_name = 'ppt/slides/slide78.xml'
     with ZipFile(deck) as source, ZipFile(tampered_lab, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -126,6 +146,6 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
             target.writestr(entry, contents)
     rejected_lab = subprocess.run([sys.executable, str(VERIFIER), '--pptx', str(tampered_lab),
                                    '--screenshot-manifest', str(manifest), '--require-ci-images'],
-                                  cwd=ROOT, capture_output=True, text=True)
+                                  cwd=ROOT, capture_output=True, text=True, env=env)
     assert rejected_lab.returncode != 0
-    assert 'Screenshot CI non collegata al laboratorio SPAM slide 77' in rejected_lab.stderr
+    assert 'Screenshot CI non collegata al laboratorio SPAM slide 78' in rejected_lab.stderr

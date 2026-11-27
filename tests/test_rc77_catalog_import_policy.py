@@ -40,30 +40,39 @@ def test_catalog_copy_name_collision_policy_without_flask():
 
     data = {'value': [], 'name': []}
     import re
-    ns = {'ConfigLabel': ConfigLabel, 'TenantWorkflow': TenantWorkflow, 're': re}
+    ns = {'ConfigLabel': ConfigLabel, 'TenantWorkflow': TenantWorkflow, 're': re,
+          '_available_workflow_category': lambda tenant_id, name: next(
+              (SimpleNamespace(value=v) for v in data['value']
+               if v.strip().casefold() == name.strip().casefold() and v not in data['assigned']), None)}
+    data['assigned'] = []
     exec(compile(mod, '<workflow naming>', 'exec'), ns)
     choose = ns['_catalog_copy_name']
     assert choose('SPAM', 5) == 'SPAM'
     data['value'] = ['SPAM']
-    assert choose('SPAM', 5) == 'SPAM v2'  # inherited category is reserved
-    data['name'] = ['SPAM v2']
+    assert choose('SPAM', 5) == 'SPAM'  # unassigned category can be reused
+    data['name'] = ['SPAM']
+    assert choose('SPAM', 5) == 'SPAM v2'
+    data['name'] = ['SPAM', 'SPAM v2']
     assert choose('SPAM', 5) == 'SPAM v3'
     data['value'] = ['  spam  ', 'SPAM v2']
     data['name'] = []
-    assert choose('SPAM', 5) == 'SPAM v3'
+    assert choose('SPAM', 5) == 'spam'  # category display name retained
+    data['assigned'] = ['  spam  ']
+    assert choose('SPAM', 5) == 'SPAM v2'  # v2 label is also free
     assert choose('Other', 5) == 'Other'
     data['value'] = ['X' * 160]
+    data['name'] = ['X' * 160]
     assert choose('X' * 160, 5) == 'X' * 157 + ' v2'
 
 
-def test_catalog_severity_resolution_instead_of_category_reuse():
+def test_catalog_severity_resolution_and_unassigned_category_reuse():
     tree = _functions({'_materialize_workflow_payload', 'import_catalog_workflow'})
     materializer = ast.unparse(tree['_materialize_workflow_payload'])
     installer = ast.unparse(tree['import_catalog_workflow'])
     assert "item['kind'] == 'severity'" in materializer
     assert "item['ref'] == wf['category_ref']" in materializer
     assert '_catalog_copy_name(copy_name, target.id)' in installer
-    assert "ConfigLabel(tenant_id=target.id, kind='category', value=copy_name" in materializer
+    assert "_available_workflow_category(target.id, copy_name)" in materializer
 
 
 def test_catalog_severity_matching_preserves_original_record_without_flask():

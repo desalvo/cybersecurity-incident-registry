@@ -4,7 +4,7 @@ Gli amministratori possono configurare step workflow di tipo `Aggiorna sezione` 
 
 # Knowledge base operativa AlBot/Alex
 
-Questo documento sintetico è caricato automaticamente nel contesto interno del plugin AI Chatbot. Serve a mantenere AlBot, chiamabile anche Alex, allineato alle funzionalità e ai setup correnti di Cybersecurity Incident Registry 0.7.0-7.
+Questo documento sintetico è caricato automaticamente nel contesto interno del plugin AI Chatbot. Serve a mantenere AlBot, chiamabile anche Alex, allineato alle funzionalità e ai setup correnti di Cybersecurity Incident Registry 0.10.0-1.
 
 ## Identità e scopo
 
@@ -45,6 +45,11 @@ Questo documento sintetico è caricato automaticamente nel contesto interno del 
 - Knowledge base chatbot: include documentazione progettuale, README, changelog, help utente/amministratore, questo documento operativo e documenti caricati dagli amministratori.
 - Knowledge base caricabile: supporta documenti testuali e file validati; l'uso con dati anonimizzati è raccomandato.
 - Contesto database opzionale: quando abilitato, AlBot riceve uno snapshot applicativo sanitizzato; sono esclusi dati sensibili/binari o gestiti da knowledge base dedicata.
+- RC103: AlBot è progettato anche per **creare e aggiornare workflow**. L'amministratore descrive nome del workflow, nomi e tipi degli step, descrizioni, obbligatorietà, tempi, dipendenze da step precedenti e condizioni (rischio per diritti e libertà, gravità, dati interessati), nonché notifiche e moduli PDF se già configurati.
+- AlBot produce sempre una definizione strutturata e controllata in anteprima. Il workflow non viene scritto finché l'admin non conferma esplicitamente dalla pagina di riepilogo. In alternativa il JSON portabile può essere scaricato senza cambiare il tenant.
+- I permessi applicano il **tenant corrente**: soltanto admin del tenant o super admin possono operare, Tenants Default è consentito esclusivamente al super admin; utenti ordinari non possono generare o scaricare bozze amministrative.
+- In caso di modifica, AlBot conserva gli step che non si è chiesto di rimuovere e rifiuta modifiche distruttive se il workflow è usato da incidenti; richiede la creazione di una variante. Dipendenze non cicliche e riferite a step precedenti, controlli sulle label, revisione atomica e audit.
+- Esempio: «Crea il workflow Verifica allerta: ricezione obbligatoria; analisi dopo ricezione, solo se sono coinvolti dati personali; contenimento dopo analisi, obbligatorio; chiusura dopo contenimento. Mostra l'anteprima». Per il JSON usare «Scarica il JSON del workflow ...».
 
 ## Markdown e notifiche
 

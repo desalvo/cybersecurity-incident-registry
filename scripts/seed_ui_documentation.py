@@ -117,6 +117,12 @@ def seed_documentation_app(directory: Path, password: str, provider_url: str):
         logo.write_bytes((Path(app.static_folder) / "help" / "app-logo.png").read_bytes())
         db.session.merge(Setting(key="logo_path", value=str(logo)))
 
+        # Documentation captures are hermetic: synthetic @example.invalid
+        # users have no Gravatar images and must never trigger network requests.
+        # This affects only the fresh SQLite documentation fixture; production
+        # retains the installation-wide, admin-controlled Gravatar default.
+        db.session.merge(Setting(key="global_gravatar_enabled", value="0"))
+
         # No setting for global_ui_mode: captures prove the application's NEW
         # default is modern, rather than making the fixture force the result.
         if db.session.get(Setting, "global_ui_mode") is not None:
