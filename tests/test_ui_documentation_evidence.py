@@ -13,6 +13,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import subprocess
 import struct
 import sys
 import tempfile
@@ -199,6 +200,65 @@ class EvidenceFixtureTestCase(unittest.TestCase):
 
 
 class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
+    def test_workflow_step_geometry_validates_without_third_party_python_packages(self):
+        """The merged Docker release validates real ROIs before installing Pillow.
+
+        Exercise the same manifest validator with -S (no site-packages). The
+        fixture is synthetic and stays in TemporaryDirectory: never substitute
+        it for an actual browser-capture manifest or publication evidence.
+        """
+        row = next(item for item in self.manifest['screenshots']
+                   if item['id'] == 'workflow-steps-focused')
+        screenshot = self.artifact / row['file']
+        screenshot.write_bytes(placeholder_png(900, 1700))
+        cards = [[.01 + (n % 3) * .33, .01 + (n // 3) * .30, .31, .28]
+                 for n in range(6)]
+        row.update({
+            'sha256': evidence.sha256(screenshot),
+            'viewport': {'width': 1920, 'height': 1140},
+            'capture_area': 'element',
+            'element_selector': '#incident-workflow .workflow-steps-ordered',
+            'element_size': {'width': 900, 'height': 1700},
+            'step_card_rois': cards,
+        })
+        self.save_manifest()
+        # Rebuild only synthetic fixture receipts so the end-to-end installer
+        # can verify unchanged strict manifest/PowerPoint/PDF digest bindings.
+        self.presentation_receipt = placeholder_presentation(
+            self.documentation, self.manifest['screenshots'], self.images,
+        )
+        self.presentation_receipt['screenshot_manifest_sha256'] = evidence.sha256(self.manifest_path)
+        write_json(self.documentation / PRESENTATION_RECEIPT, self.presentation_receipt)
+        self.receipt['screenshot_manifest_sha256'] = evidence.sha256(self.manifest_path)
+        for item in self.receipt['files']:
+            item['sha256'] = evidence.sha256(self.documentation / item['file'])
+        self.save_receipt()
+        code = (
+            "from pathlib import Path; import sys; "
+            "sys.path.insert(0, str(Path.cwd() / 'scripts')); "
+            "from scripts.install_ui_documentation import install; "
+            "install(Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], "
+            "root=Path(sys.argv[4])); "
+            "print('VALIDATED_WITHOUT_PIL')"
+        )
+        run = subprocess.run(
+            [sys.executable, '-S', '-c', code, str(self.manifest_path),
+             str(self.documentation), COMMIT, str(self.destination)],
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=25,
+        )
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn('VALIDATED_WITHOUT_PIL', run.stdout)
+        self.assertTrue((self.destination / 'docs/UI_SCREENSHOTS_BUILD.json').is_file())
+        geometry_file = self.root / 'step_card_row.json'
+        write_json(geometry_file, row)
+        cli = subprocess.run(
+            [sys.executable, '-S', 'scripts/training_step_card_roi.py',
+             str(screenshot), str(geometry_file)],
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=25,
+        )
+        self.assertEqual(cli.returncode, 0, cli.stderr)
+        self.assertEqual(len(json.loads(cli.stdout)), 6)
+
     def test_old_release_and_different_build_are_rejected(self):
         for key, value in (("functional_version", "0.9.0-1"), ("build", "20000101")):
             with self.subTest(key=key):

@@ -11,7 +11,13 @@ import json
 import math
 import sys
 from pathlib import Path
-from PIL import Image
+# Evidence validation also runs in the minimal Docker-release job, before
+# Python application dependencies are installed. Reuse the existing strict,
+# standard-library PNG/JPEG parser instead of importing Pillow here.
+# The executable is also invoked directly by the PowerPoint generator.
+if not __package__:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.ui_documentation_evidence import _image_size
 
 # Pixel-exact bounds for the checked-in 1920 px archival capture, with a small
 # safety margin around each card (top of all cards = 504 px, bottom = 919 px).
@@ -22,8 +28,7 @@ _ARCHIVED_HEIGHT = 433
 
 
 def step_card_regions(source: Path, screenshot: dict | None = None) -> list[tuple[float, float, float, float]]:
-    with Image.open(source) as img:
-        width, height = img.size
+    width, height = _image_size(Path(source))
     # These coordinates are measured from the same DOM element in the actual
     # authenticated Chromium run which produced the sealed screenshot.
     measured = screenshot.get("step_card_rois") if screenshot else None
