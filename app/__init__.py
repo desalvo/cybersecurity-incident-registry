@@ -6,6 +6,7 @@ from .text_filters import register_text_filters
 from sqlalchemy import text, inspect, Table, MetaData, select, func
 from sqlalchemy.exc import OperationalError
 from .models import db, Tenant, User, UserTenantRole, ConfigLabel, Setting, NotificationType, NotificationTemplate, FormFieldMapping, FormTemplateConfig, FormTemplateBinary, AuditLog, IncidentReminder, ExternalRecipient, IncidentWorkflowStep, BackupJob, AIChatbotDocument, Incident, IncidentTemplate, Person, Recommendation
+from .plugins.support_tickets.models import (SupportTicketCategory, SupportTicket, SupportTicketMessage, SupportTicketAttachment)
 from .auth import login_manager, hash_password
 from .env_utils import get_admin_initial_password, get_env_secret
 from .security import init_security
@@ -24,6 +25,7 @@ def create_app():
     app.config['FORM_TEMPLATE_DIR']=os.getenv('FORM_TEMPLATE_DIR','/data/form_templates')
     app.config['BACKUP_DIR']=os.getenv('BACKUP_DIR','/data/backups')
     app.config['AI_CHATBOT_DOC_DIR']=os.getenv('AI_CHATBOT_DOC_DIR','/data/ai_chatbot_docs')
+    app.config['SUPPORT_TICKETS_DIR']=os.getenv('SUPPORT_TICKETS_DIR','/data/support_tickets')
     try:
         app.config['MAX_CONTENT_LENGTH']=int(os.getenv('MAX_CONTENT_LENGTH','26214400'))
     except (TypeError, ValueError):
@@ -35,7 +37,7 @@ def create_app():
         'version': APP_RELEASE_VERSION,
         'build': APP_RELEASE_BUILD,
     }
-    for _persistent_dir in (app.config['UPLOAD_DIR'], app.config['LOGO_DIR'], app.config['SSO_LOGO_DIR'], app.config['FORM_TEMPLATE_DIR'], app.config['BACKUP_DIR'], app.config['AI_CHATBOT_DOC_DIR']):
+    for _persistent_dir in (app.config['UPLOAD_DIR'], app.config['LOGO_DIR'], app.config['SSO_LOGO_DIR'], app.config['FORM_TEMPLATE_DIR'], app.config['BACKUP_DIR'], app.config['AI_CHATBOT_DOC_DIR'], app.config['SUPPORT_TICKETS_DIR']):
         os.makedirs(_persistent_dir, exist_ok=True)
 
     def _copy_missing_packaged_assets(src_dir, dst_dir, allowed_exts):
@@ -123,6 +125,7 @@ def create_app():
             pass
     from .plugins.ai_chatbot import register_plugin as register_ai_chatbot_plugin; register_ai_chatbot_plugin(app)
     from .plugins.alfresco import register_plugin as register_alfresco_plugin; register_alfresco_plugin(app)
+    from .plugins.support_tickets import register_plugin as register_support_tickets_plugin; register_support_tickets_plugin(app)
     from .ui_settings import bp as ui_bp
     app.register_blueprint(ui_bp)
     from .documentation import bp as documentation_bp, documentation_context
@@ -139,6 +142,8 @@ def create_app():
             # Resolve restore journals before any bootstrap write.
             recover_interrupted_full_import_serialized()
             bootstrap(app)
+            from .plugins.support_tickets.routes import seed_default_categories
+            seed_default_categories()
         finally:
             db.session.info.pop('cir_defaults_suspended', None)
     from .tenant_defaults import register_defaults_events
@@ -1166,7 +1171,15 @@ def _schema_upgrade_callbacks(app):
         run_schema_migrations(app)
         from .workflow_lifecycle import migrate_workflow_lifecycle_schema
         migrate_workflow_lifecycle_schema(db.engine)
-    return {'20261122_01_legacy_bridge': legacy_bridge}
+    def support_tickets_schema():
+        # Idempotent new revision: only create plugin tables for existing CIR DBs.
+        from .plugins.support_tickets.models import (SupportTicketCategory, SupportTicket, SupportTicketMessage, SupportTicketAttachment)
+        db.metadata.create_all(bind=db.engine, tables=[
+            SupportTicketCategory.__table__, SupportTicket.__table__,
+            SupportTicketMessage.__table__, SupportTicketAttachment.__table__,
+        ], checkfirst=True)
+    return {'20261122_01_legacy_bridge': legacy_bridge,
+            '20261127_02_support_tickets': support_tickets_schema}
 
 
 def bootstrap(app):

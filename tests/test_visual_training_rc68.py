@@ -89,7 +89,7 @@ def test_current_ci_captures_all_have_valid_provenance(full_browser_capture):
     proc = _verify(pptx, manifest, env)
     assert proc.returncode == 0, proc.stderr
     details = json.loads(proc.stdout)
-    assert details['slides'] == 99 + len(CAPTURE_IDS) - 1
+    assert details['slides'] == 100 + len(CAPTURE_IDS) - 1
     assert details['verified_browser_screenshots'] == len(CAPTURE_IDS)
     assert details['mandatory_ci_images_embedded'] is True
 
@@ -104,17 +104,17 @@ def test_rc91_appendix_separates_gallery_and_numbers_terminal_previews(full_brow
         def text(number):
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             return ' '.join(el.text or '' for el in page.iter('{http://schemas.openxmlformats.org/drawingml/2006/main}t'))
-        assert '08' in text(97) and 'Appendici' in text(97)
-        assert 'Schermata 1 / 33' in text(98)
-        assert 'Schermata 31 / 33' in text(128)
-        assert 'Schermata 32 / 33' in text(129) and 'Documento PDF compilato' in text(129)
-        assert 'Schermata 33 / 33' in text(130) and 'Notifica prima' in text(130)
+        assert '08' in text(98) and 'Appendici' in text(98)
+        assert 'Schermata 1 / 33' in text(99)
+        assert 'Schermata 31 / 33' in text(129)
+        assert 'Schermata 32 / 33' in text(130) and 'Documento PDF compilato' in text(130)
+        assert 'Schermata 33 / 33' in text(131) and 'Notifica prima' in text(131)
         preview = json.loads(manifest.read_text())['generated_pdf_preview']
-        assert preview['png_sha256'] in linked_slide_image_digests(archive,129)
+        assert preview['png_sha256'] in linked_slide_image_digests(archive,130)
         notify = next(row for row in json.loads(manifest.read_text())['screenshots'] if row['id']=='notification-preview')
-        assert notify['sha256'] in linked_slide_image_digests(archive,130)
+        assert notify['sha256'] in linked_slide_image_digests(archive,131)
         classic = next(row for row in json.loads(manifest.read_text())['screenshots'] if row['id']=='classic-registry-desktop')
-        for number in range(98,131):
+        for number in range(99,132):
             assert classic['sha256'] not in linked_slide_image_digests(archive,number)
 
 
@@ -169,7 +169,7 @@ def test_published_gallery_checks_the_same_real_image_links_without_rebinding_to
     monkeypatch.setenv('GITHUB_SHA', 'f' * 40)
     monkeypatch.setenv('CIR_RELEASE_BUILD', '99999999')
     report = run_check(pptx, None, manifest, False, published_ci_images=True)
-    assert report['slides'] == 99 + len(CAPTURE_IDS) - 1
+    assert report['slides'] == 100 + len(CAPTURE_IDS) - 1
     assert report['mandatory_ci_images_embedded'] is True
     assert report['verified_browser_screenshots'] == len(CAPTURE_IDS)
     with pytest.raises(ValueError, match='source_commit diverso'):

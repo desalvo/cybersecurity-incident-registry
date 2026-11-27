@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="support-layout">
+ <a class="support-breadcrumb" href="{{ url_for('support_tickets.dashboard') }}">{{ support_t('← Supporto / Tutti i ticket') }}</a>
+ <header class="support-hero support-hero-compact"><div><div class="support-kicker">NUOVA RICHIESTA</div><h1>{{ support_t('Come possiamo aiutarti?') }}</h1><p>Descrivi la tua domanda e scegli il team di supporto. Il ticket sarà inizialmente <strong>Sottomesso</strong>.</p></div></header>
+ <section class="support-panel support-form-panel"><form method="post" enctype="multipart/form-data" class="support-compose" data-support-compose><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  <div class="support-form-grid">
+    <label class="support-field support-wide"><span>Oggetto <strong>*</strong></span><input name="subject" maxlength="255" minlength="3" required placeholder="Breve riepilogo del problema"></label>
+    <label class="support-field"><span>Tenant destinatario <strong>*</strong></span><select name="tenant_id" required>{% for tenant in tenants %}<option value="{{ tenant.id }}"{% if tenant.id == current_tid %} selected{% endif %}>{{ tenant.name }}</option>{% endfor %}</select></label>
+    <label class="support-field"><span>Chi contattare <strong>*</strong></span><select name="assignee_level"><option value="tenant_admin">{{ support_t('Amministratori del tenant') }}</option><option value="super_admin">{{ support_t('Super admin · supporto di livello superiore') }}</option></select></label>
+    <label class="support-field"><span>{{ support_t('Priorità') }}</span><select name="priority">{% for code,label in support_priorities.items() %}<option value="{{ code }}"{% if code == 'medium' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label class="support-field"><span>Categoria <strong>*</strong></span><select name="category_id" required>{% for category in categories %}<option value="{{ category.id }}">{{ category.label_en if current_language == 'en' else category.label_it }}</option>{% endfor %}</select></label>
+    <label class="support-field support-wide"><span>Descrizione della richiesta <strong>*</strong> · Markdown</span><textarea name="body" rows="9" maxlength="20000" minlength="4" required placeholder="## Descrizione&#10;Spiega il contesto, i passaggi seguiti e il risultato atteso.&#10;&#10;- [ ] Esempio di checklist&#10;- **Dettaglio importante**"></textarea><small>{{ support_t('Supportati titoli, liste, checklist, link, tabelle, codice e formattazione Markdown sicura.') }}</small></label>
+  </div>
+  <div class="support-upload-zone"><label for="support-files"><span class="support-upload-icon">↥</span><strong>Allegati</strong> · facoltativi</label><p>Massimo {{ max_files }} file, 10 MB ciascuno. PDF, immagini, testi e documenti Office non eseguibili.</p><input id="support-files" type="file" name="attachments" multiple data-support-files accept=".txt,.log,.csv,.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.pptx,.json"><ul data-support-file-list aria-live="polite"></ul></div>
+  <div class="support-form-actions"><a href="{{ url_for('support_tickets.dashboard') }}">{{ support_t('Annulla') }}</a><button type="submit" class="support-primary">➜ Sottometti ticket</button></div>
+ </form></section>
+</div>
+{% endblock %}

@@ -84,7 +84,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                               '--screenshot-manifest', str(manifest), '--require-ci-images'],
                              cwd=ROOT, capture_output=True, text=True, env=env)
     assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)['slides'] == 99 + len(REQUIRED)
+    assert json.loads(checked.stdout)['slides'] == 100 + len(REQUIRED)
 
     # Reject source/build mismatches, but keep identical synthetic identities
     # for BOTH the builder and verifier. On GitHub Actions the inherited
@@ -109,7 +109,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
     # Prove that the validator will reject an image that is still in the PPTX
     # media pool but is no longer referenced by the intended slide.
     tampered = tmp_path / 'unlinked_palette_test_only.pptx'
-    slide_name = 'ppt/slides/slide86.xml'
+    slide_name = 'ppt/slides/slide87.xml'
     with ZipFile(deck) as source, ZipFile(tampered, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -132,7 +132,7 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
     # A second negative control ensures the instructional lab slide itself
     # really displays the same verified categories screenshot in strict CI.
     tampered_lab = tmp_path / 'unlinked_lab_category_test_only.pptx'
-    slide_name = 'ppt/slides/slide78.xml'
+    slide_name = 'ppt/slides/slide79.xml'
     with ZipFile(deck) as source, ZipFile(tampered_lab, 'w') as target:
         for entry in source.infolist():
             contents = source.read(entry.filename)
@@ -148,4 +148,4 @@ def test_same_run_palette_is_embedded_and_referenced_by_slide70(tmp_path):
                                    '--screenshot-manifest', str(manifest), '--require-ci-images'],
                                   cwd=ROOT, capture_output=True, text=True, env=env)
     assert rejected_lab.returncode != 0
-    assert 'Screenshot CI non collegata al laboratorio SPAM slide 78' in rejected_lab.stderr
+    assert 'Screenshot CI non collegata al laboratorio SPAM slide 79' in rejected_lab.stderr

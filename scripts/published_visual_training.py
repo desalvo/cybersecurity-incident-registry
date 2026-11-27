@@ -15,8 +15,8 @@ import re
 from pathlib import Path
 from pathlib import PurePosixPath
 
-BASE_SLIDES = 99  # 95 content + 1 thank-you + 1 appendix divider + 2 terminal previews
-GALLERY_FIRST_SLIDE = 98  # gallery starts immediately after slide 96 divider
+BASE_SLIDES = 100  # 96 content + 1 thank-you + 1 appendix divider + 2 terminal previews
+GALLERY_FIRST_SLIDE = 99  # gallery starts immediately after slide 97 divider
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
 MAX_SCREENSHOTS = 80
 
@@ -134,7 +134,7 @@ def check_published_receipt(root: Path, pptx: Path, pdf: Path, manifest: Path, r
 
 
 def expected_visual_slides(root: Path, pptx: Path, pdf: Path) -> int:
-    """Allow 98 fixed slides (with divider/previews), plus a sealed screenshot gallery."""
+    """Allow 100 fixed slides (with divider/previews), plus a sealed screenshot gallery."""
     receipt = root / 'docs/presentation/visual-training-receipt.json'
     manifest = root / 'app/static/help/ui-runtime/manifest.json'
     if not receipt.exists() and not manifest.exists():

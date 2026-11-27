@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="support-layout">
+  <header class="support-hero">
+    <div><div class="support-kicker">CIR / SERVICE DESK</div><h1>Support Tickets <span class="support-hero-symbol" aria-hidden="true">✦</span></h1>
+      <p>{{ support_t('Richieste, risposte e collaborazione tra utenti, amministratori di tenant e super admin.') }}</p></div>
+    <a class="support-primary" href="{{ url_for('support_tickets.new_ticket') }}"><span aria-hidden="true">＋</span> Nuovo ticket</a>
+  </header>
+  <div class="support-stat-grid" aria-label="Riepilogo ticket visibili">
+    <div class="support-stat"><span class="support-stat-icon blue" aria-hidden="true">▣</span><span class="support-stat-label">{{ support_t('Totale visibili') }}</span><strong>{{ total }}</strong></div>
+    <div class="support-stat"><span class="support-stat-icon violet" aria-hidden="true">◷</span><span class="support-stat-label">{{ support_t('Da prendere in carico') }}</span><strong>{{ counts.submitted + counts.open }}</strong></div>
+    <div class="support-stat"><span class="support-stat-icon amber" aria-hidden="true">⚙</span><span class="support-stat-label">{{ support_t('In lavorazione') }}</span><strong>{{ counts.assigned + counts.in_progress }}</strong></div>
+    <div class="support-stat"><span class="support-stat-icon green" aria-hidden="true">✓</span><span class="support-stat-label">{{ support_t('Completati e chiusi') }}</span><strong>{{ counts.completed + counts.closed }}</strong></div>
+  </div>
+  <section class="support-panel">
+    <div class="support-panel-heading"><div><h2>Ticket <span class="support-total-pill">{{ pagination.total }}</span></h2><p>{{ support_t('Filtra per uno o più parametri per restringere i risultati.') }}</p></div></div>
+    <form class="support-search" method="get" action="{{ url_for('support_tickets.dashboard') }}">
+      <label class="support-field support-q"><span>{{ support_t('Ricerca libera / codice') }}</span><input name="q" type="search" value="{{ filter_values.get('q', '') }}" placeholder="Es. SUP-000123, oggetto, richiedente"></label>
+      <label class="support-field"><span>{{ support_t('Stato') }}</span><select name="status"><option value="">{{ support_t('Tutti') }}</option>{% for code,label in support_statuses.items() %}<option value="{{ code }}"{% if filter_values.get('status') == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label class="support-field"><span>{{ support_t('Priorità') }}</span><select name="priority"><option value="">{{ support_t('Tutte') }}</option>{% for code,label in support_priorities.items() %}<option value="{{ code }}"{% if filter_values.get('priority') == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label class="support-field"><span>{{ support_t('Categoria') }}</span><select name="category_id"><option value="">{{ support_t('Tutte') }}</option>{% for category in categories %}<option value="{{ category.id }}"{% if filter_values.get('category_id') == category.id|string %} selected{% endif %}>{{ category.label_en if current_language == 'en' else category.label_it }}</option>{% endfor %}</select></label>
+      <label class="support-field"><span>Tenant</span><select name="tenant_id"><option value="">{{ support_t('Tutti') }}</option>{% for tenant in tenants %}<option value="{{ tenant.id }}"{% if filter_values.get('tenant_id') == tenant.id|string %} selected{% endif %}>{{ tenant.name }}</option>{% endfor %}</select></label>
+      <label class="support-field"><span>{{ support_t('Assegnatario') }}</span><select name="assignee"><option value="">{{ support_t('Tutti') }}</option>{% for code,label in support_levels.items() %}<option value="{{ code }}"{% if filter_values.get('assignee') == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label class="support-field"><span>{{ support_t('ID richiedente') }}</span><input name="created_by_id" inputmode="numeric" value="{{ filter_values.get('created_by_id','') }}" placeholder="ID utente"></label>
+      <label class="support-field"><span>{{ support_t('Creazione dal') }}</span><input name="created_from" type="date" value="{{ filter_values.get('created_from','') }}"></label>
+      <label class="support-field"><span>{{ support_t('Creazione al') }}</span><input name="created_to" type="date" value="{{ filter_values.get('created_to','') }}"></label>
+      <div class="support-search-actions"><button class="support-primary" type="submit">⌕ Cerca</button><a class="support-reset" href="{{ url_for('support_tickets.dashboard') }}">{{ support_t('Reimposta') }}</a></div>
+    </form>
+    <div class="support-table-scroll"><table class="support-ticket-table">
+      <thead><tr><th>Ticket</th><th>{{ support_t('Oggetto') }}</th><th>{{ support_t('Stato') }}</th><th>{{ support_t('Priorità') }}</th><th>{{ support_t('Categoria') }}</th><th>Tenant / destinatario</th><th>{{ support_t('Richiedente') }}</th><th>{{ support_t('Aggiornato') }}</th></tr></thead>
+      <tbody>{% for ticket in tickets %}
+      <tr><td><a class="support-ref" href="{{ url_for('support_tickets.view_ticket', ticket_id=ticket.id) }}">{{ ticket.reference }}</a></td>
+        <td class="support-subject-cell"><a href="{{ url_for('support_tickets.view_ticket', ticket_id=ticket.id) }}">{{ ticket.subject }}</a><span>{{ ticket.messages|length }} messaggi{% if ticket.escalated %} · escalation L2{% endif %}</span></td>
+        <td><span class="support-status status-{{ ticket.status }}">{{ support_statuses[ticket.status] }}</span></td>
+        <td><span class="support-priority priority-{{ ticket.priority }}"><span aria-hidden="true">●</span> {{ support_priorities[ticket.priority] }}</span></td>
+        <td>{{ ticket.category.label_en if current_language == 'en' else ticket.category.label_it }}</td>
+        <td>{{ ticket.tenant.name }} <small>· {{ support_levels[ticket.assignee_level] }}</small></td>
+        <td>{{ ticket.creator_label }}</td><td><time datetime="{{ ticket.updated_at.isoformat() }}">{{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</time></td></tr>
+      {% else %}<tr><td colspan="8" class="support-empty">Nessun ticket corrisponde ai filtri. <a href="{{ url_for('support_tickets.new_ticket') }}">Crea una richiesta</a>.</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="support-pagination"><span>Pagina {{ pagination.page }} · {{ pagination.total }} ticket</span>
+    <div>{% if pagination.has_prev %}<a href="{{ url_for('support_tickets.dashboard', **dict(filter_values, page=pagination.prev_num)) }}">← Precedente</a>{% endif %}{% if pagination.has_next %}<a href="{{ url_for('support_tickets.dashboard', **dict(filter_values, page=pagination.next_num)) }}">Successiva →</a>{% endif %}</div></div>
+  </section>
+</div>
+{% endblock %}

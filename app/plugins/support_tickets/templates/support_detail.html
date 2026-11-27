@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="support-layout">
+ <a class="support-breadcrumb" href="{{ url_for('support_tickets.dashboard') }}">{{ support_t('← Tutti i ticket') }}</a>
+ <header class="support-hero support-hero-compact"><div><div class="support-kicker">{{ ticket.reference }} · {{ ticket.tenant.name }}</div><h1>{{ ticket.subject }}</h1><p>Aperto da {{ ticket.creator_label }} · {{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</p></div><span class="support-status status-{{ ticket.status }}">{{ support_statuses[ticket.status] }}</span></header>
+ <div class="support-detail-grid">
+  <section class="support-panel support-thread"><div class="support-panel-heading"><h2>Conversazione <span class="support-total-pill">{{ ticket.messages|length }}</span></h2></div>
+  {% for message in ticket.messages %}
+  <article class="support-message{% if message.author_id == current_user.id %} support-message-self{% endif %}">
+    <div class="support-message-avatar" aria-hidden="true">{{ message.author_label[:1]|upper }}</div>
+    <div class="support-message-main"><div class="support-message-meta"><strong>{{ message.author_label }}</strong><time datetime="{{ message.created_at.isoformat() }}">{{ message.created_at.strftime('%d/%m/%Y %H:%M') }}</time></div>
+      <div class="support-markdown">{{ support_markdown(message.body) }}</div>
+      {% if message.attachments %}<div class="support-attachments">{% for attachment in message.attachments %}<a href="{{ url_for('support_tickets.download_attachment', attachment_id=attachment.id) }}">📎 {{ attachment.original_filename }} <small>{{ (attachment.byte_count / 1024)|round|int }} KB</small></a>{% endfor %}</div>{% endif %}
+    </div>
+  </article>{% endfor %}
+  {% if ticket.status != 'closed' %}<section class="support-reply"><h3>{{ support_t('Scrivi una risposta') }}</h3><form method="post" action="{{ url_for('support_tickets.reply', ticket_id=ticket.id) }}" enctype="multipart/form-data" data-support-compose><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <label class="support-field"><span>{{ support_t('Messaggio · Markdown esteso') }}</span><textarea name="body" rows="6" maxlength="20000" required placeholder="Scrivi qui la tua risposta; puoi aggiungere allegati..."></textarea></label>
+    <div class="support-upload-zone support-upload-inline"><label for="support-reply-files">📎 Aggiungi allegati ({{ max_files }} max, 10 MB/file)</label><input id="support-reply-files" name="attachments" type="file" multiple data-support-files accept=".txt,.log,.csv,.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.pptx,.json"><ul data-support-file-list aria-live="polite"></ul></div>
+    <div class="support-form-actions"><button class="support-primary" type="submit">Invia risposta ↗</button></div></form></section>{% else %}<p class="support-empty">Ticket chiuso. È possibile riaprirlo tramite il pannello di gestione.</p>{% endif %}
+  </section>
+  <aside class="support-side">
+   <section class="support-panel"><h3>{{ support_t('Dettagli richiesta') }}</h3><dl class="support-details">
+     <div><dt>{{ support_t('Stato') }}</dt><dd><span class="support-status status-{{ ticket.status }}">{{ support_statuses[ticket.status] }}</span></dd></div>
+     <div><dt>{{ support_t('Priorità') }}</dt><dd><span class="support-priority priority-{{ ticket.priority }}">● {{ support_priorities[ticket.priority] }}</span></dd></div>
+     <div><dt>{{ support_t('Categoria') }}</dt><dd>{{ ticket.category.label_en if current_language == 'en' else ticket.category.label_it }}</dd></div>
+     <div><dt>{{ support_t('Destinatario') }}</dt><dd>{{ support_levels[ticket.assignee_level] }}{% if ticket.escalated %}<br><span class="support-escalated">⚡ Escalation L2</span>{% endif %}</dd></div>
+     <div><dt>Tenant</dt><dd>{{ ticket.tenant.name }}</dd></div><div><dt>{{ support_t('Richiedente') }}</dt><dd>{{ ticket.creator_label }}</dd></div>
+     <div><dt>{{ support_t('Creato') }}</dt><dd>{{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</dd></div>
+     <div><dt>{{ support_t('Ultima attività') }}</dt><dd>{{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</dd></div>
+     <div><dt>{{ support_t('Motivo dello stato') }}</dt><dd>{{ ticket.status_reason or '—' }}</dd></div>
+   </dl></section>
+   {% if can_edit_fields %}<section class="support-panel support-action-panel"><h3>{{ support_t('Parametri del ticket') }}</h3>
+     <form method="post" action="{{ url_for('support_tickets.update_details', ticket_id=ticket.id) }}">
+       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+       <label class="support-field"><span>{{ support_t('Priorità') }}</span><select name="priority" required>{% for code,label in support_priorities.items() %}<option value="{{ code }}"{% if ticket.priority==code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+       <label class="support-field"><span>{{ support_t('Categoria') }}</span><select name="category_id" required>{% for category in categories %}<option value="{{ category.id }}"{% if ticket.category_id==category.id %} selected{% endif %}>{{ category.label_en if current_language == 'en' else category.label_it }}</option>{% endfor %}</select></label>
+       {% if current_user_is_superuser %}<label class="support-field"><span>{{ support_t('Assegnatario') }}</span><select name="assignee_level">{% for code,label in support_levels.items() %}<option value="{{ code }}"{% if ticket.assignee_level==code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>{% endif %}
+       <button class="support-secondary" type="submit">{{ support_t('Aggiorna dettagli') }}</button>
+     </form></section>{% endif %}
+   {% if can_manage or is_owner %}<section class="support-panel support-action-panel"><h3>{{ support_t('Gestione ticket') }}</h3>
+    <form method="post" action="{{ url_for('support_tickets.set_status', ticket_id=ticket.id) }}" data-support-status-form><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <label class="support-field"><span>{{ support_t('Nuovo stato') }}</span><select name="status" required>{% if can_manage %}{% for code,label in support_statuses.items() %}<option value="{{ code }}"{% if code == ticket.status %} selected{% endif %}>{{ label }}</option>{% endfor %}{% else %}<option value="{{ ticket.status }}" selected>{{ support_statuses[ticket.status] }}</option><option value="closed">Chiuso</option>{% if ticket.status in ['closed','completed','rejected'] %}<option value="submitted">Riapri · Sottomesso</option>{% endif %}{% endif %}</select></label>
+      <label class="support-field"><span>{{ support_t('Motivo (facoltativo)') }}</span><textarea rows="3" maxlength="1000" name="reason">{{ ticket.status_reason }}</textarea></label><button class="support-secondary" type="submit">Aggiorna stato</button></form>
+    {% if can_manage and ticket.assignee_level == 'tenant_admin' and ticket.status != 'closed' %}
+    <form method="post" action="{{ url_for('support_tickets.escalate', ticket_id=ticket.id) }}" data-support-confirm="Aggiungere i super admin al ticket e inviare una notifica?" class="support-extra-action"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="support-escalate-btn" type="submit">⚡ Coinvolgi i super admin</button></form>{% endif %}
+   </section>{% endif %}
+   {% if current_user_is_superuser %}<section class="support-panel support-danger-panel"><h3>{{ support_t('Eliminazione definitiva') }}</h3><p>{{ support_t('Solo i super admin possono eliminare integralmente il ticket e gli allegati.') }}</p>
+    <form method="post" action="{{ url_for('support_tickets.delete_ticket', ticket_id=ticket.id) }}" data-support-confirm="Confermi la cancellazione IRREVERSIBILE del ticket e di tutte le risposte?"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <label class="support-field"><span>Digita {{ ticket.reference }} per confermare</span><input name="confirm_reference" required pattern="SUP-[0-9]+" placeholder="{{ ticket.reference }}"></label><button type="submit" class="support-delete-btn">Elimina definitivamente</button></form>
+   </section>{% endif %}
+  </aside>
+ </div>
+</div>
+{% endblock %}

@@ -35,11 +35,12 @@ WORKFLOW_INTRO_SLIDES = 5
 WORKFLOW_AFTER = 38
 ALBOT_AFTER = 60
 ALBOT_ADDED_SLIDES = 1
-EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + ALBOT_ADDED_SLIDES + THANK_YOU_SLIDES + APPENDIX_BANNER_SLIDES + APPENDIX_PREVIEWS
+SUPPORT_ADDED_SLIDES = 1
+EXPECTED_SLIDES = 79 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + ALBOT_ADDED_SLIDES + SUPPORT_ADDED_SLIDES + THANK_YOU_SLIDES + APPENDIX_BANNER_SLIDES + APPENDIX_PREVIEWS
 GALLERY_FIRST_SLIDE = EXPECTED_SLIDES - APPENDIX_PREVIEWS + 1
 HIDDEN_GALLERY_IDS = frozenset({'classic-registry-desktop'})
-PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + ALBOT_ADDED_SLIDES
-LAB_SPAM_OPENING_SLIDE = 62 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + ALBOT_ADDED_SLIDES
+PALETTE_SLIDE = 70 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + ALBOT_ADDED_SLIDES + SUPPORT_ADDED_SLIDES
+LAB_SPAM_OPENING_SLIDE = 62 + ADDED_SLIDES + ARCH_SLIDES + WORKFLOW_INTRO_SLIDES + ALBOT_ADDED_SLIDES + SUPPORT_ADDED_SLIDES
 REQUIRED_SLIDE_TITLES = {
     8: 'Login',
     17: 'Come cambia lo stato di un incidente: workflow generale (configurabile)',
@@ -200,7 +201,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
                 if digest(img) not in linked_slide_image_digests(archive,idx):
                     raise ValueError('Missing historical application screenshot from slide '+str(idx)+': '+img.name)
         for original_number, title in REQUIRED_SLIDE_TITLES.items():
-            number = original_number + (ARCH_SLIDES if original_number > ARCH_AFTER else 0) + (ADDED_SLIDES if original_number > INSERT_AFTER else 0) + (WORKFLOW_INTRO_SLIDES if original_number > WORKFLOW_AFTER else 0) + (ALBOT_ADDED_SLIDES if original_number >= ALBOT_AFTER else 0)
+            number = original_number + (ARCH_SLIDES if original_number > ARCH_AFTER else 0) + (ADDED_SLIDES if original_number > INSERT_AFTER else 0) + (WORKFLOW_INTRO_SLIDES if original_number > WORKFLOW_AFTER else 0) + (ALBOT_ADDED_SLIDES if original_number >= ALBOT_AFTER else 0) + (SUPPORT_ADDED_SLIDES if original_number >= ALBOT_AFTER else 0)
             page = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             text = ''.join(node.text or '' for node in page.iter(NS+'t'))
             if title.replace('\u2019', '\u0027') not in text.replace('\u2019','\u0027'):
@@ -215,6 +216,10 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
             raise ValueError('The original sanitized-RAG training slide must be retained')
         if 'AlBot: crea e aggiorna workflow con conferma' not in albot_text:
             raise ValueError('The workflow-authoring slide must follow the sanitized-RAG slide')
+        support_text = visible_slide_text(albot_title_slide + 1)
+        for required in ('Support Tickets', 'Supporto', 'super admin', 'Markdown', 'notifiche'):
+            if required.casefold() not in support_text.casefold():
+                raise ValueError('Missing Support Tickets usage teaching slide: ' + required)
         for required in ('creare o aggiornare workflow', 'dipendenze',
                          'conferma', 'JSON'):
             if required.casefold() not in albot_text.casefold():
@@ -314,7 +319,7 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
     cartoons=cartoon_data.get('artwork',[])
     if len(cartoons)!=9 or [row.get('section') for row in cartoons] != [f'{i:02d}' for i in range(1,9)]+['grazie']:
         raise ValueError('Missing or unordered RC97 banner/thank-you illustrations')
-    banner_positions={'01':2,'02':18,'03':37,'04':48,'05':64,'06':77,'07':90,'08':GALLERY_FIRST_SLIDE-1,'grazie':GALLERY_FIRST_SLIDE-2}
+    banner_positions={'01':2,'02':18,'03':37,'04':48,'05':64,'06':78,'07':91,'08':GALLERY_FIRST_SLIDE-1,'grazie':GALLERY_FIRST_SLIDE-2}
     with ZipFile(pptx) as image_archive:
         for row in cartoons:
             source=root/row['file']
@@ -324,6 +329,17 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
                 raise ValueError('Approved cartoon not displayed in correct chapter: '+row['section'])
             allowed.add(row['sha256'])
     allowed.add(digest(root/'app/static/ai-chatbot/albot-avatar.png'))
+    support_art = root/'docs/presentation/rc109_support_tickets_art.png'
+    support_provenance = json.loads((root/'docs/presentation/rc109_support_tickets_provenance.json').read_text(encoding='utf8'))
+    with ZipFile(pptx) as support_image_archive:
+        support_image_digests = linked_slide_image_digests(support_image_archive, 76)
+    if (support_provenance.get('file') != 'docs/presentation/rc109_support_tickets_art.png'
+            or support_provenance.get('real_people') is not False
+            or support_provenance.get('contains_real_ui') is not False
+            or digest(support_art) != support_provenance.get('sha256')
+            or support_provenance['sha256'] not in support_image_digests):
+        raise ValueError('Missing or altered synthetic Support Tickets artwork on slide 76')
+    allowed.add(support_provenance['sha256'])
     art = root / 'docs/presentation/visual_rc61_art'
     art_provenance = json.loads((art/'provenance.json').read_text(encoding='utf8'))
     obsolete = {row['sha256'] for row in art_provenance['slides'].values()}

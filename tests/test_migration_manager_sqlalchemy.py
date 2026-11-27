@@ -51,7 +51,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
 
     def _prepare(self):
         return manager.prepare_schema_upgrade(
-            self.engine, {R1: lambda: self.metadata.create_all(self.engine)})
+            self.engine, {R1: lambda: self.metadata.create_all(self.engine)}, (R1,))
 
     def _bootstrap_once(self):
         completed = self._prepare()
@@ -63,7 +63,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
         return completed
 
     def test_first_bootstrap_commits_orm_data_and_ledger_together(self):
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "no-ledger")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "no-ledger")
         completed = self._prepare()
         self.assertEqual(completed.completed_ids, (R1,))
         manager.validate_model_schema(self.engine, self.metadata)
@@ -76,7 +76,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
                 self.assertEqual(observer.execute("SELECT COUNT(*) FROM bootstrap_record").fetchone()[0], 0)
                 self.assertFalse(manager.SQLiteLedgerStore(observer).read_snapshot().exists)
             session.commit()
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "current")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "current")
         with Session(self.engine) as observer:
             self.assertEqual(observer.query(self.Record).one().value, "new seed")
 
@@ -86,7 +86,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
         def published_callback():
             self.fail("A current schema must not rerun its recorded callback")
 
-        completed = manager.prepare_schema_upgrade(self.engine, {R1: published_callback})
+        completed = manager.prepare_schema_upgrade(self.engine, {R1: published_callback}, (R1,))
         self.assertEqual(completed.completed_ids, ())
         manager.validate_model_schema(self.engine, self.metadata)
         statements = []
@@ -107,7 +107,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
             session.commit()
         with Session(self.engine) as observer:
             self.assertEqual(observer.query(self.Record).one().value, "bootstrap reconciliation still runs")
-        self.assertEqual(manager.assert_schema_supported(self.engine).applied_ids, (R1,))
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).applied_ids, (R1,))
 
     def test_rollback_discards_orm_seed_and_new_ledger_table(self):
         completed = self._prepare()
@@ -116,7 +116,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
             manager.stage_schema_upgrade(session, completed)
             session.flush()
             session.rollback()
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "no-ledger")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "no-ledger")
         with Session(self.engine) as observer:
             self.assertEqual(observer.query(self.Record).count(), 0)
 
@@ -127,7 +127,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
             raw = session.connection().connection.driver_connection
             self.assertTrue(raw.in_transaction)
             session.rollback()
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "no-ledger")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "no-ledger")
 
     def test_scoped_session_uses_same_transaction_as_orm_seed(self):
         completed = self._prepare()
@@ -139,7 +139,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
             session.rollback()
         finally:
             session.remove()
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "no-ledger")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "no-ledger")
         with Session(self.engine) as observer:
             self.assertEqual(observer.query(self.Record).count(), 0)
 
@@ -163,12 +163,12 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
                                pool_size=1, max_overflow=0, pool_timeout=0.1)
         try:
             completed = manager.prepare_schema_upgrade(engine,
-                {R1: lambda: self.metadata.create_all(engine)})
+                {R1: lambda: self.metadata.create_all(engine)}, (R1,))
             manager.validate_model_schema(engine, self.metadata)
             with Session(engine) as session:
                 manager.stage_schema_upgrade(session, completed)
                 session.commit()
-            self.assertEqual(manager.assert_schema_supported(engine).status, "current")
+            self.assertEqual(manager.assert_schema_supported(engine, (R1,)).status, "current")
         finally:
             engine.dispose()
 
@@ -182,7 +182,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
         with closing(sqlite3.connect(self.path)) as raw:
             before = tuple(raw.iterdump())
         with self.assertRaises(manager.SchemaCompatibilityError):
-            manager.prepare_schema_upgrade(self.engine, {R1: lambda: calls.append(R1)})
+            manager.prepare_schema_upgrade(self.engine, {R1: lambda: calls.append(R1)}, (R1,))
         self.assertEqual(calls, [])
         with closing(sqlite3.connect(self.path)) as raw:
             self.assertEqual(tuple(raw.iterdump()), before)
@@ -202,7 +202,7 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
                 "CREATE VIEW cir_schema_migrations AS SELECT 1 AS position, "
                 "'20261122_01_legacy_bridge' AS revision_id, 'now' AS applied_at"))
         with self.assertRaises(manager.SchemaCompatibilityError):
-            manager.assert_schema_supported(self.engine)
+            manager.assert_schema_supported(self.engine, (R1,))
 
     def test_partial_ddl_callback_failure_is_retryable_without_marker(self):
         calls = []
@@ -213,23 +213,23 @@ class SQLAlchemyMigrationTests(unittest.TestCase):
             raise RuntimeError("injected after committed DDL")
 
         with self.assertRaises(manager.MigrationExecutionError):
-            manager.prepare_schema_upgrade(self.engine, {R1: fail_after_ddl})
+            manager.prepare_schema_upgrade(self.engine, {R1: fail_after_ddl}, (R1,))
         self.assertIn("bootstrap_record", inspect(self.engine).get_table_names())
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "no-ledger")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "no-ledger")
         self._bootstrap_once()
         self.assertEqual(calls, ["failed"])
-        self.assertEqual(manager.assert_schema_supported(self.engine).status, "current")
+        self.assertEqual(manager.assert_schema_supported(self.engine, (R1,)).status, "current")
 
     @unittest.skipUnless(hasattr(sqlite3, "LEGACY_TRANSACTION_CONTROL"), "requires sqlite3 Python 3.12 transaction API")
     def test_true_driver_autocommit_session_is_rejected_before_marker_write(self):
         engine = create_engine("sqlite:///" + str(Path(self.directory.name) / "autocommit.db"),
                                connect_args={"autocommit": True})
         try:
-            completed = manager.prepare_schema_upgrade(engine, {R1: lambda: None})
+            completed = manager.prepare_schema_upgrade(engine, {R1: lambda: None}, (R1,))
             with Session(engine) as session:
                 with self.assertRaises(manager.SchemaCompatibilityError):
                     manager.stage_schema_upgrade(session, completed)
-            self.assertEqual(manager.assert_schema_supported(engine).status, "no-ledger")
+            self.assertEqual(manager.assert_schema_supported(engine, (R1,)).status, "no-ledger")
         finally:
             engine.dispose()
 
