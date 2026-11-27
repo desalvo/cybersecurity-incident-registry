@@ -35,7 +35,7 @@ if(!['it','en'].includes(locale))throw new Error('Unsupported training locale: '
 const english=locale==='en';
 const enData=english?JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc98_english_slides.json'),'utf8')):null;
 const enLabels=english?JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc98_english_labels.json'),'utf8')):null;
-if(english && (enData.schema!==1 || Object.keys(enData.slides).length!==94))
+if(english && (enData.schema!==1 || Object.keys(enData.slides).length!==95))
  throw new Error('English training translation catalog is incomplete');
 function tr(text){
  if(!english||typeof text!=='string')return text;
@@ -81,6 +81,10 @@ if(workflowIntro.insert_after_original!==38 || workflowIntro.slides.length!==5 |
    workflowIntro.slides.some((row,i)=>row.index!==90+i || row.original!==90+i ||
       !['workflow','categories','steps','conditions','dependencies'].includes(row.workflow_intro)))
   throw new Error('Missing or out-of-order workflow terminology introduction');
+const supportTicketsAddendum=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc109_support_tickets_addendum.json'),'utf8'));
+if(supportTicketsAddendum.insert_after_original!==59 || supportTicketsAddendum.slides.length!==1 ||
+   supportTicketsAddendum.slides[0].support_tickets!==true)
+ throw new Error('Missing RC109 Support Tickets instructional slide');
 const albotWorkflowAddendum=JSON.parse(fs.readFileSync(path.join(root,'docs/presentation/visual_rc105_albot_workflow_addendum.json'),'utf8'));
 if(albotWorkflowAddendum.insert_after_original!==60 || albotWorkflowAddendum.slides.length!==1 ||
    albotWorkflowAddendum.slides[0].albot_workflow_authoring!==true)
@@ -103,9 +107,9 @@ for(const item of originalData){
 
  if(item.index===14)data.push(...addendum.slides);
  if(item.index===38)data.push(...workflowIntro.slides);
- if(item.index===59)data.push(...albotWorkflowAddendum.slides);
+ if(item.index===59){data.push(...albotWorkflowAddendum.slides);data.push(...supportTicketsAddendum.slides);}
 }
-const CONTENT_SLIDES=95;
+const CONTENT_SLIDES=96;
 const THANK_YOU_SLIDES=1;
 const APPENDIX_BANNER_SLIDES=1;
 const APPENDIX_PREVIEWS=2;
@@ -123,7 +127,7 @@ const ARCHIVED_GALLERY=fs.existsSync(ARCHIVED_GALLERY_ROOT)?
  id:path.parse(name).name,file:name,path:path.join(ARCHIVED_GALLERY_ROOT,name),archived:true
  })):[];
 
-if(data.length!==CONTENT_SLIDES)throw new Error('Expected 95 instructional slides');
+if(data.length!==CONTENT_SLIDES)throw new Error('Expected 96 instructional slides');
 // ITALIAN MASTER RULE: the English deck has NO independent slide structure.
 // Derive slide order, all images, and the original content from the Italian
 // specifications. A per-slide fingerprint invalidates any stale translation
@@ -321,9 +325,10 @@ function notes(slide,d){
   if(real) lines.push('Application screenshot: '+real.id+'; archived='+!!real.archived+'.');
   if(ciManifest)lines.push('Same-run browser screenshot manifest; source commit '+ciCommit+'; build '+ciBuild+'.');
   else lines.push('Offline editorial version; screenshots are historical, not from the current CI run.');
+  if(d.support_tickets)lines.push('Original synthetic 3D artwork: docs/presentation/rc109_support_tickets_art.png. Not a screenshot.');
   if(d.kind==='preview')lines.push('Approved anonymized document sample: docs/presentation/rc95_user_supplied/data_breach_notification_anonymized.png; SHA-256 '+USER_DOC_SHA256+'.');
   if(ids.length)lines.push('Supporting CIR artwork: '+ids.join('; ')+'.');
-  lines.push('Source code: CIR version 0.10.0-1, English training edition RC103.');
+  lines.push('Source code: CIR version 0.10.0-1, English training edition RC109.');
   slide.addNotes(lines.join('\n'));
   return;
  }
@@ -338,6 +343,7 @@ function notes(slide,d){
    : (realUiImage(d)?[realUiImage(d).id]:[])))));
  if(d.kind==='preview')n+='Documento di esempio anonimizzato approvato, fornito per fini didattici: docs/presentation/rc95_user_supplied/data_breach_notification_anonymized.png. Non e una screenshot della CI; SHA-256 '+USER_DOC_SHA256+'.\n';
  if(d.arch_visual)n+='Illustrazione sintetica originale e diagramma nativo PowerPoint, senza persone, senza testo incorporato. Immagine verificata SHA-256.\n';
+ if(d.support_tickets)n+='Illustrazione sintetica 3D: docs/presentation/rc109_support_tickets_art.png, non screenshot della CI.\n';
  if(d.index===59)n+='Avatar AlBot ufficiale dell applicazione: app/static/ai-chatbot/albot-avatar.png.\n';
  if(d.photo_art && !ids.length)n+='Immagine sintetica fotografica originale, senza persone reali, senza titolo e footer; non e una schermata dell applicazione.\n';
 
@@ -358,7 +364,7 @@ function notes(slide,d){
  if(!ciManifest)n+='Edizione editoriale offline: nessuna attestazione di catture dalla CI corrente.\n';
  slide.addNotes(n);
 }
-function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,english?'v0.10.0-1 · training material RC105':'v0.10.0-1 · materiale didattico RC105',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${BASE_SLIDES + GALLERY_ITEMS.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
+function footer(slide,n){line(slide,.62,7.04,12.1,0,C.line,.7);addText(slide,'CIR - Cybersecurity Incident Registry',{x:.72,y:7.1,w:7.7,h:.18,fontSize:7.6,bold:true,color:C.muted,margin:0});addText(slide,english?'v0.10.0-1 · training material RC109':'v0.10.0-1 · materiale didattico RC109',{x:8.05,y:7.10,w:3.35,h:.18,fontSize:7.2,color:C.muted,align:'right',margin:0});addText(slide,`${n} / ${BASE_SLIDES + GALLERY_ITEMS.length}`,{x:11.61,y:7.1,w:1.0,h:.18,fontSize:8.2,bold:true,color:C.teal,align:'right',margin:0});}
 function bgBase(slide,section){slide.background={color:C.bg};rect(slide,.0,.0,W,.12,section);rect(slide,.5,.48,.055,.68,section);}
 function safeBullets(d){return (d.bullets||[]).map(s=>String(s).replace(/\\\s*$/,'').trim()).filter(Boolean)}
 // Photographic artwork is independent of slide chrome: no title, labels or footer.
@@ -768,6 +774,16 @@ function albotWorkflowAuthoringPanel(slide,d,accent){
  addText(slide,en?'Only authorized admins; no automatic write':'Solo amministratori autorizzati; nessuna scrittura automatica',
    {x:x+.25,y:6.28,w:5.75,h:.26,fontSize:10.0,bold:true,color:C.teal,align:'center',margin:0});
 }
+function supportTicketsPanel(slide,d,accent){
+ const art=path.join(root,'docs/presentation/rc109_support_tickets_art.png');
+ if(!fs.existsSync(art))throw new Error('Missing original Support Tickets illustration');
+ rect(slide,6.45,1.63,6.13,4.18,'142B51');
+ slide.addImage({path:art,...imageSizingContain(art,6.46,1.64,6.10,4.15)});
+ addText(slide,english?'OPEN A TICKET • REPLY • ESCALATE':'APRI UN TICKET • RISPONDI • ESCALA',
+   {x:6.54,y:5.96,w:5.92,h:.27,fontSize:11.2,bold:true,align:'center',color:C.teal,margin:0});
+ addText(slide,english?'Illustrative 3D artwork · tickets remain private to authorized users':'Illustrazione sintetica 3D · ticket visibili solo agli utenti autorizzati',
+   {x:6.54,y:6.34,w:5.92,h:.25,fontSize:9.2,color:C.muted,align:'center',margin:0});
+}
 function rightPanel(slide,d,accent){
  if([46,56,59].includes(d.index))return focusedCiPanel(slide,d,accent);
  rect(slide,6.27,1.46,6.47,5.32,C.white,C.line);
@@ -775,6 +791,7 @@ function rightPanel(slide,d,accent){
  if(d.alert_architecture){alertArchitecturePanel(slide,d,accent);return;}
  if(d.workflow_intro){workflowIntroPanel(slide,d,accent);return;}
  if(d.albot_workflow_authoring){albotWorkflowAuthoringPanel(slide,d,accent);return;}
+ if(d.support_tickets){supportTicketsPanel(slide,d,accent);return;}
  if(d.spam_intro_case){spamIntroPanel(slide,d,accent);return;}
  if(d.kind==='preview'){
    addText(slide,'DOCUMENTO DPO · ESEMPIO ANONIMIZZATO',{x:6.54,y:1.66,w:6.0,h:.24,fontSize:9.6,bold:true,color:C.teal,margin:0});
@@ -1104,8 +1121,8 @@ function makeCover(slide,d,index){slide.background={color:C.navy};const img=imag
  addText(slide,'Cybersecurity\nIncident Registry',{x:4.16,y:2.62,w:7.35,h:1.04,fontSize:31.0,bold:true,color:'F8C66A',margin:0,breakLine:false,fit:'shrink',valign:'mid'});
  addText(slide,'Gestione degli incidenti e dei workflow procedurali',{x:1.01,y:4.18,w:10.95,h:.88,fontSize:28,bold:true,color:'FFFFFF',margin:0,fit:'shrink'});
  addText(slide,'Corso didattico · interfaccia reale · laboratorio didattico di esempio',{x:1.04,y:5.28,w:10.9,h:.38,fontSize:17.1,color:'D7F4FC',margin:0});
- rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,(ciManifest?`VERSIONE 0.10.0-1   |   RC105   |   SCREENSHOT CI ${ciCommit.slice(0,8)} / ${ciBuild}`:
-   'VERSIONE 0.10.0-1   |   RC105   |   EDIZIONE EDITORIALE · CATTURE STORICHE'),{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
+ rect(slide,1.02,6.30,11.24,.45,C.white);addText(slide,(ciManifest?`VERSIONE 0.10.0-1   |   RC109   |   SCREENSHOT CI ${ciCommit.slice(0,8)} / ${ciBuild}`:
+   'VERSIONE 0.10.0-1   |   RC109   |   EDIZIONE EDITORIALE · CATTURE STORICHE'),{x:1.21,y:6.41,w:10.92,h:.21,fontSize:10.6,color:C.navy,bold:true,margin:0});notes(slide,d);
 }
 data.forEach((d,i)=>{let slide=pptx.addSlide();const n=i+1;if(d.kind==='cover')makeCover(slide,d,n);else if(d.kind==='chapter')makeChapter(slide,d,n);else makeContent(slide,d,n)});
 // After the very last conclusion slide and before section 08 Appendici.

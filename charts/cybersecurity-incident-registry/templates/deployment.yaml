@@ -85,6 +85,7 @@ spec:
             - {name: SSL_DIR, value: /data/ssl}
             - {name: BACKUP_DIR, value: /data/backups}
             - {name: AI_CHATBOT_DOC_DIR, value: /data/ai_chatbot_docs}
+            - {name: SUPPORT_TICKETS_DIR, value: /data/support_tickets}
             - {name: WEB_CONCURRENCY, value: {{ .Values.runtime.workers | quote }}}
             - {name: GUNICORN_THREADS, value: {{ .Values.runtime.threads | quote }}}
             - {name: GUNICORN_TIMEOUT, value: {{ .Values.runtime.requestTimeout | quote }}}

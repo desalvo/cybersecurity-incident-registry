@@ -7,7 +7,7 @@ from scripts.verify_visual_training_rc64 import linked_slide_image_digests
 ROOT=Path(__file__).resolve().parents[1]
 ART=ROOT/'docs/presentation/rc97_cartoon/provenance.json'
 EN=ROOT/'docs/presentation/rc99_cartoon_en/provenance.json'
-POS={'01':2,'02':18,'03':37,'04':48,'05':64,'06':77,'07':90,'08':97,'grazie':96}
+POS={'01':2,'02':18,'03':37,'04':48,'05':64,'06':78,'07':91,'08':98,'grazie':97}
 
 def test_nine_english_cartoon_derivatives_pinned_to_it():
     italy=json.loads(ART.read_text())['artwork']

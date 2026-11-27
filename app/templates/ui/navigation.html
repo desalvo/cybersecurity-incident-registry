@@ -30,6 +30,9 @@
 
     <p class="cir-nav-caption">{{ label('AREA OPERATIVA','OPERATIONS') }}</p>
     <a class="cir-nav-item{% if request.endpoint in ['main.index','main.incident_detail','main.incident_new'] %} active{% endif %}" href="{{ url_for('main.index') }}"{% if request.endpoint == 'main.index' %} aria-current="page"{% endif %}>{{ icon('incidents') }}<span>{{ label('Incidenti','Incidents') }}</span></a>
+    {% if support_tickets_plugin_enabled() %}
+    <a class="cir-nav-item{% if request.blueprint == 'support_tickets' %} active{% endif %}" href="{{ url_for('support_tickets.dashboard') }}" data-cir-nav-link>{{ icon('help') }}<span>{{ label('Supporto','Support') }}</span></a>
+    {% endif %}
     <a class="cir-nav-item{% if request.endpoint == 'main.stats' %} active{% endif %}" href="{{ url_for('main.stats') }}">{{ icon('stats') }}<span>{{ label('Statistiche','Statistics') }}</span></a>
     {% if current_tenant_role in ['admin','superuser'] %}
     <details class="cir-nav-group"><summary>{{ icon('bell') }}<span>{{ label('Notifiche','Notifications') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
@@ -78,6 +81,7 @@
       <span class="cir-nav-subheading">Plugins</span>
       {{ item('ai_chatbot.admin_plugins','Chatbot AI','AI chatbot') }}
       {{ item('alfresco.admin_plugins','Alfresco','Alfresco') }}
+      {% if current_user_is_superuser %}{{ item('support_tickets.admin_config','Support Tickets','Support Tickets') }}{% endif %}
     </div></details>
     <details class="cir-nav-group"><summary>{{ icon('layers') }}<span>Tenants Default</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
       {{ item('main.admin_tenant_defaults','Tenants Default','Tenants Default') }}

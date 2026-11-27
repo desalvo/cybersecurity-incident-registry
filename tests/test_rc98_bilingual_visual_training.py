@@ -27,15 +27,15 @@ def test_published_editorial_en_matches_italian_slide_and_pdf_counts():
     out=verify(english,pdf,italian_pptx=italian)
     with ZipFile(italian) as z:
         count=len([n for n in z.namelist() if n.startswith('ppt/slides/slide') and n.endswith('.xml') and '/_rels/' not in n])
-    assert out['slides']==count==117
+    assert out['slides']==count==118
     assert out['pdf_pages']==count
-    assert BASE_SLIDES==99 and GALLERY_FIRST_SLIDE==98
+    assert BASE_SLIDES==100 and GALLERY_FIRST_SLIDE==99
 
 
 def test_english_localization_files_are_complete_and_reproducible():
     slides=json.loads((P/'visual_rc98_english_slides.json').read_text())['slides']
     labels=json.loads((P/'visual_rc98_english_labels.json').read_text())
-    assert len(slides)==94 and len(labels)>180
+    assert len(slides)==95 and len(labels)>180
     assert 'cross-tenant' in ' '.join(slides['32']).lower()
     assert 'default workflow' in ' '.join(slides['50']).lower()
     assert 'more variables' in ' '.join(slides['63']).lower()
@@ -119,7 +119,7 @@ def test_ci_english_same_run_screenshot_checksums_and_receipt(disposable_manifes
     assert result.returncode==0,result.stderr
     pdf=pdf_folder/'fake_training_EN.pdf'
     checked=verify(pptx,pdf,manifest,strict=True)
-    assert checked['slides']==130 and checked['pdf_pages']==130
+    assert checked['slides']==131 and checked['pdf_pages']==131
     assert checked['verified_browser_screenshots']==32
     assert checked['pdf_screenshots_visually_verified']==31
     from scripts.seal_visual_training import seal
@@ -137,7 +137,7 @@ def test_italian_slides_are_the_only_structural_master():
     """Every English slide must refer to unchanged Italian source contents."""
     translated=json.loads((P/'visual_rc98_english_slides.json').read_text(encoding='utf8'))
     assert translated['source_locale']=='it'
-    assert len(translated['italian_master_fingerprints'])==95
+    assert len(translated['italian_master_fingerprints'])==96
     assert all(len(v)==64 for v in translated['italian_master_fingerprints'].values())
     result=subprocess.run(['node',str(ROOT/'scripts/build_training_visual_rc64.js'),
         str(P/'not-written.pptx')],cwd=ROOT,
@@ -145,7 +145,7 @@ def test_italian_slides_are_the_only_structural_master():
         capture_output=True,text=True,timeout=15)
     assert result.returncode==0,result.stderr
     actual=json.loads(result.stdout)
-    assert len(actual)==95
+    assert len(actual)==96
     assert translated['italian_master_fingerprints']==actual
 
 

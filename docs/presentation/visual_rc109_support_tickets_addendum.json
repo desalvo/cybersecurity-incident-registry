@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "insert_after_original": 59,
+  "slides": [
+    {
+      "index": 96,
+      "original": 96,
+      "kind": "content",
+      "tag": "SUPPORTO · SERVICE DESK",
+      "title": "Support Tickets: ticketing collaborativo multilivello",
+      "subtitle": "",
+      "support_tickets": true,
+      "bullets": [
+        "Plugin opzionale, disattivato per default: attivazione del super admin e accesso dal menu Supporto dopo la login.",
+        "Apri ticket verso gli admin di un tenant accessibile o verso i super admin; i destinatari ricevono una notifica HTML con link.",
+        "Dashboard a righe e filtri, priorità, categorie, stati, conversazioni in Markdown, allegati e risposte con notifiche.",
+        "Utenti: propri ticket; admin: tenant di competenza; super admin: tutti. Escalation al livello superiore e cancellazione confermata."
+      ],
+      "images": [],
+      "notes": "CIR RC109 Support Tickets è opzionale ed è spento in partenza. Il super admin lo abilita da Admin > Plugins > Support Tickets; gli utenti entrano da Supporto, scelgono un tenant a cui hanno accesso e il livello destinatario. Ogni ticket comincia in Sottomesso, ammette commenti e allegati privati, audit e notifiche SMTP HTML. Gli admin vedono il proprio tenant, i super admin tutti, gli utenti solo i propri. In caso di escalation al livello 2 la conversazione resta nel ticket originale. Illustrazione originale sintetica, non screenshot applicazione."
+    }
+  ]
+}

@@ -85,7 +85,7 @@ class MigrationManagerTests(unittest.TestCase):
         self.connection.commit()
         plan = manager.plan_upgrade(self.store)
         self.assertEqual(plan.status, "baseline")
-        self.assertEqual(plan.pending_ids, (R1,))
+        self.assertEqual(plan.pending_ids, manager.SCHEMA_REVISIONS)
 
     def test_ordered_chain_only_becomes_current_after_staging_and_commit(self):
         calls = []
@@ -242,10 +242,10 @@ class MigrationManagerTests(unittest.TestCase):
 
     def test_rollback_before_commit_removes_seed_data_and_all_staged_markers(self):
         self.connection.execute("CREATE TABLE bootstrap_data (value TEXT)")
-        completed = manager.apply_upgrade(self.store, self._callbacks([], (R1,)))
+        completed = manager.apply_upgrade(self.store, self._callbacks([], (R1,)), (R1,))
         self.connection.execute("INSERT INTO bootstrap_data VALUES ('pending seed')")
         manager.stage_upgrade(self.store, completed)
-        self.assertEqual(manager.plan_upgrade(self.store).status, "current")
+        self.assertEqual(manager.plan_upgrade(self.store, (R1,)).status, "current")
         with closing(sqlite3.connect(self.path)) as observer:
             self.assertEqual(observer.execute("SELECT COUNT(*) FROM bootstrap_data").fetchone()[0], 0)
             self.assertFalse(manager.SQLiteLedgerStore(observer).read_snapshot().exists)
@@ -263,7 +263,7 @@ class MigrationManagerTests(unittest.TestCase):
 
     def test_sqlite_staging_explicitly_begins_before_ddl_even_with_no_seed_writes(self):
         self.connection.isolation_level = None
-        completed = manager.apply_upgrade(self.store, self._callbacks([], (R1,)))
+        completed = manager.apply_upgrade(self.store, self._callbacks([], (R1,)), (R1,))
         manager.stage_upgrade(self.store, completed)
         self.assertTrue(self.connection.in_transaction)
         self.connection.rollback()
@@ -274,7 +274,7 @@ class MigrationManagerTests(unittest.TestCase):
         self.connection.close()
         self.connection = sqlite3.connect(self.path, autocommit=True)
         self.store = manager.SQLiteLedgerStore(self.connection)
-        completed = manager.apply_upgrade(self.store, self._callbacks([], (R1,)))
+        completed = manager.apply_upgrade(self.store, self._callbacks([], (R1,)), (R1,))
         with self.assertRaises(manager.SchemaCompatibilityError):
             manager.stage_upgrade(self.store, completed)
         self.assertFalse(self.store.read_snapshot().exists)

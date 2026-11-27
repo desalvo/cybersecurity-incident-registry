@@ -65,6 +65,7 @@ spec:
         - {name: SSL_DIR, value: /data/ssl}
         - {name: BACKUP_DIR, value: /data/backups}
         - {name: AI_CHATBOT_DOC_DIR, value: /data/ai_chatbot_docs}
+        - {name: SUPPORT_TICKETS_DIR, value: /data/support_tickets}
         - {name: SSL_PORT, value: "8443"}
         - {name: SSL_ENABLED, value: "0"}
         volumeMounts:

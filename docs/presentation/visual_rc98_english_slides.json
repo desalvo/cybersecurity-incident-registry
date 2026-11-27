@@ -501,110 +501,117 @@
       "Alternatively, export portable JSON. CIR makes no workflow changes without explicit confirmation."
     ],
     "76": [
+      "Support Tickets: collaborative multi-tier service desk",
+      "Optional plugin, disabled by default: a super admin enables it, then users open the Support menu after signing in.",
+      "Open a ticket for administrators of an accessible tenant or for super admins; recipients get an HTML email with a direct link.",
+      "Service-desk list dashboard with combined filters, priority, category, status, Markdown conversations, attachments and response notifications.",
+      "Users: their own tickets; admins: their tenants; super admins: all tickets. Escalate to second-level support and confirm permanent deletion."
+    ],
+    "77": [
       "AI: privacy, authorization and responsibility",
       "Application context is filtered by tenant, excluding credentials, personal data and sensitive free text.",
       "AI responses are suggestions, not automatically approved decisions.",
       "CIR permissions still govern operational actions.",
       "AI configuration and the knowledge base are restricted to authorized administrators."
     ],
-    "77": [
+    "78": [
       "Training lab: a SPAM incident example"
     ],
-    "78": [
+    "79": [
       "Tutorial lab: open an incident using the SPAM workflow",
       "In the “Tutorial” tenant: Administration → Workflows and catalog → Workflow catalog. Import SPAM from Tenants Default (classic UI: Admin → Definitions and workflows).",
       "On the home page select “Incidents” → “New incident”; choose “No template” or a template with predefined fields.",
       "Drag SPAM from “Available categories” to “Selected categories” and put it first; further categories do not add other workflows.",
       "Fill in a test case, click “Create” and review the current SPAM workflow steps. The example includes risks to individuals' rights and freedoms, showing the conditional steps."
     ],
-    "79": [
+    "80": [
       "SPAM workflow: real incident screen",
       "The top banner shows the incident identifier and status.",
       "The UI displays 13 stages and 12 arrows where risks to data subjects' rights and freedoms are present.",
       "Buttons correspond to operations, notifications and documents.",
       "The screenshot comes from CI using entirely synthetic test data."
     ],
-    "80": [
+    "81": [
       "SPAM workflow: anatomy of step cards",
       "Each card shows the task name, description and status.",
       "The bottom button opens the appropriate action or section.",
       "A time limit may also appear when configured.",
       "Numbers only determine display order."
     ],
-    "81": [
+    "82": [
       "SPAM workflow: steps 1–3",
       "Step 1 — Initial information: record receipt of the report and initial handling.",
       "Step 2 — Preliminary analysis: collect findings and affected accounts.",
       "Step 3 — Blocking: document containment; end_breach can record when the breach ended.",
       "Administrators can configure completion deadlines."
     ],
-    "82": [
+    "83": [
       "SPAM workflow: steps 4–6",
       "Step 4 — Follow-up analysis: use Update to complete incident details.",
       "Step 5 — User communication: generate and send the user alert.",
       "Step 6 — CSIRT communication: review the template and send according to procedure.",
       "Communications remain traceable within the incident."
     ],
-    "83": [
+    "84": [
       "SPAM workflow: steps 7–10",
       "Step 7 — Generate the DPO document from the configured PDF template.",
       "Step 8 — Download the PDF and check its contents.",
       "Step 9 — Upload the file signed using an external application.",
       "Step 10 — Notify the DPO using the authorized template."
     ],
-    "84": [
+    "85": [
       "SPAM workflow: steps 11–12 and risks to rights and freedoms",
       "Risks to data subjects' rights and freedoms activate the assessments and notifications defined by the workflow.",
       "Step 11 — Contact with the supervisory authority: assess whether notification obligations apply.",
       "Step 12 — Possible notice to data subjects: document the decision and applicable duties.",
       "When those risks are absent, these two conditional steps are not required in the teaching example."
     ],
-    "85": [
+    "86": [
       "SPAM workflow: step 13 and closure",
       "Step 13 — Conclusion: record the outcome and check prerequisites.",
       "global_check: performs an overall validation of the case and its tasks.",
       "close_without_warnings: attempts closure only when there are no active warnings.",
       "Closure must not bypass required checks or notifications."
     ],
-    "86": [
+    "87": [
       "SPAM workflow: incident categories and affected data",
       "The first category selects the workflow; the others classify the case.",
       "Available versus selected categories are shown separately.",
       "Affected data and personnel remain tenant scoped.",
       "All enlarged regions come from the original captured UI pixels."
     ],
-    "87": [
+    "88": [
       "SPAM workflow: PDF mapping and DPO document",
       "A sample PDF template contains fillable fields configured by administrators.",
       "Mappings link PDF fields to the individual incident's data.",
       "The operator checks the preview before saving.",
       "If signing is required, it takes place in external tools and the signed file returns as an attachment."
     ],
-    "88": [
+    "89": [
       "SPAM workflow: final checks",
       "Analysis and containment have been logged with supporting evidence.",
       "Mandatory notifications have been delivered and verified.",
       "Required documents are available and validated.",
       "Assessments of risks to rights and freedoms, and any supervisory authority communication, are complete before closure."
     ],
-    "89": [
+    "90": [
       "Lessons from the SPAM training incident",
       "This is a teaching example, not a mandatory workflow for all tenants.",
       "Admins can adapt local instructions and forms.",
       "Conditions determine which steps are applicable.",
       "The UI guides the operator without replacing professional responsibility and judgment."
     ],
-    "90": [
+    "91": [
       "Conclusions"
     ],
-    "91": [
+    "92": [
       "CIR at a glance: what it is and who uses it",
       "CIR is a case registry with configurable workflows, evidence, notifications and accountability.",
       "It supports operators, administrators, managers and reviewers in a multitenant service.",
       "Its model is organization-agnostic and can handle procedures beyond cybersecurity.",
       "The project is open source, distributed under the EUPL license and adaptable to different contexts."
     ],
-    "92": [
+    "93": [
       "Summary: the entire learning journey",
       "Access, SSO and navigation; registry, states and roles.",
       "Creating an incident; actions, evidence, reports, statistics and security.",
@@ -612,14 +619,14 @@
       "PDF forms, mapping, previews, external signing and Alfresco integration.",
       "Optional AlBot, the 13-step SPAM lab and transition to operational use."
     ],
-    "93": [
+    "94": [
       "Putting CIR into production",
       "CIR is designed as a shared central service for all tenants and sites; no separate local instance is needed for each.",
       "The official service URL will be announced, accessible with institutional credentials through configured SSO.",
       "Admins will set up catalogs, workflows and local parameters according to their permissions.",
       "Before production use: test notifications, PDF mappings, backups and restore procedures."
     ],
-    "94": [
+    "95": [
       "Documentation and repository",
       "Project: https://github.com/desalvo/cybersecurity-incident-registry",
       "User manual (EN): https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/user_documentation_en.pdf",
@@ -627,7 +634,7 @@
       "Training slides (PDF): https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual_EN.pdf",
       "All documents are automatically generated, verified and republished from CI to main whenever the application changes."
     ],
-    "95": [
+    "96": [
       "Creator and project contributors",
       "Author: Alessandro De Salvo",
       "Contact: Alessandro.DeSalvo@roma1.infn.it",
@@ -712,25 +719,26 @@
     "73": "889833ba53372046ac4e3b177ed9777bc642d5991e03ffb46208f129a7d10a31",
     "74": "5bdcc1ff4e440a458816d176394905ded4feaa89447019eba506bccfb5ab8bac",
     "75": "999124db75365d8943d3f82838af3478c3ac41aae3e99b0882ccd817e89a377c",
-    "76": "ed83f0cd1f3b6cf5f2e54387f50ca57cc668cb67418c97ab7ad1b6e7bd10a21a",
-    "77": "1d099fcb80508b445afdc3efff44f8d2c76ef10ad4d98a0a883f0abf84b5f12a",
-    "78": "cf75e90471e0636d25b9dfe0bf9a76174e992710609c5b258f48c1001ec25940",
-    "79": "516fcbaa89f91a95639cb1891ff70276cc37a601cbb0a65e93a36f749f9f0eac",
-    "80": "e29108bf3abc1c8a2e8c8da31879ff799f894afa681061dadb99f8607e13acba",
-    "81": "a585eb7223639369b8ae170b91d156589bf29cd49f3701c9ac24c67fba07ac9b",
-    "82": "c9bb776a6bafa590c9021e54b7f6d489564c3c1342b7fec4049225948a56264e",
-    "83": "da824727c4615cc89881c94f18ae3e9407c27082dfd532a289615778bf5243df",
-    "84": "9c25a686903c8e11f423a94b1318b6bb73bd11578d2ebf0e516afd27780c340c",
-    "85": "a8280fb11b0bb1ee54d8eb3bd3380a4a8e6d06cc6c7edcd5e3eeee3a36156c9e",
-    "86": "71880e79647e17f595af8488263cad5c9adff933fcf04bfc033b244da433554f",
-    "87": "c8ba2f53ccda468dfa9263901ef6ce8b7fc3b6a166a11cac5e17f28d8ad65976",
-    "88": "d049b939e19a0d7e8486708777cbea76f872be7db24a8d476b7400a7fc89fdb3",
-    "89": "255da008d3324c216e647b6d83a16c37271c05569486f47e8c3e8f112c47790c",
-    "90": "6b91f7bdc95e52d7695539eef57175cdbf600cb2c20a72a249e02d8cad8988b9",
-    "91": "7cc2dbc2273a178291b729c634938de53400a1d5089f3af18951158dffb10174",
-    "92": "2fa330e75521eed8503fc52c4fccdff103294087e8859ef26c44109a5d10f6d9",
-    "93": "aad480774a5c32e4c40649779c96ad4d32479684bfaedd0bf4f56bd68ff2b0fa",
-    "94": "7adee339e9b41ea8d78eff4a87ffb44222e8dc7349639c554a26401107af263b",
-    "95": "475f0d1c623dc1f60817fbba705e6e64c42feae6f23618c7d2e9731614119c61"
+    "76": "1c45c9f03a6cf1253132e828adeff166377a0c71c1a9f39207998d964d578a7f",
+    "77": "ed83f0cd1f3b6cf5f2e54387f50ca57cc668cb67418c97ab7ad1b6e7bd10a21a",
+    "78": "1d099fcb80508b445afdc3efff44f8d2c76ef10ad4d98a0a883f0abf84b5f12a",
+    "79": "cf75e90471e0636d25b9dfe0bf9a76174e992710609c5b258f48c1001ec25940",
+    "80": "516fcbaa89f91a95639cb1891ff70276cc37a601cbb0a65e93a36f749f9f0eac",
+    "81": "e29108bf3abc1c8a2e8c8da31879ff799f894afa681061dadb99f8607e13acba",
+    "82": "a585eb7223639369b8ae170b91d156589bf29cd49f3701c9ac24c67fba07ac9b",
+    "83": "c9bb776a6bafa590c9021e54b7f6d489564c3c1342b7fec4049225948a56264e",
+    "84": "da824727c4615cc89881c94f18ae3e9407c27082dfd532a289615778bf5243df",
+    "85": "9c25a686903c8e11f423a94b1318b6bb73bd11578d2ebf0e516afd27780c340c",
+    "86": "a8280fb11b0bb1ee54d8eb3bd3380a4a8e6d06cc6c7edcd5e3eeee3a36156c9e",
+    "87": "71880e79647e17f595af8488263cad5c9adff933fcf04bfc033b244da433554f",
+    "88": "c8ba2f53ccda468dfa9263901ef6ce8b7fc3b6a166a11cac5e17f28d8ad65976",
+    "89": "d049b939e19a0d7e8486708777cbea76f872be7db24a8d476b7400a7fc89fdb3",
+    "90": "255da008d3324c216e647b6d83a16c37271c05569486f47e8c3e8f112c47790c",
+    "91": "6b91f7bdc95e52d7695539eef57175cdbf600cb2c20a72a249e02d8cad8988b9",
+    "92": "7cc2dbc2273a178291b729c634938de53400a1d5089f3af18951158dffb10174",
+    "93": "2fa330e75521eed8503fc52c4fccdff103294087e8859ef26c44109a5d10f6d9",
+    "94": "aad480774a5c32e4c40649779c96ad4d32479684bfaedd0bf4f56bd68ff2b0fa",
+    "95": "7adee339e9b41ea8d78eff4a87ffb44222e8dc7349639c554a26401107af263b",
+    "96": "475f0d1c623dc1f60817fbba705e6e64c42feae6f23618c7d2e9731614119c61"
   }
 }

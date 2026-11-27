@@ -38,6 +38,7 @@ from .form_generation import list_templates, available_incident_fields, FormFiel
 from .consequences import incident_consequence_list, configured_consequence_rules, serialize_consequence_rules_from_form
 from .text_filters import strip_markdown_formatting
 from .timeutils import utcnow
+from .plugins.support_tickets.models import (SupportTicketCategory, SupportTicket, SupportTicketMessage, SupportTicketAttachment)
 from .outbound_security import validate_outbound_http_url, validate_outbound_host, validate_outbound_ldap_uri
 from . import restore_missing_default_config_labels, DEFAULT_CONFIG_LABELS
 from .route_modules.tenancy import TENANT_SHARED_CONFIGURATION_KEYS, TENANT_SCOPED_ADMIN_AREAS, TENANT_SHARED_ADMIN_AREAS
@@ -1065,6 +1066,22 @@ def validate_full_import_payload(data):
     for row in tables.get('action_attachments', []) or []:
         if (row or {}).get('action_id') not in action_ids:
             raise ValueError('Archivio non valido: allegato riferito ad azione inesistente.')
+
+    support_ticket_ids = ids_for('support_tickets')
+    support_message_ids = ids_for('support_ticket_messages')
+    support_category_ids = ids_for('support_ticket_categories')
+    ids_for('support_ticket_attachments')
+    for row in tables.get('support_tickets', []) or []:
+        if row.get('category_id') not in support_category_ids:
+            raise ValueError('Archivio supporto: categoria mancante.')
+    for row in tables.get('support_ticket_messages', []) or []:
+        if row.get('ticket_id') not in support_ticket_ids:
+            raise ValueError('Archivio supporto: messaggio senza ticket.')
+    for row in tables.get('support_ticket_attachments', []) or []:
+        if row.get('message_id') not in support_message_ids:
+            raise ValueError('Archivio supporto: allegato senza messaggio.')
+        if not re.fullmatch(r'[0-9a-f]{32}\.[a-z0-9]+', row.get('stored_filename') or ''):
+            raise ValueError('Archivio supporto: nome allegato non sicuro.')
 
     # uploads share one physical directory: two logical rows must never claim
     # the same stored_name, otherwise deleting one object corrupts the other.
@@ -6823,7 +6840,7 @@ def admin_tenants():
             if tenant.is_default or tenant.is_system_defaults:
                 flash('Il tenant default non può essere eliminato. Anche Tenants Default è protetto.', 'danger')
                 return redirect(url_for('main.admin_tenants'))
-            if UserTenantRole.query.filter_by(tenant_id=tenant.id).first() or User.query.filter_by(tenant_id=tenant.id).first() or Incident.query.filter_by(tenant_id=tenant.id).first():
+            if UserTenantRole.query.filter_by(tenant_id=tenant.id).first() or User.query.filter_by(tenant_id=tenant.id).first() or Incident.query.filter_by(tenant_id=tenant.id).first() or SupportTicket.query.filter_by(tenant_id=tenant.id).first():
                 flash('Impossibile eliminare un tenant con utenti, membership o incidenti associati.', 'danger')
                 return redirect(url_for('main.admin_tenants'))
             deleted_tenant_id = tenant.id
@@ -11347,6 +11364,7 @@ def _full_export_persistent_file_manifest():
         'sso_logos': str(sso_logo_storage_dir()),
         'ssl': str(ssl_storage_dir()),
         'ai_chatbot_docs': current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs',
+        'support_tickets': current_app.config.get('SUPPORT_TICKETS_DIR') or '/data/support_tickets',
     }
     return {
         name: _safe_relative_file_entries(path, f'files/persistent/{name}')
@@ -11361,6 +11379,7 @@ def _add_persistent_files_to_archive(archive, persistent_manifest):
         'sso_logos': str(sso_logo_storage_dir()),
         'ssl': str(ssl_storage_dir()),
         'ai_chatbot_docs': current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs',
+        'support_tickets': current_app.config.get('SUPPORT_TICKETS_DIR') or '/data/support_tickets',
     }
     added = set()
     for group, files in (persistent_manifest or {}).items():
@@ -11385,6 +11404,7 @@ def _restore_persistent_files_from_archive(archive, persistent_manifest):
         'sso_logos': str(sso_logo_storage_dir()),
         'ssl': str(ssl_storage_dir()),
         'ai_chatbot_docs': current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs',
+        'support_tickets': current_app.config.get('SUPPORT_TICKETS_DIR') or '/data/support_tickets',
     }
     restored = 0
     for group, files in (persistent_manifest or {}).items():
@@ -11425,6 +11445,7 @@ def _full_import_managed_paths():
         'sso_logos': Path(sso_logo_storage_dir()),
         'ssl': Path(ssl_storage_dir()),
         'ai_chatbot_docs': Path(current_app.config.get('AI_CHATBOT_DOC_DIR') or '/data/ai_chatbot_docs'),
+        'support_tickets': Path(current_app.config.get('SUPPORT_TICKETS_DIR') or '/data/support_tickets'),
     }
 
 
@@ -12623,6 +12644,7 @@ FULL_EXPORT_MODELS = [
     ActionAttachment, IncidentReminder, DeadlineNotificationState, ExternalRecipient, BackupJob, AuditLog,
     TenantDefaultSource, TenantDefaultReplica, TenantDefaultAlert, WorkflowCatalogEntry, WorkflowCatalogInstallation,
     TenantWorkflow, WorkflowObsolescenceNotice,
+    SupportTicketCategory, SupportTicket, SupportTicketMessage, SupportTicketAttachment,
 ]
 
 FULL_EXPORT_TABLES = {
@@ -12658,6 +12680,10 @@ FULL_EXPORT_TABLES = {
     'external_recipients': ExternalRecipient,
     'backup_jobs': BackupJob,
     'audit_logs': AuditLog,
+    'support_ticket_categories': SupportTicketCategory,
+    'support_tickets': SupportTicket,
+    'support_ticket_messages': SupportTicketMessage,
+    'support_ticket_attachments': SupportTicketAttachment,
 }
 
 FULL_EXPORT_RELATION_TABLES = {
@@ -12717,6 +12743,24 @@ def _export_query_for_model(name, model, scope_tenant_id=None):
             FormTemplateConfig.owner_tenant_id.is_not(None),
             ~FormTemplateConfig.owner_tenant_id.in_(visible_ids))
         return q.filter(~model.template_name.in_(hidden_names))
+    if model is SupportTicketCategory:
+        # Global configuration only; tenant admins may not create categories via import.
+        return q
+    if model is SupportTicket:
+        q = q.filter(SupportTicket.tenant_id == tid)
+        if not is_superuser():
+            q = q.filter(or_(SupportTicket.assignee_level == 'tenant_admin',
+                             SupportTicket.escalated.is_(True),
+                             SupportTicket.created_by_id == getattr(current_user, 'id', None)))
+        return q
+    if model in (SupportTicketMessage, SupportTicketAttachment):
+        visible_tickets = _export_query_for_model('support_tickets', SupportTicket, tid)
+        ticket_ids = [item[0] for item in visible_tickets.with_entities(SupportTicket.id).all()]
+        if model is SupportTicketMessage:
+            return q.filter(SupportTicketMessage.ticket_id.in_(ticket_ids or [-1]))
+        msg_ids = [item[0] for item in db.session.query(SupportTicketMessage.id).filter(
+            SupportTicketMessage.ticket_id.in_(ticket_ids or [-1])).all()]
+        return q.filter(SupportTicketAttachment.message_id.in_(msg_ids or [-1]))
     if model in (Action, Document, IncidentReminder, DeadlineNotificationState):
         return q.filter(getattr(model, 'incident_id').in_(incident_ids or [-1]))
     if model is ActionAttachment:
@@ -12787,7 +12831,7 @@ def _export_schema_payload():
     schema['_coverage'] = {
         'database_tables': sorted(FULL_EXPORT_TABLES.keys()),
         'relation_tables': sorted(FULL_EXPORT_RELATION_TABLES.keys()),
-        'file_groups': ['documents', 'action_attachments', 'form_templates', 'custom_logo', 'application_logos', 'sso_logos', 'ssl_certificates', 'persistent_files'],
+        'file_groups': ['documents', 'action_attachments', 'form_templates', 'custom_logo', 'application_logos', 'sso_logos', 'ssl_certificates', 'persistent_files', 'support_tickets'],
     }
     return schema
 
@@ -12919,7 +12963,7 @@ def _bootstrap_setting_rows(default_tenant_id, include_unscoped=True):
         if logical_key.startswith(('__', 'scheduler_')):
             continue
         from .tenant_defaults_bootstrap import sanitize_bootstrap_setting_value
-        value = sanitize_bootstrap_setting_value(logical_key, setting.value or '')
+        value = '0' if logical_key == 'plugin_support_tickets_enabled' else sanitize_bootstrap_setting_value(logical_key, setting.value or '')
         rows.append({'key': key, 'value': value})
     return rows
 
@@ -13006,6 +13050,8 @@ def _bootstrap_referenced_form_templates(default_tenant_id):
 
 
 def _bootstrap_rows_for_model(name, model, default_tenant_id, template_names):
+    if model in (SupportTicketCategory, SupportTicket, SupportTicketMessage, SupportTicketAttachment):
+        return []  # Do not expose support conversations in anonymized bootstraps.
     tid = int(default_tenant_id)
     if model in (TenantDefaultSource, TenantDefaultReplica, TenantDefaultAlert, WorkflowCatalogEntry, WorkflowCatalogInstallation):
         return []
@@ -13293,7 +13339,15 @@ def export_full():
             item for item in payload['files']['action_attachments']
             if (db.session.get(ActionAttachment, item.get('attachment_id')) and db.session.get(ActionAttachment, item.get('attachment_id')).action_id in scoped_action_ids)
         ]
-    payload['files']['persistent_files'] = _full_export_persistent_file_manifest() if scope_tenant_id is None else {}
+    if scope_tenant_id is None:
+        payload['files']['persistent_files'] = _full_export_persistent_file_manifest()
+    else:
+        # Never export other tenants' or direct-to-superadmin attachments.
+        all_support = _full_export_persistent_file_manifest().get('support_tickets', [])
+        allowed_names = {row['stored_filename'] for row in payload['tables'].get('support_ticket_attachments', [])}
+        payload['files']['persistent_files'] = {'support_tickets': [
+            row for row in all_support if row.get('relative_path') in allowed_names]}
+
 
     logo_setting = db.session.get(Setting, 'logo_path')
     try:
@@ -13445,11 +13499,27 @@ def import_csv():
     return render_template('import_csv.html')
 
 
-def _tenant_import_delete_existing_scope(tenant_id):
+def _tenant_import_delete_existing_scope(tenant_id, deleted_support_paths=None):
     """Delete data owned by one tenant without touching global/shared records."""
     tenant_id = int(tenant_id)
     incident_ids = [row[0] for row in db.session.query(Incident.id).filter(Incident.tenant_id == tenant_id).all()]
     action_ids = [row[0] for row in db.session.query(Action.id).filter(Action.incident_id.in_(incident_ids or [-1])).all()]
+    for support in SupportTicket.query.filter_by(tenant_id=tenant_id).filter(
+            or_(SupportTicket.assignee_level == 'tenant_admin',
+                SupportTicket.escalated.is_(True),
+                SupportTicket.created_by_id == current_user.id)).all():
+        # Explicit child deletion also works on SQLite without FK PRAGMA; do
+        # not rely solely on ON DELETE CASCADE for restoration correctness.
+        for message in SupportTicketMessage.query.filter_by(ticket_id=support.id).all():
+            for attachment in SupportTicketAttachment.query.filter_by(message_id=message.id).all():
+                if deleted_support_paths is not None:
+                    deleted_support_paths.append(attachment.stored_filename)
+                db.session.delete(attachment)
+            db.session.flush()
+            db.session.delete(message)
+        db.session.flush()
+        db.session.delete(support)
+    db.session.flush()
     if incident_ids:
         for table in [incident_people, incident_categories, incident_data_types, incident_recommendations]:
             db.session.execute(table.delete().where(table.c.incident_id.in_(incident_ids)))
@@ -13518,7 +13588,7 @@ def _tenant_import_add_row(model, row, target_tenant_id, id_map=None, transform=
     return obj
 
 
-def _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=None):
+def _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=None, deleted_support_paths=None):
     """Import a tenant archive without reusing global database/file identifiers."""
     if data.get('scope') != 'tenant' or not data.get('scope_tenant_id'):
         raise ValueError('Gli admin di tenant possono importare solo archivi esportati in modalita tenant.')
@@ -13530,7 +13600,7 @@ def _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files
 
     from .tenant_defaults_scoped import capture_scoped_obsolete_workflows, restore_scoped_workflow_states
     previous_obsolete_workflows = capture_scoped_obsolete_workflows(target_tenant_id)
-    _tenant_import_delete_existing_scope(target_tenant_id)
+    _tenant_import_delete_existing_scope(target_tenant_id, deleted_support_paths=deleted_support_paths)
 
     from .tenant_document_restore import import_tenant_document_definitions, remap_document_setting
     form_names = import_tenant_document_definitions(tables, target_tenant_id, archive, data.get('files'))
@@ -13725,6 +13795,53 @@ def _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files
     # DeadlineNotificationState e un dato derivato/idempotency state: non viene
     # importato fra tenant, evitando collisioni sulla notification_key globale.
 
+    # Restore only ticket records imported by the authorized tenant admin.
+    # Source IDs are mapped; global user identities and category configuration
+    # are never overwritten by a tenant-only import.
+    category_map = {}
+    for row in tables.get('support_ticket_categories', []) or []:
+        old_id = row.get('id')
+        existing = SupportTicketCategory.query.filter_by(slug=row.get('slug')).first()
+        if old_id is not None and existing:
+            category_map[int(old_id)] = existing.id
+    ticket_map = {}
+    for row in tables.get('support_tickets', []) or []:
+        source = dict(row)
+        old_category = source.get('category_id')
+        if old_category not in category_map:
+            raise ValueError('L archivio richiede una categoria supporto non configurata dal super admin.')
+        source['category_id'] = category_map[old_category]
+        if source.get('created_by_id') and not db.session.get(User, source['created_by_id']):
+            source['created_by_id'] = None
+        _tenant_import_add_row(SupportTicket, source, target_tenant_id, ticket_map)
+    message_map = {}
+    for row in tables.get('support_ticket_messages', []) or []:
+        source = dict(row)
+        source['ticket_id'] = ticket_map.get(source.get('ticket_id'))
+        if not source['ticket_id']:
+            raise ValueError('Messaggio supporto senza ticket del tenant.')
+        if source.get('author_id') and not db.session.get(User, source['author_id']):
+            source['author_id'] = None
+        _tenant_import_add_row(SupportTicketMessage, source, target_tenant_id, message_map)
+    from .plugins.support_tickets.routes import _upload_dir as support_upload_dir
+    for row in tables.get('support_ticket_attachments', []) or []:
+        source = dict(row)
+        source['message_id'] = message_map.get(source.get('message_id'))
+        if not source['message_id']:
+            raise ValueError('Allegato supporto senza messaggio nel tenant.')
+        old_name = source.get('stored_filename', '')
+        if not re.fullmatch(r'[0-9a-f]{32}\.[a-z0-9]+', old_name):
+            raise ValueError('Nome allegato supporto non valido.')
+        source['stored_filename'] = f'{uuid.uuid4().hex}{Path(old_name).suffix}'
+        if source.get('uploaded_by_id') and not db.session.get(User, source['uploaded_by_id']):
+            source['uploaded_by_id'] = None
+        _tenant_import_add_row(SupportTicketAttachment, source, target_tenant_id)
+        archive_name = f'files/persistent/support_tickets/{old_name}'
+        destination = support_upload_dir() / source['stored_filename']
+        _copy_archive_member_to_path(archive, archive_name, destination, required=True, mode=0o600)
+        if created_files is not None:
+            created_files.append(str(destination))
+
     relation_maps = {
         'incident_people': ('person_id', people_map),
         'incident_categories': ('label_id', label_map),
@@ -13788,6 +13905,7 @@ def import_full():
         f.save(tmp)
         fs_txn = None
         tenant_created_files = []
+        tenant_deleted_support_files = []
         previous_defaults_suspended = db.session.info.get('cir_defaults_suspended', False)
         db.session.info['cir_defaults_suspended'] = True
         try:
@@ -13808,13 +13926,22 @@ def import_full():
                         raise ValueError('Impostare ADMIN_INITIAL_PASSWORD nella nuova istanza prima di importare un bootstrap anonimizzato.')
                 if not can_global_export_import():
                     target_tenant_id = current_tenant_id()
-                    _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=tenant_created_files)
+                    _import_tenant_scoped_archive(data, archive, target_tenant_id, created_files=tenant_created_files, deleted_support_paths=tenant_deleted_support_files)
                     from .tenant_defaults import sync_defaults_configuration
                     sync_defaults_configuration()
                     from .workflow_lifecycle import backfill_workflow_states
                     backfill_workflow_states(target_tenant_id)
                     purge_audit_logs()
                     db.session.commit()
+                    # Safe only after the database transaction commits: a
+                    # rollback must never orphan attachments of old tickets.
+                    support_dir = Path(current_app.config.get('SUPPORT_TICKETS_DIR') or '/data/support_tickets')
+                    for old_file in tenant_deleted_support_files:
+                        if re.fullmatch(r'[0-9a-f]{32}\.[a-z0-9]+', old_file):
+                            try:
+                                (support_dir / old_file).unlink(missing_ok=True)
+                            except OSError:
+                                current_app.logger.exception('Unable to prune restored support attachment')
                     flash('Import tenant completato: sono stati sostituiti solo dati e configurazioni del tenant attivo. Utenti globali, altri tenant e configurazioni condivise non sono stati modificati.', 'info')
                     return redirect(url_for('main.index'))
                 tables = data.get('tables', {})
@@ -13908,6 +14035,24 @@ def import_full():
                     db.session.add(FormTemplateConfig(**row))
                 for row in tables.get('form_template_binaries', []):
                     db.session.add(FormTemplateBinary(**_coerce_row_for_model(FormTemplateBinary, row)))
+                db.session.flush()
+
+                for row in tables.get('support_ticket_categories', []):
+                    db.session.add(SupportTicketCategory(**_coerce_row_for_model(SupportTicketCategory, row)))
+                db.session.flush()
+                if not tables.get('support_ticket_categories'):
+                    from .plugins.support_tickets.routes import INITIAL_CATEGORIES
+                    for slug, label_it, label_en in INITIAL_CATEGORIES:
+                        db.session.add(SupportTicketCategory(slug=slug, label_it=label_it, label_en=label_en))
+                    db.session.flush()
+                for row in tables.get('support_tickets', []):
+                    db.session.add(SupportTicket(**_coerce_row_for_model(SupportTicket, row)))
+                db.session.flush()
+                for row in tables.get('support_ticket_messages', []):
+                    db.session.add(SupportTicketMessage(**_coerce_row_for_model(SupportTicketMessage, row)))
+                db.session.flush()
+                for row in tables.get('support_ticket_attachments', []):
+                    db.session.add(SupportTicketAttachment(**_coerce_row_for_model(SupportTicketAttachment, row)))
                 db.session.flush()
 
                 for row in tables.get('incidents', []):

@@ -22,6 +22,7 @@
   {% endif %}
   {% endif %}
   {% if cir_documentation_view %}<link rel="stylesheet" href="{{ url_for('static', filename='ui/documentation.css') }}">{% endif %}
+  {% if support_tickets_plugin_enabled() or request.endpoint == 'support_tickets.admin_config' %}<link rel="stylesheet" href="{{ url_for('static', filename='support-tickets.css') }}"><script src="{{ url_for('static', filename='support-tickets.js') }}" defer></script>{% endif %}
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='cir-application-logo.svg') }}">
 </head>
 <body class="{{ 'cir-modern' if cir_new_ui_enabled else 'cir-classic' }}" data-cir-ui="{{ cir_ui_mode|default('classic') }}">
@@ -40,6 +41,7 @@
   {# compat-test: current_user.role=='superuser' #}
   <nav id="main-nav" class="nav" aria-label="Menu principale">
     <a href="{{ url_for('main.index') }}">Incidenti</a>
+    {% if support_tickets_plugin_enabled() %}<a href="{{ url_for('support_tickets.dashboard') }}">{{ 'Support' if current_language == 'en' else 'Supporto' }}</a>{% endif %}
     <div class="dropdown">
       <button class="dropbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-export">Export</button>
       <div id="menu-export" class="dropdown-content" role="menu" aria-label="Export">
@@ -130,6 +132,7 @@
           <summary>Plugins</summary>
           <a role="menuitem" href="{{ url_for('ai_chatbot.admin_plugins') }}">Chatbot AI</a>
           <a role="menuitem" href="{{ url_for('alfresco.admin_plugins') }}">Alfresco</a>
+          {% if current_user_is_superuser %}<a role="menuitem" href="{{ url_for('support_tickets.admin_config') }}">Support Tickets</a>{% endif %}
         </details>
         <details class="admin-menu-group">
           <summary>Utenti e accesso</summary>

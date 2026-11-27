@@ -50,7 +50,7 @@ def verify(pptx: Path, pdf: Path, screenshot_manifest: Path | None = None, stric
             raise ValueError('English appendix divider is missing')
         if 'Completed PDF document' not in _page_text(z, count - 1) or 'Notification before sending' not in _page_text(z, count):
             raise ValueError('English final appendix preview pages are missing')
-        for n in (3, 4, 10, 32, 49, 63, 74, 75, 78, 91, 95):
+        for n in (3, 4, 10, 32, 49, 63, 74, 75, 76, 79, 92, 96):
             title=en_source[str(n)][0]
             if title not in _page_text(z,n):
                 raise ValueError(f'English instructional text missing at slide {n}: {title}')
@@ -90,7 +90,7 @@ def verify(pptx: Path, pdf: Path, screenshot_manifest: Path | None = None, stric
             italian_art = json.loads((repo/'docs/presentation/rc97_cartoon/provenance.json').read_text(encoding='utf8'))['artwork']
             if [a['section'] for a in translated] != [a['section'] for a in italian_art]:
                 raise ValueError('English cartoon order differs from the Italian master')
-            positions={'01':2,'02':18,'03':37,'04':48,'05':64,'06':77,'07':90,'08':GALLERY_FIRST_SLIDE-1,'grazie':GALLERY_FIRST_SLIDE-2}
+            positions={'01':2,'02':18,'03':37,'04':48,'05':64,'06':78,'07':91,'08':GALLERY_FIRST_SLIDE-1,'grazie':GALLERY_FIRST_SLIDE-2}
             for en_row,it_row in zip(translated,italian_art):
                 if en_row['source_sha256'] != it_row['sha256']:
                     raise ValueError('English cartoon translation is stale: '+en_row['section'])

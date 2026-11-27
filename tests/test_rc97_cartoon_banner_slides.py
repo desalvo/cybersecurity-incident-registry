@@ -16,7 +16,7 @@ from scripts.verify_visual_training_rc64 import linked_slide_image_digests, EXPE
 ROOT = Path(__file__).resolve().parents[1]
 ART = ROOT/'docs/presentation/rc97_cartoon/provenance.json'
 DECK = ROOT/'docs/presentation/CIR_Operational_Training_Visual.pptx'
-POSITIONS = {'01':2,'02':18,'03':37,'04':48,'05':64,'06':77,'07':90,'grazie':96,'08':97}
+POSITIONS = {'01':2,'02':18,'03':37,'04':48,'05':64,'06':78,'07':91,'grazie':97,'08':98}
 NS = '{http://schemas.openxmlformats.org/drawingml/2006/main}t'
 
 
@@ -33,8 +33,8 @@ def test_nine_original_illustrations_pinned_and_complete():
 
 
 def test_editorial_deck_contains_the_eight_cartoon_banners_and_thank_you():
-    assert BASE_SLIDES==EXPECTED_SLIDES==99
-    assert GALLERY_FIRST_SLIDE==98
+    assert BASE_SLIDES==EXPECTED_SLIDES==100
+    assert GALLERY_FIRST_SLIDE==99
     rows=json.loads(ART.read_text(encoding='utf8'))['artwork']
     if not DECK.is_file():
         import pytest
@@ -47,7 +47,7 @@ def test_editorial_deck_contains_the_eight_cartoon_banners_and_thank_you():
         def words(n):
             root=ET.fromstring(deck.read(f'ppt/slides/slide{n}.xml'))
             return ' '.join(node.text or '' for node in root.iter(NS))
-        assert '07' in words(90) and 'Conclusioni' in words(90)
-        assert '08' in words(97) and 'Appendici' in words(97)
-        assert 'Grazie!' not in words(96)  # the sign belongs to the approved illustration
-        assert 'Schermata 1' in words(98)
+        assert '07' in words(91) and 'Conclusioni' in words(91)
+        assert '08' in words(98) and 'Appendici' in words(98)
+        assert 'Grazie!' not in words(97)  # the sign belongs to the approved illustration
+        assert 'Schermata 1' in words(99)
