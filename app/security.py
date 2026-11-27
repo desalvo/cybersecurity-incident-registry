@@ -202,7 +202,7 @@ def add_security_headers(response):
     response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
     nonce = getattr(g, "csp_nonce", "")
     default_csp = (
-        f"default-src 'self'; img-src 'self' data:; style-src 'self' 'nonce-{nonce}'; "
+        f"default-src 'self'; img-src 'self' data: https://secure.gravatar.com; style-src 'self' 'nonce-{nonce}'; "
         f"script-src 'self' 'nonce-{nonce}'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
     )
     response.headers.setdefault("Content-Security-Policy", os.getenv("CONTENT_SECURITY_POLICY", default_csp))

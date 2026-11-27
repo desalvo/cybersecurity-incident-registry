@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "master_locale": "it",
+  "derived_locale": "en",
+  "source": "Italian master art translated with in-balloon English lettering",
+  "artwork": [
+    {
+      "section": "01",
+      "source_file": "docs/presentation/rc97_cartoon/01_Perche_CIR.png",
+      "source_sha256": "64b5c506d5f77fa5c87249a71feea0cdff9113ff256867537d51df317689b5bc",
+      "file": "docs/presentation/rc99_cartoon_en/01_Perche_CIR.png",
+      "sha256": "9b8a7acf1a4aeec9207e1d106375a13c616446f6f9203288d4eb7bfcb1f5f596",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "02",
+      "source_file": "docs/presentation/rc97_cartoon/02_Le_funzioni_operative.png",
+      "source_sha256": "55927ac32132d554e5571c01c27580d11531a6cd2ec481c3a0622745ff07551e",
+      "file": "docs/presentation/rc99_cartoon_en/02_Le_funzioni_operative.png",
+      "sha256": "cd3e633e3a602403ce72f167ce39977dd6eee1d15e183387d4ce890ee0160afe",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "03",
+      "source_file": "docs/presentation/rc97_cartoon/03_Utenti_e_tenant.png",
+      "source_sha256": "514a9a010ee073af402c7cdf28e42e4a88673d143df1ec39f39fc6f15bf35ec2",
+      "file": "docs/presentation/rc99_cartoon_en/03_Utenti_e_tenant.png",
+      "sha256": "5283bea906b5e0929b097f6675d67e3c5fdd832d6ce7735e984833a922e7ebbb",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "04",
+      "source_file": "docs/presentation/rc97_cartoon/04_Workflow_e_cataloghi.png",
+      "source_sha256": "27f3b03ca319ba287b1c3f4788bd88113daf0afe75557ee9fde264d3bb968595",
+      "file": "docs/presentation/rc99_cartoon_en/04_Workflow_e_cataloghi.png",
+      "sha256": "b468747be5418558da06a9f70ef5dd87c30051de1644602483332bfb5a0f07ef",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "05",
+      "source_file": "docs/presentation/rc97_cartoon/05_Documenti_integrazioni_supporto.png",
+      "source_sha256": "4defdfdb25bd377ef3367deee02a8a11cd11abc928e9032c07a8aa302133667b",
+      "file": "docs/presentation/rc99_cartoon_en/05_Documenti_integrazioni_supporto.png",
+      "sha256": "778f68abd8b44e84cb8b81a122f2c714a3317c3072014c9a5b0ae1e3f7030295",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "06",
+      "source_file": "docs/presentation/rc97_cartoon/06_Laboratorio_SPAM.png",
+      "source_sha256": "6cd797955be0c7fcf905e545353eedcd6128ed0f80304af8158bd71c96f674ae",
+      "file": "docs/presentation/rc99_cartoon_en/06_Laboratorio_SPAM.png",
+      "sha256": "6c4e9e5d7ec1d37d848a9e7576687681500c26f7d77317e197536d86304417c0",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "07",
+      "source_file": "docs/presentation/rc97_cartoon/07_Conclusioni.png",
+      "source_sha256": "ff8d542b62bfd2f3153fbb10581c9791a21ce4fcf62e879773da079a0dc68ca5",
+      "file": "docs/presentation/rc99_cartoon_en/07_Conclusioni.png",
+      "sha256": "02fdc198f9c47728b6ded63395ef7161b60a43412f1a4d8998f4439ffcee6d2b",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "08",
+      "source_file": "docs/presentation/rc97_cartoon/08_Appendici.png",
+      "source_sha256": "3535a222bcb0d2e5f528521cbf9e08a9240bfdae5d6b55244224ae4febf955a8",
+      "file": "docs/presentation/rc99_cartoon_en/08_Appendici.png",
+      "sha256": "015b7ac1da5efca6e018bcff1cbc6c878dae9e6695ff5fdc2d8c5608e13de8bf",
+      "real_people": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "grazie",
+      "source_file": "docs/presentation/rc97_cartoon/09_Grazie_CIR.png",
+      "source_sha256": "7205854d719ad74cc79b7a520fdbb574c4f9f87605523940812196ccb6398e6b",
+      "file": "docs/presentation/rc99_cartoon_en/09_Grazie_CIR.png",
+      "sha256": "98e42f2c5beaa11eb382f56b584f3d3c6d47928e870ea66e24cd099b28441941",
+      "real_people": false,
+      "contains_real_ui": false
+    }
+  ]
+}

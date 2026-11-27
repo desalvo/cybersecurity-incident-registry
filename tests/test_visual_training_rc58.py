@@ -50,7 +50,8 @@ def test_ci_rebuild_requires_real_browser_images_before_packaging():
     assert 'scripts/verify_visual_training_rc64.py' in flow
     assert 'CIR_REQUIRE_REAL_SCREENSHOTS' in flow
     assert flow.index('Audit synthetic image provenance and build current visual training') < flow.index('Validate and seal complete documentation bundle')
-    assert flow.index('python scripts/sync_current_documentation.py') < flow.index('bash ./scripts/package_release.sh "${RUNNER_TEMP}/cir-ui-evidence/')
+    assert flow.index('python scripts/seal_visual_training.py') < flow.index('python scripts/training_release_assets.py')
+    assert 'python scripts/sync_current_documentation.py' not in flow
 
 
 def test_ci_pdf_capture_activates_visible_template_card_not_hidden_checkbox():

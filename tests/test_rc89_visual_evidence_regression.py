@@ -11,7 +11,7 @@ from scripts import capture_ui_screenshots as capture
 from scripts import ui_documentation_evidence as evidence
 from scripts.verify_visual_training_rc64 import (
     ADDED_SLIDES, ARCH_AFTER, ARCH_SLIDES, INSERT_AFTER,
-    WORKFLOW_AFTER, WORKFLOW_INTRO_SLIDES, REQUIRED_CI,
+    WORKFLOW_AFTER, WORKFLOW_INTRO_SLIDES, ALBOT_AFTER, ALBOT_ADDED_SLIDES, REQUIRED_CI,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +21,8 @@ DRAW_TEXT = '{http://schemas.openxmlformats.org/drawingml/2006/main}t'
 def deck_number(original_index: int) -> int:
     return (original_index + (ARCH_SLIDES if original_index > ARCH_AFTER else 0)
             + (ADDED_SLIDES if original_index > INSERT_AFTER else 0)
-            + (WORKFLOW_INTRO_SLIDES if original_index > WORKFLOW_AFTER else 0))
+            + (WORKFLOW_INTRO_SLIDES if original_index > WORKFLOW_AFTER else 0)
+            + (ALBOT_ADDED_SLIDES if original_index > ALBOT_AFTER else 0))
 
 
 def test_browser_evidence_and_capturer_have_identical_mandatory_sets():
@@ -42,15 +43,15 @@ def test_tenant_wizard_second_step_is_authorized_with_exact_dom_provenance():
 
 
 def test_training_insertion_offsets_keep_catalog_and_spam_in_order():
-    assert (deck_number(33), deck_number(40), deck_number(62)) == (43, 55, 77)
+    assert (deck_number(33), deck_number(40), deck_number(62)) == (43, 55, 78)
     assert deck_number(48) == 63
-    assert deck_number(70) == 85
+    assert deck_number(70) == 86
     deck = ROOT / 'docs/presentation/CIR_Operational_Training_Visual.pptx'
     if not deck.is_file():
         pytest.skip('Editorial deck is not committed in this checkout')
     with ZipFile(deck) as archive:
         for number, phrase in ((43, 'Catalogo workflow'), (55, 'Catalogo workflow'),
-                               (77, 'Laboratorio Tutorial'), (85, 'categorie')):
+                               (78, 'Laboratorio Tutorial'), (86, 'categorie')):
             xml = ET.fromstring(archive.read(f'ppt/slides/slide{number}.xml'))
             text = ' '.join(node.text or '' for node in xml.iter(DRAW_TEXT))
             assert phrase.casefold() in text.casefold(), (number, phrase)

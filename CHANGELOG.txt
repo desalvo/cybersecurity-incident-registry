@@ -1,3 +1,11 @@
+RC106 (CI corrective, 2026-11-27)
+- Keep the same synthetic source-commit and build identity in RC67 builder and verifier subprocesses; add explicit negative checks proving mismatches are still rejected.
+- Make English cartoon text rendering portable across runners with a checked TrueType font fallback and provision the canonical Comic Neue font in the UI documentation CI job.
+- Preserve the Italian/English AlBot RAG and workflow-authoring slides, real browser capture provenance, and strict image/PDF integrity gates.
+
+CIR 0.10.0-1 RC105 - Restore original sanitized-RAG AlBot instructional slide alongside a new editable workflow-authoring and approval slide in IT/EN decks (117 pages each), realign slide/gallery provenance regressions, and disable remote Gravatar only for synthetic CI documentation captures. Remote CI rerun required.
+CIR 0.10.0-1 RC104 - CI hotfix after failing RC103 PR: fix Jinja AlBot syntax, strict CSP chart and workflow-preview templates, superadmin navigation and allowlisted Tenants Default AlBot operations, release-asset Markdown links, pinned Node presentation-generator dependencies in pytest, and stale CI contract assertions. Python 3.13 offline-wheel integration regression checks added; full remote CI still required.
+CIR 0.10.0-1 RC103 - AlBot workflow authoring: natural-language create/update with named steps, properties, prerequisite action completion and conditional applicability; tenant/superadmin permissions including Tenants Default; portable JSON export, owner/session-bound preview and explicit CSRF-protected confirmation before atomic import, with stale/used-workflow safeguards. Updated bilingual 116-slide training decks (PDF/PPTX shipped independently), AlBot knowledge base, administration guidance, and regression tests. Remote CI and Flask integration tests pending.
 CIR 0.10.0-1 RC63 - training artwork refresh: replaced all 26 slide-like right-panel composites with brighter original photographic CGI, removed embedded titles and footers, fixed non-cropping contain sizing, added SHA-256 image provenance and CI validation. No application behavior changes.
 RC53: SPAM browser fixture enables personal_data to render both conditional steps (13 total); added regression coverage.
 0.9.0-1 approved interface RC20 - 2026-11-22

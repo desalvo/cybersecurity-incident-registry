@@ -20,9 +20,9 @@ PRESENTATION = ROOT / 'docs/presentation'
 
 
 def test_repository_has_only_canonical_presentation_binaries():
-    assert {p.name for p in PRESENTATION.glob('*.pptx')} == {
-        'CIR_Operational_Training_IT.pptx', 'CIR_Operational_Training_Visual.pptx'}
-    assert {p.name for p in PRESENTATION.glob('*.pdf')} == {'CIR_Operational_Training_Visual.pdf'}
+    # Since RC102 no generated training binary belongs to the source repository.
+    assert not list(PRESENTATION.glob('*.pptx'))
+    assert not list(PRESENTATION.glob('CIR_Operational_Training_Visual*.pdf'))
     assert not list(PRESENTATION.glob('CIR_Operational_Training_Visual_RC*'))
     assert not (PRESENTATION / 'CIR_SPAM_Workflow_Module.pptx').exists()
 
@@ -77,10 +77,10 @@ def test_yaml_publication_is_not_dependent_on_docker_rebuild():
     assert "needs.ui-documentation.result == 'success'" in condition
     assert "needs.release-scope.outputs.documentation_needed == 'true'" in condition
     commands = '\n'.join(item.get('run','') for item in publish['steps'])
-    assert 'scripts/verify_documentation_publication.py' in commands
-    assert 'scripts/sync_current_documentation.py' in commands
-    assert 'git add -A -f' in commands
-    assert 'gh pr create' in commands
+    assert 'scripts/training_release_assets.py' in commands
+    assert 'scripts/publish_training_release.sh' in commands
+    assert 'git add -A -f' not in commands
+    assert 'gh pr create' not in commands
     docker_commands = '\n'.join(item.get('run','') for item in jobs['docker-release']['steps'])
     assert 'gh pr create' not in docker_commands
     docs_commands = '\n'.join(item.get('run','') for item in jobs['ui-documentation']['steps'])

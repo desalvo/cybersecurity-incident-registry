@@ -239,7 +239,11 @@ class ScreenshotWorkflowTests(unittest.TestCase):
     def test_release_requires_successful_ui_documentation_job(self):
         jobs = self.workflow["jobs"]
         self.assertIn("ui-documentation", jobs["docker-release"]["needs"])
-        self.assertEqual(jobs["ui-documentation"]["if"], "needs.ci-mode.outputs.security_only != 'true'")
+        condition = jobs["ui-documentation"]["if"]
+        self.assertIn("needs.ci-mode.outputs.security_only != 'true'", condition)
+        self.assertIn("needs.ci-mode.outputs.digest_only != 'true'", condition)
+        self.assertIn("github.event_name == 'pull_request'", condition)
+        self.assertIn("needs.release-metadata.result == 'success'", condition)
         self.assertIn('ci-mode', jobs['ui-documentation']['needs'])
         self.assertEqual(jobs["ui-documentation"]["permissions"], {"contents": "read"})
         for step in jobs["ui-documentation"]["steps"]:
@@ -250,9 +254,18 @@ class ScreenshotWorkflowTests(unittest.TestCase):
         commands = [step.get("run", "") for step in steps]
         capture_index = next(i for i, command in enumerate(commands) if "scripts/capture_ui_screenshots.py" in command)
         manuals_index = next(i for i, command in enumerate(commands) if "scripts/build_documentation_pdfs.py" in command)
-        package_index = next(i for i, command in enumerate(commands) if "scripts/package_release.sh" in command)
+        seal_index = next(i for i, command in enumerate(commands) if 'scripts/finalize_documentation_bundle.py' in command)
+        upload_index = next(i for i, step in enumerate(steps)
+                            if step.get('uses', '').startswith('actions/upload-artifact@')
+                            and step.get('with', {}).get('name', '').startswith('ui-documentation-'))
         self.assertLess(capture_index, manuals_index)
-        self.assertLess(manuals_index, package_index)
+        self.assertLess(manuals_index, seal_index)
+        self.assertLess(seal_index, upload_index)
+        # Smoke packaging runs in quality-gates, with the source-only marker;
+        # verified assets are installed only in the final Docker release job.
+        quality = '\n'.join(step.get('run', '') for step in self.workflow['jobs']['quality-gates']['steps'])
+        self.assertIn('scripts/package_release.sh', quality)
+        self.assertIn('ui-documentation', self.workflow['jobs']['docker-release']['needs'])
         self.assertIn('--source-commit "${GITHUB_SHA}"', commands[capture_index])
         self.assertIn("--require-real-screenshots", commands[manuals_index])
         self.assertIn("--screenshot-manifest", commands[manuals_index])
@@ -264,14 +277,26 @@ class ScreenshotWorkflowTests(unittest.TestCase):
         manual = next(i for i, command in enumerate(commands) if 'scripts/build_documentation_pdfs.py' in command)
         pptx = next(i for i, command in enumerate(commands) if 'scripts/build_training_presentation.py' in command)
         seal = next(i for i, command in enumerate(commands) if 'scripts/finalize_documentation_bundle.py' in command)
-        install = next(i for i, command in enumerate(commands) if 'scripts/install_ui_documentation.py' in command)
+        upload = next(i for i, step in enumerate(steps)
+                      if step.get('uses', '').startswith('actions/upload-artifact@')
+                      and step.get('with', {}).get('name', '').startswith('ui-documentation-'))
         self.assertLess(manual, pptx)
         self.assertLess(pptx, seal)
-        self.assertLess(seal, install)
+        self.assertLess(seal, upload)
         self.assertIn('--require-real-screenshots', commands[pptx])
-        for i in (manual, pptx, seal, install):
+        for i in (manual, pptx, seal):
             self.assertIn('"${GITHUB_SHA}"', commands[i])
             self.assertIn('${RUNNER_TEMP}/cir-ui-evidence', commands[i])
+        release_steps = self.workflow['jobs']['docker-release']['steps']
+        download_idx = next(i for i, step in enumerate(release_steps)
+                            if step.get('uses', '').startswith('actions/download-artifact@'))
+        install_idx = next(i for i, step in enumerate(release_steps)
+                           if 'scripts/install_ui_documentation.py' in step.get('run', ''))
+        build_idx = next(i for i, step in enumerate(release_steps)
+                         if step.get('uses', '').startswith('docker/build-push-action@'))
+        self.assertLess(download_idx, install_idx)
+        self.assertLess(install_idx, build_idx)
+        self.assertIn('--source-commit "${GITHUB_SHA}"', release_steps[install_idx]['run'])
         self.assertNotIn('artifact_tool', '\n'.join(commands))
         self.assertIn('poppler-utils', '\n'.join(commands))
 

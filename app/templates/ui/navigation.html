@@ -99,7 +99,7 @@
       {{ item('main.help_page','Documentazione utente','User documentation') }}
       {{ item('main.admin_help_page','Documentazione amministrativa','Administrator documentation') }}
       {{ item('main.release_notes','Note di rilascio','Release notes') }}
-      {% if ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}{{ item('ai_chatbot.chat','AlBot','AlBot') }}{% endif %}
+      {% if ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}{{ item('ai_chatbot.chat','AlBot','AlBot') }}{% endif %}
     </div></details>
     <details class="cir-nav-group"><summary>{{ icon('settings') }}<span>{{ label('Impostazioni','Settings') }}</span><span class="cir-nav-chevron" aria-hidden="true">›</span></summary><div class="cir-nav-submenu">
       {% if current_user.auth_provider == 'local' and not current_user.is_ldap %}{{ item('main.change_password','Cambio password','Change password') }}{% endif %}

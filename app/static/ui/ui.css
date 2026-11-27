@@ -233,3 +233,7 @@
 @media(max-height:760px){.cir-login-hero-copy{padding:24px}.cir-login-tagline{font-size:clamp(17px,3vh,24px);margin-top:12px}.cir-login-description{margin-top:10px}.cir-login-field{margin-bottom:9px}.cir-login-field input{height:39px}.cir-login .cir-access-button{min-height:39px;padding:8px}.cir-auth-note{margin-top:7px}.cir-login-separator{margin:9px 0}.cir-sso-profiles{gap:5px}.cir-sso-button{min-height:36px;padding:6px}.cir-access-footer{margin-top:10px;padding-top:8px}}
 @media(max-width:760px){.cir-login-layout{height:100dvh;min-height:0;padding:0}.cir-access-panel{height:100dvh;min-height:0;box-sizing:border-box;padding:clamp(8px,2vh,22px);overflow-y:auto}.cir-login-brand-row .cir-login-heading{font-size:clamp(1rem,4.1vw,1.45rem)}.cir-login-brand-row .cir-login-organization-logo{max-width:26%;max-height:52px}}
 @media(max-height:520px){.cir-login-brand-row{margin-bottom:6px}.cir-login-app-logo{width:32px;height:32px}.cir-login-brand-row .cir-login-organization-logo{max-height:34px}.cir-access-panel{padding:6px 12px}.cir-login-field label{margin-bottom:2px}.cir-login-field{margin-bottom:5px}.cir-login-field input{height:32px;padding:5px 8px}.cir-login .cir-access-button{min-height:32px}.cir-access-footer{margin-top:6px;padding-top:5px}}
+
+/* RC95: optional Gravatar keeps initials visible if the remote image fails. */
+.cir-account-avatar{position:relative;overflow:hidden}
+.cir-account-avatar-image{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#ebf1f8}

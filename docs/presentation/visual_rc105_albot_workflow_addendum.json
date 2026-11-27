@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "insert_after_original": 60,
+  "slides": [
+    {
+      "original": 95,
+      "kind": "content",
+      "title": "AlBot: crea e aggiorna workflow con conferma",
+      "subtitle": "",
+      "tag": "DOCUMENTI",
+      "bullets": [
+        "AlBot (Alex) è progettato anche per creare o aggiornare workflow da una descrizione in linguaggio naturale.",
+        "Definisce nome e step, requisiti, dipendenze, condizioni, notifiche e documenti secondo i permessi del tenant.",
+        "L’admin verifica l’anteprima e conferma il salvataggio; il super admin può operare anche in Tenants Default.",
+        "In alternativa esporta un JSON portabile: nessuna modifica al database è effettuata senza conferma."
+      ],
+      "images": [],
+      "notes": "RC105: AlBot generates a workflow proposal from administrator instructions, validates step prerequisites and conditions, and previews the portable JSON. Only an explicit administrator confirmation may import/update it in the active tenant. A super admin may also operate in Tenants Default. Export-only never alters CIR. The diagram uses editable native PowerPoint shapes, not a real UI screenshot.",
+      "index": 95,
+      "albot_workflow_authoring": true
+    }
+  ]
+}
