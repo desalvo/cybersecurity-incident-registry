@@ -22,7 +22,8 @@ VERIFIER = ROOT / 'scripts/verify_visual_training_rc64.py'
 REQUIRED = ('login-desktop','registry-desktop','workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
             'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel', 'registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
             'pdf-generated-preview', 'alfresco-settings-desktop', 'alfresco-incident-documents',
-            'notification-preview', 'tenant-wizard-next-step')
+            'notification-preview', 'tenant-wizard-next-step',
+            'support-ticket-new-tenant-admin', 'support-ticket-submitted-tenant-admin')
 
 
 def test_browser_palette_has_precedence_over_the_original_photo():

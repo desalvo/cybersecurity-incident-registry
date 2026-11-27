@@ -983,6 +983,16 @@
       "notes": "Approfondimento per la formazione CIR. Gestione errori e migrazioni legacy. TRANSAZIONI: Rollback automatico in caso di errore. CLEANUP: Solo dati obsoleti privi di riferimenti. AUDIT: Log e verifiche prima della produzione. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione."
     },
     {
+      "type": "screenshots",
+      "title": "Support Tickets: apertura di una richiesta di prova verso l’admin del tenant",
+      "subtitle": "Richiesta compilata e ticket sottomesso, con dati sintetici",
+      "notes": "Un utente registrato seleziona Supporto, apre un ticket con priorità Alta e categoria Autorizzazione, sceglie il tenant default e come destinatario Amministratori del tenant. La schermata successiva conferma lo stato Sottomesso e conserva la richiesta originale. Gli esempi sono documentali e non includono identità o informazioni reali; in CI le immagini sono catturate dall’applicazione stessa con sessione autenticata e collegate al manifest della run.",
+      "screenshots": [
+        "support-ticket-new-tenant-admin",
+        "support-ticket-submitted-tenant-admin"
+      ]
+    },
+    {
       "type": "columns",
       "kicker": "APPROFONDIMENTO OPERATIVO",
       "title": "Piattaforme e manutenzione",
@@ -1057,7 +1067,9 @@
     "statistics-desktop": "Statistiche reali del tenant e indicatori",
     "assistant-panel-closeup": "Pannello reale AlBot, assistente Alex, con risposta di prova",
     "tenant-wizard-next-step": "Wizard tenant: avanzamento e step successivo della sequenza reale",
-    "notification-preview": "Anteprima notifica: contenuto e destinatari prima dell’invio"
+    "notification-preview": "Anteprima notifica: contenuto e destinatari prima dell’invio",
+    "support-ticket-new-tenant-admin": "Support Tickets · apertura del ticket verso gli amministratori del tenant (dati di prova)",
+    "support-ticket-submitted-tenant-admin": "Support Tickets · richiesta sottomessa con stato e conversazione"
   },
   "references": {
     "nis2": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",

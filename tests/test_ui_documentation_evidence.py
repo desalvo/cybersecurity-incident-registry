@@ -141,7 +141,9 @@ class EvidenceFixtureTestCase(unittest.TestCase):
                 "viewport": {"width": 300, "height": 400},
                 "ui_mode": "classic" if sid.startswith("classic-") else "modern",
                 "authenticated": not sid.startswith("login-"),
-                "route": evidence.DOCUMENTATION_CAPTURE_ROUTES.get(sid, "/login" if sid.startswith("login-") else "/"),
+                "route": ("/support/tickets/1" if sid == "support-ticket-submitted-tenant-admin"
+                          else evidence.DOCUMENTATION_CAPTURE_ROUTES.get(
+                              sid, "/login" if sid.startswith("login-") else "/")),
                 "capture_area": "viewport",
                 "caption_it": "Segnaposto di test, non una schermata del browser.",
                 "caption_en": "Unit-test placeholder, not a browser screenshot.",
@@ -200,6 +202,24 @@ class EvidenceFixtureTestCase(unittest.TestCase):
 
 
 class ScreenshotArtifactValidationTests(EvidenceFixtureTestCase):
+    def test_submitted_support_ticket_proves_the_actual_ticket_route(self):
+        # Keep the route proof strict. A screenshot of the dashboard or new
+        # form cannot claim to be a successfully submitted ticket.
+        row = next(item for item in self.manifest['screenshots']
+                   if item['id'] == 'support-ticket-submitted-tenant-admin')
+        self.assertEqual(row['route'], '/support/tickets/1')
+        self.load()
+        for bad in ('/', '/support/new', '/support/tickets/0',
+                    '/support/tickets/not-a-number', '/support/tickets/1/extra'):
+            with self.subTest(route=bad):
+                row['route'] = bad
+                self.save_manifest()
+                with self.assertRaisesRegex(evidence.EvidenceError, 'real ticket route'):
+                    self.load()
+        row['route'] = '/support/tickets/123'
+        self.save_manifest()
+        self.load()
+
     def test_workflow_step_geometry_validates_without_third_party_python_packages(self):
         """The merged Docker release validates real ROIs before installing Pillow.
 

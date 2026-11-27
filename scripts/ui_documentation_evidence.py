@@ -30,6 +30,7 @@ REQUIRED_SCREENSHOTS = frozenset({
     'classic-registry-desktop', 'admin-modules-desktop', 'admin-sso-desktop',
     'documentation-user-desktop', 'documentation-user-mobile',
     'documentation-admin-desktop', 'documentation-admin-mobile',
+    'support-ticket-new-tenant-admin', 'support-ticket-submitted-tenant-admin',
 })
 # These dedicated browser regions are narrower than the browser viewport.
 # Only specifically approved regions may claim element-capture provenance.
@@ -50,6 +51,7 @@ DOCUMENTATION_CAPTURE_ROUTES = {
     'documentation-user-mobile': '/aiuto',
     'documentation-admin-desktop': '/aiuto/amministrazione',
     'documentation-admin-mobile': '/aiuto/amministrazione',
+    'support-ticket-new-tenant-admin': '/support/new',
 }
 # Only online help landing pages are required to show the *whole first fold*.
 # Wizard captures are authenticated element crops with their own strict bounds,
@@ -259,6 +261,8 @@ def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, me
         route = row.get('route')
         if not isinstance(route, str) or not route.startswith('/') or route.startswith('//'):
             raise EvidenceError('Screenshot route must be local')
+        if sid == 'support-ticket-submitted-tenant-admin' and not re.fullmatch(r'/support/tickets/[1-9][0-9]*', route):
+            raise EvidenceError('Submitted ticket screenshot must show its real ticket route')
         if sid in DOCUMENTATION_CAPTURE_ROUTES:
             if (route != DOCUMENTATION_CAPTURE_ROUTES[sid]
                     or (sid in ONLINE_DOCUMENTATION_COVERS and

@@ -11,17 +11,33 @@ import tempfile
 from pathlib import Path
 
 
-def verify(pdf: Path, screenshot_paths: list[Path], *, base_slides: int = 91) -> int:
+# The two Support Tickets gallery pages use an intentionally larger detail crop
+# on the right. Their *full original browser capture* is displayed in a
+# smaller left-hand frame. Check that entire screenshot in its actual frame,
+# without relaxing the per-pixel error threshold for any gallery page.
+SUPPORT_TICKET_IDS = frozenset({
+    'support-ticket-new-tenant-admin',
+    'support-ticket-submitted-tenant-admin',
+})
+FULL_GALLERY_FRAME = (.76, 1.48, 11.81, 4.98)
+SUPPORT_TICKET_FRAME = (.85, 1.83, 5.14, 4.51)
+
+def verify(pdf: Path, screenshot_paths: list[Path], *, base_slides: int = 91,
+           screenshot_ids: list[str] | None = None) -> int:
     from PIL import Image, ImageChops, ImageStat
     if not screenshot_paths:
         raise ValueError('No screenshots to verify in PDF')
+    if screenshot_ids is None:
+        screenshot_ids = [source.stem for source in screenshot_paths]
+    if len(screenshot_ids) != len(screenshot_paths):
+        raise ValueError('Screenshot IDs do not match screenshot files')
     # Slide coordinates (PptxGenJS wide 13.33333 x 7.5 inches).
-    # The gallery uses imageSizingContain at x=.76, y=1.48, w=11.81, h=4.98.
     scale = 960 / 13.33333
-    x, y, w, h = [round(v * scale) for v in (.76, 1.48, 11.81, 4.98)]
     with tempfile.TemporaryDirectory(prefix='cir-pdf-gallery-') as tmp:
-        for offset, source in enumerate(screenshot_paths):
+        for offset, (source, ident) in enumerate(zip(screenshot_paths, screenshot_ids)):
             page = base_slides + offset + 1
+            frame = SUPPORT_TICKET_FRAME if ident in SUPPORT_TICKET_IDS else FULL_GALLERY_FRAME
+            x, y, w, h = [round(v * scale) for v in frame]
             prefix = Path(tmp) / 'page'
             command = ['pdftoppm', '-f', str(page), '-l', str(page),
                        '-scale-to-x', '960', '-scale-to-y', '540',

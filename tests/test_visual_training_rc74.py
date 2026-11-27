@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_mandatory_browser_captures_are_consistent_with_evidence_validator():
     assert capture.REQUIRED_CAPTURES == evidence.REQUIRED_SCREENSHOTS
-    assert len(capture.REQUIRED_CAPTURES) == 32
+    assert len(capture.REQUIRED_CAPTURES) == 34
     assert {'tenant-wizard-next-step', 'notification-preview', 'pdf-generated-preview'} <= capture.REQUIRED_CAPTURES
     assert evidence.ELEMENT_CAPTURE_SELECTORS['tenant-wizard-next-step'] == '.setup-wizard-shell'
     assert evidence.DOCUMENTATION_CAPTURE_ROUTES['tenant-wizard-next-step'] == '/admin/setup-wizard'

@@ -23,7 +23,8 @@ PACKAGE_REL = '{http://schemas.openxmlformats.org/package/2006/relationships}'
 REQUIRED_CI = ('workflow-steps-focused', 'statistics-desktop', 'assistant-panel-closeup',
                'tenant-setup-wizard-desktop', 'tenant-setup-wizard-panel', 'registry-closed-state', 'spam-incident-config-labels', 'pdf-mapping-configuration',
                'pdf-generated-preview', 'alfresco-settings-desktop',
-               'alfresco-incident-documents','notification-preview','tenant-wizard-next-step')
+               'alfresco-incident-documents','notification-preview','tenant-wizard-next-step',
+               'support-ticket-new-tenant-admin','support-ticket-submitted-tenant-admin')
 ADDED_SLIDES = 6
 INSERT_AFTER = 14
 ARCH_SLIDES = 4  # three architecture diagrams plus the alert chapter
@@ -217,6 +218,15 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         if 'AlBot: crea e aggiorna workflow con conferma' not in albot_text:
             raise ValueError('The workflow-authoring slide must follow the sanitized-RAG slide')
         support_text = visible_slide_text(albot_title_slide + 1)
+        # The slide itself, not merely ppt/media, must embed the genuine
+        # browser shot below the illustration. CI never accepts editorial art.
+        support_slide = albot_title_slide + 1
+        support_digests = linked_slide_image_digests(archive, support_slide)
+        if strict_images and manifest is not None:
+            browser_manifest=json.loads(Path(manifest).read_text(encoding='utf-8'))
+            sample = next((row for row in browser_manifest['screenshots'] if row['id']=='support-ticket-new-tenant-admin'), None)
+            if sample is None or sample['sha256'] not in support_digests:
+                raise ValueError('Support Tickets teaching slide lacks the same-run genuine ticket form screenshot')
         for required in ('Support Tickets', 'Supporto', 'super admin', 'Markdown', 'notifiche'):
             if required.casefold() not in support_text.casefold():
                 raise ValueError('Missing Support Tickets usage teaching slide: ' + required)
@@ -584,7 +594,8 @@ def run_check(pptx, pdf, manifest, require_ci_images, published_ci_images=False)
         except ModuleNotFoundError:  # direct script execution without project on sys.path
             from verify_pdf_screenshot_gallery import verify
         pdf_verified = verify(Path(pdf), [manifest_path.parent / row['file'] for row in visible_records],
-                              base_slides=GALLERY_FIRST_SLIDE - 1)
+                              base_slides=GALLERY_FIRST_SLIDE - 1,
+                              screenshot_ids=[row['id'] for row in visible_records])
     summary = {'pdf_screenshots_visually_verified': pdf_verified, 'slides': len(slides), 'pdf_pages': pdf_pages,
                'verified_browser_screenshots': screenshot_count,
                'mandatory_ci_images_embedded': strict_images, 'status': 'PASS'}
