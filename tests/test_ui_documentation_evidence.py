@@ -844,6 +844,76 @@ class InstallationValidationTests(EvidenceFixtureTestCase):
         self.assertEqual(validated["source_commit"], COMMIT)
         self.assertEqual(validated["build"], RELEASE.build)
 
+    def _slim_runtime_fixture(self):
+        """Simulate the exact two heavy artifacts intentionally dropped by .dockerignore."""
+        self.install()  # Full, strict validation of PowerPoint, PDFs and all screenshots.
+        (self.destination / 'docs/presentation' / PRESENTATION_FILE).unlink()
+        (self.destination / 'docs/CIR_UI_Screenshots.pdf').unlink()
+
+    def test_slim_docker_runtime_keeps_complete_hash_bound_documentation_evidence(self):
+        self._slim_runtime_fixture()
+        # The normal (complete) validator must remain strict; only the explicit
+        # Docker mode permits the two separately published files to be absent.
+        with self.assertRaisesRegex(evidence.EvidenceError, 'Artifact is missing'):
+            evidence.validate_installed_documentation(self.destination)
+        receipt = evidence.validate_installed_documentation(
+            self.destination, runtime_external_training=True,
+        )
+        self.assertEqual(receipt['source_commit'], COMMIT)
+        self.assertEqual(len(receipt['files']), len(evidence.REQUIRED_MANUALS) + 7)
+        self.assertTrue((self.destination / 'docs/presentation' / PRESENTATION_RECEIPT).is_file())
+        self.assertTrue((self.destination / 'docs' / 'documentazione_utente.pdf').is_file())
+
+        # Replicate the production Dockerfile's release-metadata RUN *without*
+        # application dependencies (the Python -S mode used by the prior fix).
+        check = subprocess.run(
+            [sys.executable, '-S', 'scripts/prepare_release_metadata.py',
+             '--root', str(self.destination), '--build', RELEASE.build,
+             '--write', '--verify-installed-documentation', '--runtime-external-training'],
+            cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        )
+        self.assertEqual(check.returncode, 0, check.stderr)
+
+    def test_slim_docker_runtime_does_not_accept_missing_receipts_or_forged_hashes(self):
+        self._slim_runtime_fixture()
+        deck_receipt = self.destination / 'docs/presentation' / PRESENTATION_RECEIPT
+        saved = deck_receipt.read_bytes()
+        deck_receipt.unlink()
+        with self.assertRaisesRegex(evidence.EvidenceError, 'Artifact is missing'):
+            evidence.validate_installed_documentation(self.destination, runtime_external_training=True)
+        deck_receipt.write_bytes(saved)
+
+        modified = json.loads(saved)
+        modified['sha256'] = 'f' * 64
+        write_json(deck_receipt, modified)
+        with self.assertRaisesRegex(evidence.EvidenceError, 'checksum mismatch'):
+            evidence.validate_installed_documentation(self.destination, runtime_external_training=True)
+        deck_receipt.write_bytes(saved)
+
+        screenshot = self.destination / 'app/static/help/ui-runtime' / 'login-desktop.png'
+        screenshot.write_bytes(b'corrupted screenshot')
+        with self.assertRaises(evidence.EvidenceError):
+            evidence.validate_installed_documentation(self.destination, runtime_external_training=True)
+
+    def test_slim_docker_runtime_rejects_incorrect_external_document_declaration(self):
+        self._slim_runtime_fixture()
+        docs_receipt = self.destination / 'docs/UI_SCREENSHOTS_BUILD.json'
+        receipt = json.loads(docs_receipt.read_bytes())
+        entry = next(row for row in receipt['files'] if row['file'] == 'CIR_UI_Screenshots.pdf')
+        entry['sha256'] = 'not-a-sha256'
+        write_json(docs_receipt, receipt)
+        with self.assertRaisesRegex(evidence.EvidenceError, 'verified SHA-256'):
+            evidence.validate_installed_documentation(self.destination, runtime_external_training=True)
+        entry['sha256'] = self.receipt['files'][next(i for i, row in enumerate(self.receipt['files'])
+                                                      if row['file'] == 'CIR_UI_Screenshots.pdf')]['sha256']
+        write_json(docs_receipt, receipt)
+        # A copied external deck is also invalid in the slim image, never
+        # silently treated as another documentation source.
+        deck = self.destination / 'docs/presentation' / PRESENTATION_FILE
+        deck.write_bytes(b'junk copied from unverified local working tree')
+        with self.assertRaisesRegex(evidence.EvidenceError, 'must not be copied'):
+            evidence.validate_installed_documentation(self.destination, runtime_external_training=True)
+
     def test_ci_install_replaces_source_presentation_receipt_and_previews_together(self):
         # Source packages carry an honest pending deck. A verified CI batch must
         # replace every presentation artifact at the same documented location.
