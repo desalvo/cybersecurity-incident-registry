@@ -20,7 +20,7 @@ FIXTURE_ID = "cir-ui-documentation-v1"
 STORAGE_ENV = {
     "UPLOAD_DIR": "uploads", "LOGO_DIR": "logos", "SSO_LOGO_DIR": "sso-logos",
     "FORM_TEMPLATE_DIR": "form-templates", "BACKUP_DIR": "backups",
-    "AI_CHATBOT_DOC_DIR": "knowledge", "SSL_DIR": "ssl",
+    "AI_CHATBOT_DOC_DIR": "knowledge", "SUPPORT_TICKETS_DIR": "support-tickets", "SSL_DIR": "ssl",
 }
 
 

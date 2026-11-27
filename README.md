@@ -32,3 +32,8 @@ Versione e build sono registrate in [`VERSION`](VERSION) e [`BUILD`](BUILD). **I
 Repository: https://github.com/desalvo/cybersecurity-incident-registry
 
 [English](README_en.md)
+
+
+### Support Tickets (RC109)
+
+Optional, disabled-by-default multi-tier collaborative helpdesk with tenant-scoped tickets, private attachments, Markdown replies, escalation and HTML email notifications. See [Support Tickets guide](docs/SUPPORT_TICKETS.md).

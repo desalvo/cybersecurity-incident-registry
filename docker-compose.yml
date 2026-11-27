@@ -32,6 +32,7 @@ services:
       SSL_DIR: ${SSL_DIR:-/data/ssl}
       BACKUP_DIR: ${BACKUP_DIR:-/data/backups}
       AI_CHATBOT_DOC_DIR: ${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}
+      SUPPORT_TICKETS_DIR: ${SUPPORT_TICKETS_DIR:-/data/support_tickets}
       CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE: ${CIR_RUN_AS_ROOT_ON_VOLUME_PERMISSION_FAILURE:-0}
       PORT: ${PORT:-8000}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
@@ -47,8 +48,8 @@ services:
       APP_GID: ${APP_GID:-10001}
       CIR_ENABLE_DEADLINE_SCHEDULER: ${CIR_ENABLE_DEADLINE_SCHEDULER:-1}
       CIR_DEADLINE_SCHEDULER_POLL_SECONDS: ${CIR_DEADLINE_SCHEDULER_POLL_SECONDS:-60}
-    volumes: ["uploads:${UPLOAD_DIR:-/data/uploads}", "logo:${LOGO_DIR:-/data/logo}", "form_templates:${FORM_TEMPLATE_DIR:-/data/form_templates}", "sso_logos:${SSO_LOGO_DIR:-/data/sso_logos}", "ssl:${SSL_DIR:-/data/ssl}", "backups:${BACKUP_DIR:-/data/backups}", "ai_chatbot_docs:${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}"]
+    volumes: ["uploads:${UPLOAD_DIR:-/data/uploads}", "logo:${LOGO_DIR:-/data/logo}", "form_templates:${FORM_TEMPLATE_DIR:-/data/form_templates}", "sso_logos:${SSO_LOGO_DIR:-/data/sso_logos}", "ssl:${SSL_DIR:-/data/ssl}", "backups:${BACKUP_DIR:-/data/backups}", "ai_chatbot_docs:${AI_CHATBOT_DOC_DIR:-/data/ai_chatbot_docs}", "support_tickets:${SUPPORT_TICKETS_DIR:-/data/support_tickets}"]
     depends_on:
       db:
         condition: service_healthy
-volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}, backups: {}, ai_chatbot_docs: {}}
+volumes: {pgdata: {}, uploads: {}, logo: {}, form_templates: {}, sso_logos: {}, ssl: {}, backups: {}, ai_chatbot_docs: {}, support_tickets: {}}

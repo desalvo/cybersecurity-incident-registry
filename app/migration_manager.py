@@ -26,7 +26,7 @@ from typing import Protocol
 
 
 LEDGER_TABLE = "cir_schema_migrations"
-SCHEMA_REVISIONS = ("20261122_01_legacy_bridge",)
+SCHEMA_REVISIONS = ("20261122_01_legacy_bridge", "20261127_02_support_tickets")
 _LEDGER_COLUMNS = frozenset({"position", "revision_id", "applied_at"})
 _REVISION_ID = re.compile(r"[a-z0-9][a-z0-9_.-]{0,159}")
 _CREATE_LEDGER = """CREATE TABLE cir_schema_migrations (

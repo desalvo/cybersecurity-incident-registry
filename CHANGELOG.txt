@@ -1,3 +1,10 @@
+0.10.0-1 RC109 (Support Tickets)
+- Add optional, disabled-by-default Support Tickets service desk with responsive Jira-like ticket dashboards, combined search filters, Markdown threads, private attachments, statuses, priorities, tenant-level assignment and second-level escalation.
+- Enforce owner/tenant-admin/superadmin isolation on every HTTP action; superadmins may permanently delete tickets after double confirmation. Add superadmin-controlled initial/custom categories and HTML SMTP notifications.
+- Introduce idempotent database schema revision 20261127_02_support_tickets with four plugin tables; integrate full and tenant-scoped backup/restore, private attachment file integrity, safe imports, retention and audit.
+- Extend bilingual instructional decks with a synthetic illustrated Support Tickets slide after the two existing AlBot/RAG/workflow slides. Preserve screenshot provenance and source fingerprints; 118-page source training decks.
+- Add integrated Flask/SQLite regressions for permissions, CSRF, notifications, attachments, restore, migration and bilingual training.
+
 0.10.0-1 RC108 (post-merge CI hotfix)
 - Fix the minimal multi-architecture Docker build failing on missing externally published training artifacts during the installed documentation check.
 - Preserve full PPTX/PDF byte-level and embedded-image validation before CI installation; Docker checks a compact, SHA-256-bound receipt for the presentation and screenshot-compilation PDF excluded by .dockerignore.

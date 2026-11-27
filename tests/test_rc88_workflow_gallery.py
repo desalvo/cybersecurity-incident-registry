@@ -65,7 +65,7 @@ def test_editorial_gallery_reuses_every_archived_screenshot_except_classic(tmp_p
     manifest=ARCHIVE/'manifest.json'
     receipt=ROOT/'docs/presentation/visual-training-receipt.json'
     published=manifest.is_file() and receipt.is_file()
-    assert BASE_SLIDES==EXPECTED_SLIDES==99
+    assert BASE_SLIDES==EXPECTED_SLIDES==100
     if published:
         # A documentation PR replaces the archived screenshots with a sealed
         # *different run*. Never compare those images with old history.
@@ -86,7 +86,7 @@ def test_editorial_gallery_reuses_every_archived_screenshot_except_classic(tmp_p
         assert 'Notifica prima' in _visible_text(z,len(slides))
         assert ('Schermata '+str(len(files)+1)) in _visible_text(z,len(slides)-1)
         assert ('Schermata '+str(len(files)+2)) in _visible_text(z,len(slides))
-        for n,(image,checksum) in enumerate(files,start=98):
+        for n,(image,checksum) in enumerate(files,start=99):
             assert image.is_file() and hashlib.sha256(image.read_bytes()).hexdigest()==checksum
             assert checksum in linked_slide_image_digests(z,n), (image.name,n)
             if not published:

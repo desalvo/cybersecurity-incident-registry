@@ -65,8 +65,8 @@ def test_category_diagrams_and_same_run_lab_capture_are_hard_gates():
     assert "'WORKFLOW\\nSPAM'" in js
     assert "'1ª SPAM  →  workflow SPAM  →  Crea'" in js
     assert 'SPAM prima tra le categorie' in js
-    assert LAB_SPAM_OPENING_SLIDE == 78
-    assert PALETTE_SLIDE == 86
+    assert LAB_SPAM_OPENING_SLIDE == 79
+    assert PALETTE_SLIDE == 87
     assert 'checksum not in lab_opening_digests' in py
 
 

@@ -268,6 +268,10 @@
                     "value": "/data/ai_chatbot_docs"
                   },
                   {
+                    "name": "SUPPORT_TICKETS_DIR",
+                    "value": "/data/support_tickets"
+                  },
+                  {
                     "name": "WEB_CONCURRENCY",
                     "value": "1"
                   },

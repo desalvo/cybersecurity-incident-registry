@@ -28,6 +28,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SSO_LOGO_DIR=/data/sso_logos \
     BACKUP_DIR=/data/backups \
     AI_CHATBOT_DOC_DIR=/data/ai_chatbot_docs \
+    SUPPORT_TICKETS_DIR=/data/support_tickets \
     SSL_DIR=/data/ssl \
     SSL_PORT=8443 \
     SSL_ENABLED=0 \
@@ -82,7 +83,7 @@ RUN set -eux; \
     chmod 0755 /app/docker-entrypoint.sh; \
     groupadd --gid 10001 appuser; \
     useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin appuser; \
-    mkdir -p /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs; \
+    mkdir -p /data/uploads /data/logo /data/form_templates /data/sso_logos /data/ssl /data/backups /data/ai_chatbot_docs /data/support_tickets; \
     chown -R appuser:appuser /app /data /opt/cir-venv
 
 USER root

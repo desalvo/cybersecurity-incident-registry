@@ -31,10 +31,11 @@ def test_architecture_addendum_and_role_scoping():
 
 def test_available_plugins_not_confused_with_core_features():
     directories=_plugin_packages(ROOT/'app/plugins')
-    assert directories=={'ai_chatbot','alfresco'}
+    assert directories=={'ai_chatbot','alfresco','support_tickets'}
     source=(ROOT/'app/__init__.py').read_text()
     assert 'register_ai_chatbot_plugin(app)' in source
     assert 'register_alfresco_plugin(app)' in source
+    assert 'register_support_tickets_plugin(app)' in source
     engines=(ROOT/'app/plugins/ai_chatbot/engines/__init__.py').read_text()
     for name in ('chatgpt','claude','gemini','ollama','perplexity'):assert name in engines
     cfg=(ROOT/'app/templates/notification_settings.html').read_text()
