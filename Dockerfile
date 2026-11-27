@@ -75,7 +75,7 @@ ARG CIR_SECURITY_DIAGNOSTIC=0
 RUN if [ "${CIR_SECURITY_DIAGNOSTIC}" = "1" ]; then \
       python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write; \
     else \
-      python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write --verify-installed-documentation; \
+      python scripts/prepare_release_metadata.py --build "${CIR_RELEASE_BUILD}" --write --verify-installed-documentation --runtime-external-training; \
     fi
 
 RUN set -eux; \

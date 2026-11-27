@@ -128,6 +128,76 @@ def _embedded_hash(archive: ZipFile, media_file, expected_hash, used_media):
         raise EvidenceError('Presentation embedded media checksum mismatch')
 
 
+def validate_detached_presentation_receipt(
+    paths: dict[str, Path], source_commit: str, manifest_hash: str,
+    screenshot_evidence: dict, *, metadata_root: Path, deck_sha256: str,
+) -> dict:
+    """Validate the compact evidence left in a slim runtime Docker context.
+
+    The full PowerPoint is verified *before* installation by validate_manuals()
+    and validate_presentation(). Only after this check does .dockerignore omit
+    it from the runtime image. This function checks the same-run receipt,
+    screenshot hashes, PDF/preview bindings and deck checksum claim, but must
+    never be presented as re-verification of absent PowerPoint bytes.
+    """
+    receipt = _read_json(paths[PRESENTATION_RECEIPT])
+    metadata = read_release_metadata(metadata_root)
+    if receipt.get('schema_version') != 1 or receipt.get('source_commit') != source_commit:
+        raise EvidenceError('External presentation receipt belongs to another source commit or schema')
+    if receipt.get('functional_version') != metadata.version or str(receipt.get('build')) != metadata.build:
+        raise EvidenceError('External presentation release metadata differs from this build')
+    if (receipt.get('real_screenshots') is not True or receipt.get('editable_text') is not True
+            or receipt.get('speaker_notes') is not True):
+        raise EvidenceError('External presentation receipt lacks provenance or editability evidence')
+    if receipt.get('screenshot_manifest_sha256') != manifest_hash:
+        raise EvidenceError('External presentation screenshot manifest checksum mismatch')
+    if (receipt.get('file') != PRESENTATION_FILE
+            or receipt.get('sha256') != deck_sha256
+            or not re.fullmatch(r'[0-9a-f]{64}', deck_sha256)):
+        raise EvidenceError('External presentation checksum differs from the installed publication receipt')
+    count = receipt.get('slides')
+    if type(count) is not int or not 5 <= count <= 250:
+        raise EvidenceError('External presentation slide count is invalid')
+
+    rows = receipt.get('screenshots')
+    screenshot_hashes = {row['id']: row['sha256'] for row in screenshot_evidence['screenshots']}
+    if not isinstance(rows, list) or len(rows) != len(REQUIRED_SCREENSHOTS):
+        raise EvidenceError('External presentation screenshot list is incomplete')
+    seen = set()
+    for row in rows:
+        if (not isinstance(row, dict) or row.get('id') not in REQUIRED_SCREENSHOTS
+                or row['id'] in seen or row.get('sha256') != screenshot_hashes.get(row['id'])
+                or not isinstance(row.get('media_file'), str)
+                or not re.fullmatch(r'ppt/media/[A-Za-z0-9_.-]+', row['media_file'])):
+            raise EvidenceError('External presentation screenshot binding is invalid')
+        seen.add(row['id'])
+
+    pages = receipt.get('manual_first_pages')
+    if not isinstance(pages, list) or len(pages) != len(MANUAL_PDFS):
+        raise EvidenceError('External presentation manual preview list is incomplete')
+    seen = set()
+    for row in pages:
+        if not isinstance(row, dict) or row.get('pdf') not in MANUAL_PDFS or row['pdf'] in seen:
+            raise EvidenceError('External presentation manual preview reference is invalid')
+        pdf = row['pdf']
+        png = MANUAL_PREVIEWS[pdf]
+        seen.add(pdf)
+        if (row.get('page') != 1 or type(row.get('page')) is not int
+                or row.get('png') != png
+                or row.get('pdf_sha256') != sha256(paths[pdf])
+                or row.get('png_sha256') != sha256(paths[png])
+                or not isinstance(row.get('media_file'), str)
+                or not re.fullmatch(r'ppt/media/[A-Za-z0-9_.-]+', row['media_file'])):
+            raise EvidenceError('External presentation manual preview checksum or binding mismatch')
+        header = paths[png].read_bytes()[:24]
+        if len(header) != 24 or header[:8] != b'\x89PNG\r\n\x1a\n' or header[12:16] != b'IHDR':
+            raise EvidenceError('External presentation preview is not a PNG')
+        width, height = struct.unpack('>II', header[16:24])
+        if not (400 <= width <= 4000 and 600 <= height <= 6000 and 0.65 <= width / height <= 0.75):
+            raise EvidenceError('External presentation preview has invalid dimensions')
+    return receipt
+
+
 def validate_presentation(paths: dict[str, Path], source_commit: str, manifest_hash: str,
                           screenshot_evidence: dict, *, metadata_root: Path) -> dict:
     """Verify a full PPTX receipt and each source/embedded image, without writes."""

@@ -46,6 +46,9 @@ TRIVY_RISK_ACCEPTANCE_*.json
 # Editable training sources and visual working files belong to the source release.
 # Visual decks are verified in CI and distributed through GitHub Releases, not the Docker image.
 docs/presentation/*
+# The runtime contains compact, hash-bound publication evidence, not the
+# editable training deck itself (published in the same-run GitHub Release).
+!docs/presentation/presentation-receipt.json
 docs/CIR_UI_Screenshots.pdf
 !docs/presentation/manual-first-page-*.png
 charts/

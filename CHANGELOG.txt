@@ -1,3 +1,9 @@
+0.10.0-1 RC108 (post-merge CI hotfix)
+- Fix the minimal multi-architecture Docker build failing on missing externally published training artifacts during the installed documentation check.
+- Preserve full PPTX/PDF byte-level and embedded-image validation before CI installation; Docker checks a compact, SHA-256-bound receipt for the presentation and screenshot-compilation PDF excluded by .dockerignore.
+- Keep the current manual PDFs, verified browser screenshots, presentation receipt and five manual first-page previews in the runtime image; require an explicit runtime-only verification mode and reject tampered or incomplete receipts.
+- Add offline regression coverage reproducing the Docker documentation context, rejecting absent/tampered evidence, and checking the exclusion/allowlist policy.
+
 RC107 (post-merge CI corrective, 2026-11-27)
 - Fix Docker release failing while installing same-run UI documentation: validate workflow card geometry using the existing standard-library PNG/JPEG dimension parser rather than importing Pillow before image-build dependencies are available.
 - Add Python -S regression coverage for both the exact UI evidence validator and the standalone workflow-card ROI CLI, preserving all six-card size, overlap, provenance, and release metadata checks.

@@ -27,11 +27,16 @@ def main(argv=None):
     parser.add_argument("--write", action="store_true", help="Atomically stamp only BUILD in --root")
     parser.add_argument("--verify-installed-documentation", action="store_true",
                         help="After stamping, reject any incomplete or differently dated installed screenshot/manual batch")
+    parser.add_argument("--runtime-external-training", action="store_true",
+                        help="Validate a slim Docker image against full CI-verified training receipts; "
+                             "the deck and screenshot compilation PDF are published externally")
     parser.add_argument("--github-output", type=Path, help="Append validated version/build job outputs")
     parser.add_argument("--field", choices=("json", "version", "build"), default="json")
     args = parser.parse_args(argv)
     if args.verify_installed_documentation and not args.write:
         parser.error("--verify-installed-documentation requires --write")
+    if args.runtime_external_training and not args.verify_installed_documentation:
+        parser.error("--runtime-external-training requires --verify-installed-documentation")
     try:
         version = validate_version((args.root / "VERSION").read_text(encoding="utf-8").strip())
         if args.expected_version is not None and args.expected_version != version:
@@ -51,7 +56,9 @@ def main(argv=None):
             )
             if any(path.exists() or path.is_symlink() for path in markers):
                 from scripts.ui_documentation_evidence import validate_installed_documentation
-                validate_installed_documentation(args.root)
+                validate_installed_documentation(
+                    args.root, runtime_external_training=args.runtime_external_training,
+                )
         if args.github_output:
             with args.github_output.open("a", encoding="utf-8") as stream:
                 stream.write(f"version={metadata.version}\nbuild={metadata.build}\n")

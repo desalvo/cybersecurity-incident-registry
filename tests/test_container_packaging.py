@@ -111,3 +111,30 @@ def test_browser_capture_tooling_is_excluded_without_removing_runtime_ui_or_manu
     requirements = (PROJECT_ROOT / "requirements.txt").read_text(encoding="utf-8")
     assert "playwright" not in requirements.lower()
     assert "python-pptx" not in requirements.lower()
+
+
+def test_docker_slim_documentation_context_is_hash_bound_to_release_artifacts() -> None:
+    from fnmatch import fnmatchcase
+
+    ignore = (PROJECT_ROOT / '.dockerignore').read_text(encoding='utf-8').splitlines()
+    patterns = [row.strip() for row in ignore if row.strip() and not row.lstrip().startswith('#')]
+
+    def ignored(name: str) -> bool:
+        parents = [str(parent) for parent in Path(name).parents if str(parent) != '.']
+        result = False
+        for pattern in patterns:
+            include_again = pattern.startswith('!')
+            p = pattern.lstrip('!').strip('/')
+            if any(fnmatchcase(part, p) for part in [name, *parents]):
+                result = not include_again
+        return result
+
+    assert ignored('docs/presentation/CIR_Operational_Training_IT.pptx')
+    assert ignored('docs/CIR_UI_Screenshots.pdf')
+    for name in ('docs/presentation/presentation-receipt.json',
+                 'docs/presentation/manual-first-page-documentazione_utente.png',
+                 'docs/UI_SCREENSHOTS_BUILD.json', 'docs/UI_SCREENSHOTS_SOURCE.json',
+                 'app/static/help/ui-runtime/manifest.json', 'docs/documentazione_utente.pdf'):
+        assert not ignored(name), name
+    docker = (PROJECT_ROOT / 'Dockerfile').read_text(encoding='utf-8')
+    assert '--verify-installed-documentation --runtime-external-training' in docker

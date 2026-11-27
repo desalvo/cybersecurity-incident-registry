@@ -277,8 +277,10 @@ def load_evidence(manifest_path: Path, expected_commit: str | None = None, *, me
 def validate_manuals(directory: Path, expected_commit: str, screenshot_manifest_sha256: str, *,
                      metadata_root: Path = ROOT, receipt_name: str = 'build-manifest.json',
                      require_presentation: bool = True, screenshot_evidence: dict | None = None,
-                     installed: bool = False) -> dict:
+                     installed: bool = False, runtime_external_training: bool = False) -> dict:
     directory = Path(directory).absolute()
+    if runtime_external_training and not installed:
+        raise EvidenceError('External training documents are allowed only in an installed Docker runtime')
     if Path(receipt_name).name != receipt_name:
         raise EvidenceError('Receipt filename must be a basename')
     receipt = _read_json(directory / receipt_name)
@@ -296,8 +298,10 @@ def validate_manuals(directory: Path, expected_commit: str, screenshot_manifest_
     files = receipt.get('files')
     if not isinstance(files, list):
         raise EvidenceError('Manual build receipt has no files')
-    from scripts.presentation_evidence import (PRESENTATION_ARTIFACTS, PRESENTATION_FILE,
-                                               PRESENTATION_RECEIPT, validate_presentation)
+    from scripts.presentation_evidence import (
+        PRESENTATION_ARTIFACTS, PRESENTATION_FILE, PRESENTATION_RECEIPT,
+        validate_presentation, validate_detached_presentation_receipt,
+    )
     required = set(REQUIRED_MANUALS)
     if require_presentation:
         required.update(PRESENTATION_ARTIFACTS)
@@ -305,6 +309,11 @@ def validate_manuals(directory: Path, expected_commit: str, screenshot_manifest_
             raise EvidenceError('Presentation receipt is not bound to the documentation batch')
         if screenshot_evidence is None:
             raise EvidenceError('Validated screenshot evidence is required for the complete documentation batch')
+    # Only these two large, fully CI-validated artifacts live outside the
+    # minimal Docker runtime. The receipt itself and every manual preview are
+    # required inside the image and checked against the same-run manifest.
+    external = frozenset({'CIR_UI_Screenshots.pdf', PRESENTATION_FILE}) if runtime_external_training else frozenset()
+    external_hashes = {}
     paths = {}
     for item in files:
         if not isinstance(item, dict):
@@ -317,7 +326,19 @@ def validate_manuals(directory: Path, expected_commit: str, screenshot_manifest_
         if name not in required:
             raise EvidenceError('Unexpected documentation artifact')
         relative = 'presentation/' + name if installed and name in PRESENTATION_ARTIFACTS else name
-        path = safe_artifact_path(directory, relative)
+        if name in external:
+            absent_path = directory / relative
+            if absent_path.exists() or absent_path.is_symlink():
+                raise EvidenceError('Externally distributed document must not be copied into Docker: ' + name)
+            if not isinstance(item.get('sha256'), str) or not re.fullmatch(r'[0-9a-f]{64}', item['sha256']):
+                raise EvidenceError('External document is missing its verified SHA-256 receipt: ' + name)
+            external_hashes[name] = item['sha256']
+            paths[name] = absent_path  # Preserve the required manifest census.
+            continue
+        try:
+            path = safe_artifact_path(directory, relative)
+        except EvidenceError as exc:
+            raise EvidenceError(f'Documentation artifact {name}: {exc}') from exc
         limit = 150 * 1024 * 1024 if name == PRESENTATION_FILE else 80 * 1024 * 1024
         if path.stat().st_size > limit:
             raise EvidenceError('Documentation artifact exceeds size limit')
@@ -326,14 +347,23 @@ def validate_manuals(directory: Path, expected_commit: str, screenshot_manifest_
         paths[name] = path
     if required - paths.keys():
         raise EvidenceError('Required current manuals are missing')
+    if runtime_external_training and set(external_hashes) != external:
+        raise EvidenceError('Runtime external documentation receipt is incomplete')
     if require_presentation:
-        validate_presentation(paths, expected_commit, screenshot_manifest_sha256,
-                              screenshot_evidence, metadata_root=metadata_root)
+        if runtime_external_training:
+            validate_detached_presentation_receipt(
+                paths, expected_commit, screenshot_manifest_sha256,
+                screenshot_evidence, metadata_root=metadata_root,
+                deck_sha256=external_hashes[PRESENTATION_FILE],
+            )
+        else:
+            validate_presentation(paths, expected_commit, screenshot_manifest_sha256,
+                                  screenshot_evidence, metadata_root=metadata_root)
     receipt['_paths'] = paths
     return receipt
 
 
-def validate_installed_documentation(root: Path = ROOT) -> dict:
+def validate_installed_documentation(root: Path = ROOT, *, runtime_external_training: bool = False) -> dict:
     """Check a complete installed batch against this candidate's VERSION/BUILD.
 
     Packaging calls this after stamping BUILD. A receipt from a prior build is
@@ -356,7 +386,8 @@ def validate_installed_documentation(root: Path = ROOT) -> dict:
         raise EvidenceError('Installed screenshots differ from their original artifact manifest')
     receipt = validate_manuals(root / 'docs', commit, sha256(original_path),
                                metadata_root=root, receipt_name='UI_SCREENSHOTS_BUILD.json',
-                               screenshot_evidence=installed, installed=True)
+                               screenshot_evidence=installed, installed=True,
+                               runtime_external_training=runtime_external_training)
     if (receipt.get('source_manifest_file') != 'UI_SCREENSHOTS_SOURCE.json'
             or receipt.get('installed_manifest_sha256') != sha256(installed_path)):
         raise EvidenceError('Installed screenshot receipt checksum mismatch')
