@@ -65,9 +65,10 @@ def test_main_branch_publication_has_accountability_gate():
     assert 'Required documentation publication was skipped or failed' in code
     assert 'Publication job did not report a verified outcome' in code
     publish_script = '\n'.join(str(step.get('run', '')) for step in publisher['steps'])
-    assert 'result=already-current' in publish_script
-    assert 'result=pr-opened' in publish_script
-    assert 'gh pr create' in publish_script
+    assert 'result=published' in publish_script
+    assert 'training_release_assets.py' in publish_script
+    assert 'publish_training_release.sh' in publish_script
+    assert 'gh pr create' not in publish_script
 
 
 def test_no_future_ci_screenshot_promises_in_editorial_slide_text():

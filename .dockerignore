@@ -44,10 +44,9 @@ SECURITY_DISPOSITION_*.md
 TRIVY_RISK_ACCEPTANCE_*.json
 
 # Editable training sources and visual working files belong to the source release.
-# Keep the validated generated deck with the complete installed CI evidence batch.
+# Visual decks are verified in CI and distributed through GitHub Releases, not the Docker image.
 docs/presentation/*
-!docs/presentation/CIR_Operational_Training_IT.pptx
-!docs/presentation/presentation-receipt.json
+docs/CIR_UI_Screenshots.pdf
 !docs/presentation/manual-first-page-*.png
 charts/
 openshift/

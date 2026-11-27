@@ -517,13 +517,13 @@
     "subtitle": "",
     "tag": "FUNZIONI",
     "bullets": [
-      "Tenant attivo: indicatori di incidenti, categorie, dati interessati e tempi, sempre nel perimetro autorizzato.",
-      "Super admin: vista cross-tenant con aggregazioni per tenant e confronto fra organizzazioni.",
-      "Super admin: vista globale, con indicatori consolidati su tutti i tenant.",
-      "Esportazione PDF, CSV e JSON: integrazione con piattaforme esterne e connettori ad hoc, se necessari."
+      "Tenant attivo: statistiche e export sempre limitati al perimetro autorizzato.",
+      "Super admin: grafici a bolle 3D per tenant, per categoria globale o per coppia tenant + categoria (30 bolle predefinite, limite modificabile).",
+      "Versione tabellare completa e confronto cross-tenant; una bolla rappresenta il numero di incidenti del gruppo.",
+      "Export JSON, XML o CSV, anche cifrato con password (AES-256-GCM), per analisi e connettori esterni."
     ],
     "images": [],
-    "notes": "Statistiche CIR: distinguere il tenant attivo (ambito predefinito), la vista globale e la ripartizione cross-tenant per tenant. Le due viste sovra-tenant sono riservate a global superuser; i normali utenti non ottengono accesso ad altri tenant. Percorsi: /reports/stats, /reports/stats.pdf, /reports/stats.csv, /reports/stats.json. CSV e JSON contengono indicatori aggregati, non record grezzi di incidenti; possono alimentare BI o connettori dedicati previa autorizzazione. Le catture CI mostrano soltanto dati sintetici. Fonti: app/routes.py, app/templates/stats.html, app/reports.py.",
+    "notes": "Statistiche CIR: distinguere il tenant attivo (ambito predefinito), la vista globale e la ripartizione cross-tenant per tenant. Le due viste sovra-tenant sono riservate a global superuser; i normali utenti non ottengono accesso ad altri tenant. Percorsi: /reports/stats, /reports/stats.pdf, /reports/stats.csv, /reports/stats.json. CSV e JSON contengono indicatori aggregati, non record grezzi di incidenti; possono alimentare BI o connettori dedicati previa autorizzazione. Le catture CI mostrano soltanto dati sintetici. Fonti: app/routes.py, app/templates/stats.html, app/reports.py. RC100: il diagramma a bolle della slide usa esclusivamente dati sintetici creati per il corso; non rappresenta dati di tenant reali né immagini CI. Le bolle colorate con riflessi 3D sono elementi PowerPoint nativi. Il numero massimo visibile è 30 per default, selezionabile fino a 100. L’export cifrato utilizza AES-256-GCM con chiave derivata da password mediante PBKDF2-HMAC-SHA256, salt casuale e autenticazione; la password non è archiviata. I gruppi tenant+categoria contano ogni incidente in ciascuna categoria selezionata.",
     "index": 22
   },
   {
@@ -1174,7 +1174,7 @@
     "bullets": [
       "Manuale utente (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
       "Manuale amministratore (IT): github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
-      "Queste slide in PDF: github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/presentation/CIR_Operational_Training_Visual.pdf",
+      "Queste slide in PDF: github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual.pdf",
       "Documentazione generata automaticamente dalla CI e rigenerata integralmente dopo ogni aggiornamento applicativo.",
       "Nell’app: «Aiuto»; disponibili anche manuali EN, guida Alfresco e brochure."
     ],
@@ -1229,10 +1229,10 @@
     "subtitle": "",
     "tag": "DOCUMENTI",
     "bullets": [
-      "AlBot (con la L, non «AIBot»), detto Alex: assistente AI opzionale di CIR. Il suo avatar originale cartoon identifica le risposte.",
-      "È disattivato per impostazione predefinita: compare solo se un amministratore abilita e configura il plugin del tenant.",
-      "Supporta ChatGPT, Claude, Gemini, Ollama e Perplexity; guida gli utenti senza eseguire autonomamente azioni.",
-      "Il contesto RAG è filtrato per tenant e privilegi: verificare sempre le risposte prima di usarle."
+      "AlBot è opzionale: per default è disabilitato e appare solo se un amministratore abilita il plugin.",
+      "Motori supportati: ChatGPT, Claude, Gemini, Ollama e Perplexity; la scelta richiede configurazione.",
+      "La RAG può usare una rappresentazione sanitizzata/anonimizzata dei dati applicativi, senza esporre informazioni personali.",
+      "Le risposte possono aiutare la collaborazione tra gli utenti autorizzati dello stesso tenant; il perimetro dei permessi rimane vincolante."
     ],
     "images": [
       {
@@ -1640,7 +1640,7 @@
       "Progetto: https://github.com/desalvo/cybersecurity-incident-registry",
       "Manuale utente IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_utente.pdf",
       "Manuale amministratore IT: https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/documentazione_amministrativa.pdf",
-      "Slide didattiche (PDF): https://github.com/desalvo/cybersecurity-incident-registry/blob/main/docs/presentation/CIR_Operational_Training_Visual.pdf",
+      "Slide didattiche (PDF): https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_Visual.pdf",
       "Tutti i documenti sono prodotti e rigenerati automaticamente dalla CI a ogni aggiornamento applicativo, verificati e pubblicati su main."
     ],
     "images": [],

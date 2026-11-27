@@ -9,6 +9,7 @@ from .knowledge import build_system_context, extract_text_from_upload
 from .database_context import database_context_enabled
 from .engines import get_engine, AIEngineError, ENGINE_CLASSES
 from .security import validate_ai_endpoint
+from . import workflow_authoring
 
 bp = Blueprint('ai_chatbot', __name__, url_prefix='/ai-chatbot', template_folder='templates')
 
@@ -154,7 +155,33 @@ def _generate_chatbot_answer(question):
     """Generate an AI Chatbot answer for both the full page and the floating widget."""
     cfg = plugin_config()
     engine = get_engine(cfg['engine'], cfg['configs'].get(cfg['engine'], {}))
-    answer = engine.generate([{'role': 'user', 'content': question}], build_system_context())
+    if workflow_authoring.is_authoring_intent(question):
+        if not admin_required():
+            raise PermissionError('La creazione o modifica dei workflow richiede il ruolo amministratore del tenant.')
+        # The model receives a constrained schema, not credentials or mutation tools.
+        spec = workflow_authoring.generate_proposal(question, engine)
+        export_only = workflow_authoring.request_is_export_only(question)
+        draft = workflow_authoring.prepare_draft(spec, export_only=export_only, request_text=question)
+        token = workflow_authoring.save_draft(draft)
+        preview = url_for('ai_chatbot.workflow_preview', token=token)
+        download = url_for('ai_chatbot.workflow_download', token=token)
+        # Button links are supported by all three CIR Markdown renderers (classic,
+        # modern AlBot, full-page chat), unlike relative Markdown links.
+        # The tenant/workflow names are user data, not Markdown control syntax.
+        display_name = draft['name'].translate(str.maketrans({'*': '∗', '`': 'ʹ', '[': '(', ']': ')',
+                                                              '{': '(', '}': ')', '_': ' '}))
+        if export_only:
+            answer = (f'Workflow "{display_name}" pronto nel tenant corrente. '
+                      f'{{button:Scarica il JSON portabile|{download}}} '
+                      f'{{button:Visualizza gli step e le dipendenze|{preview}}}. '
+                      'Non è stata applicata alcuna modifica alla configurazione.')
+        else:
+            answer = (f'Proposta workflow "{display_name}" pronta. '
+                      f'{{button:Apri anteprima e conferma|{preview}}} '
+                      f'{{button:Scarica il file JSON|{download}}}. '
+                      'Nessun workflow è stato ancora modificato.')
+    else:
+        answer = engine.generate([{'role': 'user', 'content': question}], build_system_context())
     audit_log('ai_chatbot:question', {
         'engine': cfg['engine'],
         'question': question[:300],
@@ -180,6 +207,8 @@ def chat():
             cfg = plugin_config()
             try:
                 answer, _engine_name = _generate_chatbot_answer(question)
+            except (ValueError, PermissionError) as exc:
+                answer = f'Impossibile preparare il workflow: {exc}'
             except AIEngineError as exc:
                 answer = f'Configurazione o motore AI non disponibile: {exc}'
                 audit_log('ai_chatbot:error', {'engine': cfg['engine'], 'error': str(exc)[:500]}, actor_type='user')
@@ -190,6 +219,66 @@ def chat():
                 audit_log('ai_chatbot:error', {'engine': cfg.get('engine'), 'error': str(exc)[:500]}, actor_type='user')
                 db.session.commit()
     return render_template('ai_chatbot_chat.html', question=question, answer=answer, engine=plugin_config()['engine'])
+
+
+@bp.route('/workflows/<token>/preview', methods=['GET'])
+@login_required
+def workflow_preview(token):
+    if not is_enabled():
+        abort(403)
+    try:
+        draft = workflow_authoring.read_draft(token)
+    except PermissionError:
+        abort(403)
+    except (ValueError, OSError) as exc:
+        flash(str(exc), 'warning')
+        return redirect(url_for('ai_chatbot.chat'))
+    return render_template('ai_chatbot_workflow_preview.html', draft=draft, token=token)
+
+
+@bp.route('/workflows/<token>/download', methods=['GET'])
+@login_required
+def workflow_download(token):
+    if not is_enabled():
+        abort(403)
+    try:
+        return workflow_authoring.json_download(workflow_authoring.read_draft(token))
+    except PermissionError:
+        abort(403)
+    except (ValueError, OSError):
+        abort(404)
+
+
+@bp.route('/workflows/<token>/apply', methods=['POST'])
+@login_required
+def workflow_apply(token):
+    if not is_enabled():
+        abort(403)
+    if request.form.get('confirm') != 'yes':
+        flash('Selezionare la casella di conferma prima di importare il workflow.', 'warning')
+        return redirect(url_for('ai_chatbot.workflow_preview', token=token))
+    try:
+        draft = workflow_authoring.read_draft(token)
+        if draft['export_only']:
+            raise ValueError('Questa proposta è stata richiesta come solo export JSON e non può essere importata direttamente.')
+        result = workflow_authoring.apply_draft(draft)
+        audit_log('ai_chatbot:workflow_applied', result, actor_type='user')
+        db.session.commit()
+        workflow_authoring.discard_draft(token)
+        flash(f'Workflow "{result["name"]}" salvato nel tenant corrente ({result["count"]} step).', 'success')
+        return redirect(url_for('ai_chatbot.chat'))
+    except PermissionError:
+        db.session.rollback()
+        abort(403)
+    except (ValueError, OSError) as exc:
+        db.session.rollback()
+        flash('Importazione non effettuata: '+str(exc), 'danger')
+        return redirect(url_for('ai_chatbot.workflow_preview', token=token))
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('AlBot workflow import failed')
+        flash('Importazione non riuscita. Nessuna modifica confermata.', 'danger')
+        return redirect(url_for('ai_chatbot.workflow_preview', token=token))
 
 
 @bp.route('/widget/ask', methods=['POST'])
@@ -221,6 +310,8 @@ def widget_ask():
     try:
         answer, engine_name = _generate_chatbot_answer(question)
         return jsonify({'ok': True, 'answer': answer, 'engine': engine_name})
+    except (ValueError, PermissionError) as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400 if isinstance(exc, ValueError) else 403
     except AIEngineError as exc:
         audit_log('ai_chatbot:error', {'engine': cfg.get('engine'), 'error': str(exc)[:500], 'source': 'widget'}, actor_type='user')
         db.session.commit()

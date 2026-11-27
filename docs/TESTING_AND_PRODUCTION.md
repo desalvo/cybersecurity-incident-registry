@@ -1,5 +1,17 @@
 # Testing, CI and production promotion
 
+## RC104 correction verification (27 November 2026)
+
+The RC103 PR run `45914128899` failed with 32 pytest failures and a failing
+real-UI documentation capture. Root causes and fixes are recorded in
+`docs/RELEASE.md`, section RC104. Local checks use Python 3.13 and the offline
+wheel bundle from the project library; successful checks include Flask request
+regressions for AlBot authoring, superadmin Tenants Default access and modern UI,
+CSP/template parsing and bilingual PptxGenJS source tests. The full CI matrix,
+real PostgreSQL suite, Chromium UI evidence, SCA and Docker/Trivy gates must be
+rerun on GitHub; local successes do not certify the release. The preexisting
+production-image digest and risk-acceptance rules are unchanged.
+
 ## 0.10.0-1 / RC1: metadati e verifiche della nuova linea
 
 `VERSION` identifica la release funzionale 0.10.0-1. Il job iniziale di CI calcola

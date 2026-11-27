@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='ui/incident.css') }}">
   <script src="{{ url_for('static', filename='ui/incident.js') }}" defer></script>
   {% endif %}
-  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}
   <link rel="stylesheet" href="{{ url_for('static', filename='ui/albot.css') }}">
   <script src="{{ url_for('static', filename='ui/albot.js') }}" defer></script>
   {% endif %}
@@ -36,7 +36,7 @@
 <header class="topbar" role="banner">
   <div class="brand" aria-label="Cybersecurity Incident Registry"><img class="top-logo" src="{{ url_for('main.logo_image') }}" alt="Logo" data-cir-hide-on-error><span class="brand-title" aria-hidden="true"><span>Cybersecurity</span><span>Incident</span><span>Registry</span></span></div>
   <button class="mobile-menu-toggle" type="button" aria-label="Apri o chiudi menu" aria-controls="main-nav" aria-expanded="false">☰ Menu</button>
-  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AlBot"> <img class="ai-chatbot-mobile-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"> Alex</button>{% endif %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}<button id="ai-chatbot-mobile-open" class="ai-chatbot-mobile-open" type="button" aria-controls="ai-chatbot-widget" aria-expanded="false" title="Apri AlBot"> <img class="ai-chatbot-mobile-avatar" src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"> Alex</button>{% endif %}
   {# compat-test: current_user.role=='superuser' #}
   <nav id="main-nav" class="nav" aria-label="Menu principale">
     <a href="{{ url_for('main.index') }}">Incidenti</a>
@@ -153,7 +153,7 @@
         <a role="menuitem" href="{{ url_for('main.help_page') }}">Documentazione utente</a>
         <a role="menuitem" href="{{ url_for('main.admin_help_page') }}">Documentazione amministrativa</a>
         <a role="menuitem" href="{{ url_for('main.release_notes') }}">Note di rilascio</a>
-        {% if ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}<a role="menuitem" href="{{ url_for('ai_chatbot.chat') }}">AlBot</a>{% endif %}
+        {% if ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}<a role="menuitem" href="{{ url_for('ai_chatbot.chat') }}">AlBot</a>{% endif %}
       </div>
     </div>
 
@@ -177,6 +177,7 @@
       <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">Attiva tenant</button>
     </form>
     {% endif %}
+    {% if cir_gravatar_url %}<span class="classic-gravatar-frame"><img class="classic-gravatar" src="{{ cir_gravatar_url }}" alt="" referrerpolicy="no-referrer" data-cir-hide-on-error></span>{% endif %}
     {{ current_user.name or current_user.username }} · <a href="{{ url_for('main.logout') }}">Logout</a>
   </div>
 </header>
@@ -197,8 +198,8 @@
 {% endif %}
 
 {% if cir_new_ui_enabled %}
-  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}{% include 'ui/albot.html' %}{% endif %}
-{% elif current_user.is_authenticated and ai_chatbot_plugin_enabled() and not (active_tenant and active_tenant.is_system_defaults) %}
+  {% if current_user.is_authenticated and ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}{% include 'ui/albot.html' %}{% endif %}
+{% elif current_user.is_authenticated and ai_chatbot_plugin_enabled() and (not (active_tenant and active_tenant.is_system_defaults) or current_user_is_superuser) %}
 <div id="ai-chatbot-widget" class="ai-chatbot-widget" data-ask-url="{{ url_for('ai_chatbot.widget_ask') }}" aria-live="polite">
   <button id="ai-chatbot-fab" class="ai-chatbot-fab" type="button" aria-controls="ai-chatbot-panel" aria-expanded="false" title="Apri AlBot" aria-label="Apri AlBot"><img src="{{ url_for('static', filename='ai-chatbot/albot-avatar.png') }}" alt="" aria-hidden="true"></button>
   <section id="ai-chatbot-panel" class="ai-chatbot-panel" role="dialog" aria-label="AlBot" hidden>

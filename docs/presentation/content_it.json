@@ -172,7 +172,7 @@
         "assistant-desktop",
         "assistant-mobile"
       ],
-      "notes": "Indicare lo spazio dell'assistente senza coprire stabilmente il lavoro sul caso. AlBot richiede la configurazione prevista per l'istanza e il tenant. È supporto informativo: l'operatore verifica i contenuti e conserva la responsabilità delle decisioni. La demo mostra l'interfaccia, non una valutazione di accuratezza o una risposta generata attestata. Fonti: docs/AI_CHATBOT_KNOWLEDGE.md, app/templates/incident_detail.html."
+      "notes": "Indicare lo spazio dell'assistente senza coprire stabilmente il lavoro sul caso. AlBot richiede la configurazione prevista per l'istanza e il tenant. È supporto informativo: l'operatore verifica i contenuti e conserva la responsabilità delle decisioni. La demo mostra l'interfaccia, non una valutazione di accuratezza o una risposta generata attestata. Fonti: docs/AI_CHATBOT_KNOWLEDGE.md, app/templates/incident_detail.html. AlBot è inoltre progettato per generare o aggiornare workflow con step, condizioni e dipendenze, previa conferma dell’admin, o per scaricare il JSON."
     },
     {
       "type": "screenshots",
@@ -917,7 +917,7 @@
       "type": "screenshots",
       "kicker": "APPROFONDIMENTO OPERATIVO",
       "title": "AlBot (Alex): assistente AI e pannello reale",
-      "notes": "Approfondimento per la formazione CIR. AlBot: assistenza AI. USO: Aiuto alla consultazione e redazione. CONTROLLO: L’operatore verifica sempre il risultato. PRIVACY: Rispettare permessi e policy del provider. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione.\nCattura autenticata obbligatoria dal browser della CI: assistant-panel-closeup. La pagina raffigura solo dati di prova.",
+      "notes": "Approfondimento per la formazione CIR. AlBot: assistenza AI. USO: Aiuto alla consultazione e redazione. CONTROLLO: L’operatore verifica sempre il risultato. PRIVACY: Rispettare permessi e policy del provider. Fonti: codice applicativo e documentazione CIR nel repository GitHub. I percorsi e le configurazioni specifiche dipendono dalla versione distribuita. L’esempio di incidente è illustrativo; non è derivato da un export di workflow utente non disponibile in questa sessione.\nCattura autenticata obbligatoria dal browser della CI: assistant-panel-closeup. La pagina raffigura solo dati di prova. RC103: aggiunta e aggiornamento workflow dal linguaggio naturale, anteprima e conferma esplicita oppure esportazione portabile JSON.",
       "screenshots": [
         "assistant-panel-closeup"
       ]

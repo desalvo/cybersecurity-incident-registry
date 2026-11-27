@@ -42,7 +42,7 @@ migration, Alfresco, security, training, testing, architecture and release guide
 Each online guide offers a PDF with the same cover. Original historical sections
 remain labelled as history.
 
-The editable [training PowerPoint](../docs/presentation/CIR_Operational_Training_IT.pptx)
+The editable [training PowerPoint](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_IT.pptx)
 has 34 slides with facilitator notes, incident exercises, actual manual first
 pages, supported platforms, development/compliance references and the
 vulnerability-review lifecycle. In the source edition, screenshot slots clearly
@@ -74,7 +74,7 @@ Tenants Default is initialized from operational `default` configuration when abs
 
 Full Export and anonymized bootstrap include Tenants Default; a dedicated whole-tenant bundle transfers it to another instance. See [migration procedures](../docs/MIGRATION.md).
 
-The package includes [Helm and OpenShift](../docs/DEPLOYMENT.md), an [operational training guide](../docs/TRAINING.md), [Italian PowerPoint slides](../docs/presentation/CIR_Operational_Training_IT.pptx) and updated brochures. Functional version remains **0.9.0-1**. See [verification status](../docs/TESTING_AND_PRODUCTION.md) and [Handoff](../docs/HANDOFF.md) before release.
+The package includes [Helm and OpenShift](../docs/DEPLOYMENT.md), an [operational training guide](../docs/TRAINING.md), [Italian PowerPoint slides](https://github.com/desalvo/cybersecurity-incident-registry/releases/latest/download/CIR_Operational_Training_IT.pptx) and updated brochures. Functional version remains **0.9.0-1**. See [verification status](../docs/TESTING_AND_PRODUCTION.md) and [Handoff](../docs/HANDOFF.md) before release.
 
 
 ## Tenants Default RC17

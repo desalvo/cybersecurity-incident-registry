@@ -9,6 +9,7 @@
 - **Multi-tenancy:** Separated tenants, roles, permissions, shared Tenants Default catalog and customizable imports.
 - **Administration:** Initial setup wizard, users, LDAP and SSO/OAuth2 settings, taxonomies, notifications and SMTP.
 - **Integrations:** Alfresco, import/export and optional AlBot AI assistant with authorization controls.
+- **AlBot workflow authoring:** create or update tenant workflows from natural-language step descriptions, dependencies and conditions, with a mandatory preview/confirmation for writes or JSON download. Super admins may also manage Tenants Default.
 - **Interface:** Responsive layout, Italian/English localization and administrator-controlled modern/classic modes.
 
 ## Architecture and deployment

@@ -1,3 +1,5 @@
+> **Nota aggiornamento RC96 (2026-11-26):** la regola di riserva delle categorie in questa nota storica è stata modificata. Le categorie preesistenti *senza* workflow ora sono riutilizzate: consultare [RC96_CATALOG_CATEGORY_REUSE.md](RC96_CATALOG_CATEGORY_REUSE.md).
+
 # RC77 — Catalog workflow: naming, category scope, severity reuse
 
 This change is based on the confirmed RC72 merge plus the incremental RC73–RC76 documentation updates. It changes **catalog import behavior** only for new imports; existing installed workflow categories and historical names are not renamed or migrated automatically.

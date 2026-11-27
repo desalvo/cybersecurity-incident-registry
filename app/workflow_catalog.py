@@ -136,7 +136,7 @@ def _legacy_to_portable(payload):
                 conditions.append({'kind': token, 'negated': negated})
             else:
                 parts = token.split(':', 1)
-                ref = source_ids.get(tuple(parts)) if len(parts) == 2 else None
+                ref = source_ids.get(('action_label' if parts[0] == 'step_completed' else parts[0], parts[1])) if len(parts) == 2 else None
                 if not ref:
                     raise ValueError('Il vecchio export contiene ID di condizioni non rimappabili: esportare il workflow con il nuovo export catalogo.')
                 conditions.append({'kind': parts[0], 'label_ref': ref, 'negated': negated})
@@ -298,6 +298,7 @@ def validate_catalog_payload(payload):
             'is_default': _boolean(item, 'is_default'),
         })
     steps = []
+    completed_step_refs = set()
     for item in _objects(wf.get('steps', []), 'steps', 256):
         ref = require_label(item.get('action_label_ref'), 'action_label')
         step_type = _text(item.get('step_type') or 'registration', 'step_type', 40)
@@ -307,8 +308,12 @@ def validate_catalog_payload(payload):
         for condition in _objects(item.get('conditions', []), 'conditions', 128):
             kind = _text(condition.get('kind'), 'condition kind', 40)
             row = {'kind': kind, 'negated': _boolean(condition, 'negated')}
-            if kind in {'severity', 'data_type'}:
-                row['label_ref'] = require_label(condition.get('label_ref'), kind)
+            if kind in {'severity', 'data_type', 'step_completed'}:
+                row['label_ref'] = require_label(condition.get('label_ref'), 'action_label' if kind == 'step_completed' else kind)
+                if kind == 'step_completed' and row['negated']:
+                    raise ValueError('Una dipendenza step non può essere negata.')
+                if kind == 'step_completed' and row['label_ref'] not in completed_step_refs:
+                    raise ValueError('La dipendenza deve riferirsi a uno step precedente del workflow.')
             elif kind != 'personal_data':
                 raise ValueError('Tipo condizione non valido.')
             conditions.append(row)
@@ -327,6 +332,7 @@ def validate_catalog_payload(payload):
         section = _text(item.get('section_target') or '', 'section_target', 80)
         if section and (section not in SECTION_TARGETS or step_type not in {'operation', 'update_section'}):
             raise ValueError('Sezione di destinazione non valida per lo step.')
+        completed_step_refs.add(ref)
         steps.append({
             'position': _integer(item.get('position', len(steps)), 'position'),
             'action_label_ref': ref, 'description': _text(item.get('description', ''), 'description', 100000),
@@ -479,9 +485,9 @@ def build_catalog_workflow_payload(tenant_id, category_id=None):
             else:
                 try:
                     kind, source_id = token.split(':', 1)
-                    if kind not in {'severity', 'data_type'}:
+                    if kind not in {'severity', 'data_type', 'step_completed'}:
                         raise ValueError
-                    ref = add_label(int(source_id), kind)
+                    ref = add_label(int(source_id), 'action_label' if kind == 'step_completed' else kind)
                 except (ValueError, TypeError) as exc:
                     raise ValueError('Condizione del workflow non valida o non appartenente al tenant.') from exc
                 conditions.append({'kind': kind, 'label_ref': ref, 'negated': negated})
@@ -578,28 +584,68 @@ def _unique_value(original, exists, suffix, limit):
 
 
 
-def _catalog_copy_name(requested, tenant_id):
-    """Reserve one visible name for both a workflow and its category.
+def _available_workflow_category(tenant_id, name):
+    """Reuse exactly one tenant category without a specific workflow.
 
-    A category is an independent workflow scope, not a severity-like
-    classification to deduplicate. Even a category inherited from Tenants
-    Default must not become the target of a newly imported workflow.
+    This includes Tenants Default replicas: importing workflow steps must not
+    replace or change the inherited category (or its shared-source mapping).
+    Keep the existing label ID so incidents already classified with this label
+    begin using its new specific procedure.  A used or ambiguous scope is not
+    reusable, even if its workflow lifecycle row has not been backfilled.
     """
     from .workflow_catalog_models import TenantWorkflow
-    existing_categories = (row.value for row in ConfigLabel.query.filter_by(
-        tenant_id=tenant_id, kind='category').all())
-    existing_workflows = (row.name for row in TenantWorkflow.query.filter_by(
-        tenant_id=tenant_id).all())
-    taken = {name.strip().casefold() for name in (*existing_categories, *existing_workflows) if name}
-    if requested.casefold() not in taken:
-        return requested
+    from .workflow_lifecycle import _steps_query
+    normalized = name.strip().casefold()
+    matches = [row for row in ConfigLabel.query.filter_by(
+        tenant_id=tenant_id, kind='category').all()
+        if row.value.strip().casefold() == normalized]
+    if len(matches) != 1:
+        return None
+    category = matches[0]
+    if _steps_query(tenant_id, category.id).first() is not None:
+        return None
+    if TenantWorkflow.query.filter_by(tenant_id=tenant_id, category_id=category.id).first() is not None:
+        return None
+    return category
+
+
+def _catalog_copy_name(requested, tenant_id):
+    """Choose a unique workflow name, *not* a unique category label name.
+
+    A category without a workflow is an available scope, including an inherited
+    Tenants Default category.  Only an installed workflow reserves that name.
+    Repeated imports still use the first free vN suffix; when a vN category is
+    unassigned it may also be reused rather than duplicated.
+    """
+    from .workflow_catalog_models import TenantWorkflow
+    states = TenantWorkflow.query.filter_by(tenant_id=tenant_id).all()
+    taken_workflows = {row.name.strip().casefold() for row in states if row.name}
+
+    def eligible(candidate):
+        if candidate.strip().casefold() in taken_workflows:
+            return None
+        categories = [row for row in ConfigLabel.query.filter_by(
+            tenant_id=tenant_id, kind='category').all()
+            if row.value.strip().casefold() == candidate.strip().casefold()]
+        if not categories:
+            return candidate
+        if len(categories) == 1:
+            existing = _available_workflow_category(tenant_id, candidate)
+            if existing is not None:
+                return existing.value.strip()
+        return None
+
+    available = eligible(requested)
+    if available is not None:
+        return available
     match = re.fullmatch(r'(.+?) v([2-9][0-9]*)', requested, flags=re.IGNORECASE)
     root, version = (match.group(1), int(match.group(2)) + 1) if match else (requested, 2)
     for index in range(version, version + 10000):
         suffix = f' v{index}'
         candidate = root[:160 - len(suffix)].rstrip() + suffix
-        if candidate.casefold() not in taken:
-            return candidate
+        available = eligible(candidate)
+        if available is not None:
+            return available
     raise ValueError('Impossibile assegnare un nome univoco al workflow nel tenant.')
 
 
@@ -707,8 +753,9 @@ def _materialize_workflow_payload(payload, target, entry, copy_name, as_default,
             continue
         # A severity already in the tenant is the same classification: use
         # its original ID and never replace its locally configured details.
-        # Categories are different: each imported workflow needs its own
-        # independent category with exactly the workflow's visible name.
+        # A workflow needs a dedicated category *scope*, not necessarily a new
+        # label: reuse an existing unassigned category, including an inherited
+        # Tenants Default replica, preserving all its fields and provenance.
         existing_severity = (_existing_tenant_severity(target.id, item['value'])
                              if item['kind'] == 'severity' else None)
         if existing_severity is not None:
@@ -722,12 +769,24 @@ def _materialize_workflow_payload(payload, target, entry, copy_name, as_default,
             continue
         base_value = copy_name if not as_default and is_scope else item['value']
         if is_scope:
-            if ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value=base_value).first():
-                raise ValueError('Categoria workflow già presente: ripetere l’importazione per scegliere un altro nome.')
+            reusable = _available_workflow_category(target.id, base_value)
+            if reusable is not None:
+                label_map[item['ref']] = reusable
+                continue
+            # This should only be reachable if another transaction or caller
+            # chose a conflicting name. Never create a second casefold match.
+            if any(row.value.strip().casefold() == base_value.strip().casefold()
+                   for row in ConfigLabel.query.filter_by(tenant_id=target.id, kind='category').all()):
+                raise ValueError('Categoria workflow già associata o ambigua: scegliere un altro nome.')
             value = base_value
         else:
             value = _unique_value(base_value, lambda v: ConfigLabel.query.filter_by(tenant_id=target.id, kind=item['kind'], value=v).first() is not None, suffix, 255)
         fields = {key: value for key, value in item.items() if key not in {'ref', 'value', 'shared_source_id'}}
+        # Mark only categories created by this importer as disposable.  A
+        # pre-existing local/shared category is reused without changing its
+        # group or any other attribute, and must survive workflow deletion.
+        if is_scope:
+            fields['group'] = 'catalogo workflow'
         label = ConfigLabel(tenant_id=target.id, value=value, **fields)
         db.session.add(label)
         db.session.flush()
@@ -737,11 +796,15 @@ def _materialize_workflow_payload(payload, target, entry, copy_name, as_default,
         if wf['category_ref']:
             category = label_map[wf['category_ref']]
         else:
-            if ConfigLabel.query.filter_by(tenant_id=target.id, kind='category', value=copy_name).first():
-                raise ValueError('Categoria workflow già presente: ripetere l’importazione per scegliere un altro nome.')
-            category = ConfigLabel(tenant_id=target.id, kind='category', value=copy_name, group='catalogo workflow', description=entry.description)
-            db.session.add(category)
-            db.session.flush()
+            category = _available_workflow_category(target.id, copy_name)
+            if category is None:
+                if any(row.value.strip().casefold() == copy_name.strip().casefold()
+                       for row in ConfigLabel.query.filter_by(tenant_id=target.id, kind='category').all()):
+                    raise ValueError('Categoria workflow già associata o ambigua: scegliere un altro nome.')
+                category = ConfigLabel(tenant_id=target.id, kind='category', value=copy_name,
+                                       group='catalogo workflow', description=entry.description)
+                db.session.add(category)
+                db.session.flush()
     for item in deps['notification_types']:
         shared = _resolve_shared_dependency(item, target.id, 'notification_type') if use_shared else None
         if shared is not None:

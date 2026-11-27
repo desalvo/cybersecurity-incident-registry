@@ -1,5 +1,68 @@
 # Release and Hotfix lifecycle
 
+## 0.10.0-1 / RC105: visual-training and hermetic screenshot capture
+
+The PR regression run attached in `logs_124226114072.zip` reported seven
+pytest failures from a stale slide-title contract and a separate browser
+capture failure for a non-existent Gravatar of a synthetic fixture user.
+RC105 restores the historical **AlBot: AI assistiva con RAG sanitizzato**
+training slide as slide 74, retaining its knowledge-base and tenant-privacy
+explanation. The **AlBot: crea e aggiorna workflow con conferma** slide follows
+immediately as slide 75, with an editable native PowerPoint decision diagram.
+Both localized decks therefore contain **117 slides**, and the matching
+PDFs contain 117 pages. The slide masters, translations, screenshots,
+appendix indices and integrity tests are updated together; strict CI
+checks for authentic browser captures and media provenance remain mandatory.
+
+The isolated documentation fixture disables remote Gravatar loading for its
+synthetic users, without changing the application-wide Gravatar default.
+RC105 needs a new green remote PR CI run before merge; the independently
+validated bilingual editorial decks are not replacements for same-run CI
+screenshot evidence.
+
+## 0.10.0-1 / RC104: PR CI recovery after RC103
+
+GitHub Actions run `45914128899` reported **32 failed, 1,215 passed, 59 skipped**
+tests and a separate real-UI screenshot failure. The first runtime cause was a
+Jinja `%>` typo in the AlBot widget, blocking rendering of the main application.
+Other failures revealed inline styles forbidden by the production CSP, a missing
+Tenants Default AlBot allowlist/navigation path, leftover Markdown links to
+PPTX moved outside the repository, and Node dependencies absent from the
+quality-gates job where the PowerPoint regression tests execute.
+
+RC104 restores strict Jinja/CSP conformance; permits AlBot draft and preview
+configuration operations in Tenants Default **only for super admins**; preserves
+the explicit import confirmation, tenant isolation, and session-bound drafts; and
+installs pinned PptxGenJS/image-size tooling before pytest, as the UI capture job
+already does. Contract tests are updated to the RC102 immutable training release
+pipeline without bypassing documentation, digest or integrity gates. The earlier
+slide text that validates AlBot's workflow-authoring role remains unchanged.
+
+A Python 3.13 isolated virtualenv was provisioned from the project's offline
+wheel archive. Focused local integration and regression checks were run after
+the fixes; details are in the RC104 verification report. A new remote CI run
+on the corrected PR head is required before merging or production promotion.
+
+## 0.10.0-1 / RC103: AlBot workflow authoring
+
+AlBot now prepares new tenant workflows and safe updates to existing workflows from
+step-by-step natural-language specifications, including required steps, completion
+prerequisites, severity/data/risk conditions and linked configured documents and
+notifications. Tenant admins may create a workflow in their active tenant; super admins
+can also manage **Tenants Default**. The interface offers a portable JSON download
+or an editable preview that requires explicit confirmation before a transactional
+write. Existing-incident workflows cannot be destructively changed.
+
+Updated both source-driven 116-slide PowerPoint decks and exported the matching
+116-page PDF training documents, which remain **outside** the main Git source
+history, consistent with the RC102 GitHub Releases publication design. See
+`docs/RC103_ALBOT_WORKFLOW_AUTHORING.md` for operations and security policy.
+
+**Validation:** Python compile checks and bilingual slide/PDF generation pass
+locally. Full Flask/PostgreSQL integration tests and remote GitHub CI require the
+project runtime and have not yet been executed for RC103.
+
+
 <a id="0100-1--rc1-linea-di-sviluppo-corrente"></a>
 
 ## 0.10.0-1 / RC1: linea di sviluppo corrente

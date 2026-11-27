@@ -48,6 +48,9 @@ def _verify_embedded_presentation_media():
         return hashlib.sha256(data).hexdigest()
 
     deck_path = ROOT / 'docs/presentation/CIR_Operational_Training_IT.pptx'
+    if not deck_path.is_file():
+        import pytest
+        pytest.skip('RC102: live operational PPTX verified by CI and published as a GitHub Release asset')
     receipt = json.loads((ROOT / 'docs/presentation/presentation-receipt.json').read_text())
     assert receipt['file'] == deck_path.name
     assert digest(deck_path.read_bytes()) == receipt['sha256']

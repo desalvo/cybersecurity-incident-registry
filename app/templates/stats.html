@@ -3,7 +3,7 @@
 <div class="page-header">
   <div>
     <h1>Statistiche</h1>
-    <p class="muted">Indicatori per tenant, aggregazioni globali e confronti cross-tenant (solo super admin). Export PDF, CSV e JSON per analisi esterne e connettori dedicati.</p>
+    <p class="muted">Indicatori per tenant, aggregazioni globali e confronti cross-tenant (solo super admin). Export PDF, CSV, JSON e XML, anche cifrati con password per analisi esterne e connettori dedicati.</p>
   </div>
   <div class="toolbar">
     <a class="button" href="{{ url_for('main.stats_pdf', scope=scope, start=request.args.get('start',''), end=request.args.get('end','')) }}">Scarica PDF statistiche</a>
@@ -31,6 +31,91 @@
   <button type="submit">Aggiorna finestra ricercata</button>
   <a class="button secondary" href="{{ url_for('main.stats') }}">Azzera</a>
 </form>
+
+{% if is_stats_superuser %}
+<section class="card cir-bubble-section" aria-labelledby="cir-bubble-title">
+  <div class="stats-card-header">
+    <div>
+      <h2 id="cir-bubble-title">Panoramica a bolle tridimensionali · cross-tenant</h2>
+      <p class="muted">Le bolle rappresentano il numero di incidenti. I dati provengono da tutti i tenant, anche quando il riepilogo sopra mostra solo il tenant attivo. Una categoria può appartenere a più incidenti e un incidente può avere più categorie.</p>
+    </div>
+    <div class="stat-pills"><span class="stat-pill"><b>{{ bubble_rows|length }}</b> gruppi</span></div>
+  </div>
+  <form method="get" action="{{ url_for('main.stats') }}" class="toolbar cir-bubble-controls" aria-label="Opzioni del grafico a bolle">
+    <input type="hidden" name="scope" value="{{ scope }}">
+    <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
+    <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
+    <label>Raggruppamento
+      <select name="bubble_mode">
+        <option value="tenant" {{ 'selected' if bubble_mode == 'tenant' }}>Totale incidenti per tenant</option>
+        <option value="category" {{ 'selected' if bubble_mode == 'category' }}>Incidenti per categoria (tutti i tenant)</option>
+        <option value="tenant_category" {{ 'selected' if bubble_mode == 'tenant_category' }}>Incidenti per tenant + categoria</option>
+      </select>
+    </label>
+    <label>Numero massimo di bolle (1–100, predefinito 30)
+      <input name="bubble_limit" type="number" value="{{ bubble_limit }}" min="1" max="100" required>
+    </label>
+    <button type="submit">Applica</button>
+  </form>
+  <div class="cir-bubble-scene" id="cir-bubble-scene" aria-label="Diagramma a bolle degli incidenti inter-tenant">
+    {% for item in bubble_rows[:bubble_limit] %}
+    <div class="cir-bubble" data-bubble-weight="{{ (item.count / (bubble_rows[0].count or 1))|round(5) }}" title="{{ item.label }}: {{ item.count }} incidenti" tabindex="0" aria-label="{{ item.label }}: {{ item.count }} incidenti">
+      <div class="cir-bubble-gloss" aria-hidden="true"></div>
+      <span class="cir-bubble-count">{{ item.count }}</span>
+      <span class="cir-bubble-label">{{ item.label }}</span>
+    </div>
+    {% else %}<p class="muted">Nessun dato aggregabile per il periodo scelto.</p>{% endfor %}
+  </div>
+  <p class="muted">Grafico: primi {{ [bubble_limit, bubble_rows|length]|min }} gruppi per numero di incidenti. La tabella seguente include <b>tutti</b> i gruppi, senza taglio a 30.</p>
+  <details class="cir-bubble-table" open>
+    <summary>Versione tabellare completa ({{ bubble_rows|length }} righe)</summary>
+    <div class="table-card"><table class="table">
+      <thead><tr><th>Tenant</th><th>Categoria</th><th>Incidenti</th></tr></thead>
+      <tbody>{% for item in bubble_rows %}
+        <tr><td>{{ item.tenant or 'Tutti i tenant' }}</td><td>{{ item.category or 'Tutte le categorie' }}</td><td>{{ item.count }}</td></tr>
+      {% else %}<tr><td colspan="3">Nessun incidente.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </details>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="cir-stats-export-title">
+  <h2 id="cir-stats-export-title">Esportazione strutturata delle statistiche</h2>
+  <p class="muted">Sono esportati solo conteggi aggregati. Le viste globali e inter-tenant sono riservate al super admin. La password non viene memorizzata.</p>
+  <form method="post" action="{{ url_for('main.stats_export') }}" class="toolbar cir-stats-export-form" autocomplete="off">
+    {{ csrf_field()|safe }}
+    <input type="hidden" name="start" value="{{ request.args.get('start','') }}">
+    <input type="hidden" name="end" value="{{ request.args.get('end','') }}">
+    <label>Ambito
+      <select name="scope">
+        <option value="tenant" {{ 'selected' if scope=='tenant' }}>Tenant attivo</option>
+        {% if is_stats_superuser %}
+        <option value="all" {{ 'selected' if scope=='all' }}>Globale</option>
+        <option value="per_tenant" {{ 'selected' if scope=='per_tenant' }}>Cross-tenant</option>
+        {% endif %}
+      </select>
+    </label>
+    <label>Dati
+      <select name="mode">
+        <option value="tenant">Totale per tenant</option>
+        <option value="category">Totale per categoria</option>
+        <option value="tenant_category" selected>Tenant + categoria</option>
+      </select>
+    </label>
+    <label>Formato
+      <select name="format">
+        <option value="json">JSON</option><option value="xml">XML</option><option value="csv">CSV</option>
+      </select>
+    </label>
+    <label><input type="checkbox" name="encrypt" value="1" id="cir-export-encrypt"> Cifra con password (AES-256-GCM)</label>
+    <label id="cir-export-password-label" hidden>Password del file (min. 12 caratteri)
+      <input type="password" name="password" id="cir-export-password" minlength="12" maxlength="1024" autocomplete="new-password">
+    </label>
+    <button type="submit">Esporta statistiche</button>
+  </form>
+  <p class="muted">Per i file cifrati, conservare la password fuori dall'archivio e utilizzare un client compatibile con il formato CIR AES-256-GCM v1. I file non cifrati si aprono direttamente nei normali strumenti JSON, XML e CSV.</p>
+</section>
+<script src="{{ url_for('static', filename='stats_bubbles.js') }}" defer></script>
 
 <div class="stats-periods">
   {% for row in rows %}

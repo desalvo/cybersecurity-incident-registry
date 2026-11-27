@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Avoid re-publishing docs on the merge of the bot's own generated docs PR.
+"""Publish releases only on authored changes; skip metadata-only digest merges.
 
 Authored specs, app code and workflows still trigger documentation publication,
 even when a Docker image rebuild is not needed.
@@ -22,7 +22,7 @@ def generated(path: str) -> bool:
         name = PurePosixPath(path).name
         return (name.endswith(('.pptx', '.pdf')) or
                 name.startswith('manual-first-page-') and name.endswith('.png') or
-                name in {'presentation-receipt.json', 'visual-training-receipt.json'})
+                name in {'presentation-receipt.json', 'visual-training-receipt.json', 'visual-training-en-receipt.json'})
     return False
 
 

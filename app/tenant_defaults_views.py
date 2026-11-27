@@ -113,6 +113,11 @@ def register_tenant_defaults_routes(bp):
             'main.notification_templates_manage', 'main.modules_configuration',
             'main.admin_other_configurations', 'main.admin_backups', 'main.admin_audit',
             'alfresco.admin_plugins', 'ai_chatbot.admin_plugins',
+            # AlBot can manage configuration drafts in Tenants Default, but only
+            # for the superadmin, as enforced at the start of this guard.
+            'ai_chatbot.chat', 'ai_chatbot.widget_ask',
+            'ai_chatbot.workflow_preview', 'ai_chatbot.workflow_download',
+            'ai_chatbot.workflow_apply',
             'main.logout', 'main.login', 'main.mfa_verify', 'main.logo_image',
             'main.help_page', 'main.admin_help_page', 'main.release_notes', 'main.app_info',
             'main.healthz', 'static',

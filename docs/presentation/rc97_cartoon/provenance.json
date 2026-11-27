@@ -1,0 +1,87 @@
+{
+  "version": "rc97",
+  "source": "original synthetic cartoon illustrations selected for CIR educational presentation; no photographs or actual application screenshots",
+  "artwork": [
+    {
+      "section": "01",
+      "file": "docs/presentation/rc97_cartoon/01_Perche_CIR.png",
+      "sha256": "64b5c506d5f77fa5c87249a71feea0cdff9113ff256867537d51df317689b5bc",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "02",
+      "file": "docs/presentation/rc97_cartoon/02_Le_funzioni_operative.png",
+      "sha256": "55927ac32132d554e5571c01c27580d11531a6cd2ec481c3a0622745ff07551e",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "03",
+      "file": "docs/presentation/rc97_cartoon/03_Utenti_e_tenant.png",
+      "sha256": "514a9a010ee073af402c7cdf28e42e4a88673d143df1ec39f39fc6f15bf35ec2",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "04",
+      "file": "docs/presentation/rc97_cartoon/04_Workflow_e_cataloghi.png",
+      "sha256": "27f3b03ca319ba287b1c3f4788bd88113daf0afe75557ee9fde264d3bb968595",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "05",
+      "file": "docs/presentation/rc97_cartoon/05_Documenti_integrazioni_supporto.png",
+      "sha256": "4defdfdb25bd377ef3367deee02a8a11cd11abc928e9032c07a8aa302133667b",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "06",
+      "file": "docs/presentation/rc97_cartoon/06_Laboratorio_SPAM.png",
+      "sha256": "6cd797955be0c7fcf905e545353eedcd6128ed0f80304af8158bd71c96f674ae",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "07",
+      "file": "docs/presentation/rc97_cartoon/07_Conclusioni.png",
+      "sha256": "ff8d542b62bfd2f3153fbb10581c9791a21ce4fcf62e879773da079a0dc68ca5",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "08",
+      "file": "docs/presentation/rc97_cartoon/08_Appendici.png",
+      "sha256": "3535a222bcb0d2e5f528521cbf9e08a9240bfdae5d6b55244224ae4febf955a8",
+      "kind": "user-approved-original-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    },
+    {
+      "section": "grazie",
+      "file": "docs/presentation/rc97_cartoon/09_Grazie_CIR.png",
+      "sha256": "7205854d719ad74cc79b7a520fdbb574c4f9f87605523940812196ccb6398e6b",
+      "kind": "original-thank-you-cartoon",
+      "real_people": false,
+      "photographic": false,
+      "contains_real_ui": false
+    }
+  ]
+}

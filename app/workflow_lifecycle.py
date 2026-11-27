@@ -404,12 +404,12 @@ def _prune_catalog_category(tenant_id, category_id, *, workflow_id=None):
     category = ConfigLabel.query.filter_by(id=int(category_id), tenant_id=int(tenant_id), kind='category').first()
     if category is None:
         return False
-    receipt_query = WorkflowCatalogInstallation.query.filter_by(tenant_id=int(tenant_id), category_id=category.id)
-    receipts = receipt_query.all()
-    owned = category.group == 'catalogo workflow' or any(
-        row.workflow_id == workflow_id for row in receipts if workflow_id is not None
-    )
-    if not owned:
+    # Only delete labels explicitly created by the catalog importer.  An
+    # installation receipt proves workflow origin, NOT ownership of the label:
+    # RC96 can attach a workflow to an existing local/inherited category.
+    # Historic imported categories without this marker are retained safely;
+    # an unused one can be reused on the next import without a v2 suffix.
+    if category.group != 'catalogo workflow':
         return False
     if _steps_query(tenant_id, category.id).first() or get_workflow_state(tenant_id, category.id):
         return False
