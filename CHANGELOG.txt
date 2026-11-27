@@ -1,3 +1,8 @@
+RC107 (post-merge CI corrective, 2026-11-27)
+- Fix Docker release failing while installing same-run UI documentation: validate workflow card geometry using the existing standard-library PNG/JPEG dimension parser rather than importing Pillow before image-build dependencies are available.
+- Add Python -S regression coverage for both the exact UI evidence validator and the standalone workflow-card ROI CLI, preserving all six-card size, overlap, provenance, and release metadata checks.
+- Preserve strict publication accountability: if Docker build/scanning fails, GitHub Releases publication still does not run and main CI remains red.
+
 RC106 (CI corrective, 2026-11-27)
 - Keep the same synthetic source-commit and build identity in RC67 builder and verifier subprocesses; add explicit negative checks proving mismatches are still rejected.
 - Make English cartoon text rendering portable across runners with a checked TrueType font fallback and provision the canonical Comic Neue font in the UI documentation CI job.
